@@ -35,19 +35,25 @@ struct HostContextMenu: View {
         HostConnectMenu(hosts: hosts)
 
         if hosts.count == 1, let host = hosts.first {
-            Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
-                window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
-            }
             copySSHCommandButton(host)
         }
 
         Divider()
 
         if hosts.count == 1, let host = hosts.first {
-            if host.isTailscaleManaged || app.tailscale.peer(for: host) != nil {
+            let showsWake = host.wakeOnLAN.address != nil
+            let showsTailscale = host.isTailscaleManaged || app.tailscale.peer(for: host) != nil
+            if showsWake {
+                Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
+                    window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+                }
+            }
+            if showsTailscale {
                 Button(AppStrings.Tailscale.title.swiftUIKey, systemImage: "point.3.connected.trianglepath.dotted") {
                     window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
                 }
+            }
+            if showsWake || showsTailscale {
                 Divider()
             }
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
@@ -179,10 +185,6 @@ enum HostMenuEntries {
                     }
                 ))
         }
-        entries.append(
-            NativeMenuEntry(title: AppStrings.LocalNetwork.wake, symbol: "power") {
-                window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
-            })
         if includesCopySSHCommand {
             entries.append(
                 NativeMenuEntry(
@@ -195,11 +197,21 @@ enum HostMenuEntries {
                 })
         }
         entries.append(.separator)
-        if host.isTailscaleManaged || app.tailscale.peer(for: host) != nil {
+        let showsWake = host.wakeOnLAN.address != nil
+        let showsTailscale = host.isTailscaleManaged || app.tailscale.peer(for: host) != nil
+        if showsWake {
+            entries.append(
+                NativeMenuEntry(title: AppStrings.LocalNetwork.wake, symbol: "power") {
+                    window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+                })
+        }
+        if showsTailscale {
             entries.append(
                 NativeMenuEntry(title: AppStrings.Tailscale.title, symbol: "point.3.connected.trianglepath.dotted") {
                     window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
                 })
+        }
+        if showsWake || showsTailscale {
             entries.append(.separator)
         }
         entries.append(

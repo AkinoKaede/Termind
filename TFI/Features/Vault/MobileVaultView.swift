@@ -43,7 +43,8 @@ nonisolated enum MobileHostMenuPolicy {
                 case .mosh: host.isEnabled(.mosh)
                 case .eternalTerminal: host.isEnabled(.eternalTerminal)
                 case .tailscale: host.isTailscaleManaged || hasTailscalePeer
-                case .wake, .edit, .duplicate, .delete: true
+                case .wake: host.wakeOnLAN.address != nil
+                case .edit, .duplicate, .delete: true
                 }
             }
             return available.isEmpty ? nil : available

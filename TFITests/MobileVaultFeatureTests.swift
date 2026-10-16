@@ -116,7 +116,6 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
                 [.ssh, .sftp],
-                [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -126,7 +125,6 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
                 [.telnet],
-                [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -134,6 +132,7 @@ struct MobileVaultFeatureTests {
         host.sshEnabled = true
         host.terminalTransports.moshEnabled = true
         host.terminalTransports.eternalTerminalEnabled = true
+        host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
         #expect(MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: true) == MobileHostMenuPolicy.sections)
 
         host.sshEnabled = false
@@ -141,6 +140,31 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
                 [.wake],
+                [.edit, .duplicate],
+                [.delete],
+            ])
+    }
+
+    @Test(arguments: ["", " ", "invalid", "FF:FF:FF:FF:FF:FF"], [false, true])
+    func hostMenuHidesWakeWithoutAValidMAC(macAddress: String, hasTailscalePeer: Bool) {
+        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
+        host.wakeOnLAN.macAddress = macAddress
+        #expect(
+            MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: hasTailscalePeer)
+                == [[.ssh, .sftp]] + (hasTailscalePeer ? [[.tailscale]] : []) + [[.edit, .duplicate], [.delete]])
+    }
+
+    @Test(arguments: [false, true])
+    func hostMenuPlacesConfiguredWakeAboveTailscale(isTailscaleManaged: Bool) {
+        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
+        host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
+        if isTailscaleManaged {
+            host.tailscale = .init(groupID: UUID(), stableNodeID: "wake-test")
+        }
+        #expect(
+            MobileHostMenuPolicy.sections(for: host) == [
+                [.ssh, .sftp],
+                isTailscaleManaged ? [.wake, .tailscale] : [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])
