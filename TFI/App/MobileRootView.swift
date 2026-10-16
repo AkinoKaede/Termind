@@ -29,11 +29,20 @@ struct MobileRootView: View {
         content
     }
 
+    private var shouldKeepScreenAwake: Bool {
+        MobileScreenAwakeController.wantsAwake(
+            preferences: app.terminalExperienceSettings.preferences, isActive: scenePhase == .active,
+            workspaceKind: scene.activeWorkspace?.descriptor.kind)
+    }
+
     private var content: some View {
         featureTabs
             .background { MobileWorkspaceNumberShortcuts(scene: scene) }
             .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
             .onChange(of: scene.visibleAssistantConversationID, initial: true) { app.refreshAssistantReadState() }
+            .onChange(of: shouldKeepScreenAwake, initial: true) { _, value in
+                app.screenAwake.update(sceneID: scene.id, wantsAwake: value)
+            }
             .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
             .sheet(isPresented: Bindable(app.pro).projectedValue.isPaywallPresented) {
                 MobileProView(pro: app.pro)
@@ -131,6 +140,15 @@ struct MobileRootView: View {
                 Tab(value: feature.id) {
                     featureNavigation(feature)
                         .mobileToolbarEnvironment()
+                        .environment(
+                            \.mobileConnectionFeedback,
+                            MobileConnectionFeedbackContext(
+                                isForeground: { [weak app = app, weak scene = scene] in
+                                    guard let app, let scene else { return false }
+                                    return scene.selectedDestination == feature.id
+                                        && app.isNotificationSceneActive(scene)
+                                },
+                                succeeded: app.terminalEffects.connectionSucceeded))
                 } label: {
                     Label(feature.title, systemImage: feature.symbol)
                 }

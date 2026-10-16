@@ -2,6 +2,10 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Settings {
+        public static var bell: LocalizedStringResource { "Bell" }
+        public static var sound: LocalizedStringResource { "Sound" }
+        public static var vibration: LocalizedStringResource { "Vibration" }
+        public static var keepScreenAwake: LocalizedStringResource { "Keep Screen Awake" }
         public static var compactCards: LocalizedStringResource {
             "Compact Cards"
         }

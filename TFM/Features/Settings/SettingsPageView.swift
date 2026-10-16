@@ -678,6 +678,13 @@ private struct TerminalSettings: View {
                     }
                 }
             }
+            Section(AppStrings.Settings.bell.swiftUIKey) {
+                Toggle(
+                    AppStrings.Settings.sound.swiftUIKey,
+                    isOn: Binding(
+                        get: { app.terminalExperienceSettings.preferences.bellSound },
+                        set: { app.terminalExperienceSettings.set($0, for: \.bellSound) }))
+            }
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {

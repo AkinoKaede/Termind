@@ -1,16 +1,14 @@
-import AudioToolbox
 import UIKit
 
 @MainActor
 enum TerminalNotificationPlatform {
+    static var soundURL: URL? { Bundle.main.url(forResource: "bell", withExtension: "wav") }
+
     static func ringBell() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
-            let url = Bundle.main.url(forResource: "command-finished", withExtension: "wav")
+            let url = soundURL
         else { return }
-        var sound: SystemSoundID = 0
-        guard AudioServicesCreateSystemSoundID(url as CFURL, &sound) == kAudioServicesNoError else { return }
-        let identifier = sound
-        AudioServicesPlaySystemSoundWithCompletion(identifier) { AudioServicesDisposeSystemSoundID(identifier) }
+        MobileSystemSoundPlayer.live.play(url: url)
     }
 
     static func openSettings() {

@@ -143,6 +143,8 @@ final class AppModel {
     /// rather than more fields on `ai`: that one is about endpoints you spend a
     /// key at, this is a library of documents. See `SkillLibraryModel`.
     let terminalSettings: TerminalSettingsModel
+    let terminalExperienceSettings: TerminalExperienceSettingsModel
+    private let terminalBellSound: @MainActor () -> Void
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
     let workspaceSettings: WorkspaceSettingsModel
@@ -208,6 +210,7 @@ final class AppModel {
         skills: SkillLibraryModel = SkillLibraryModel(),
         memory: MemoryModel = MemoryModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
+        terminalBellSound: @escaping @MainActor () -> Void = TerminalNotificationPlatform.ringBell,
         notificationSettings: NotificationSettingsModel = NotificationSettingsModel(),
         sshSettings: SSHSettingsModel = SSHSettingsModel(),
         sftpSettings: SFTPSettingsModel = SFTPSettingsModel(),
@@ -232,6 +235,8 @@ final class AppModel {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         settingsDefaults = dependencies.settingsDefaults
+        terminalExperienceSettings = TerminalExperienceSettingsModel(defaults: dependencies.settingsDefaults)
+        self.terminalBellSound = terminalBellSound
         recentlyClosedStore = RecentlyClosedStore(
             defaults: dependencies.settingsDefaults, key: "desktop.recentlyClosed.v2")
         snippetTimestampFallback = SnippetTimestamp.fallback(in: dependencies.settingsDefaults)
@@ -1358,6 +1363,13 @@ final class AppModel {
     }
 
     private func configureCommandMonitor(_ pane: Pane) {
+        pane.configureTerminalBell { [weak self, weak pane] in
+            guard let self, let pane, self.terminalExperienceSettings.preferences.bellSound,
+                let id = pane.commandSessionID, self.commandNotificationTarget(id) != nil,
+                self.terminationTask == nil
+            else { return }
+            self.terminalBellSound()
+        }
         guard let monitor = pane.commandMonitor, let id = pane.commandSessionID else { return }
         terminalNotifications.observe(monitor, id: id)
     }

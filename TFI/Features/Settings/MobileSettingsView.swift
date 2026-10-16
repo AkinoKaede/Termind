@@ -34,7 +34,7 @@ struct MobileSettingsView: View {
                 }
                 NavigationLink {
                     MobileTerminalSettingsView(
-                        model: app.terminalSettings)
+                        model: app.terminalSettings, experience: app.terminalExperienceSettings)
                 } label: {
                     Label(AppStrings.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }

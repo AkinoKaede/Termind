@@ -107,6 +107,9 @@ final class MobileAppModel {
     }
     var error: String?
     let terminalSettings: TerminalSettingsModel
+    let terminalExperienceSettings: TerminalExperienceSettingsModel
+    let terminalEffects: MobileTerminalEffects
+    let screenAwake: MobileScreenAwakeController
     let agentForwardingRouter = MobileAgentForwardingRouter()
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
@@ -169,7 +172,8 @@ final class MobileAppModel {
                 background: background,
                 workspaceConnections: workspaceConnectionServices,
                 metrics: inMemory || hosts != nil ? .testing : .live,
-                appReview: appReview
+                appReview: appReview,
+                terminalEffects: inMemory || hosts != nil ? MobileTerminalEffects() : .live
             ))
     }
 
@@ -177,6 +181,9 @@ final class MobileAppModel {
         let hosts = dependencies.hosts
         let inMemory = dependencies.inMemory
         let defaults = dependencies.defaults
+        terminalEffects = dependencies.terminalEffects
+        screenAwake = MobileScreenAwakeController(
+            setIdleTimerDisabled: dependencies.terminalEffects.setIdleTimerDisabled)
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
@@ -223,6 +230,7 @@ final class MobileAppModel {
             ? defaults ?? UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")!
             : defaults ?? .standard
         self.settingsDefaults = settingsDefaults
+        terminalExperienceSettings = TerminalExperienceSettingsModel(defaults: settingsDefaults)
         SettingsKey.migrateSyncPreferences(in: settingsDefaults)
         let settingsPersistence = SettingsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try settingsPersistence.prepare()
@@ -592,6 +600,7 @@ final class MobileAppModel {
         if let workspaceSessionID { sceneSessionIDs[id] = workspaceSessionID }
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = phase
+        if phase != .active { screenAwake.update(sceneID: id, wantsAwake: false) }
         refreshCommandFocus()
         if phase == .active {
             Task { [weak self] in
@@ -677,6 +686,7 @@ final class MobileAppModel {
     }
 
     func removeScene(_ id: UUID) {
+        screenAwake.update(sceneID: id, wantsAwake: false)
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = nil
         sceneSessionIDs[id] = nil
@@ -892,6 +902,14 @@ final class MobileAppModel {
     }
 
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {
+        workspace.configureTerminalBell { [weak self, weak workspace] in
+            guard let self, let workspace, self.hasActiveNotificationScene,
+                self.containsWorkspace(workspace.id)
+            else { return }
+            let preferences = self.terminalExperienceSettings.preferences
+            if preferences.bellVibration { self.terminalEffects.vibration() }
+            if preferences.bellSound { self.terminalEffects.sound() }
+        }
         terminalNotifications.observe(workspace.commandMonitor, id: workspace.id)
 
         observeActivityState(of: workspace)

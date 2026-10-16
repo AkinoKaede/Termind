@@ -102,6 +102,7 @@ final class Pane: Identifiable {
     var content: PaneContent
     private var connectionHistoryEntryID: ConnectionHistoryEntry.ID?
     private var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
+    private var bellObservation: TerminalBellObservation?
 
     /// A name the user gave this pane. `nil` means the title tracks the content
     /// — the host it is on, the page it shows.
@@ -113,6 +114,19 @@ final class Pane: Identifiable {
 
     init(_ content: PaneContent) {
         self.content = content
+    }
+
+    func configureTerminalBell(_ ring: @escaping @MainActor () -> Void) {
+        switch content {
+        case .sshSession(let session):
+            bellObservation = TerminalBellObservation(state: session.terminalState, ring: ring)
+        case .telnetSession(let session):
+            bellObservation = TerminalBellObservation(state: session.terminalState, ring: ring)
+        case .serialSession(let session):
+            bellObservation = TerminalBellObservation(state: session.terminalState, ring: ring)
+        case .sftpChannel, .empty:
+            bellObservation = nil
+        }
     }
 
     func configureConnections(using coordinator: RemoteConnectionCoordinator) {
@@ -191,6 +205,7 @@ final class Pane: Identifiable {
     /// disappearance is not ownership: dragging a pane reparents its view and
     /// must leave the same live session connected.
     func disconnectConnection() {
+        bellObservation = nil
         if let connectionHistoryEntryID {
             endConnectionHistory?(connectionHistoryEntryID)
             self.connectionHistoryEntryID = nil
@@ -214,6 +229,7 @@ final class Pane: Identifiable {
     /// `disconnectConnection`. Keep the Pane itself so its name, duplicate
     /// index, focus identity, and place in the split tree all survive.
     func prepareForReopen() {
+        bellObservation = nil
         commandNotificationID = UUID()
         commandMonitor?.markRead()
         switch content {

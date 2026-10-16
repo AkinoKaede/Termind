@@ -58,7 +58,8 @@ struct MobileTerminalFontTests {
         defaults.set(family, forKey: SettingsKey.terminalFontFamily)
         defaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         let view = NavigationStack {
-            MobileTerminalSettingsView(model: TerminalSettingsModel())
+            MobileTerminalSettingsView(
+                model: TerminalSettingsModel(), experience: TerminalExperienceSettingsModel(defaults: defaults))
         }
         .defaultAppStorage(defaults)
         .environment(\.locale, Locale(identifier: language))

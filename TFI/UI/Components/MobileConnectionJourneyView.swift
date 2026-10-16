@@ -22,6 +22,8 @@ struct MobileConnectionJourneyView: View {
     var allowsPersistingHostKey = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.mobileConnectionFeedback) private var feedbackContext
+    @State private var successFeedback = MobileConnectionSuccessFeedback()
 
     var body: some View {
         ScrollView {
@@ -46,6 +48,14 @@ struct MobileConnectionJourneyView: View {
         .background(Color(uiColor: .systemBackground))
         .transition(.opacity)
         .accessibilityElement(children: .contain)
+        .onAppear { observeSuccess() }
+        .onChange(of: ObjectIdentifier(journey)) { _, _ in observeSuccess() }
+        .onDisappear { successFeedback.stop() }
+    }
+
+    private func observeSuccess() {
+        successFeedback.observe(
+            journey, canPresent: feedbackContext.isForeground, feedback: feedbackContext.succeeded)
     }
 
     @ViewBuilder

@@ -109,6 +109,16 @@ public final class ConnectionJourney {
     public var showsLogs = false
 
     private var completionTask: Task<Void, Never>?
+    @ObservationIgnored private var successObservers: [UUID: () -> Bool] = [:]
+
+    /// Offer readiness synchronously; the first handler returning true consumes it, with no replay.
+    public func observeSuccess(id: UUID, handle: @escaping () -> Bool) {
+        successObservers[id] = handle
+    }
+
+    public func removeSuccessObserver(_ id: UUID) {
+        successObservers[id] = nil
+    }
 
     public var isPresented: Bool { phase != .hidden }
     public var destination: ConnectionEndpoint? { endpoints.last }
@@ -424,6 +434,7 @@ public final class ConnectionJourney {
 
     public func succeed() {
         guard !endpoints.isEmpty else { return }
+        let newlySucceeded = phase == .connecting || phase == .waiting || transportRecovery != nil
         transportRecovery = nil
         checkpoint = nil
         localRequirement = nil
@@ -437,6 +448,11 @@ public final class ConnectionJourney {
             try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled else { return }
             self?.phase = .hidden
+        }
+        if newlySucceeded {
+            for handle in Array(successObservers.values) {
+                if handle() { break }
+            }
         }
     }
 

@@ -178,6 +178,7 @@ final class MobileWorkspace: Identifiable {
     private let commandGeneration = CommandGenerationCoordinator()
     private let commandDraft = TerminalCommandDraftController()
     private var workingDirectoryObservation: AnyCancellable?
+    private var bellObservation: TerminalBellObservation?
     private let surfaceOwner = MobileTerminalSurface()
     var uploadConnectionGeneration: UUID { generation }
 
@@ -190,6 +191,11 @@ final class MobileWorkspace: Identifiable {
     var uploadTerminalView: UIView? { descriptor.kind.isSSHTerminal ? surfaceOwner.view : nil }
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
+
+    func configureTerminalBell(_ ring: @escaping @MainActor () -> Void) {
+        guard descriptor.kind != .sftp else { return }
+        bellObservation = TerminalBellObservation(state: terminal, ring: ring)
+    }
 
     func readViewportText() -> String? {
         backend.readViewportText()
@@ -1826,6 +1832,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func close() {
+        bellObservation = nil
         commandHistory.close()
         sftpHistory.close()
         disconnect()
