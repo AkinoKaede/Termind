@@ -31,29 +31,48 @@ public struct ColorTagPicker: View {
             Button {
                 selection = color
             } label: {
-                ZStack {
-                    if let fill = color.color {
-                        Circle().fill(fill)
-                    } else {
-                        Image(systemName: "circle.dashed").resizable().fontWeight(.light).foregroundStyle(.secondary)
-                    }
-                    if layout == .touch && selection == color {
-                        Image(systemName: "checkmark").font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.primary).padding(3).background(.background, in: .circle)
-                    }
-                }
-                .frame(width: layout == .compact ? 20 : 26, height: layout == .compact ? 20 : 26)
-                .overlay {
-                    Circle().strokeBorder(Color.accentColor, lineWidth: 2).padding(-3)
-                        .opacity(selection == color ? 1 : 0)
-                }
-                .frame(minWidth: layout == .touch ? 44 : nil, minHeight: layout == .touch ? 44 : nil)
-                .contentShape(.rect)
+                Swatch(color: color, isSelected: selection == color, layout: layout)
+                    .frame(minWidth: layout == .touch ? 44 : nil, minHeight: layout == .touch ? 44 : nil)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .help(Text(color.displayName))
             .accessibilityLabel(Text(color.displayName))
             .accessibilityAddTraits(selection == color ? [.isButton, .isSelected] : .isButton)
+        }
+    }
+
+    struct Swatch: View {
+        let color: TagColor
+        let isSelected: Bool
+        let layout: Layout
+
+        var body: some View {
+            ZStack {
+                if let fill = color.color {
+                    Circle().fill(fill)
+                } else {
+                    Image(systemName: "circle.dashed").resizable().fontWeight(.light).foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: layout == .compact ? 20 : 26, height: layout == .compact ? 20 : 26)
+            .overlay {
+                if isSelected {
+                    let foreground = selectionForeground
+                    ZStack {
+                        Circle().strokeBorder(foreground, lineWidth: 1.5).padding(2)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: layout == .compact ? 9 : 12, weight: .bold))
+                            .foregroundStyle(foreground)
+                    }
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+                }
+            }
+        }
+
+        private var selectionForeground: Color {
+            color == .none ? .primary : .white
         }
     }
 }
