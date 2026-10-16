@@ -68,6 +68,9 @@ struct RemoteSessionWireTests {
             let target = try RemoteTmuxCommands.quote(reference.session.id)
             let size = try await execute("tmux list-clients -t \(target) -F '#{client_width} #{client_height}'")
             #expect(size.stdout == "103 37\n")
+            let innerSize = try await execute(
+                "tmux display-message -p -t \(target) '#{window_width} #{window_height} #{pane_width} #{pane_height}'")
+            #expect(innerSize.stdout == "103 36 103 36\n")
             return SSHPTYStartupPlan(command: try backend.launch(reference, created: false).command)
         }
         try await connect(second, fixture: fixture, hostID: hostID)

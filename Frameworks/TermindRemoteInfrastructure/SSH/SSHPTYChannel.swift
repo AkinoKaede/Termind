@@ -853,6 +853,11 @@ public actor SSHPTYChannel {
         try await worker.sessionCommandExecutor(runtime: true)
     }
 
+    public func setTerminalActive(_ active: Bool) {
+        guard transportKind == .ssh else { return }
+        worker.setTerminalActive(active)
+    }
+
     public func contextDraft(_ context: TerminalShellContext, replacing command: String? = nil) async throws -> String {
         try await worker.contextDraft(context, replacing: command)
     }
@@ -954,6 +959,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var socketEvents: SSHSocketEvents?
     private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
+    private var terminalActivation = SSHPTYActivationState()
+    private var activationTask: (request: SSHPTYActivationState.Request, task: Task<Void, Never>)?
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var shellIntegrationLifecycleLogger: RemoteShellIntegrationLifecycleLogger
     private var commandEventFilter: RemoteCommandEventFilter?
@@ -1243,8 +1250,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             // but never carry another connection's pending request forward.
             var nextResize = ptyResize
             let generation = nextResize.beginConnection(columns: columns, rows: rows)
+            let wasActive = terminalActivation.isActive
             cleanup()
             ptyResize = nextResize
+            terminalActivation.setActive(wasActive)
             return generation
         }
         let encodedEnvironment = try environmentVariables.map { variable in
@@ -1369,6 +1378,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         queue.async { [self] in
             runtimeRevision &+= 1
             runtimeInputRevision &+= 1
+            terminalActivation.noteInput()
+            cancelStaleActivation()
             runtimeDraftBaseline = nil
             // Input expires in-flight operations, but does not itself prove a context switch.
             // Keep the last observation until inspection replaces it; operations revalidate it.
@@ -1385,9 +1396,22 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {
         guard columns > 0, rows > 0 else { return }
         queue.async { [self] in
+            let previous = ptyResize.requestedSize
             ptyResize.request(
                 SSHPTYSize(columns: columns, rows: rows, widthPixels: widthPixels, heightPixels: heightPixels)
             )
+            if ptyResize.requestedSize != previous {
+                terminalActivation.viewportChanged()
+                cancelStaleActivation()
+            }
+            pump()
+        }
+    }
+
+    func setTerminalActive(_ active: Bool) {
+        queue.async { [self] in
+            terminalActivation.setActive(active)
+            cancelStaleActivation()
             pump()
         }
     }
@@ -1395,7 +1419,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     public func disconnect() async { await queue.perform { self.closeTerminalSession() } }
 
     func sessionCommandExecutor(
-        runtime: Bool = false, expectedInput: UInt64? = nil
+        runtime: Bool = false, expectedInput: UInt64? = nil,
+        activation: SSHPTYActivationState.Request? = nil
     ) async throws -> RemoteSessionCommandExecutor {
         let generation = try await queue.perform { [self] in
             guard connection != nil else { throw TermindSSHError.disconnected }
@@ -1423,6 +1448,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         validateContext: { [self] in
                             ptyResize.generation == generation
                                 && (expectedInput == nil || runtimeInputRevision == expectedInput)
+                                && (activation.map {
+                                    terminalActivation.isCurrent($0) && ptyResize.isSynchronized && ptyChannel != nil
+                                } ?? true)
                         })
                 } catch {
                     try Task.checkCancellation()
@@ -2062,6 +2090,39 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         socketEvents?.update(
             read: !buffer.isBackpressured,
             write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+        scheduleTerminalActivation()
+    }
+
+    private func cancelStaleActivation() {
+        guard let activationTask, !terminalActivation.isCurrent(activationTask.request) else { return }
+        activationTask.task.cancel()
+        self.activationTask = nil
+    }
+
+    private func scheduleTerminalActivation() {
+        guard activationTask == nil, ptyChannel != nil, runtimeEnabled, !runtimeControlUnavailable,
+            channelBudget?.permitsConcurrentControl == true,
+            let request = terminalActivation.takeRequest(resizeIsSynchronized: ptyResize.isSynchronized)
+        else { return }
+        let generation = ptyResize.generation
+        let inputRevision = runtimeInputRevision
+        let task = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try Task.checkCancellation()
+                let execute = try await sessionCommandExecutor(
+                    runtime: true, expectedInput: inputRevision, activation: request)
+                try await RemoteTmuxRuntimeAdapter(execute: execute).refreshSize(of: request.client)
+            } catch {
+                // Optional sizing assistance must not disconnect a usable terminal or inject a fallback key.
+            }
+            await queue.perform { [self] in
+                guard ptyResize.generation == generation, activationTask?.request == request else { return }
+                terminalActivation.finish(request)
+                activationTask = nil
+            }
+        }
+        activationTask = (request, task)
     }
 
     private func reportExit(_ result: Result<Int32, TermindSSHError>) {
@@ -2202,6 +2263,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             }
         }
         latestRuntimeUpdate = update
+        terminalActivation.updateClient(
+            runtimeTerminal.flatMap { RemoteTmuxClientIdentity(update: update, terminal: $0) })
+        cancelStaleActivation()
+        scheduleTerminalActivation()
         detectedHistorySource =
             update.status == .ordinary || update.status == .multiplexer
             ? update.contexts.first(where: { $0.identity == update.active })?.historySource : nil
@@ -2421,6 +2486,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func stopRuntimeObservation() {
+        activationTask?.task.cancel()
+        activationTask = nil
+        terminalActivation.reset()
         runtimeTask?.cancel()
         runtimeTask = nil
         runtimeTerminal = nil

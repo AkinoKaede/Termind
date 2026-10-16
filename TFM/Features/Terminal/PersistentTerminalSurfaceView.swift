@@ -569,6 +569,10 @@
             synchronizeFocus(requested: true, force: true)
         }
 
+        var hasActiveKeyboardFocus: Bool {
+            terminalView.window?.isKeyWindow == true && terminalView.window?.firstResponder === terminalView
+        }
+
         @discardableResult
         func performBindingAction(_ action: String) -> Bool {
             // Ghostty may make its surface first responder while dispatching a

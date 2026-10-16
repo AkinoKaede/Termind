@@ -14,6 +14,11 @@ TEST_RUNNER_TERMIND_TMUX_FIXTURE=/tmp/termind-tmux.json xcodebuild \
   -only-testing:TFMTests/RemoteSessionWireTests \
   -only-testing:TFMTests/TerminalContextRuntimeTests \
   -parallel-testing-enabled NO test
+
+For TerminalActivationWireTests, use --max-sessions 8 and run both
+--debian-release bookworm (tmux 3.3a) and trixie (tmux 3.5a).
+TerminalActivationWindowTests additionally requires TEST_RUNNER_TERMIND_WINDOW_TESTS=1;
+it opens native windows and records viewport, Ghostty, PTY and tmux sizes.
 """
 
 import argparse
@@ -34,6 +39,9 @@ def main():
     parser.add_argument("--lima", default="default")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--max-sessions", type=int, default=1)
+    parser.add_argument(
+        "--debian-release", choices=["bookworm", "trixie"], default="trixie",
+        help="bookworm supplies tmux 3.3a; trixie supplies tmux 3.5a")
     args = parser.parse_args()
     metadata = Path(args.metadata).resolve()
     if metadata.exists():
@@ -65,7 +73,7 @@ def main():
         try:
             nerdctl(
                 "run", "--detach", "--name", name, "--publish", f"127.0.0.1:{port}:22",
-                "debian:trixie-slim", "sleep", "infinity", stdout=subprocess.DEVNULL)
+                f"debian:{args.debian_release}-slim", "sleep", "infinity", stdout=subprocess.DEVNULL)
             print("Installing OpenSSH, tmux and shells in an isolated Lima container...", flush=True)
             execute(
                 "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends "

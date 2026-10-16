@@ -16,13 +16,38 @@ public nonisolated struct RemoteTmuxRuntimeAdapter: TerminalRuntimeAdapter {
         return try Self.parse(result.stdout, terminal: terminal, charset: charset)
     }
 
+    func refreshSize(of client: RemoteTmuxClientIdentity) async throws {
+        let result = try await execute(Self.resizeCommand(client: client))
+        guard result.exitCode == 0, !result.truncated, result.stdout == "TERMIND_RESIZED\n" else {
+            throw TerminalRuntimeError.staleContext
+        }
+    }
+
+    static func resizeCommand(client: RemoteTmuxClientIdentity) throws -> String {
+        let identity = [
+            client.terminal, client.process, client.created, client.server, client.session, client.sessionCreated,
+        ].joined(separator: "|")
+        // Revalidate on the server immediately before signalling. A detached client's TTY
+        // may already contain a shell, so this operation must never write terminal input.
+        return """
+            export LC_ALL=C
+            client=$(tmux list-clients -F '#{client_tty}|#{client_pid}|#{client_created}|#{pid}|#{session_id}|#{session_created}|#{client_flags}' 2>/dev/null | \
+            while IFS='|' read -r tty cp cc sp sid sc flags; do
+                if [ "$tty" = \(try RemoteTmuxCommands.quote(client.terminal)) ]; then
+                    case ",$flags," in
+                        *,read-only,*|*,ignore-size,*|*,active-pane,*|*,control-mode,*) continue ;;
+                    esac
+                    printf '%s|%s|%s|%s|%s|%s\\n' "$tty" "$cp" "$cc" "$sp" "$sid" "$sc"
+                fi
+            done)
+            [ "$client" = \(try RemoteTmuxCommands.quote(identity)) ] || exit 79
+            kill -WINCH \(client.process) || exit 79
+            printf 'TERMIND_RESIZED\\n'
+            """
+    }
+
     static func command(terminal: String) throws -> String {
-        guard terminal.hasPrefix("/dev/"),
-            terminal.utf8.allSatisfy({
-                (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
-                    || [47, 46, 95, 45].contains($0)
-            })
-        else { throw TerminalRuntimeError.invalidResponse }
+        guard RemoteTmuxClientIdentity.validTerminal(terminal) else { throw TerminalRuntimeError.invalidResponse }
         return """
             export LC_ALL=C
             command -v tmux >/dev/null 2>&1 || exit 77

@@ -18,6 +18,10 @@ nonisolated struct SSHPTYResizeState {
     private var inFlightSize: SSHPTYSize?
     private var acceptsRequests = true
 
+    var isSynchronized: Bool {
+        appliedSize != nil && inFlightSize == nil && requestedSize == appliedSize
+    }
+
     mutating func beginConnection(columns: UInt16, rows: UInt16) -> UUID {
         let initial = generation == nil && acceptsRequests ? requestedSize : nil
         reset()

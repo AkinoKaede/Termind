@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import GhosttyTerminal
@@ -141,6 +142,8 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     @ObservationIgnored lazy var terminalUpload = TerminalUploadModel(session: self)
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
+    private var terminalActivityObservation: AnyCancellable?
+    private(set) var isTerminalActive = false
     /// The live terminal's frozen route and credential IDs. Password, Key, and
     /// passphrase material are resolved only for each attempted transfer
     /// connection and never retained here. Cleared with the SSH connection.
@@ -270,6 +273,18 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         relay.owner = self
         commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         observeWorkingDirectory(from: surface.state, through: relay)
+        terminalActivityObservation = surface.state.$isFocused
+            .combineLatest(surface.state.$isSurfaceVisible)
+            .map { $0 && $1 }
+            .removeDuplicates()
+            .map { _ in () }
+            .merge(
+                with: NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification).map { _ in () },
+                NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification).map { _ in () }
+            )
+            .sink { [weak relay] _ in
+                Task { @MainActor in relay?.owner?.synchronizeTerminalActivity() }
+            }
         sessionPersistence.didChangePrompt = { [weak self] pending in
             if pending { self?.connectionJourney.waitForSessionSelection() } else { self?.connectionJourney.resume() }
         }
@@ -944,6 +959,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                         environment: host.environmentVariables)
                 }
             }
+            await actor.setTerminalActive(isTerminalActive)
             try await actor.connect(
                 using: SSHConnectionRequest(
                     configuration: configuration,
@@ -1292,6 +1308,20 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 columns: viewport.columns, rows: viewport.rows,
                 widthPixels: viewport.widthPixels, heightPixels: viewport.heightPixels
             )
+        }
+    }
+
+    private func synchronizeTerminalActivity() {
+        // First responder can be retained in a non-key window. Window events must
+        // recheck native focus even when Ghostty's last published value is unchanged.
+        let active =
+            terminalState.isFocused && terminalState.isSurfaceVisible && terminalViewOwner.hasActiveKeyboardFocus
+        guard active != isTerminalActive else { return }
+        isTerminalActive = active
+        guard let ssh else { return }
+        Task { [weak self] in
+            guard let self, self.ssh === ssh, self.isTerminalActive == active else { return }
+            await ssh.setTerminalActive(active)
         }
     }
 
