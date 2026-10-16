@@ -11,7 +11,7 @@ nonisolated enum RemoteZellijCommands {
 
     static var list: String {
         """
-        \(RemoteMultiplexerKind.zellij.discovery)
+        \(RemoteMultiplexerCommands.discovery(.zellij))
         \(RemoteMultiplexerCommands.utilities)
         \(userRoot)
         user_root=$root
@@ -81,5 +81,71 @@ nonisolated enum RemoteZellijCommands {
             --session-serialization false >/dev/null || exit 78
         socket=$(find "$root" -type s -name '\(name)' -print) || exit 78
         """
+    }
+}
+
+nonisolated struct RemoteZellijDialect: RemoteSocketMultiplexerDialect {
+    let id = SessionPersistenceBackendID.zellij
+    let paneVariable: String? = "ZELLIJ_PANE_ID"
+    var list: String { RemoteZellijCommands.list }
+
+    func validateVersion(_ output: String) throws {
+        let version = try RemoteMultiplexerVersion(output, backend: id)
+        guard version.major > 0 || version.minor > 44 || (version.minor == 44 && version.patch >= 3) else {
+            throw RemoteSessionFailure.unsupported
+        }
+    }
+    func validPane(_ value: String) -> Bool {
+        !value.isEmpty && value.utf8.allSatisfy { (48...57).contains($0) }
+    }
+    func parseList(_ text: String) throws -> [RemoteMultiplexerCandidate] {
+        try RemoteZellijCommands.parseList(text)
+    }
+    func create(name: String, token: UUID) -> String { RemoteZellijCommands.create(name: name) }
+    func attach(name: String) -> String { "\"$exe\" attach \(name)" }
+    func stop(name: String) -> String { "\"$exe\" kill-session \(name)" }
+    func validateIdentity(_ identity: RemoteMultiplexerIdentity) throws {}
+    func validRoute(_ identity: RemoteMultiplexerIdentity, name: String) -> Bool {
+        identity.socket.hasSuffix("/" + name)
+    }
+    func routing(_ identity: RemoteMultiplexerIdentity) throws -> String {
+        """
+        export ZELLIJ_SOCKET_DIR=\(try RemoteMultiplexerCommands.quote(identity.root))
+        \(identity.isolated ? "export XDG_CACHE_HOME=\(try RemoteMultiplexerCommands.quote(identity.root + "/cache"))" : "")
+        """
+    }
+    func prepareAttachment() -> String {
+        """
+        # An attach command can otherwise resurrect a cached session after a disconnect race.
+        cache="/tmp/termind-zellij-attach-cache-$(id -u)"
+        private_dir "$cache" || exit 79
+        export XDG_CACHE_HOME="$cache"
+        """
+    }
+    var restoreShellEnvironment: String {
+        """
+        if [ "${TERMIND_SHELL_CACHE_HOME_SET:-}" = x ]; then
+            export XDG_CACHE_HOME="$TERMIND_SHELL_CACHE_HOME"
+        else
+            unset XDG_CACHE_HOME
+        fi
+        unset TERMIND_SHELL_CACHE_HOME_SET TERMIND_SHELL_CACHE_HOME
+        """
+    }
+    func runtimeCommands(name: String) -> (String, String) {
+        ("\"$exe\" list-sessions --short --no-formatting", "\"$exe\" --session \(name) action list-clients")
+    }
+    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+        // A switched client cannot be bound using its original argv. Require a unique live session too.
+        guard native == reference.session.name else { return nil }
+        let clients = focus.split(separator: "\n")
+        guard clients.first == "CLIENT_ID ZELLIJ_PANE_ID RUNNING_COMMAND", clients.count == 2 else { return nil }
+        let fields = clients[1].split(whereSeparator: \.isWhitespace)
+        guard fields.count >= 3, UInt64(fields[0]) != nil, fields[1].hasPrefix("terminal_") else { return nil }
+        let pane = String(fields[1].dropFirst("terminal_".count))
+        return validPane(pane) ? pane : nil
+    }
+    func writeDraft(name: String, pane: String, key: String) -> String {
+        "\"$exe\" --session \(name) action write-chars --pane-id \(pane) \(key)"
     }
 }

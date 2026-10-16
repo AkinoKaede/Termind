@@ -29,6 +29,13 @@ public nonisolated struct TerminalCustomTheme: Codable, Hashable, Identifiable, 
     public var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !baseThemeName.isEmpty
     }
+
+    public func copy(named name: String) -> Self {
+        var copy = self
+        copy.id = UUID()
+        copy.name = name
+        return copy
+    }
 }
 
 /// The built-in name also remembers the fallback while a custom theme is selected.

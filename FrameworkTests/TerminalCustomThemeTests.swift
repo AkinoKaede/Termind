@@ -9,6 +9,34 @@ import Testing
 
 @Suite @MainActor
 struct TerminalCustomThemeTests {
+    @Test func copyingPreservesThemeContentAndTheDifferentDraftBaselines() {
+        let original = TerminalCustomTheme(
+            name: "Original", appearance: .both, baseThemeName: "Termind Light",
+            configuration: "background = 123456")
+        let copy = original.copy(named: "Original Copy")
+        #expect(copy.id != original.id)
+        #expect(copy.name == "Original Copy")
+        #expect(copy.appearance == .both && copy.baseThemeName == "Termind Light")
+        #expect(copy.configuration == "background = 123456")
+        let newDraft = TerminalCustomThemeDraft(copy, isNew: true)
+        #expect(newDraft.isNew && !newDraft.isDirty)
+        #expect(newDraft.original == copy)
+        let recovered = TerminalCustomThemeDraft(original, isNew: false)
+        recovered.value.configuration = "background = ABCDEF"
+        recovered.makeCopy(name: "Recovered")
+        #expect(recovered.isNew && recovered.isDirty)
+        #expect(recovered.original == original)
+        #expect(recovered.id != original.id && recovered.id != copy.id)
+        #expect(recovered.value.configuration == "background = ABCDEF")
+        #expect(recovered.value.appearance == .both && recovered.value.baseThemeName == "Termind Light")
+        let model = TerminalSettingsModel()
+        #expect(model.saveCustomTheme(original, isNew: true))
+        #expect(newDraft.save(in: model))
+        #expect(recovered.save(in: model))
+        #expect(!recovered.isNew && !recovered.isDirty)
+        #expect(model.themeLibrary.themes.first { $0.id == original.id } == original)
+    }
+
     @Test func choicesAreIndependentAndDeletingAnActiveThemeRestoresBothFallbacks() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

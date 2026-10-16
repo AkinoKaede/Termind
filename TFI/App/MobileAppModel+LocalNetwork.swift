@@ -12,41 +12,23 @@ extension MobileAppModel {
     }
 
     func requestWake(_ host: Host, configure: () -> Void) -> String? {
-        guard pro.require(.wakeOnLAN) else { return nil }
-        let host = library.host(host.id) ?? host
-        guard host.wakeOnLAN.address != nil else {
+        switch library.requestWake(host, requestAccess: { pro.require(.wakeOnLAN) }) {
+        case .accessDenied:
+            return nil
+        case .configurationRequired:
             configure()
             return nil
-        }
-        do {
-            guard let service = library.wakeOnLAN else { throw WakeOnLANError.noLocalNetwork }
-            try service.wake(host.wakeOnLAN)
+        case .sent:
             return String(localized: AppStrings.LocalNetwork.sent)
-        } catch {
+        case .failed:
             return String(localized: AppStrings.LocalNetwork.wakeFailed)
         }
     }
 
     func macAddressModel(host: Host, custom: HostCustomIdentityDraft, tailscaleUsername: String) -> HostMACAddressModel
     {
-        var submissions: [UUID: SSHAuthenticationSubmission] = [:]
-        if host.isTailscaleManaged {
-            submissions[host.id] = .init(username: tailscaleUsername)
-        } else if host.sshIdentityID == nil || library.identity(for: host)?.isHostCustom == true,
-            !custom.sshUsername.isEmpty
-        {
-            submissions[host.id] = .init(
-                username: custom.sshUsername,
-                password: custom.sshPassword.isEmpty ? nil : custom.sshPassword,
-                keyID: custom.sshKeyID)
-        }
-        var proxies: [UUID: SSHProxyAuthenticationSubmission] = [:]
-        if custom.usesCustomProxy, let proxy = host.proxy {
-            proxies[host.id] = .init(
-                username: proxy.username, password: custom.proxyPassword, identityID: proxy.identityID)
-        }
-        return HostMACAddressModel(
+        HostMACAddressModel(
             host: host, library: library, resolver: hostMACResolver,
-            submissions: submissions, proxies: proxies)
+            custom: custom, tailscaleUsername: tailscaleUsername)
     }
 }

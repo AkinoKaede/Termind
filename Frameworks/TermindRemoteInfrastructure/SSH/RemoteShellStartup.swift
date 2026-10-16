@@ -62,14 +62,7 @@ nonisolated enum RemoteShellStartup {
             fi
             unset TERMIND_SHELL_LOCALE_SET TERMIND_SHELL_LOCALE
             """)
-            \(backend == "zellij" ? """
-            if [ "${TERMIND_SHELL_CACHE_HOME_SET:-}" = x ]; then
-                export XDG_CACHE_HOME="$TERMIND_SHELL_CACHE_HOME"
-            else
-                unset XDG_CACHE_HOME
-            fi
-            unset TERMIND_SHELL_CACHE_HOME_SET TERMIND_SHELL_CACHE_HOME
-            """ : "")
+            \(backend.flatMap { RemoteMultiplexerRegistry.socketDialect(.init(rawValue: $0)) }?.restoreShellEnvironment ?? "")
             \(try RemoteMultiplexerCommands.environment(environment))
             SHELL=${TERMIND_TMUX_SHELL:-${SHELL:-/bin/sh}}
             export SHELL

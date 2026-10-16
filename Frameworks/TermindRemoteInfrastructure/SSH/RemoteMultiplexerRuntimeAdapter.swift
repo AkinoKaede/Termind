@@ -21,37 +21,32 @@ public nonisolated struct RemoteMultiplexerRuntimeAdapter: TerminalRuntimeAdapte
         self.charset = charset
     }
 
-    public func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
-        if let attachment, attachment.backend != .tmux {
-            return try await RemoteSocketMultiplexerRuntime(
-                reference: attachment, execute: execute, charset: charset
-            ).inspect(terminal: terminal)
+    private var dialect: any RemoteMultiplexerDialect {
+        get throws {
+            guard let dialect = RemoteMultiplexerRegistry.dialect(attachment?.backend ?? .tmux) else {
+                throw TerminalRuntimeError.unsupported
+            }
+            return dialect
         }
-        return try await RemoteTmuxRuntimeDialect(execute: execute, charset: charset).inspect(terminal: terminal)
+    }
+
+    public func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
+        try await dialect.runtime(reference: attachment, execute: execute, charset: charset).inspect(terminal: terminal)
     }
 
     static func helper(for attachment: RemoteSessionReference?) throws -> String? {
-        guard let attachment, attachment.backend != .tmux else { return nil }
-        guard let kind = RemoteMultiplexerKind(rawValue: attachment.backend.rawValue) else {
+        guard let attachment else { return nil }
+        guard let dialect = RemoteMultiplexerRegistry.dialect(attachment.backend) else {
             throw TerminalRuntimeError.unsupported
         }
-        return try RemoteMultiplexerIdentity.decode(attachment.session.identity, kind: kind).helper
+        return try dialect.helper(attachment)
     }
 
     func draftTarget(
         context: TerminalShellContext, terminal: String, replacing: Bool
     ) async throws -> RemoteMultiplexerDraftTarget {
-        if let attachment, attachment.backend != .tmux {
-            return try await RemoteSocketMultiplexerRuntime(
-                reference: attachment, execute: execute, charset: charset
-            ).draftTarget(context: context, terminal: terminal, replacing: replacing)
-        }
-        let update = try await inspect(terminal: terminal)
-        guard update.active == context.identity,
-            update.contexts.first(where: { $0.identity == context.identity }) == context
-        else { throw TerminalRuntimeError.staleContext }
-        return try RemoteTmuxRuntimeDialect.draftTarget(
-            context: context, terminal: terminal, clientIdentity: update.clientIdentity, replacing: replacing)
+        try await dialect.runtime(reference: attachment, execute: execute, charset: charset)
+            .draftTarget(context: context, terminal: terminal, replacing: replacing)
     }
 
     func refreshSize(of client: RemoteTmuxClientIdentity) async throws {
@@ -59,7 +54,7 @@ public nonisolated struct RemoteMultiplexerRuntimeAdapter: TerminalRuntimeAdapte
     }
 }
 
-nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
+nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
     let reference: RemoteSessionReference
     let execute: RemoteSessionCommandExecutor
     var charset: RemoteCharset = .utf8
@@ -74,24 +69,23 @@ nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
         let focus: String
     }
 
-    private var identity: RemoteMultiplexerIdentity {
+    private var dialect: any RemoteSocketMultiplexerDialect {
         get throws {
-            guard let kind = RemoteMultiplexerKind(rawValue: reference.backend.rawValue) else {
+            guard let dialect = RemoteMultiplexerRegistry.socketDialect(reference.backend) else {
                 throw TerminalRuntimeError.unsupported
             }
-            return try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: kind)
+            return dialect
+        }
+    }
+
+    private var identity: RemoteMultiplexerIdentity {
+        get throws {
+            try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: dialect.id)
         }
     }
 
     private func nativeCommands() throws -> (String, String) {
-        let name = try RemoteMultiplexerCommands.quote(reference.session.name)
-        switch try identity.kind {
-        case .tmux: throw TerminalRuntimeError.unsupported
-        case .zellij:
-            return ("\"$exe\" list-sessions --short --no-formatting", "\"$exe\" --session \(name) action list-clients")
-        case .zmx: return ("\"$exe\" list", "printf 'shell'")
-        case .herdr: return ("\"$exe\" session list --json", "\"$exe\" --session \(name) pane list")
-        }
+        try dialect.runtimeCommands(name: RemoteMultiplexerCommands.quote(reference.session.name))
     }
 
     private func clientGuard(terminal: String) throws -> String {
@@ -188,8 +182,9 @@ nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
         _ text: String, reference: RemoteSessionReference, charset: RemoteCharset
     ) throws -> Snapshot {
         guard text.utf8.count <= 1024 * 1024,
-            let kind = RemoteMultiplexerKind(rawValue: reference.backend.rawValue)
+            let dialect = RemoteMultiplexerRegistry.socketDialect(reference.backend)
         else { throw TerminalRuntimeError.invalidResponse }
+        let kind = dialect.id
         let identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: kind)
         let lines = text.components(separatedBy: "\n")
         guard lines.count >= 5, lines[0].hasPrefix("C|"), UInt64(lines[0].dropFirst(2)) != nil,
@@ -197,7 +192,7 @@ nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
         else { throw TerminalRuntimeError.invalidResponse }
         let native = try RemoteMultiplexerCommands.unhex(String(lines[1].dropFirst(2)), limit: 512 * 1024)
         let focus = try RemoteMultiplexerCommands.unhex(String(lines[2].dropFirst(2)), limit: 512 * 1024)
-        let activePane = try activePane(kind: kind, native: native, focus: focus, reference: reference)
+        let activePane = try dialect.activePane(native: native, focus: focus, reference: reference)
         var contexts: [TerminalShellContext] = []
         var events: [TerminalContextEvent] = []
         var active: TerminalContextIdentity?
@@ -233,55 +228,6 @@ nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
             native: native, focus: focus)
     }
 
-    private static func activePane(
-        kind: RemoteMultiplexerKind, native: String, focus: String, reference: RemoteSessionReference
-    ) throws -> String? {
-        switch kind {
-        case .tmux: throw TerminalRuntimeError.unsupported
-        case .zellij:
-            // A switched client cannot be bound using its original argv. Require a unique live session too.
-            guard native == reference.session.name else { return nil }
-            let clients = focus.split(separator: "\n")
-            guard clients.first == "CLIENT_ID ZELLIJ_PANE_ID RUNNING_COMMAND", clients.count == 2 else { return nil }
-            let fields = clients[1].split(whereSeparator: \.isWhitespace)
-            guard fields.count >= 3, UInt64(fields[0]) != nil, fields[1].hasPrefix("terminal_") else { return nil }
-            let pane = String(fields[1].dropFirst("terminal_".count))
-            return RemoteShellContextRecord.validPane(pane, backend: "zellij") ? pane : nil
-        case .zmx:
-            let identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: kind)
-            let root = identity.root.utf8.map { String(format: "%02x", $0) }.joined()
-            let sessions = try RemoteZmxCommands.parseList("ROOT|\(root)\n" + native + "\nEND\n")
-            guard sessions.count == 1, let session = sessions.first,
-                session.name == reference.session.name, session.process == identity.process,
-                session.created == identity.created, session.clients == 1
-            else { return nil }
-            return "shell"
-        case .herdr:
-            let sessions = try RemoteHerdrCommands.parseList(native)
-            guard sessions.count == 1, sessions.first?.name == reference.session.name else { return nil }
-            struct Response: Decodable {
-                struct Result: Decodable {
-                    struct Pane: Decodable {
-                        let paneID: String
-                        enum CodingKeys: String, CodingKey { case paneID = "pane_id" }
-                    }
-                    let panes: [Pane]
-                }
-                let result: Result
-            }
-            let response = try JSONDecoder().decode(Response.self, from: Data(focus.utf8))
-            // Herdr's pane-current is global, not a per-client focus API.
-            guard response.result.panes.count == 1, let pane = response.result.panes.first?.paneID,
-                RemoteShellContextRecord.validPane(pane, backend: "herdr")
-            else { return nil }
-            // The supported CLI only exposes global pane state, not the attached client's
-            // session/focus binding (including endpoint switching). Do not infer it from ps.
-            // Journals remain useful for lifecycle events; active-context operations stay disabled.
-            _ = pane
-            return nil
-        }
-    }
-
     func draftTarget(
         context: TerminalShellContext, terminal: String, replacing: Bool
     ) async throws -> RemoteMultiplexerDraftTarget {
@@ -301,13 +247,7 @@ nonisolated struct RemoteSocketMultiplexerRuntime: TerminalRuntimeAdapter {
         let key = try RemoteMultiplexerCommands.quote(replacing ? "\u{1B}[777;2~" : "\u{1B}[777;1~")
         let name = try RemoteMultiplexerCommands.quote(reference.session.name)
         let pane = try RemoteMultiplexerCommands.quote(context.identity.pane)
-        let write: String
-        switch try identity.kind {
-        case .tmux: throw TerminalRuntimeError.unsupported
-        case .zellij: write = "\"$exe\" --session \(name) action write-chars --pane-id \(pane) \(key)"
-        case .zmx: write = "\"$exe\" send \(name) \(key)"
-        case .herdr: write = "\"$exe\" --session \(name) pane send-text \(pane) \(key)"
-        }
+        let write = try dialect.writeDraft(name: name, pane: pane, key: key)
         return .init(
             root: guardCommand + "\nhelper=\(try RemoteMultiplexerCommands.quote(helper))",
             trigger: """

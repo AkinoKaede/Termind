@@ -7,6 +7,25 @@ import Testing
 
 @Suite @MainActor
 struct TerminalThemeBrowserTests {
+    @Test func scopedThemeSearchKeepsDuplicateNameTieBreaksWithoutChangingTheLibrary() throws {
+        let early = TerminalCustomTheme(
+            id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
+            name: "Ocean 2", appearance: .both, baseThemeName: "Termind Dark")
+        var late = early
+        late.id = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        late.appearance = .dark
+        let tenth = TerminalCustomTheme(name: "Ocean 10", appearance: .light, baseThemeName: "Termind Light")
+        let library = TerminalThemeLibrary(themes: [tenth, late, early])
+        #expect(library.themes(matching: "  oCEAn\n").map(\.id) == [early.id, late.id, tenth.id])
+        let dark = TerminalThemeOptions(preferences: .init(), isDark: true, library: library)
+        let light = TerminalThemeOptions(preferences: .init(), isDark: false, library: library)
+        #expect(dark.customThemes(matching: "  oCEAn\n").map(\.id) == [early.id, late.id])
+        #expect(light.customThemes(matching: " \n ").map(\.id) == [early.id, tenth.id])
+        #expect(light.customThemes(matching: "missing").isEmpty)
+        #expect(library.themes.map(\.id) == [tenth.id, late.id, early.id])
+        #expect(library.selections.isEmpty)
+    }
+
     @Test func customThemeSearchIncludesAllAppearancesButSelectionSearchKeepsItsScope() {
         let light = TerminalCustomTheme(name: "Ocean Day", appearance: .light, baseThemeName: "Termind Light")
         let dark = TerminalCustomTheme(name: "Ocean Night", appearance: .dark, baseThemeName: "Termind Dark")

@@ -11,7 +11,7 @@ nonisolated enum RemoteZmxCommands {
 
     static var list: String {
         """
-        \(RemoteMultiplexerKind.zmx.discovery)
+        \(RemoteMultiplexerCommands.discovery(.zmx))
         \(RemoteMultiplexerCommands.utilities)
         \(root)
         printf 'ROOT|%s\\n' "$(hex "$root")"
@@ -75,4 +75,83 @@ nonisolated enum RemoteZmxCommands {
         }'
         """
     }
+}
+
+nonisolated struct RemoteZmxDialect: RemoteSocketMultiplexerDialect {
+    let id = SessionPersistenceBackendID.zmx
+    let paneVariable: String? = nil
+    let versionArgument = "version"
+    let capabilities = RemoteSessionCapabilities(clientCount: true, shellIntegration: true)
+    var list: String { RemoteZmxCommands.list }
+
+    func validateVersion(_ output: String) throws {
+        let version = try RemoteMultiplexerVersion(output, backend: id)
+        guard version.major > 0 || version.minor >= 7 else { throw RemoteSessionFailure.unsupported }
+    }
+    func validPane(_ value: String) -> Bool { value == "shell" }
+    func parseList(_ text: String) throws -> [RemoteMultiplexerCandidate] { try RemoteZmxCommands.parseList(text) }
+    func create(name: String, token: UUID) -> String { RemoteZmxCommands.create(name: name, token: token) }
+    func attach(name: String) -> String {
+        // attach is an upsert. A daemon lost after validation must not become an unrelated shell.
+        "\"$exe\" attach \(name) /bin/sh -c 'exit 79'"
+    }
+    func stop(name: String) -> String { "\"$exe\" kill \(name) --force" }
+    func validRoute(_ identity: RemoteMultiplexerIdentity, name: String) -> Bool {
+        identity.socket == identity.root + "/" + name
+    }
+    func routing(_ identity: RemoteMultiplexerIdentity) throws -> String {
+        "export ZMX_DIR=\(try RemoteMultiplexerCommands.quote(identity.root))"
+    }
+    func validateIdentity(_ identity: RemoteMultiplexerIdentity) throws {
+        guard !identity.isolated, identity.process != nil, identity.created != nil,
+            identity.daemonProcess.flatMap(UInt64.init).map({ $0 > 1 }) == true,
+            identity.daemonStarted?.isEmpty == false,
+            identity.daemonStarted!.utf8.allSatisfy({ (32...126).contains($0) })
+        else { throw RemoteSessionFailure.invalidResponse }
+    }
+    func identityGuard(_ identity: RemoteMultiplexerIdentity, name: String) throws -> String {
+        """
+        [ "$(\(RemoteZmxCommands.nativeIdentity(name: name)))" = '\(identity.process!):\(identity.created!)' ] || exit 79
+        [ "$(ps -p '\(identity.process!)' -o ppid= | tr -d ' ')" = '\(identity.daemonProcess!)' ] || exit 79
+        [ "$(process_start '\(identity.daemonProcess!)')" = \(try RemoteMultiplexerCommands.quote(identity.daemonStarted!)) ] || exit 79
+        """
+    }
+    func ownershipGuard(_ identity: RemoteMultiplexerIdentity, name: String, token: UUID) throws -> String {
+        """
+        [ "$("$exe" get \(try RemoteMultiplexerCommands.quote(name)) termind_owner)" = '\(token.uuidString)' ] || exit 79
+        [ "$(cat "$meta/native" 2>/dev/null)" = '\(identity.process!):\(identity.created!)' ] || exit 79
+        """
+    }
+    func metadataOwnershipGuard(_ candidate: RemoteMultiplexerCandidate) throws -> String {
+        """
+        export ZMX_DIR=\(try RemoteMultiplexerCommands.quote(candidate.root))
+        if [ "$("$exe" get '\(candidate.name)' termind_owner)" != "$owner" ] \
+            || [ "$(cat "$meta/native" 2>/dev/null)" != '\(candidate.process!):\(candidate.created!)' ]; then
+            owner=-; helper=-
+        fi
+        """
+    }
+    func metadataFields(_ candidate: RemoteMultiplexerCandidate) throws -> String {
+        """
+        # zmx's list PID is the PTY child, not the daemon. Bind its parent separately.
+        daemon=$(ps -p '\(candidate.process!)' -o ppid= | tr -d ' ') || exit 79
+        comm=$(ps -p "$daemon" -o comm=)
+        [ "${comm##*/}" = zmx ] || exit 79
+        born=$(process_start "$daemon")
+        [ -n "$born" ] || exit 79
+        born=$(hex "$born")
+        """
+    }
+    func runtimeCommands(name: String) -> (String, String) { ("\"$exe\" list", "printf 'shell'") }
+    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+        let identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: id)
+        let root = identity.root.utf8.map { String(format: "%02x", $0) }.joined()
+        let sessions = try RemoteZmxCommands.parseList("ROOT|\(root)\n" + native + "\nEND\n")
+        guard sessions.count == 1, let session = sessions.first,
+            session.name == reference.session.name, session.process == identity.process,
+            session.created == identity.created, session.clients == 1
+        else { return nil }
+        return "shell"
+    }
+    func writeDraft(name: String, pane: String, key: String) -> String { "\"$exe\" send \(name) \(key)" }
 }

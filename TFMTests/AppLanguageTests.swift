@@ -8,6 +8,20 @@ import Testing
 
 struct AppLanguageTests {
     @Test(arguments: [
+        ("en", "Rescan"),
+        ("zh-Hans", "重新扫描"),
+        ("zh-Hant", "重新掃描"),
+        ("ja", "再スキャン"),
+        ("ko", "다시 검색"),
+        ("de", "Erneut suchen"),
+        ("fr", "Rechercher à nouveau"),
+    ])
+    func localDiscoveryUsesRescanInEverySupportedLanguage(language: String, expected: String) {
+        #expect(
+            AppLocalization.resolve(AppStrings.LocalNetwork.rescan, locale: Locale(identifier: language)) == expected)
+    }
+
+    @Test(arguments: [
         ("en", "Connection was cancelled. Retry to connect."),
         ("zh-Hans", "已取消连接。重试即可连接。"),
         ("zh-Hant", "已取消連線。重試即可連線。"),

@@ -739,6 +739,7 @@ public actor SSHPTYChannel {
     private var startupPreparation: StartupPreparation?
     private let transportOutput: OutputHandler
     private let transportIntegration: ShellIntegrationHandler
+    private let transportEngines: ResumableTerminalEngineRegistry
     private var resumable: ResumableTerminalClient?
     private var transportOptions = HostTerminalTransports()
     private var transportKind: HostTerminalProtocol = .ssh
@@ -753,10 +754,12 @@ public actor SSHPTYChannel {
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
         agentForwardingFactory: SSHAgentForwardingFactory? = nil,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy(),
+        transportEngines: ResumableTerminalEngineRegistry = .live
     ) {
         transportOutput = output
         transportIntegration = shellIntegration
+        self.transportEngines = transportEngines
         self.keyboardInteractive = keyboardInteractive
         self.agentForwardingFactory = agentForwardingFactory
         worker = SSHPTYChannelWorker(
@@ -779,7 +782,7 @@ public actor SSHPTYChannel {
             guard let transportRoute else { throw TerminalTransportError.unsupportedRoute }
             let client = ResumableTerminalClient(
                 transport: transportKind, checkpoint: transportCheckpoint, output: transportOutput,
-                stateChanged: transportState, shellIntegration: transportIntegration)
+                stateChanged: transportState, shellIntegration: transportIntegration, registry: transportEngines)
             resumable = client
             try await client.connect(
                 request: request, options: transportOptions, environment: environmentVariables,

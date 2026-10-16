@@ -2,7 +2,7 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
-nonisolated struct RemoteTmuxRuntimeDialect: TerminalRuntimeAdapter {
+nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
     private let execute: RemoteSessionCommandExecutor
     private let charset: RemoteCharset
     init(execute: @escaping RemoteSessionCommandExecutor, charset: RemoteCharset = .utf8) {
@@ -14,6 +14,17 @@ nonisolated struct RemoteTmuxRuntimeDialect: TerminalRuntimeAdapter {
         let result = try await execute(Self.command(terminal: terminal))
         guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
         return try Self.parse(result.stdout, terminal: terminal, charset: charset)
+    }
+
+    func draftTarget(
+        context: TerminalShellContext, terminal: String, replacing: Bool
+    ) async throws -> RemoteMultiplexerDraftTarget {
+        let update = try await inspect(terminal: terminal)
+        guard update.active == context.identity,
+            update.contexts.first(where: { $0.identity == context.identity }) == context
+        else { throw TerminalRuntimeError.staleContext }
+        return try Self.draftTarget(
+            context: context, terminal: terminal, clientIdentity: update.clientIdentity, replacing: replacing)
     }
 
     func refreshSize(of client: RemoteTmuxClientIdentity) async throws {

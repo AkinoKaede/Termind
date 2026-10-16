@@ -77,13 +77,7 @@ nonisolated enum RemoteShellContextJournal {
         """#
 
     static func initialization(shell: String, token: String, backend: String? = nil) -> String {
-        let paneVariable: String?
-        switch backend {
-        case "zellij": paneVariable = "ZELLIJ_PANE_ID"
-        case "herdr": paneVariable = "HERDR_PANE_ID"
-        case "zmx": paneVariable = nil
-        default: paneVariable = "TMUX_PANE"
-        }
+        let paneVariable = RemoteMultiplexerRegistry.dialect(.init(rawValue: backend ?? "tmux"))?.paneVariable
         let tag = backend == nil ? "M1" : "M2"
         let suffix = backend.map { "|\($0)" } ?? ""
         if shell == "fish" {
@@ -156,8 +150,7 @@ nonisolated struct RemoteShellContextRecord {
         let modern = meta.count == 9 && meta.first == "M2"
         guard legacy || modern else { throw TerminalRuntimeError.invalidResponse }
         let backend = modern ? meta[8] : (meta[2] == "shell" ? "shell" : "tmux")
-        guard ["shell", "tmux", "zellij", "zmx", "herdr"].contains(backend),
-            UUID(uuidString: meta[1]) != nil, UInt64(meta[6]) != nil,
+        guard UUID(uuidString: meta[1]) != nil, UInt64(meta[6]) != nil,
             Self.validPane(meta[2], backend: backend),
             meta[3].hasPrefix("ctx."),
             meta[3].utf8.allSatisfy({
@@ -237,18 +230,8 @@ nonisolated struct RemoteShellContextRecord {
     }
 
     static func validPane(_ value: String, backend: String) -> Bool {
-        switch backend {
-        case "shell", "zmx": return value == "shell"
-        case "tmux": return validPane(value)
-        case "zellij": return !value.isEmpty && value.utf8.allSatisfy { (48...57).contains($0) }
-        case "herdr":
-            return !value.isEmpty && value.utf8.count <= 128
-                && value.utf8.allSatisfy {
-                    (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
-                        || [45, 58, 95].contains($0)
-                }
-        default: return false
-        }
+        if backend == "shell" { return value == "shell" }
+        return RemoteMultiplexerRegistry.dialect(.init(rawValue: backend))?.validPane(value) ?? false
     }
 
     func context(server: String, session: String, backend: String) -> TerminalShellContext {

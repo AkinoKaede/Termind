@@ -87,9 +87,8 @@ struct MobileCustomThemesView: View {
             draft = .init(theme, isNew: false)
         }
         Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: "doc.on.doc") {
-            var copy = theme
-            copy.id = UUID()
-            copy.name = AppLocalization.resolve(AppStrings.Settings.customThemeCopy(theme.name), locale: locale)
+            let copy = theme.copy(
+                named: AppLocalization.resolve(AppStrings.Settings.customThemeCopy(theme.name), locale: locale))
             draft = .init(copy, isNew: true)
         }
         Divider()

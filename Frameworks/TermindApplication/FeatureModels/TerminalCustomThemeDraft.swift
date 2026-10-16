@@ -36,8 +36,7 @@ public final class TerminalCustomThemeDraft: Identifiable {
     }
 
     public func makeCopy(name: String) {
-        value.id = UUID()
-        value.name = name
+        value = value.copy(named: name)
         isNew = true
     }
 }

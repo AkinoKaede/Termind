@@ -61,13 +61,7 @@ public struct TerminalThemeOptions {
     public func isSelected(_ name: String) -> Bool { !isCustom && self.name == name }
 
     public func customThemes(matching query: String) -> [TerminalCustomTheme] {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return library.themes.filter {
-            $0.appearance.includes(isDark: isDark) && (query.isEmpty || $0.name.localizedStandardContains(query))
-        }.sorted {
-            $0.name == $1.name
-                ? $0.id.uuidString < $1.id.uuidString : $0.name.localizedStandardCompare($1.name) == .orderedAscending
-        }
+        library.themes(matching: query).filter { $0.appearance.includes(isDark: isDark) }
     }
 }
 

@@ -33,16 +33,16 @@ extension AppStrings {
             "Looking for local SSH servers…"
         }
         public static var scanningTelnet: LocalizedStringResource {
-            "Looking for local Telnet servers on port 23…"
+            "Looking for local Telnet servers…"
         }
         public static var rescan: LocalizedStringResource {
-            "Scan Again"
+            "Rescan"
         }
         public static var noServers: LocalizedStringResource {
             "No SSH servers found. Enable Remote Login or an SSH server on the other device, then scan again."
         }
         public static var noTelnetServers: LocalizedStringResource {
-            "No Telnet servers found on port 23. Enable a Telnet server on the other device, then scan again."
+            "No Telnet servers found. Enable a Telnet server on the other device, then scan again."
         }
         public static var unavailable: LocalizedStringResource {
             "Connect to a Wi-Fi or Ethernet network to discover local servers."

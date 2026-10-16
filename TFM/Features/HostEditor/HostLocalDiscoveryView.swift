@@ -17,6 +17,10 @@ struct HostLocalDiscoveryView: View {
         } footer: {
             HStack {
                 Spacer()
+                Button(AppStrings.Common.cancel.swiftUIKey) {
+                    model.cancel()
+                    back()
+                }
                 Button(AppStrings.LocalNetwork.rescan.swiftUIKey) { model.scan() }
             }
             .padding(Metrics.Space.l)

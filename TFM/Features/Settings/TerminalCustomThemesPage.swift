@@ -70,9 +70,8 @@ struct TerminalCustomThemesPage: View {
     @ViewBuilder private func actions(_ theme: TerminalCustomTheme) -> some View {
         Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { edit(theme) }
         Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: "doc.on.doc") {
-            var copy = theme
-            copy.id = UUID()
-            copy.name = AppLocalization.resolve(AppStrings.Settings.customThemeCopy(theme.name), locale: locale)
+            let copy = theme.copy(
+                named: AppLocalization.resolve(AppStrings.Settings.customThemeCopy(theme.name), locale: locale))
             edit(copy, isNew: true)
         }
         Divider()

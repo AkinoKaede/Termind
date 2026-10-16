@@ -4,6 +4,29 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func resumableProtocolEnginesStayBehindTheSharedLifecycleCoordinator() throws {
+        for directory in [
+            "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",
+            "../Frameworks/TermindPresentation", "Features", "../TFI/Features",
+        ] {
+            for file in try swiftFiles(in: directory) {
+                let text = try String(contentsOf: file, encoding: .utf8)
+                for symbol in ["MoshTerminalEngine", "EternalTerminalEngine", "ResumableTerminalEngine"] {
+                    #expect(!containsToken(symbol, in: text), "\(file.path) depends on \(symbol)")
+                }
+            }
+        }
+        for file in ["ResumableTerminalClient.swift", "SSHPTYChannel.swift"] {
+            let text = try String(
+                contentsOf: sourceRoot.appending(path: "../Frameworks/TermindRemoteInfrastructure/SSH/\(file)"),
+                encoding: .utf8)
+            for symbol in ["MoshTerminalEngine", "EternalTerminalEngine", "MoshClientSession", "ETTerminalSession"] {
+                #expect(!containsToken(symbol, in: text), "\(file) bypasses engine registration")
+            }
+        }
+    }
+
+    @Test
     func sessionPersistencePolicyDoesNotDependOnMultiplexerDialects() throws {
         for directory in [
             "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",
@@ -12,7 +35,9 @@ struct ArchitectureBoundaryTests {
             for file in try swiftFiles(in: directory) {
                 let text = try String(contentsOf: file, encoding: .utf8)
                 for symbol in [
-                    "RemoteMultiplexerService", "RemoteMultiplexerKind", "RemoteMultiplexerCommands",
+                    "RemoteMultiplexerService", "RemoteMultiplexerRegistry", "RemoteMultiplexerCommands",
+                    "RemoteMultiplexerDialect", "RemoteSocketMultiplexerDialect", "RemoteMultiplexerRuntime",
+                    "RemoteTmuxDialect", "RemoteZellijDialect", "RemoteZmxDialect", "RemoteHerdrDialect",
                     "RemoteTmuxCommands", "RemoteZellijCommands", "RemoteZmxCommands", "RemoteHerdrCommands",
                     "RemoteShellStartup", "RemoteTmuxRuntimeDialect", "RemoteSocketMultiplexerRuntime",
                 ] {

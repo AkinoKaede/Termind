@@ -47,6 +47,29 @@ public final class HostMACAddressModel {
         self.proxies = proxies
     }
 
+    public convenience init(
+        host: Host, library: HostLibraryModel, resolver: any HostMACAddressResolving,
+        custom: HostCustomIdentityDraft, tailscaleUsername: String
+    ) {
+        var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
+        if host.isTailscaleManaged {
+            submissions[host.id] = .init(username: tailscaleUsername)
+        } else if host.sshIdentityID == nil || library.identity(for: host)?.isHostCustom == true,
+            !custom.sshUsername.isEmpty
+        {
+            submissions[host.id] = .init(
+                username: custom.sshUsername,
+                password: custom.sshPassword.isEmpty ? nil : custom.sshPassword,
+                keyID: custom.sshKeyID)
+        }
+        var proxies: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
+        if custom.usesCustomProxy, let proxy = host.proxy {
+            proxies[host.id] = .init(
+                username: proxy.username, password: custom.proxyPassword, identityID: proxy.identityID)
+        }
+        self.init(host: host, library: library, resolver: resolver, submissions: submissions, proxies: proxies)
+    }
+
     public func start() {
         guard task == nil else { return }
         generation = UUID()

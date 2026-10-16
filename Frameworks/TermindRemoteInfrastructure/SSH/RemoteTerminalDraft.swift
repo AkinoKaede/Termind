@@ -19,7 +19,7 @@ nonisolated enum RemoteTerminalDraft {
         let root: String
         let trigger: String
         if let target {
-            guard RemoteMultiplexerKind(rawValue: identity.backend) != nil else {
+            guard RemoteMultiplexerRegistry.dialect(.init(rawValue: identity.backend)) != nil else {
                 throw TerminalRuntimeError.staleContext
             }
             root = target.root

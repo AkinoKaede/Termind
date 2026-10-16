@@ -39308,49 +39308,49 @@
         }
       }
     },
-    "Looking for local Telnet servers on port 23…" : {
+    "Looking for local Telnet servers…" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokale Telnet-Server auf Port 23 werden gesucht…"
+            "value" : "Lokale Telnet-Server werden gesucht…"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Looking for local Telnet servers on port 23…"
+            "value" : "Looking for local Telnet servers…"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recherche de serveurs Telnet locaux sur le port 23…"
+            "value" : "Recherche de serveurs Telnet locaux…"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ポート23でローカルTelnetサーバを探しています…"
+            "value" : "ローカルTelnetサーバを探しています…"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "포트 23에서 로컬 Telnet 서버를 찾는 중…"
+            "value" : "로컬 Telnet 서버를 찾는 중…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在查找端口23上的本地Telnet服务器…"
+            "value" : "正在查找本地Telnet服务器…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在尋找連接埠23上的本機Telnet伺服器…"
+            "value" : "正在尋找本機Telnet伺服器…"
           }
         }
       }
@@ -43755,49 +43755,49 @@
         }
       }
     },
-    "No Telnet servers found on port 23. Enable a Telnet server on the other device, then scan again." : {
+    "No Telnet servers found. Enable a Telnet server on the other device, then scan again." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Telnet-Server auf Port 23 gefunden. Aktiviere einen Telnet-Server auf dem anderen Gerät und suche erneut."
+            "value" : "Keine Telnet-Server gefunden. Aktiviere einen Telnet-Server auf dem anderen Gerät und suche erneut."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No Telnet servers found on port 23. Enable a Telnet server on the other device, then scan again."
+            "value" : "No Telnet servers found. Enable a Telnet server on the other device, then scan again."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun serveur Telnet trouvé sur le port 23. Activez un serveur Telnet sur l’autre appareil, puis relancez la recherche."
+            "value" : "Aucun serveur Telnet trouvé. Activez un serveur Telnet sur l’autre appareil, puis relancez la recherche."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ポート23でTelnetサーバが見つかりませんでした。相手のデバイスでTelnetサーバを有効にして、もう一度スキャンしてください。"
+            "value" : "Telnetサーバが見つかりませんでした。相手のデバイスでTelnetサーバを有効にして、もう一度スキャンしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "포트 23에서 Telnet 서버를 찾지 못했습니다. 다른 기기에서 Telnet 서버를 활성화한 후 다시 검색하세요."
+            "value" : "Telnet 서버를 찾지 못했습니다. 다른 기기에서 Telnet 서버를 활성화한 후 다시 검색하세요."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未在端口23上找到Telnet服务器。请在另一台设备上启用Telnet服务器，然后重新扫描。"
+            "value" : "未找到Telnet服务器。请在另一台设备上启用Telnet服务器，然后重新扫描。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未在連接埠23上找到Telnet伺服器。請在另一部裝置上啟用Telnet伺服器，然後重新掃描。"
+            "value" : "未找到Telnet伺服器。請在另一部裝置上啟用Telnet伺服器，然後重新掃描。"
           }
         }
       }
@@ -57470,6 +57470,53 @@
         }
       }
     },
+    "Rescan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rescan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher à nouveau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再スキャン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 검색"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新扫描"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新掃描"
+          }
+        }
+      }
+    },
     "Research and propose before acting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -61109,53 +61156,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法回復已儲存的工作區。已保留原有儲存資料。"
-          }
-        }
-      }
-    },
-    "Scan Again" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erneut suchen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan Again"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechercher à nouveau"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再スキャン"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "다시 검색"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新扫描"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新掃描"
           }
         }
       }

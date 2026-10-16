@@ -24,16 +24,19 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     }
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
+    private let transportEngines: ResumableTerminalEngineRegistry
     let logger: Logger
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.remote-connection"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy(),
+        transportEngines: ResumableTerminalEngineRegistry = .live
     ) {
         self.keyboardInteractive = keyboardInteractive
         self.logger = logger
         self.maxSessionsPolicy = maxSessionsPolicy
+        self.transportEngines = transportEngines
     }
 
     public func updateSSHPreferences(_ preferences: SSHPreferences) {
@@ -45,7 +48,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     {
         RemoteConnectionCoordinator(
             keyboardInteractive: handler, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy)
+            maxSessionsPolicy: maxSessionsPolicy, transportEngines: transportEngines)
     }
     public func makePTYChannel(
         output: @escaping SSHPTYChannel.OutputHandler,
@@ -55,7 +58,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         SSHPTYChannel(
             output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive,
             agentForwardingFactory: agentFactory,
-            logger: logger, maxSessionsPolicy: maxSessionsPolicy
+            logger: logger, maxSessionsPolicy: maxSessionsPolicy, transportEngines: transportEngines
         )
     }
 

@@ -6,19 +6,19 @@ import TermindDomain
 public nonisolated struct RemoteMultiplexerService: RemoteSessionBackend {
     public typealias Executor = RemoteSessionCommandExecutor
     public let id: SessionPersistenceBackendID
-    private let execute: Executor
+    private let implementation: (any RemoteSessionBackend)?
 
     public init(backend: SessionPersistenceBackendID = .tmux, execute: @escaping Executor) {
         id = backend
-        self.execute = execute
+        implementation = RemoteMultiplexerRegistry.dialect(backend)?.backend(execute: execute)
     }
 
-    private var backend: RemoteMultiplexerBackend {
+    private var backend: any RemoteSessionBackend {
         get throws {
-            guard let kind = RemoteMultiplexerKind(rawValue: id.rawValue) else {
+            guard let implementation else {
                 throw RemoteSessionFailure.unsupported
             }
-            return .init(kind: kind, execute: execute)
+            return implementation
         }
     }
 

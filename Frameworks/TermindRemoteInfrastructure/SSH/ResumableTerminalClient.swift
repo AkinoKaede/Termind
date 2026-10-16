@@ -1,8 +1,4 @@
-import ETBootstrap
-import ETSession
 import Foundation
-import MoshBootstrap
-import MoshCore
 import Network
 import TermindApplication
 import TermindDomain
@@ -12,53 +8,34 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     public typealias StateHandler = @Sendable (ResumableTerminalState) -> Void
 
     private let transport: HostTerminalProtocol
+    private let registry: ResumableTerminalEngineRegistry
     private let output: SSHPTYChannel.OutputHandler
     private let stateChanged: StateHandler
     private let integrationChanged: SSHPTYChannel.ShellIntegrationHandler
-    private var mosh: MoshClientSession?
-    private var eternal: ETTerminalSession?
-    private var bridge: TerminalTCPBridge?
-    private var reader: Task<Void, Never>?
-    private var observer: Task<Void, Never>?
+    private var engine: (any ResumableTerminalEngine)?
     private var maintenance: Task<Void, Never>?
     private var pathMonitor: NWPathMonitor?
-    private var beforeConnect: ConnectionWakeAction?
     private var closed = false
     private var frozen = false
     private var state: ResumableTerminalState = .connecting
-    private var credentials: ETCredentials?
     private var integration: RemoteShellIntegrationBootstrap?
     private var commandFilter: RemoteCommandEventFilter?
-    private var integratedShell: IntegratedShell?
+    private var integratedShell: ResumableTerminalShellState.IntegratedShell?
     private var pendingCheckpoint: TerminalTransportCheckpoint?
     private var pendingIntegrationCommand: Data?
     private var sendsInFlight = 0
     private var sendWaiters: [CheckedContinuation<Void, Never>] = []
     private var viewport: (columns: UInt16, rows: UInt16) = (80, 24)
 
-    private struct EternalPayload: Codable {
-        let clientID: String
-        let passkey: Data
-        let checkpoint: ETSessionCheckpoint
-        let integration: RemoteShellIntegrationBootstrap?
-        let commandFilter: RemoteCommandEventFilter?
-        let integratedShell: IntegratedShell?
-        let pendingIntegrationCommand: Data?
-    }
-
-    private struct IntegratedShell: Codable {
-        let shell: String
-        let systemInfo: RemoteSystemInfo?
-        let homeDirectory: String?
-    }
-
     public init(
         transport: HostTerminalProtocol, checkpoint: TerminalTransportCheckpoint? = nil,
         output: @escaping SSHPTYChannel.OutputHandler,
         stateChanged: @escaping StateHandler,
-        shellIntegration: @escaping SSHPTYChannel.ShellIntegrationHandler
+        shellIntegration: @escaping SSHPTYChannel.ShellIntegrationHandler,
+        registry: ResumableTerminalEngineRegistry = .live
     ) {
         self.transport = transport
+        self.registry = registry
         self.pendingCheckpoint = checkpoint
         self.output = output
         self.stateChanged = stateChanged
@@ -73,6 +50,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         startupPreparation: SSHPTYChannel.StartupPreparation? = nil
     ) async throws {
         guard !closed, options.isValid, transport.isResumable else { throw CancellationError() }
+        guard engine == nil else { throw TerminalTransportError.sessionFailed }
         viewport = (columns, rows)
         guard options.available(isTailscaleManaged: request.configuration.network != nil).contains(transport) else {
             throw TerminalTransportError.unsupportedRoute
@@ -83,16 +61,19 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         {
             throw TerminalTransportError.invalidCheckpoint
         }
-        beforeConnect = request.configuration.beforeConnect
-        try Task.checkCancellation()
-        await request.configuration.beforeConnect?()
-        try Task.checkCancellation()
-        publish(.connecting)
+        // Reject an unregistered engine before wake, route, bootstrap or startup side effects.
+        let engine = try registry.make(transport) { [weak self] event in
+            await self?.receiveEngineEvent(event)
+        }
+        self.engine = engine
         sendsInFlight += 1
         defer { finishSend() }
         let bootstrap = SSHConnection()
-        var rollbackMoshPID: Int32?
         do {
+            try checkOpen()
+            await request.configuration.beforeConnect?()
+            try checkOpen()
+            publish(.connecting)
             if pendingCheckpoint == nil {
                 try await bootstrap.connect(using: request, progress: progress, connectionFailure: nil)
                 try checkOpen()
@@ -101,95 +82,31 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
                 restoring: pendingCheckpoint != nil, preparation: startupPreparation,
                 execute: { command in try await TerminalTransportRoute.execute(command, on: bootstrap) })
             try checkOpen()
-            if let checkpoint = pendingCheckpoint {
-                try await restore(checkpoint, route: route)
-            } else {
-                if transport == .mosh {
-                    let range = options.moshUDPPortRange.replacingOccurrences(of: "-", with: ":")
-                    var command = "mosh-server new -s -c 256"
-                    if !range.isEmpty { command += " -p \(range)" }
-                    command += try startup.moshArguments
-                    let variables = environment.map {
-                        "'\($0.variable)=\($0.value.replacingOccurrences(of: "'", with: "'\\''"))'"
-                    }
-                    command = (["env"] + variables + ["LANG=C.UTF-8", "LC_ALL=C.UTF-8", command])
-                        .joined(separator: " ")
-                    let result = try await bootstrap.execute(
-                        command, workingDirectory: nil, stdin: nil, timeout: 20, outputLimit: 65_536, onOutput: nil)
-                    let info: MoshServerConnectInfo
-                    do {
-                        info = try MoshServerOutputParser.parse(result.stdout + result.stderr)
-                    } catch {
-                        throw TerminalTransportError.bootstrapFailed
-                    }
-                    rollbackMoshPID = info.serverPID
-                    mosh = MoshClientSession(
-                        endpoint: .init(
-                            host: request.configuration.host, port: info.port, keyBase64_22: info.key))
-                } else {
-                    let bridge = try TerminalTCPBridge(open: route, initial: await route())
-                    self.bridge = bridge
-                    let executor = BootstrapExecutor(connection: bootstrap)
-                    do {
-                        credentials = try await ETBootstrap().run(using: executor)
-                    } catch {
-                        if let original = await executor.failure { throw original }
-                        throw TerminalTransportError.bootstrapFailed
-                    }
-                    try checkOpen()
-                    guard let credentials else { throw TerminalTransportError.bootstrapFailed }
-                    eternal = try ETTerminalSession(
-                        host: "127.0.0.1", port: bridge.port,
-                        clientID: credentials.clientID, passkey: credentials.passkey,
-                        environmentVariables: Dictionary(
-                            environment.map { ($0.variable, $0.value) },
-                            uniquingKeysWith: { _, last in last }))
-                    if shellIntegrationEnabled && startup.plan == nil {
-                        let integration = RemoteShellIntegrationBootstrap()
-                        self.integration = integration
-                        commandFilter = RemoteCommandEventFilter(token: integration.token)
-                    }
+            let preparation = try await engine.prepare(
+                .init(
+                    request: request, options: options, environment: environment,
+                    shellIntegrationEnabled: shellIntegrationEnabled, checkpoint: pendingCheckpoint?.payload,
+                    startup: startup, bootstrap: bootstrap, route: route))
+            try checkOpen()
+            integration = preparation.shell.integration
+            commandFilter = preparation.shell.commandFilter
+            integratedShell = preparation.shell.integratedShell
+            pendingIntegrationCommand = preparation.shell.pendingIntegrationCommand
+            if pendingCheckpoint != nil {
+                integration?.resetDeadlinesAfterRestore()
+                if let shell = integratedShell {
+                    integrationChanged(
+                        .available(shell: shell.shell, systemInfo: shell.systemInfo, homeDirectory: shell.homeDirectory)
+                    )
                 }
             }
+            try await engine.start(columns: columns, rows: rows)
             try checkOpen()
-            if let mosh {
-                try await mosh.start()
-                try await mosh.enqueue(.resize(cols: Int32(columns), rows: Int32(rows)))
-                // An open UDP socket is not proof that the server is reachable.
-                let deadline = ContinuousClock.now.advanced(by: .seconds(20))
-                while true {
-                    try checkOpen()
-                    let operations = await mosh.drainHostOps()
-                    if !operations.isEmpty {
-                        deliver(operations)
-                        break
-                    }
-                    let state = await mosh.state
-                    if case .failed = state { throw TerminalTransportError.sessionFailed }
-                    if state == .stopped {
-                        rollbackMoshPID = nil
-                        _ = await receiveMoshPoll(state: state, operations: mosh.drainHostOps())
-                        await bootstrap.disconnect()
-                        return
-                    }
-                    guard ContinuousClock.now < deadline else { throw TerminalTransportError.unreachable }
-                    try await Task.sleep(for: .milliseconds(20))
-                }
-                rollbackMoshPID = nil
-                publish(.connected)
-                startMoshReader(mosh)
-            } else if let eternal {
-                startEternalReaders(eternal)
-                try await eternal.connect(initialDimensions: .init(rows: Int(rows), columns: Int(columns)))
-                try checkOpen()
-                if let input = try startup.eternalInput {
-                    try await eternal.send(input)
-                }
-                if pendingCheckpoint == nil, let integration { try await eternal.send(integration.startCommand) }
-                if let command = pendingIntegrationCommand {
-                    pendingIntegrationCommand = nil
-                    try await eternal.send(command)
-                }
+            if let input = preparation.startupInput { try await engine.write(input) }
+            if pendingCheckpoint == nil, let integration { try await engine.write(integration.startCommand) }
+            if let command = pendingIntegrationCommand {
+                pendingIntegrationCommand = nil
+                try await engine.write(command)
             }
             await bootstrap.disconnect()
             pendingCheckpoint = nil
@@ -201,41 +118,10 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
                 await bootstrap.disconnect()
                 return
             }
-            if let pid = rollbackMoshPID, pid > 1 {
-                // Only undo the server this attempt just launched; never kill a user's other sessions.
-                await Task.detached {
-                    _ = try? await bootstrap.execute(
-                        "[ \"$(ps -p \(pid) -o comm=)\" = mosh-server ] && kill -TERM \(pid)",
-                        workingDirectory: nil, stdin: nil, timeout: 3, outputLimit: 1024, onOutput: nil)
-                }.value
-            }
+            await engine.rollback(using: bootstrap)
             await bootstrap.disconnect()
             await close()
             throw error
-        }
-    }
-
-    private func restore(_ checkpoint: TerminalTransportCheckpoint, route: @escaping RouteFactory) async throws {
-        if transport == .mosh {
-            let snapshot = try JSONDecoder().decode(MoshSnapshot.self, from: checkpoint.payload)
-            mosh = try await MoshClientSession.restore(from: snapshot)
-        } else {
-            let payload = try JSONDecoder().decode(EternalPayload.self, from: checkpoint.payload)
-            credentials = ETCredentials(clientID: payload.clientID, passkey: payload.passkey)
-            let bridge = try TerminalTCPBridge(open: route, initial: await route())
-            self.bridge = bridge
-            eternal = try ETTerminalSession(
-                host: "127.0.0.1", port: bridge.port, clientID: payload.clientID,
-                passkey: payload.passkey, checkpoint: payload.checkpoint)
-            integration = payload.integration
-            integration?.resetDeadlinesAfterRestore()
-            commandFilter = payload.commandFilter
-            integratedShell = payload.integratedShell
-            pendingIntegrationCommand = payload.pendingIntegrationCommand
-            if let shell = integratedShell {
-                integrationChanged(
-                    .available(shell: shell.shell, systemInfo: shell.systemInfo, homeDirectory: shell.homeDirectory))
-            }
         }
     }
 
@@ -245,8 +131,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         integration?.noteUserInput()
         sendsInFlight += 1
         defer { finishSend() }
-        if let mosh { try await mosh.enqueue(.keystrokes(data)) }
-        if let eternal { try await eternal.send(data) }
+        try await engine?.write(data)
     }
 
     public func resize(columns: UInt16, rows: UInt16) async throws {
@@ -255,31 +140,27 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         guard !frozen else { return }
         sendsInFlight += 1
         defer { finishSend() }
-        if let mosh { try await mosh.enqueue(.resize(cols: Int32(columns), rows: Int32(rows))) }
-        if let eternal { try await eternal.resize(rows: Int(rows), cols: Int(columns)) }
+        try await engine?.resize(columns: columns, rows: rows)
+    }
+
+    private var shellState: ResumableTerminalShellState {
+        .init(
+            integration: integration, commandFilter: commandFilter, integratedShell: integratedShell,
+            pendingIntegrationCommand: pendingIntegrationCommand)
     }
 
     public func suspend() async throws -> TerminalTransportCheckpoint {
         try checkOpen()
-        guard state == .connected || state == .recovering else { throw TerminalTransportError.sessionFailed }
+        guard state == .connected || state == .recovering, let engine else {
+            throw TerminalTransportError.sessionFailed
+        }
         frozen = true
         if sendsInFlight > 0 {
             await withCheckedContinuation { sendWaiters.append($0) }
         }
         try checkOpen()
-        let payload: Data
-        if let mosh {
-            payload = try JSONEncoder().encode(await mosh.prepareForApplicationBackground())
-        } else if let eternal, let credentials {
-            let checkpoint = try await eternal.prepareForApplicationBackground()
-            payload = try JSONEncoder().encode(
-                EternalPayload(
-                    clientID: credentials.clientID, passkey: credentials.passkey,
-                    checkpoint: checkpoint, integration: integration, commandFilter: commandFilter,
-                    integratedShell: integratedShell, pendingIntegrationCommand: pendingIntegrationCommand))
-        } else {
-            throw TerminalTransportError.invalidCheckpoint
-        }
+        // Read current shell state when the engine builds its checkpoint, after protocol preparation.
+        let payload = try await engine.checkpoint { await self.shellState }
         try checkOpen()
         publish(.suspended)
         return TerminalTransportCheckpoint(transport: transport, payload: payload)
@@ -287,14 +168,11 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
 
     public func resume() async throws {
         try checkOpen()
-        if mosh != nil {
-            await beforeConnect?()
-            try checkOpen()
-        }
+        try await engine?.beforeResume()
+        try checkOpen()
         frozen = false
         publish(.recovering)
-        if let mosh { try await mosh.resumeFromApplicationBackground() }
-        if let eternal { await eternal.resumeFromApplicationBackground() }
+        try await engine?.resume()
         try checkOpen()
         integration?.resetDeadlinesAfterRestore()
         try await resize(columns: viewport.columns, rows: viewport.rows)
@@ -302,44 +180,43 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
             pendingIntegrationCommand = nil
             sendsInFlight += 1
             defer { finishSend() }
-            try await eternal?.send(command)
+            try await engine?.write(command)
         }
     }
 
     public func retryNow() async throws {
         try checkOpen()
-        await bridge?.retry()
+        await engine?.prepareRetry()
         if frozen {
             try await resume()
             return
         }
-        if let eternal { await eternal.notifyNetworkPathChanged() }
-        if let mosh {
-            await beforeConnect?()
-            try checkOpen()
-            _ = try await mosh.prepareForApplicationBackground()
-            try await mosh.resumeFromApplicationBackground()
-        }
+        try await engine?.retry()
     }
 
     public func close() async {
         guard !closed else { return }
         closed = true
-        reader?.cancel()
-        observer?.cancel()
         maintenance?.cancel()
         pathMonitor?.cancel()
         pathMonitor = nil
-        beforeConnect = nil
-        if let mosh { await mosh.stop() }
-        if let eternal { await eternal.close() }
-        await bridge?.close()
-        mosh = nil
-        eternal = nil
-        bridge = nil
-        credentials = nil
+        await engine?.close()
+        engine = nil
         pendingCheckpoint = nil
         if state != .ended { publish(.closed) }
+    }
+
+    func receiveEngineEvent(_ event: ResumableTerminalEngineEvent) async {
+        guard !closed else { return }
+        switch event {
+        case .output(let data): await receive(data)
+        case .activity, .connected:
+            if !frozen { publish(.connected) }
+        case .recovering:
+            if !frozen { publish(.recovering) }
+        case .failed: publish(.failed)
+        case .ended: await finishRemoteExit()
+        }
     }
 
     private func checkOpen() throws {
@@ -368,77 +245,6 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         await close()
     }
 
-    private func startMoshReader(_ session: MoshClientSession) {
-        reader = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                // Read terminal state before draining, so the final poll cannot miss trailing output.
-                let state = await session.state
-                guard await self.receiveMoshPoll(state: state, operations: session.drainHostOps()) else { return }
-                try? await Task.sleep(for: .milliseconds(16))
-            }
-        }
-    }
-
-    func receiveMoshPoll(state: MoshSessionState, operations: [MoshHostOp]) async -> Bool {
-        guard !closed else { return false }
-        deliver(operations)
-        switch state {
-        case .stopped:
-            // Remote shutdown reaches this state only with swift-mosh's shutdown-marker fix (PR #2).
-            await finishRemoteExit()
-            return false
-        case .failed:
-            publish(.failed)
-            return false
-        case .idle, .starting, .running, .suspending, .suspended, .stopping:
-            return true
-        }
-    }
-
-    private func deliver(_ operations: [MoshHostOp]) {
-        guard !closed else { return }
-        if !operations.isEmpty, !frozen { publish(.connected) }
-        for operation in operations {
-            if case .hostBytes(let data) = operation { output(data) }
-        }
-    }
-
-    private func startEternalReaders(_ session: ETTerminalSession) {
-        startEternalReaders(output: session.output, states: session.stateChanges)
-    }
-
-    func startEternalReaders(output: AsyncStream<Data>, states: AsyncStream<ETConnectionState>) {
-        reader = Task { [weak self] in
-            for await data in output {
-                guard let self, !Task.isCancelled else { return }
-                await self.receive(data)
-            }
-        }
-        observer = Task { [weak self] in
-            for await state in states {
-                guard let self, !Task.isCancelled else { return }
-                await self.receiveEternalState(state)
-            }
-        }
-    }
-
-    private func receiveEternalState(_ state: ETConnectionState) async {
-        guard !closed else { return }
-        switch state {
-        case .connected:
-            if !frozen { publish(.connected) }
-        case .reconnecting, .disconnected:
-            if !frozen { publish(.recovering) }
-        case .failed: publish(.failed)
-        case .sessionEnded:
-            // The vendor finishes output before emitting this state, but our consumer may still be draining it.
-            await reader?.value
-            await finishRemoteExit()
-        case .closed, .idle, .bootstrapping, .connecting: break
-        }
-    }
-
     private func receive(_ data: Data) async {
         guard !closed else { return }
         if var integration {
@@ -446,7 +252,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
             self.integration = update.isComplete ? nil : integration
             await apply(update)
         } else {
-            deliverEternalOutput(data)
+            deliverIntegratedOutput(data)
         }
     }
 
@@ -456,7 +262,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
                 pendingIntegrationCommand = command
             } else {
                 sendsInFlight += 1
-                do { try await eternal?.send(command) } catch {
+                do { try await engine?.write(command) } catch {
                     if !closed { publish(.failed) }
                 }
                 finishSend()
@@ -464,17 +270,17 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         }
         guard !closed else { return }
         if update.integrationInstalled {
-            let shell = IntegratedShell(
+            let shell = ResumableTerminalShellState.IntegratedShell(
                 shell: update.shell ?? "unknown", systemInfo: update.systemInfo, homeDirectory: update.homeDirectory)
             integratedShell = shell
             integrationChanged(
                 .available(shell: shell.shell, systemInfo: shell.systemInfo, homeDirectory: shell.homeDirectory))
         }
         if update.homeResolutionUnavailable { integrationChanged(.homeResolutionUnavailable) }
-        deliverEternalOutput(update.visibleOutput ?? Data())
+        deliverIntegratedOutput(update.visibleOutput ?? Data())
     }
 
-    private func deliverEternalOutput(_ data: Data) {
+    private func deliverIntegratedOutput(_ data: Data) {
         guard !closed else { return }
         var visible = data
         if var commandFilter {
@@ -524,22 +330,6 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         guard !closed, !frozen, state == .connected || state == .recovering else { return }
         if !available { publish(.recovering) }
         // Never bootstrap another shell: both engines retain their own protocol state.
-        if available { await eternal?.notifyNetworkPathChanged() }
-    }
-}
-
-private actor BootstrapExecutor: ETBootstrapExecutor {
-    let connection: SSHConnection
-    private(set) var failure: (any Error)?
-    init(connection: SSHConnection) { self.connection = connection }
-    func run(command: String) async throws -> String {
-        do {
-            let result = try await connection.execute(
-                command, workingDirectory: nil, stdin: nil, timeout: 20, outputLimit: 65_536, onOutput: nil)
-            return result.stdout + result.stderr
-        } catch {
-            failure = error
-            throw error
-        }
+        if available { await engine?.networkAvailable() }
     }
 }

@@ -22,7 +22,7 @@ nonisolated enum RemoteHerdrCommands {
     }
 
     static var list: String {
-        RemoteMultiplexerKind.herdr.discovery + "\n\"$exe\" session list --json"
+        RemoteMultiplexerCommands.discovery(.herdr) + "\n\"$exe\" session list --json"
     }
 
     static func parseList(_ text: String) throws -> [RemoteMultiplexerCandidate] {
@@ -59,5 +59,98 @@ nonisolated enum RemoteHerdrCommands {
             sleep 0.1
         done
         """
+    }
+}
+
+nonisolated struct RemoteHerdrDialect: RemoteSocketMultiplexerDialect {
+    let id = SessionPersistenceBackendID.herdr
+    let paneVariable: String? = "HERDR_PANE_ID"
+    var list: String { RemoteHerdrCommands.list }
+
+    func validateVersion(_ output: String) throws {
+        let version = try RemoteMultiplexerVersion(output, backend: id)
+        // Preserve both supported release lines; 0.8.0 and 0.8.1 lack the lifecycle fixes.
+        guard
+            version.major > 0 || version.minor > 8 || (version.minor == 8 && version.patch >= 2)
+                || (version.minor == 7 && version.patch >= 5)
+        else { throw RemoteSessionFailure.unsupported }
+    }
+    func validPane(_ value: String) -> Bool {
+        !value.isEmpty && value.utf8.count <= 128
+            && value.utf8.allSatisfy {
+                (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
+                    || [45, 58, 95].contains($0)
+            }
+    }
+    func parseList(_ text: String) throws -> [RemoteMultiplexerCandidate] { try RemoteHerdrCommands.parseList(text) }
+    func create(name: String, token: UUID) -> String { RemoteHerdrCommands.create(name: name) }
+    func attach(name: String) -> String { "\"$exe\" --session \(name) client" }
+    func stop(name: String) -> String { "\"$exe\" session stop \(name) --json" }
+    func validRoute(_ identity: RemoteMultiplexerIdentity, name: String) -> Bool {
+        identity.socket == identity.root + "/herdr.sock"
+            && (name == "default"
+                ? identity.root.hasSuffix("/herdr") : identity.root.hasSuffix("/herdr/sessions/" + name))
+    }
+    func routing(_ identity: RemoteMultiplexerIdentity) throws -> String {
+        let root = identity.root
+        let config: String
+        if root.hasSuffix("/herdr") {
+            config = String(root.dropLast("/herdr".count))
+        } else if let range = root.range(of: "/herdr/sessions/", options: .backwards),
+            RemoteMultiplexerCommands.validName(String(root[range.upperBound...]))
+        {
+            config = String(root[..<range.lowerBound])
+        } else {
+            throw RemoteSessionFailure.invalidResponse
+        }
+        guard RemoteMultiplexerCommands.validPath(config) else { throw RemoteSessionFailure.invalidResponse }
+        return "export XDG_CONFIG_HOME=\(try RemoteMultiplexerCommands.quote(config))"
+    }
+    func metadataFields(_ candidate: RemoteMultiplexerCandidate) throws -> String {
+        "directory=$(directory_fingerprint \(try RemoteMultiplexerCommands.quote(candidate.root))) || exit 79"
+    }
+    func validateTermination(_ reference: RemoteSessionReference, identity: RemoteMultiplexerIdentity) throws {
+        guard reference.session.name != "default", identity.directoryFingerprint != nil else {
+            throw RemoteSessionFailure.ownershipMismatch
+        }
+    }
+    func terminationCleanup(_ reference: RemoteSessionReference, identity: RemoteMultiplexerIdentity) throws -> String {
+        """
+        private_state || exit 79
+        [ "$(cat "$meta/owner")" = '\(reference.ownershipToken!.uuidString)' ] || exit 79
+        [ "$(cat "$meta/identity")" = \(try RemoteMultiplexerCommands.quote(identity.fingerprint)) ] || exit 79
+        [ "$(directory_fingerprint \(try RemoteMultiplexerCommands.quote(identity.root)))" = '\(identity.directoryFingerprint!)' ] || exit 79
+        [ ! -e \(try RemoteMultiplexerCommands.quote(identity.socket)) ] || exit 79
+        "$exe" session delete \(try RemoteMultiplexerCommands.quote(reference.session.name)) --json >/dev/null || exit 78
+        [ ! -e \(try RemoteMultiplexerCommands.quote(identity.root)) ] || exit 79
+        """
+    }
+    func runtimeCommands(name: String) -> (String, String) {
+        ("\"$exe\" session list --json", "\"$exe\" --session \(name) pane list")
+    }
+    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+        let sessions = try RemoteHerdrCommands.parseList(native)
+        guard sessions.count == 1, sessions.first?.name == reference.session.name else { return nil }
+        struct Response: Decodable {
+            struct Result: Decodable {
+                struct Pane: Decodable {
+                    let paneID: String
+                    enum CodingKeys: String, CodingKey { case paneID = "pane_id" }
+                }
+                let panes: [Pane]
+            }
+            let result: Result
+        }
+        let response = try JSONDecoder().decode(Response.self, from: Data(focus.utf8))
+        // Herdr's pane-current is global, not a per-client focus API.
+        guard response.result.panes.count == 1, let pane = response.result.panes.first?.paneID, validPane(pane) else {
+            return nil
+        }
+        // Global pane state cannot bind an attached client's session/focus, including endpoint switching.
+        // Journals remain useful for lifecycle events, but active-context operations stay disabled.
+        return nil
+    }
+    func writeDraft(name: String, pane: String, key: String) -> String {
+        "\"$exe\" --session \(name) pane send-text \(pane) \(key)"
     }
 }

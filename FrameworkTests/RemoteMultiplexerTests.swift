@@ -8,22 +8,120 @@ import Testing
 @Suite
 nonisolated struct RemoteMultiplexerTests {
     private static let token = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
-    private static let kinds: [RemoteMultiplexerKind] = [.tmux, .zellij, .zmx, .herdr]
+    private static let kinds = SessionPersistenceBackendID.supported
+
+    @Test func registeredDialectsCoverTheAdvertisedBackendsWithoutAliases() {
+        let registered = RemoteMultiplexerRegistry.dialects.map(\.id)
+        #expect(Set(registered) == Set(SessionPersistenceBackendID.supported))
+        #expect(Set(registered).count == registered.count)
+    }
+
+    @Test func unknownBackendNeverExecutesSessionOrRuntimeCommands() async throws {
+        let id = SessionPersistenceBackendID(rawValue: "future")
+        let recorder = Recorder([])
+        let execute: RemoteSessionCommandExecutor = { try await recorder.execute($0) }
+        #expect(throws: RemoteSessionFailure.unsupported) {
+            try RemoteSessionBackendRegistry.live.backend(id, execute: execute)
+        }
+        let service = RemoteMultiplexerService(backend: id, execute: execute)
+        await #expect(throws: RemoteSessionFailure.unsupported) { try await service.probe() }
+        await #expect(throws: RemoteSessionFailure.unsupported) { try await service.sessions() }
+        var reference = try Self.reference(.zellij)
+        reference.backend = id
+        let runtime = RemoteMultiplexerRuntimeAdapter(attachment: reference, execute: execute)
+        await #expect(throws: TerminalRuntimeError.unsupported) { try await runtime.inspect(terminal: "/dev/pts/1") }
+        #expect(throws: TerminalRuntimeError.unsupported) { try RemoteMultiplexerRuntimeAdapter.helper(for: reference) }
+        #expect(await recorder.commands.isEmpty)
+    }
+
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func legacyStringIdentityStillValidatesAndLaunchesWithoutChangingItsJSON(kind: SessionPersistenceBackendID)
+        throws
+    {
+        let root = kind == .herdr ? "/tmp/config/herdr/sessions/existing" : "/tmp/\(kind.rawValue)"
+        let socket = root + (kind == .herdr ? "/herdr.sock" : "/existing")
+        let native =
+            kind == .zmx
+            ? #","process":"123","created":"456","daemonProcess":"122","daemonStarted":"Fri Oct 16 10:00:00 2026""#
+            : ""
+        let directory = kind == .herdr ? #","directoryFingerprint":"1:2""# : ""
+        let json = """
+            {"version":1,"kind":"\(kind.rawValue)","root":"\(root)","socket":"\(socket)","fingerprint":"1:2:3",\
+            "isolated":\(kind == .zellij ? "true" : "false")\(native)\(directory)}
+            """
+        let identity = try RemoteMultiplexerIdentity.decode(Data(json.utf8), kind: kind)
+        let encoded = try JSONEncoder().encode(identity)
+        let original = try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? NSDictionary)
+        let roundTrip = try #require(JSONSerialization.jsonObject(with: encoded) as? NSDictionary)
+        #expect(original == roundTrip)
+        let reference = RemoteSessionReference(
+            backend: kind,
+            session: .init(
+                id: (kind == .zellij ? "managed:" : "user:") + "existing", name: "existing",
+                identity: Data(json.utf8)),
+            hostID: UUID(), endpoint: "server:22", username: "user", ownershipToken: nil)
+        let backend = try RemoteSessionBackendRegistry.live.backend(kind) { _ in throw CancellationError() }
+        try backend.validate(reference)
+        #expect(backend.matches(reference, session: reference.session))
+        let launch = try backend.launch(reference, created: false)
+        #expect(!launch.attachment.isManaged)
+        #expect(launch.command.contains("fingerprint"))
+        #expect(launch.command.contains("'existing'"))
+        let wrongKind: SessionPersistenceBackendID = kind == .zmx ? .herdr : .zmx
+        #expect(throws: RemoteSessionFailure.unsupported) {
+            try RemoteMultiplexerIdentity.decode(Data(json.utf8), kind: wrongKind)
+        }
+        #expect(throws: RemoteSessionFailure.invalidResponse) {
+            try RemoteMultiplexerIdentity.decode(
+                Data(json.replacingOccurrences(of: "\"kind\":\"\(kind.rawValue)\"", with: "\"kind\":\"future\"").utf8),
+                kind: kind)
+        }
+    }
+
+    @Test(arguments: [
+        ("tmux", "%1", "TMUX_PANE"), ("zellij", "1", "ZELLIJ_PANE_ID"),
+        ("zmx", "shell", ""), ("herdr", "pane:1", "HERDR_PANE_ID"),
+    ])
+    func registeredPanePolicyDrivesJournalInstallationAndParsing(value: (String, String, String)) throws {
+        let installation = RemoteShellContextJournal.initialization(
+            shell: "bash", token: Self.token.uuidString, backend: value.0)
+        if !value.2.isEmpty {
+            #expect(installation.contains("${\(value.2):-shell}"))
+        } else {
+            #expect(!installation.contains("TMUX_PANE"))
+        }
+        let metadata = """
+            M2|\(Self.token.uuidString)|\(value.1)|ctx.abc123|bash|%2Fhome|321|%2Ftmp%2Fhistory|\(value.0)
+            R1|1|1|%2Ftmp
+            E1|1|prompt||
+            """
+        let record = try RemoteShellContextRecord(metadata)
+        #expect(record.backend == value.0)
+        #expect(record.pane == value.1)
+        #expect(throws: TerminalRuntimeError.invalidResponse) {
+            try RemoteShellContextRecord(metadata.replacingOccurrences(of: "|\(value.1)|ctx.", with: "|bad/pane|ctx."))
+        }
+    }
 
     @Test(arguments: kinds)
-    func registryAndVersionProbeUseTheSameService(kind: RemoteMultiplexerKind) async throws {
-        let versions: [RemoteMultiplexerKind: String] = [
+    func registryAndVersionProbeUseTheSameService(kind: SessionPersistenceBackendID) async throws {
+        let versions: [SessionPersistenceBackendID: String] = [
             .tmux: "tmux 3.3a\n", .zellij: "zellij 0.44.3\n",
             .zmx: "zmx\t\t0.7.0\nghostty_vt\t1.2.3\nsocket_dir\t/tmp/zmx\nlog_dir\t/tmp\n",
             .herdr: "herdr 0.7.5\n",
         ]
-        let recorder = Recorder([.init(stdout: versions[kind]!, stderr: "", exitCode: 0)])
+        let version = try #require(versions[kind])
+        let recorder = Recorder([.init(stdout: version, stderr: "", exitCode: 0)])
         let backend = try RemoteSessionBackendRegistry.live.backend(
-            kind.id, execute: { try await recorder.execute($0) })
+            kind, execute: { try await recorder.execute($0) })
         #expect(backend is RemoteMultiplexerService)
-        #expect(try await backend.probe().shellIntegration)
+        let capabilities = try await backend.probe()
+        #expect(capabilities.shellIntegration)
+        #expect(capabilities.windowCount == (kind == .tmux))
+        #expect(capabilities.clientCount == (kind == .tmux || kind == .zmx))
         let command = try #require(await recorder.commands.first)
         #expect(command.contains("command -v \(kind.rawValue)"))
+        #expect(command.hasSuffix("\"$exe\" \(kind == .tmux ? "-V" : kind == .zmx ? "version" : "--version")"))
         #expect(!command.contains("new-session"))
     }
 
@@ -34,7 +132,7 @@ nonisolated struct RemoteMultiplexerTests {
         ("herdr", "0.8.0", false), ("herdr", "0.8.1", false), ("herdr", "0.8.2", true),
     ])
     func versionBoundaries(value: (String, String, Bool)) throws {
-        let kind = try #require(RemoteMultiplexerKind(rawValue: value.0))
+        let kind = try #require(RemoteMultiplexerRegistry.dialect(.init(rawValue: value.0)))
         if value.2 {
             try kind.validateVersion("\(value.0) \(value.1)\n")
         } else {
@@ -47,7 +145,7 @@ nonisolated struct RemoteMultiplexerTests {
     }
 
     @Test(arguments: kinds)
-    func failuresAndTruncationNeverEnableABackend(kind: RemoteMultiplexerKind) async {
+    func failuresAndTruncationNeverEnableABackend(kind: SessionPersistenceBackendID) async {
         for (response, expected) in [
             (RemoteSessionCommandResult(stdout: "", stderr: "", exitCode: 77), RemoteSessionFailure.missing),
             (.init(stdout: "", stderr: "", exitCode: 79), .ownershipMismatch),
@@ -55,7 +153,7 @@ nonisolated struct RemoteMultiplexerTests {
             (.init(stdout: "partial", stderr: "", exitCode: 0, truncated: true), .invalidResponse),
             (.init(stdout: "not a version", stderr: "", exitCode: 0), .invalidResponse),
         ] {
-            let backend = RemoteMultiplexerService(backend: kind.id) { _ in response }
+            let backend = RemoteMultiplexerService(backend: kind) { _ in response }
             await #expect(throws: expected) { try await backend.probe() }
         }
     }
@@ -84,10 +182,10 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(throws: (any Error).self) { try RemoteHerdrCommands.parseList(String(Self.list(.herdr).dropLast())) }
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr])
-    func recoveryRejectsReplacedInstancesAndNeverAcquiresManualOwnership(kind: RemoteMultiplexerKind) throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func recoveryRejectsReplacedInstancesAndNeverAcquiresManualOwnership(kind: SessionPersistenceBackendID) throws {
         let reference = try Self.reference(kind)
-        let backend = RemoteMultiplexerService(backend: kind.id) { _ in throw CancellationError() }
+        let backend = RemoteMultiplexerService(backend: kind) { _ in throw CancellationError() }
         #expect(backend.matches(reference, session: reference.session))
         var identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: kind)
         identity = .init(
@@ -99,15 +197,15 @@ nonisolated struct RemoteMultiplexerTests {
             id: reference.session.id, name: reference.session.name, identity: try JSONEncoder().encode(identity))
         #expect(!backend.matches(reference, session: replacement))
         let manual = RemoteSessionReference(
-            backend: kind.id, session: reference.session, hostID: UUID(),
+            backend: kind, session: reference.session, hostID: UUID(),
             endpoint: "server:22", username: "user", ownershipToken: nil)
         #expect(try !backend.launch(manual, created: false).attachment.isManaged)
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr])
-    func identityRoutingAndOwnershipAreRecheckedBeforeClose(kind: RemoteMultiplexerKind) async throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func identityRoutingAndOwnershipAreRecheckedBeforeClose(kind: SessionPersistenceBackendID) async throws {
         let recorder = Recorder([.init(stdout: "TERMIND_ENDED\n", stderr: "", exitCode: 0)])
-        let backend = RemoteMultiplexerService(backend: kind.id, execute: { try await recorder.execute($0) })
+        let backend = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
         let reference = try Self.reference(kind)
         try await backend.terminate(reference)
         let command = try #require(await recorder.commands.first)
@@ -126,7 +224,7 @@ nonisolated struct RemoteMultiplexerTests {
             #expect(command.contains("session delete"))
         }
         let manual = RemoteSessionReference(
-            backend: kind.id, session: reference.session, hostID: UUID(),
+            backend: kind, session: reference.session, hostID: UUID(),
             endpoint: "", username: "", ownershipToken: nil)
         await #expect(throws: RemoteSessionFailure.ownershipMismatch) { try await backend.terminate(manual) }
         #expect(await recorder.commands.count == 1)
@@ -175,26 +273,26 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(await recorder.commands.isEmpty)
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr])
-    func closeFailureAndIncompleteOutputAreNotReportedAsSuccess(kind: RemoteMultiplexerKind) async throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func closeFailureAndIncompleteOutputAreNotReportedAsSuccess(kind: SessionPersistenceBackendID) async throws {
         for response in [
             RemoteSessionCommandResult(stdout: "", stderr: "", exitCode: 79),
             .init(stdout: "TERMIND_ENDED", stderr: "", exitCode: 0),
             .init(stdout: "TERMIND_ENDED\n", stderr: "", exitCode: 0, truncated: true),
         ] {
-            let service = RemoteMultiplexerService(backend: kind.id) { _ in response }
+            let service = RemoteMultiplexerService(backend: kind) { _ in response }
             await #expect(throws: (any Error).self) { try await service.terminate(Self.reference(kind)) }
         }
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr])
-    func confirmedCreateRetriesNeverReplayStartupOrCreateAnotherShell(kind: RemoteMultiplexerKind) async throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func confirmedCreateRetriesNeverReplayStartupOrCreateAnotherShell(kind: SessionPersistenceBackendID) async throws {
         let recorder = Recorder([
             .init(stdout: Self.list(kind), stderr: "", exitCode: 0),
             .init(stdout: Self.metadata(kind), stderr: "", exitCode: 0),
             .init(stdout: "TERMIND_CREATED\n", stderr: "", exitCode: 0),
         ])
-        let service = RemoteMultiplexerService(backend: kind.id, execute: { try await recorder.execute($0) })
+        let service = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
         let session = try await service.create(
             token: Self.token, startupCommand: "echo NEVER_REPLAY", shellIntegration: true)
         #expect(session.name == Self.name)
@@ -205,15 +303,15 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(!completion.contains(" server "))
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr])
-    func freshCreateInstallsWrapperAndConfirmsTheOwnedIncarnation(kind: RemoteMultiplexerKind) async throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
+    func freshCreateInstallsWrapperAndConfirmsTheOwnedIncarnation(kind: SessionPersistenceBackendID) async throws {
         let recorder = Recorder([
             .init(stdout: Self.list(kind, empty: true), stderr: "", exitCode: 0),
             .init(stdout: "TERMIND_CREATED\n", stderr: "", exitCode: 0),
             .init(stdout: Self.list(kind), stderr: "", exitCode: 0),
             .init(stdout: Self.metadata(kind), stderr: "", exitCode: 0),
         ])
-        let service = RemoteMultiplexerService(backend: kind.id, execute: { try await recorder.execute($0) })
+        let service = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
         _ = try await service.create(
             token: Self.token, startupCommand: "cd /tmp; export FROM_SNIPPET=yes", shellIntegration: true)
         let create = await recorder.commands[1]
@@ -231,7 +329,7 @@ nonisolated struct RemoteMultiplexerTests {
             #expect(create.contains("SHELL=\"$helper/shell\""))
             #expect(create.contains("HERDR_STARTUP_CWD"))
             #expect(!create.contains("config.toml"))
-        case .tmux: break
+        default: break
         }
     }
 
@@ -247,8 +345,10 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(!herdr.contains(" server"))
     }
 
-    @Test(arguments: [RemoteMultiplexerKind.zellij, .zmx, .herdr]) @MainActor
-    func runtimeRequiresUnambiguousClientFocusAndKeepsJournalsBackendScoped(kind: RemoteMultiplexerKind) throws {
+    @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr]) @MainActor
+    func runtimeRequiresUnambiguousClientFocusAndKeepsJournalsBackendScoped(kind: SessionPersistenceBackendID)
+        async throws
+    {
         let reference = try Self.reference(kind)
         let pane = kind == .zmx ? "shell" : "1"
         let record = """
@@ -269,12 +369,30 @@ nonisolated struct RemoteMultiplexerTests {
         case .herdr:
             native = Self.list(.herdr)
             focus = #"{"result":{"panes":[{"pane_id":"1"}]}}"#
-        case .tmux: return
+        default: return
         }
         func frame(_ native: String, _ focus: String) -> String {
             "C|987\nN|\(Self.hex(native))\nA|\(Self.hex(focus))\nBEGIN|1\n\(record)\nEND\nDONE\n"
         }
         let update = try RemoteSocketMultiplexerRuntime.parse(frame(native, focus), reference: reference)
+        let recorder = Recorder([
+            .init(stdout: frame(native, focus), stderr: "", exitCode: 0),
+            .init(stdout: frame(native, focus), stderr: "", exitCode: 0),
+        ])
+        let runtime = RemoteMultiplexerRuntimeAdapter(
+            attachment: reference, execute: { try await recorder.execute($0) })
+        #expect(try await runtime.inspect(terminal: "/dev/pts/1") == update)
+        let context = try #require(update.contexts.first)
+        if kind == .herdr {
+            await #expect(throws: TerminalRuntimeError.staleContext) {
+                try await runtime.draftTarget(context: context, terminal: "/dev/pts/1", replacing: true)
+            }
+        } else {
+            let target = try await runtime.draftTarget(context: context, terminal: "/dev/pts/1", replacing: true)
+            #expect(target.trigger.contains(kind == .zmx ? "\"$exe\" send " : "action write-chars --pane-id"))
+            #expect(target.trigger.contains("foreground_shell"))
+            #expect(target.root.contains("fingerprint"))
+        }
         if kind == .herdr {
             #expect(update.active == nil)
         } else {
@@ -322,13 +440,13 @@ nonisolated struct RemoteMultiplexerTests {
 
     private static var name: String { RemoteMultiplexerCommands.managedName(token) }
     private static func hex(_ value: String) -> String { value.utf8.map { String(format: "%02x", $0) }.joined() }
-    private static func root(_ kind: RemoteMultiplexerKind) -> String {
+    private static func root(_ kind: SessionPersistenceBackendID) -> String {
         kind == .herdr ? "/tmp/test-config/herdr/sessions/\(name)" : "/tmp/\(kind.rawValue)"
     }
-    private static func socket(_ kind: RemoteMultiplexerKind) -> String {
+    private static func socket(_ kind: SessionPersistenceBackendID) -> String {
         root(kind) + (kind == .herdr ? "/herdr.sock" : "/\(name)")
     }
-    private static func list(_ kind: RemoteMultiplexerKind, empty: Bool = false) -> String {
+    private static func list(_ kind: SessionPersistenceBackendID, empty: Bool = false) -> String {
         switch kind {
         case .zellij:
             return "ROOT|user|\(hex("/tmp/user-zellij"))\nEND\nROOT|managed|\(hex(root(kind)))\n"
@@ -342,14 +460,14 @@ nonisolated struct RemoteMultiplexerTests {
                 : """
                 {"sessions":[{"name":"\(name)","running":true,"socket_path":"\(socket(kind))","session_dir":"\(root(kind))"}]}
                 """
-        case .tmux: return "TERMIND_TMUX_1\n"
+        default: return "TERMIND_TMUX_1\n"
         }
     }
-    private static func metadata(_ kind: RemoteMultiplexerKind) -> String {
+    private static func metadata(_ kind: SessionPersistenceBackendID) -> String {
         "F|0|\(hex(socket(kind)))|1:2:3|\(token.uuidString)|/tmp/termind-shell.testing|\(kind == .herdr ? "1:2" : "-")"
             + (kind == .zmx ? "|122|\(hex("Fri Oct 16 10:00:00 2026"))\n" : "|-|-\n")
     }
-    private static func reference(_ kind: RemoteMultiplexerKind) throws -> RemoteSessionReference {
+    private static func reference(_ kind: SessionPersistenceBackendID) throws -> RemoteSessionReference {
         let identity = RemoteMultiplexerIdentity(
             kind: kind, root: root(kind), socket: socket(kind), fingerprint: "1:2:3",
             process: kind == .zmx ? "123" : nil, created: kind == .zmx ? "456" : nil,
@@ -358,7 +476,7 @@ nonisolated struct RemoteMultiplexerTests {
             daemonProcess: kind == .zmx ? "122" : nil,
             daemonStarted: kind == .zmx ? "Fri Oct 16 10:00:00 2026" : nil)
         return .init(
-            backend: kind.id,
+            backend: kind,
             session: .init(
                 id: (kind == .zellij ? "managed:" : "user:") + name, name: name,
                 identity: try JSONEncoder().encode(identity)),

@@ -12,12 +12,14 @@ struct ResumableTerminalExitTests {
     @Test func moshStoppedDrainsFinalBytesAndEndsOnlyOnce() async throws {
         let events = Events()
         let client = events.client(.mosh)
+        let engine = MoshTerminalEngine { await client.receiveEngineEvent($0) }
         let tail = Data("logout\r\n".utf8)
 
-        #expect(await !client.receiveMoshPoll(state: .stopped, operations: [.hostBytes(tail)]))
+        #expect(await !engine.receivePoll(state: .stopped, operations: [.hostBytes(tail)]))
         #expect(events.values == [.state(.connected), .output(tail), .state(.ended)])
-        #expect(await !client.receiveMoshPoll(state: .stopped, operations: [.hostBytes(tail)]))
+        #expect(await !engine.receivePoll(state: .stopped, operations: [.hostBytes(tail)]))
         await client.close()
+        await engine.close()
         #expect(events.values == [.state(.connected), .output(tail), .state(.ended)])
         await #expect(throws: CancellationError.self) { try await client.write(Data("pwd\n".utf8)) }
         await #expect(throws: CancellationError.self) { try await client.suspend() }
@@ -27,19 +29,22 @@ struct ResumableTerminalExitTests {
     func moshSilenceSuspensionAndFailureAreNotRemoteExit(_ state: MoshSessionState) async {
         let events = Events()
         let client = events.client(.mosh)
-        _ = await client.receiveMoshPoll(state: state, operations: [])
+        let engine = MoshTerminalEngine { await client.receiveEngineEvent($0) }
+        _ = await engine.receivePoll(state: state, operations: [])
         #expect(!events.values.contains(.state(.ended)))
         await client.close()
-        _ = await client.receiveMoshPoll(state: .stopped, operations: [])
+        await engine.close()
+        _ = await engine.receivePoll(state: .stopped, operations: [])
         #expect(!events.values.contains(.state(.ended)))
     }
 
     @Test func eternalEndWaitsForTheOutputConsumerBeforeClosing() async {
         let events = Events()
         let client = events.client(.eternalTerminal)
+        let engine = EternalTerminalEngine { await client.receiveEngineEvent($0) }
         let output = AsyncStream<Data>.makeStream()
         let states = AsyncStream<ETConnectionState>.makeStream()
-        await client.startEternalReaders(output: output.stream, states: states.stream)
+        await engine.startReaders(output: output.stream, states: states.stream)
         states.continuation.yield(.connected)
         #expect(await eventually { events.values.contains(.state(.connected)) })
 
@@ -56,15 +61,17 @@ struct ResumableTerminalExitTests {
         states.continuation.yield(.sessionEnded)
         states.continuation.finish()
         await client.close()
+        await engine.close()
         #expect(events.values == [.state(.connected), .output(tail), .state(.ended)])
     }
 
     @Test func eternalDisconnectAndOutputEOFAloneDoNotCloseTheSession() async {
         let events = Events()
         let client = events.client(.eternalTerminal)
+        let engine = EternalTerminalEngine { await client.receiveEngineEvent($0) }
         let output = AsyncStream<Data>.makeStream()
         let states = AsyncStream<ETConnectionState>.makeStream()
-        await client.startEternalReaders(output: output.stream, states: states.stream)
+        await engine.startReaders(output: output.stream, states: states.stream)
         states.continuation.yield(.disconnected)
         states.continuation.yield(.reconnecting)
         output.continuation.finish()
@@ -73,6 +80,7 @@ struct ResumableTerminalExitTests {
         #expect(await eventually { events.values.contains(.state(.connected)) })
         #expect(!events.values.contains(.state(.ended)))
         await client.close()
+        await engine.close()
         states.continuation.yield(.sessionEnded)
         states.continuation.finish()
         #expect(!events.values.contains(.state(.ended)))
