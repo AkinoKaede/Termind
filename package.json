@@ -8,6 +8,6 @@
     "openwiki": "openwiki"
   },
   "devDependencies": {
-    "openwiki": "0.7.0"
+    "openwiki": "0.7.2"
   }
 }

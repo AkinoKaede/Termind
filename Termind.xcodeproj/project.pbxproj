@@ -2925,7 +2925,7 @@
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 5.95.0;
+				minimumVersion = 5.96.0;
 			};
 		};
 		C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */ = {
@@ -2973,7 +2973,7 @@
 			repositoryURL = "https://github.com/Lakr233/libghostty-spm.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 2.2.2026101301;
+				minimumVersion = 2.2.2026101502;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {
