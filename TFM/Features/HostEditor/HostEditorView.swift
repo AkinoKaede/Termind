@@ -330,9 +330,7 @@ struct HostEditorView: View {
                             in: Host.portForwardingMaxConnectionsRange
                         ) {
                             HStack {
-                                Text(
-                                    app.proAccess.canUse(.portForwardingMultiConnection)
-                                        ? AppStrings.Vault.maxConnections : AppStrings.Pro.maxConnections)
+                                Text(AppStrings.Vault.maxConnections)
                                 Spacer()
                                 Text(forwardingConnections.wrappedValue, format: .number).monospacedDigit()
                             }

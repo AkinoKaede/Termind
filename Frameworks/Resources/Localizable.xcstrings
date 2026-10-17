@@ -18345,47 +18345,6 @@
         }
       }
     },
-    "Connections Preferred (Pro)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verbindungen bevorzugen (Pro)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privilégier les connexions (Pro)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "接続を優先（Pro）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "연결 우선 (Pro)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "优先连接（Pro）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "優先連線（Pro）"
-          }
-        }
-      }
-    },
     "Contacting the App Store…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31604,43 +31563,43 @@
         }
       }
     },
-    "Free includes up to 3 monitoring cards. Upgrade to Pro for more." : {
+    "Free includes up to 3 hosts. Upgrade to Pro to unlock this host." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die kostenlose Version enthält bis zu 3 Überwachungskarten. Mit Pro können Sie weitere hinzufügen."
+            "value" : "Die kostenlose Version unterstützt bis zu 3 Hosts. Führe ein Upgrade auf Pro durch, um diesen Host freizuschalten."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La version gratuite inclut jusqu’à 3 cartes de surveillance. Passez à Pro pour en ajouter davantage."
+            "value" : "La version gratuite prend en charge jusqu’à 3 hôtes. Passez à Pro pour déverrouiller cet hôte."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無料版では監視カードを3枚まで追加できます。さらに追加するにはProにアップグレードしてください。"
+            "value" : "無料版ではホストを3台まで利用できます。Proにアップグレードして、このホストのロックを解除してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "무료 버전에는 모니터링 카드가 최대 3개까지 포함됩니다. 더 추가하려면 Pro로 업그레이드하세요."
+            "value" : "무료 버전은 호스트를 최대 3대까지 지원합니다. Pro로 업그레이드하여 이 호스트의 잠금을 해제하세요."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "免费版最多可添加3张监控卡片，升级Pro可添加更多。"
+            "value" : "免费版最多支持3台主机。升级Pro以解锁此主机。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "免費版最多可新增3張監控卡片，升級Pro可新增更多。"
+            "value" : "免費版最多支援3台主機。升級Pro以解鎖此主機。"
           }
         }
       }
@@ -40156,47 +40115,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最大連線數"
-          }
-        }
-      }
-    },
-    "Max Connections (Pro)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Max. Verbindungen (Pro)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connexions max. (Pro)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最大接続数（Pro）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "최대 연결 수 (Pro)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最大连接数（Pro）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連線數上限（Pro）"
           }
         }
       }
@@ -65853,47 +65771,6 @@
         }
       }
     },
-    "Smart (Pro)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intelligent (Pro)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intelligent (Pro)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スマート（Pro）"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스마트 (Pro)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智能（Pro）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智慧（Pro）"
-          }
-        }
-      }
-    },
     "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -82355,47 +82232,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新或可能更新本機Git參照。"
-          }
-        }
-      }
-    },
-    "Upgrade to Pro to unlock this host." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Führe ein Upgrade auf Pro durch, um diesen Host freizuschalten."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passez à Pro pour déverrouiller cet hôte."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Proにアップグレードしてこのホストをロック解除。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro로 업그레이드하여 이 호스트의 잠금을 해제하세요."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "升级到Pro以解锁此主机。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "升級至Pro以解鎖此主機。"
           }
         }
       }

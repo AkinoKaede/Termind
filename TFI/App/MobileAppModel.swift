@@ -507,7 +507,7 @@ final class MobileAppModel {
         updateWorkspaceActivity()
     }
 
-    private func updateWorkspaceActivity() {
+    func updateWorkspaceActivity() {
         // A failed read is not an authoritative empty list.
         guard hasLoadedWorkspaceSnapshot else { return }
         liveActivities.update(workspaceActivitySessions)

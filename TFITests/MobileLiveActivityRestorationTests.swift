@@ -64,6 +64,57 @@ struct MobileLiveActivityRestorationTests {
         #expect(await eventually { existing.ended })
     }
 
+    @Test func refreshAdoptsLateSystemActivityAndDismissesDuplicates() async {
+        let backend = Backend()
+        let controller = MobileLiveActivityController(services: backend.services)
+        let current = session()
+        controller.update([current])
+        for _ in 0..<20 { await Task.yield() }
+        let late = TestActivity(state: .stale)
+        let duplicate = TestActivity()
+        let ended = TestActivity(state: .ended)
+        backend.existing = [late, duplicate, ended]
+
+        controller.update([current])
+
+        #expect(await eventually { late.updates.last?.sessions.map(\.id) == [current.id] })
+        #expect(duplicate.ended && ended.ended)
+        #expect(!late.ended)
+        #expect(backend.requests.isEmpty)
+    }
+
+    @Test func emptySnapshotDismissesEveryLateSystemActivity() async {
+        let backend = Backend()
+        let controller = MobileLiveActivityController(services: backend.services)
+        controller.update([])
+        for _ in 0..<20 { await Task.yield() }
+        let late = TestActivity()
+        let ended = TestActivity(state: .ended)
+        backend.existing = [late, ended]
+
+        controller.update([])
+
+        #expect(await eventually { late.ended && ended.ended })
+        #expect(backend.requests.isEmpty)
+    }
+
+    @Test func explicitOpenDismissesEndedCardBeforeReplacingIt() async {
+        let backend = Backend()
+        let existing = TestActivity()
+        backend.existing = [existing]
+        let controller = MobileLiveActivityController(services: backend.services)
+        controller.update([session()])
+        #expect(await eventually { existing.updates.count == 1 })
+        existing.state = .ended
+        let next = session()
+
+        controller.start([next])
+
+        #expect(await eventually { backend.requests.count == 1 })
+        #expect(existing.ended)
+        #expect(backend.requests.first?.sessions.map(\.id) == [next.id])
+    }
+
     @Test func closeLastThenOpenWaitsForOldActivityToFinishEnding() async {
         let backend = Backend()
         let existing = TestActivity()
@@ -71,19 +122,141 @@ struct MobileLiveActivityRestorationTests {
         backend.existing = [existing]
         let controller = MobileLiveActivityController(services: backend.services)
         controller.update([])
+        #expect(await eventually { existing.endContinuation != nil })
         let next = session()
         controller.start([next])
         controller.focus(next.id, in: [next])
 
-        #expect(await eventually { existing.endContinuation != nil })
         #expect(backend.requests.isEmpty)
         existing.endContinuation?.resume()
         existing.endContinuation = nil
-        #expect(await eventually { backend.created.first?.updates.count == 1 })
+        #expect(await eventually { backend.requests.count == 1 })
         #expect(existing.ended)
         #expect(backend.requests.count == 1)
-        #expect(backend.created.first?.updates.first?.focusedWorkspaceID == next.id)
+        #expect(backend.requests.first?.focusedWorkspaceID == next.id)
         #expect(backend.created.first?.ended == false)
+    }
+
+    @Test func rapidOpenCloseWhileEndingOnlyPublishesTheLatestWorkspace() async {
+        let backend = Backend()
+        let existing = TestActivity()
+        existing.suspendsEnd = true
+        backend.existing = [existing]
+        let controller = MobileLiveActivityController(services: backend.services)
+        controller.update([])
+        #expect(await eventually { existing.endContinuation != nil })
+        for _ in 0..<5 {
+            controller.start([session()])
+            controller.update([])
+        }
+        let latest = session()
+        controller.start([latest])
+        existing.endContinuation?.resume()
+        existing.endContinuation = nil
+
+        #expect(await eventually { backend.requests.last?.sessions.map(\.id) == [latest.id] })
+        #expect(backend.requests.count == 1)
+        #expect(backend.created.filter { !$0.ended }.count == 1)
+    }
+
+    @Test func closeDuringDuplicateCleanupDoesNotPublishTheObsoleteOpen() async {
+        let backend = Backend()
+        let existing = TestActivity()
+        let duplicate = TestActivity()
+        duplicate.suspendsEnd = true
+        backend.existing = [existing, duplicate]
+        let controller = MobileLiveActivityController(services: backend.services)
+        controller.start([session()])
+        #expect(await eventually { duplicate.endContinuation != nil })
+
+        controller.update([])
+        duplicate.endContinuation?.resume()
+        duplicate.endContinuation = nil
+
+        #expect(await eventually { existing.ended && duplicate.ended })
+        #expect(existing.updates.isEmpty)
+        #expect(backend.requests.isEmpty)
+    }
+
+    @Test func dismissingRetainedCardDuringCleanupDoesNotReplayItsStartIntent() async {
+        let backend = Backend()
+        let existing = TestActivity()
+        let duplicate = TestActivity()
+        duplicate.suspendsEnd = true
+        backend.existing = [existing, duplicate]
+        let controller = MobileLiveActivityController(services: backend.services)
+        let current = session()
+        controller.start([current])
+        #expect(await eventually { duplicate.endContinuation != nil })
+
+        existing.state = .dismissed
+        controller.update([current])
+        duplicate.endContinuation?.resume()
+        duplicate.endContinuation = nil
+
+        #expect(await eventually { existing.ended && duplicate.ended })
+        #expect(existing.updates.isEmpty)
+        #expect(backend.requests.isEmpty)
+    }
+
+    @Test func staleLinkAfterRepeatedOpenCloseCleansLateCardWithoutRebuilding() async throws {
+        let backend = Backend()
+        var dependencies = MobileAppDependencies.testing()
+        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
+        let app = try MobileAppModel(dependencies: dependencies)
+        let host = TermindDomain.Host(name: "Server", host: "example.invalid")
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "window")
+        var closedID: UUID?
+        for index in 1...3 {
+            let id = try #require(scene.workspaceSession.open(hostID: host.id, kind: .ssh))
+            closedID = id
+            #expect(await eventually { backend.requests.count == index })
+            scene.closeAllWorkspaces()
+            #expect(await eventually { backend.created.last?.ended == true })
+        }
+        let id = try #require(closedID)
+        let late = TestActivity(focusedWorkspaceID: id)
+        late.contentState = .snapshot(
+            [.init(id: id, title: "Closed", kind: "ssh", connected: false)], focusedID: id)
+        backend.existing.append(late)
+
+        scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+
+        #expect(scene.isWorkspaceUnavailable)
+        #expect(await eventually { late.ended })
+        #expect(!app.containsWorkspace(id))
+        #expect(app.workspaces.isEmpty)
+        #expect(backend.requests.count == 3)
+    }
+
+    @Test func staleLinkKeepsUnrelatedSavedWorkspaceAndDoesNotReconnectIt() async throws {
+        let name = "ActivityStaleLink.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Unavailable Host", kind: .ssh)
+        try MobileWorkspaceStore(defaults: defaults).save(.init(sessions: ["window": [descriptor]]))
+        let backend = Backend()
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
+        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
+        let app = try MobileAppModel(dependencies: dependencies)
+        let scene = MobileSceneModel(app: app, sessionID: "window")
+        for _ in 0..<20 { await Task.yield() }
+        let stale = session()
+        let late = TestActivity(focusedWorkspaceID: stale.id)
+        late.contentState = .snapshot([stale], focusedID: stale.id)
+        backend.existing.append(late)
+
+        scene.open(stale.destinationURL)
+
+        #expect(scene.isWorkspaceUnavailable)
+        #expect(await eventually { late.updates.last?.sessions.map(\.id) == [descriptor.id] })
+        #expect(!late.ended)
+        #expect(scene.workspaceSession.savedWorkspaceDescriptors == [descriptor])
+        #expect(app.workspaces.isEmpty)
+        #expect(backend.requests.isEmpty)
+        scene.closeAllWorkspaces()
+        #expect(await eventually { late.ended })
     }
 
     @Test(arguments: [false, true])
@@ -153,16 +326,19 @@ struct MobileLiveActivityRestorationTests {
         let backend = Backend()
         let existing = TestActivity()
         existing.contentState = .snapshot([session()], focusedID: nil)
-        backend.existing = [existing]
+        let duplicate = TestActivity()
+        backend.existing = [existing, duplicate]
         var dependencies = MobileAppDependencies.testing(defaults: defaults)
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
         let app = try MobileAppModel(dependencies: dependencies)
         app.sceneChanged(UUID(), phase: .active)
         app.persistWorkspaceDescriptors()
+        let scene = MobileSceneModel(app: app, sessionID: "window")
+        scene.open(WorkspaceActivityAttributes.destinationURL(for: UUID()))
         for _ in 0..<20 { await Task.yield() }
         #expect(app.error != nil)
         #expect(existing.updates.isEmpty)
-        #expect(!existing.ended)
+        #expect(!existing.ended && !duplicate.ended)
         #expect(defaults.data(forKey: MobileWorkspaceStore.restorationKey) == damaged)
     }
 
@@ -263,7 +439,7 @@ struct MobileLiveActivityRestorationTests {
         var created: [TestActivity] = []
         var services: MobileLiveActivityServices {
             MobileLiveActivityServices(
-                activities: { self.existing },
+                activities: { (self.existing + self.created).filter { !$0.ended } },
                 canStart: { self.canStart },
                 request: {
                     self.requests.append($0)
@@ -296,6 +472,7 @@ struct MobileLiveActivityRestorationTests {
 
         func end() async {
             if suspendsEnd {
+                suspendsEnd = false
                 await withCheckedContinuation { endContinuation = $0 }
             }
             ended = true

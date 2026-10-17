@@ -15,10 +15,10 @@ public struct SFTPSettingsFields: View {
     }
     public var body: some View {
         Picker(AppStrings.SFTP.concurrentStrategy, selection: access.strategy(for: model)) {
-            Text(access.isAllowed ? AppStrings.SFTP.smart : AppStrings.Pro.smartStrategy)
+            Text(AppStrings.SFTP.smart)
                 .tag(SFTPConcurrencyStrategy.smart)
             Text(AppStrings.SFTP.channelsOnly).tag(SFTPConcurrencyStrategy.channelsOnly)
-            Text(access.isAllowed ? AppStrings.SFTP.connectionsPreferred : AppStrings.Pro.connectionsPreferredStrategy)
+            Text(AppStrings.SFTP.connectionsPreferred)
                 .tag(SFTPConcurrencyStrategy.connectionsPreferred)
         }
         if access.strategy(for: model).wrappedValue == .smart {

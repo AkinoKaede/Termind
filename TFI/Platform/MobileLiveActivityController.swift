@@ -12,20 +12,14 @@ final class MobileLiveActivityController {
     private let services: MobileLiveActivityServices
     private var focusedWorkspaceID: UUID?
     private var pendingStart = false
+    private var pendingState: WorkspaceActivityAttributes.ContentState?
 
     init(enabled: Bool = true, services: MobileLiveActivityServices = .live) {
         self.enabled = enabled
         self.services = services
         if enabled {
-            let restored = services.activities()
-            activity = restored.first { $0.state == .active || $0.state == .stale }
+            activity = services.activities().first { $0.state == .active || $0.state == .stale }
             focusedWorkspaceID = activity?.focusedWorkspaceID
-            let retainedID = activity?.id
-            updates = Task {
-                for duplicate in restored where duplicate.id != retainedID {
-                    await duplicate.end()
-                }
-            }
         }
     }
 
@@ -35,38 +29,61 @@ final class MobileLiveActivityController {
         update(sessions)
     }
 
-    /// All starts, updates and ends share a serial queue, including close-last/open-new races.
+    /// Serialize system calls, but coalesce queued changes so closed workspaces are never recreated.
     func start(_ sessions: [WorkspaceActivityAttributes.Session]) { schedule(sessions, mayStart: true) }
     func update(_ sessions: [WorkspaceActivityAttributes.Session]) { schedule(sessions, mayStart: false) }
 
     private func schedule(_ sessions: [WorkspaceActivityAttributes.Session], mayStart: Bool) {
         guard enabled else { return }
-        let state = WorkspaceActivityAttributes.ContentState.snapshot(
+        pendingState = WorkspaceActivityAttributes.ContentState.snapshot(
             sessions, focusedID: focusedWorkspaceID)
-        let previous = updates
+        if sessions.isEmpty {
+            pendingStart = false
+        } else if mayStart {
+            pendingStart = true
+        }
+        guard updates == nil else { return }
         updates = Task { [weak self] in
-            await previous?.value
             guard let self else { return }
-            if mayStart { pendingStart = true }
-            guard state.workspaceCount > 0 else {
-                pendingStart = false
-                if let activity { await activity.end() }
-                activity = nil
-                return
+            while let state = pendingState {
+                pendingState = nil
+                await reconcile(state)
             }
-            if let activity, activity.state == .active || activity.state == .stale {
-                pendingStart = false
+            updates = nil
+        }
+    }
+
+    private func reconcile(_ state: WorkspaceActivityAttributes.ContentState) async {
+        // ActivityKit can expose old cards after startup. The cached handle is not the full inventory.
+        var activities = services.activities()
+        if let activity, !activities.contains(where: { $0.id == activity.id }) { activities.append(activity) }
+        let usable = activities.filter { $0.state == .active || $0.state == .stale }
+        let retained =
+            state.workspaceCount > 0
+            ? usable.first(where: { $0.id == activity?.id }) ?? usable.first : nil
+        activity = retained
+        if retained != nil { pendingStart = false }
+        for other in activities where other.id != retained?.id { await other.end() }
+
+        // An open/close may have arrived while dismissal was suspended. Publish only the newest list.
+        guard pendingState == nil, state.workspaceCount > 0 else { return }
+        if let activity {
+            if activity.state == .active || activity.state == .stale {
                 await activity.update(state)
                 return
             }
-            // An explicit open may arrive before activation. Retain its intent until a foreground update.
-            // Once consumed, ordinary updates cannot resurrect a user-dismissed activity.
-            guard pendingStart, services.canStart() else { return }
-            pendingStart = false
-            do {
-                activity = try services.request(state)
-                error = nil
-            } catch { self.error = error.localizedDescription }
+            await activity.end()
+            self.activity = nil
+        }
+        // An explicit open may arrive before activation. Retain its intent until a foreground update.
+        // Once consumed, ordinary updates cannot resurrect a user-dismissed activity.
+        guard pendingState == nil, pendingStart, services.canStart() else { return }
+        pendingStart = false
+        do {
+            activity = try services.request(state)
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 }

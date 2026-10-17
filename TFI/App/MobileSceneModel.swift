@@ -448,6 +448,7 @@ final class MobileSceneModel {
             return
         }
         if WorkspaceActivityAttributes.accepts(url) {
+            app.updateWorkspaceActivity()
             isWorkspaceUnavailable = false
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
@@ -463,6 +464,8 @@ final class MobileSceneModel {
             }
             return
         }
+        // Even an expired link must reconcile system cards against the authoritative local list.
+        app.updateWorkspaceActivity()
         isWorkspaceUnavailable = false
         let id = sourceID
         guard let owner = app.workspaceOwner(id) else {
