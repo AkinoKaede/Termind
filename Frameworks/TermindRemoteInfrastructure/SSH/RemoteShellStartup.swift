@@ -3,6 +3,10 @@ import TermindDomain
 
 /// Private, per-session startup files. Nothing is ever typed into an attached terminal.
 nonisolated enum RemoteShellStartup {
+    static func ordinaryCommand(helper: String) throws -> String {
+        "export TERMIND_TMUX_HELPERS=\(try RemoteMultiplexerCommands.quote(helper)); exec /bin/sh \"$TERMIND_TMUX_HELPERS/shell\""
+    }
+
     static func install(
         token: UUID, startupCommand: String?, shellIntegration: Bool, ordinary: Bool = false,
         backend: String? = nil, environment: [HostEnvironmentVariable] = []
@@ -54,6 +58,7 @@ nonisolated enum RemoteShellStartup {
             + "\n" + fishStartup
         let shell = """
             #!/bin/sh
+            if [ "${1:-}" = --termind-check-executable ]; then exit 0; fi
             \(backend == nil ? "" : """
             if [ "${TERMIND_SHELL_LOCALE_SET:-}" = x ]; then
                 export LC_ALL="$TERMIND_SHELL_LOCALE"
@@ -97,7 +102,7 @@ nonisolated enum RemoteShellStartup {
             """
         // Run the first command inside the initialized shell, preserving cd/export state.
         // Subsequent ordinary panes use `shell` directly and cannot replay this command.
-        let first = "#!/bin/sh\nexport TERMIND_TMUX_FIRST=1\nexec \"$TERMIND_TMUX_HELPERS/shell\"\n"
+        let first = "#!/bin/sh\nexport TERMIND_TMUX_FIRST=1\nexec /bin/sh \"$TERMIND_TMUX_HELPERS/shell\"\n"
         var files = [
             "shell": shell, "first": first, "bashrc": bashrc, "fish": fish, "event": RemoteShellContextJournal.writer,
             "request-reader": RemoteShellContextJournal.requestReader, "event-token": eventToken.uuidString,
@@ -119,6 +124,36 @@ nonisolated enum RemoteShellStartup {
             helper=$(mktemp -d "/tmp/termind-shell.XXXXXXXX") || exit 78
             \(writes)
             chmod 700 "$helper/shell" "$helper/first" || exit 78
+            \(ordinary ? "" : """
+            "$helper/shell" --termind-check-executable >/dev/null 2>&1 || { rm -rf "$helper"; exit 78; }
+            """)
             """
+    }
+}
+
+/// Only ordinary startup uses the plain-shell fallback, never multiplexer inspection.
+nonisolated struct RemoteShellStartupReadiness {
+    private let generation: UUID
+    private var deadline: UInt64?
+
+    init(generation: UUID, now: UInt64 = DispatchTime.now().uptimeNanoseconds) {
+        self.generation = generation
+        deadline = now + 3_000_000_000
+    }
+
+    mutating func receive(_ update: TerminalRuntimeUpdate) {
+        if update.status == .ordinary || update.status == .multiplexer || update.backend != nil {
+            deadline = nil
+        }
+    }
+
+    mutating func poll(generation: UUID, now: UInt64 = DispatchTime.now().uptimeNanoseconds) -> Bool {
+        guard self.generation == generation else {
+            deadline = nil
+            return false
+        }
+        guard let deadline, now >= deadline else { return false }
+        self.deadline = nil
+        return true
     }
 }

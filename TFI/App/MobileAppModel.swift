@@ -765,21 +765,10 @@ final class MobileAppModel {
         return id
     }
 
-    func discardWorkspaceSessions(_ ids: Set<String>, authorized: Bool = false) {
+    func discardWorkspaceSessions(_ ids: Set<String>) {
         guard !ids.isEmpty else { return }
-        let recovered = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
-        let targets = workspaceSessions.flatMap { session in
-            session.workspaces.filter { ids.contains(session.id) || recovered.contains($0.id) }
-        }
-        if !authorized,
-            deferPersistentClose(
-                targets,
-                action: { [weak self] in
-                    self?.discardWorkspaceSessions(ids, authorized: true)
-                })
-        {
-            return
-        }
+        // Native dismissal detaches clients; only explicit workspace closure ends owned remote work.
+        persistentClose.cancel()
         discardedSessionIDs.formUnion(ids)
         orphanedSessionIDs.subtract(ids)
         for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
@@ -798,7 +787,7 @@ final class MobileAppModel {
             for workspaceID in recoveredIDs { session.close(workspaceID, rememberForReopen: false, authorized: true) }
         }
         for id in ids { recoveredWorkspaceIDs[id] = nil }
-        for session in workspaceSessions where ids.contains(session.id) { session.discard(authorized: true) }
+        for session in workspaceSessions where ids.contains(session.id) { session.discard() }
         workspaceSessions.removeAll { ids.contains($0.id) }
 
     }

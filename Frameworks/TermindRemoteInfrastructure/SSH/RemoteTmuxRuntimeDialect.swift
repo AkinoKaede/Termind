@@ -41,12 +41,12 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
         // Revalidate on the server immediately before signalling. A detached client's TTY
         // may already contain a shell, so this operation must never write terminal input.
         return """
-            export LC_ALL=C
+            \(RemoteTmuxCommands.executionPreamble)
             client=$(tmux list-clients -F '#{client_tty}|#{client_pid}|#{client_created}|#{pid}|#{session_id}|#{session_created}|#{client_flags}' 2>/dev/null | \
             while IFS='|' read -r tty cp cc sp sid sc flags; do
                 if [ "$tty" = \(try RemoteTmuxCommands.quote(client.terminal)) ]; then
                     case ",$flags," in
-                        *,read-only,*|*,ignore-size,*|*,active-pane,*|*,control-mode,*) continue ;;
+                        (*,read-only,*|*,ignore-size,*|*,active-pane,*|*,control-mode,*) continue ;;
                     esac
                     printf '%s|%s|%s|%s|%s|%s\\n' "$tty" "$cp" "$cc" "$sp" "$sid" "$sc"
                 fi
@@ -60,8 +60,7 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
     static func command(terminal: String) throws -> String {
         guard RemoteTmuxClientIdentity.validTerminal(terminal) else { throw TerminalRuntimeError.invalidResponse }
         return """
-            export LC_ALL=C
-            command -v tmux >/dev/null 2>&1 || exit 77
+            \(RemoteTmuxCommands.executionPreamble)
             tmux -V || exit 77
             client=$(tmux list-clients -F 'C|#{client_tty}|#{client_pid}|#{client_created}|#{pid}|#{session_id}|#{session_created}|#{pane_id}|#{client_flags}|#{client_key_table}' 2>/dev/null | \
             while IFS='|' read -r tag tty cp cc sp sid sc pane flags table; do
@@ -72,7 +71,8 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
             if [ -z "$client" ]; then printf 'NONE\\n'; exit 0; fi
             printf '%s\\n' "$client"
             sid=$(printf '%s' "$client" | cut -d '|' -f6)
-            tmux list-panes -s -t "$sid" -F 'P|#{pane_id}|#{pane_pid}|#{pane_in_mode}|#{synchronize-panes}|#{?#{==:#{pane_current_command},bash},bash,#{?#{==:#{pane_current_command},zsh},zsh,#{?#{==:#{pane_current_command},fish},fish,unknown}}}' || exit 78
+            panes=$(tmux list-panes -s -t "$sid" -F 'P|#{pane_id}|#{pane_pid}|#{pane_in_mode}|#{synchronize-panes}|#{?#{==:#{pane_current_command},bash},bash,#{?#{==:#{pane_current_command},zsh},zsh,#{?#{==:#{pane_current_command},fish},fish,unknown}}}') || exit 78
+            printf '%s\\n' "$panes"
             pane=$(printf '%s' "$client" | cut -d '|' -f8)
             cwd=$(tmux display-message -p -t "$pane" '#{pane_current_path}') || exit 78
             foreground=$(tmux display-message -p -t "$pane" '#{pane_current_command}') || exit 78
@@ -87,6 +87,12 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
             count=0
             for file in "$helper"/ctx.*/journal; do
                 [ -f "$file" ] && [ ! -L "$file" ] || continue
+                IFS='|' read -r tag token pane instance shell home pid history backend < "$file" || continue
+                case "$tag:$backend" in M1:|M2:tmux) ;; *) continue ;; esac
+                [ "$token" = "$(cat "$helper/event-token")" ] || continue
+                dir=${file%/journal}
+                [ ! -L "$dir" ] && [ "${dir##*/}" = "$instance" ] || continue
+                [ "$(printf '%s\\n' "$panes" | awk -F '|' -v pane="$pane" '$2 == pane {print $3}')" = "$pid" ] || continue
                 count=$((count + 1)); [ "$count" -le 128 ] || exit 78
                 printf 'BEGIN\\n'
                 cat "$file" || exit 78
@@ -216,6 +222,7 @@ extension RemoteTmuxRuntimeDialect {
         else { throw TerminalRuntimeError.staleContext }
         let target = try RemoteTmuxCommands.quote(session[0])
         let root = """
+            \(RemoteTmuxCommands.executionPreamble)
             [ "$(tmux display-message -p -t \(target) '#{pid}:#{session_created}')" = '\(identity.server):\(session[1])' ] || exit 79
             [ "$(tmux list-clients -F '#{client_tty}|#{client_pid}|#{client_created}|#{pane_id}|#{client_flags}|#{client_key_table}|#{session_id}|#{session_created}' | \
             awk -F '|' -v tty=\(try RemoteTmuxCommands.quote(terminal)) '$1 == tty {print $2 ":" $3 ":" $4 ":" $6 ":" $7 ":" $8; if ($5 ~ /active-pane|read-only/) print "UNSUPPORTED"}')" \

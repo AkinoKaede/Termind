@@ -146,6 +146,7 @@ final class MobileWorkspace: Identifiable {
     private(set) var isShellIntegrationEnabled = true
     private var shellIntegrationAvailable = false
     private var isInitialCommandSubmissionReady = false
+    private var initialCommandStartupTicket: SSHOrdinaryStartupTicket?
     private var pendingCommand: MobilePendingInitialCommand?
     /// Re-resolved from the Host and Snippet library for each physical terminal shell.
     private var pendingConnectionStartupCommand: MobilePendingInitialCommand?
@@ -694,6 +695,7 @@ final class MobileWorkspace: Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         isInitialCommandSubmissionReady = false
+        initialCommandStartupTicket = nil
         pendingConnectionStartupCommand = nil
         workingDirectory = nil
         commandExcludedFromHistory = nil
@@ -711,6 +713,19 @@ final class MobileWorkspace: Identifiable {
             resetCommandGeneratorShellState()
             return
         }
+        if case .ordinaryStartupUnavailable(let ticket) = event {
+            guard sessionPersistence.attachment == nil else { return }
+            guard let ticket else {
+                pendingCommand = nil
+                pendingConnectionStartupCommand = nil
+                initialCommandStartupTicket = nil
+                return
+            }
+            initialCommandStartupTicket = ticket
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
+            return
+        }
         if case .runtime(let update) = event {
             receiveRuntimeContext(update)
             return
@@ -718,7 +733,7 @@ final class MobileWorkspace: Identifiable {
         guard !hasRuntimeContext else { return }
         commandMonitor.receiveShellEvent(event)
         switch event {
-        case .runtime: break
+        case .runtime, .ordinaryStartupUnavailable: break
         case .available(let shell, let systemInfo, _):
             integratedShell = shell
             remoteSystemInfo = systemInfo
@@ -1476,9 +1491,15 @@ final class MobileWorkspace: Identifiable {
         else { return }
         let token = generation
         let data = Data((command + "\r").utf8)
+        let startupTicket = initialCommandStartupTicket
+        initialCommandStartupTicket = nil
         Task { [weak self] in
             guard let self, generation == token, connected, ssh === session else { return }
-            await connectionServices.writeSSH(session, data)
+            if let startupTicket {
+                await connectionServices.submitInitialCommand(session, data, startupTicket)
+            } else {
+                await connectionServices.writeSSH(session, data)
+            }
         }
     }
 
@@ -1860,15 +1881,14 @@ final class MobileWorkspace: Identifiable {
         var connectionOrigin: RemoteConnectionOrigin = .library
         var externalSFTPResourcePath: String? = nil
         var externalSFTPMustBeDirectory = false
-        var remoteSession: RemoteSessionReference? = nil
     }
 
     var reopenState: ReopenState {
         ReopenState(
-            descriptor: descriptor, transientHost: transientHost, connectionRoute: connectionRoute,
+            descriptor: restorationDescriptor, transientHost: transientHost, connectionRoute: connectionRoute,
             usernameHint: usernameHint, connectionOrigin: connectionOrigin,
             externalSFTPResourcePath: externalSFTPResourcePath,
-            externalSFTPMustBeDirectory: externalSFTPMustBeDirectory, remoteSession: sessionPersistence.attachment)
+            externalSFTPMustBeDirectory: externalSFTPMustBeDirectory)
     }
 
     func disconnect() {

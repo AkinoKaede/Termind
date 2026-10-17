@@ -7,6 +7,29 @@ import Testing
 
 @Suite
 nonisolated struct RemoteMultiplexerTests {
+    @Test func ordinaryStartupFallbackIsBoundedOneShotAndGenerationScoped() {
+        let generation = UUID()
+        var unsupportedShell = RemoteShellStartupReadiness(generation: generation, now: 100)
+        unsupportedShell.receive(.init(status: .unknown))
+        let beforeDeadline = unsupportedShell.poll(generation: generation, now: 3_000_000_099)
+        let atDeadline = unsupportedShell.poll(generation: generation, now: 3_000_000_100)
+        let afterCompletion = unsupportedShell.poll(generation: generation, now: 4_000_000_000)
+        #expect(!beforeDeadline)
+        #expect(atDeadline)
+        #expect(!afterCompletion)
+        var replaced = RemoteShellStartupReadiness(generation: generation, now: 100)
+        let replacement = replaced.poll(generation: UUID(), now: 4_000_000_000)
+        let afterReplacement = replaced.poll(generation: generation, now: 4_000_000_000)
+        #expect(!replacement)
+        #expect(!afterReplacement)
+        for status in [TerminalRuntimeUpdate.Status.ordinary, .multiplexer] {
+            var integrated = RemoteShellStartupReadiness(generation: generation, now: 100)
+            integrated.receive(.init(status: status))
+            let afterIntegration = integrated.poll(generation: generation, now: 4_000_000_000)
+            #expect(!afterIntegration)
+        }
+    }
+
     private static let token = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
     private static let kinds = SessionPersistenceBackendID.supported
 

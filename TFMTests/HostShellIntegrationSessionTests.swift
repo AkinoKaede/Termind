@@ -9,6 +9,48 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct HostShellIntegrationSessionTests {
+    @Test(arguments: [false, true])
+    func ordinaryStartupFallbackSubmitsOnceButNeverIntoManagedAttachments(managed: Bool) {
+        let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
+        let session = SSHSessionModel(hostID: host.id, title: host.name, initialCommand: "echo initial")
+        var submitted = Data()
+        session.inputSink = { submitted.append($0) }
+        defer { session.disconnect() }
+        session.connect(using: HostLibraryModel(hosts: [host]))
+        session.status = .connected
+        if managed {
+            session.sessionPersistence.attachment = .init(
+                backend: .tmux, session: .init(id: "$1", name: "build", identity: Data()),
+                hostID: host.id, endpoint: "server.invalid:22", username: "user", ownershipToken: UUID())
+        }
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unknown)))
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unavailable)))
+        #expect(submitted.isEmpty)
+        let fallback = SSHShellIntegrationEvent.ordinaryStartupUnavailable(
+            ticket: .init(generation: UUID(), inputRevision: 0))
+        session.receiveShellIntegrationEvent(fallback)
+        session.receiveShellIntegrationEvent(fallback)
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(String(decoding: submitted, as: UTF8.self) == (managed ? "" : "echo initial\r"))
+        #expect(!session.shellIntegrationAvailable)
+        #expect(!session.canGenerateFromCurrentDraft)
+        #expect(session.workingDirectory == nil)
+    }
+
+    @Test func rejectedOrdinaryStartupDoesNotReplayAtALaterPrompt() {
+        let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
+        let session = SSHSessionModel(hostID: host.id, title: host.name, initialCommand: "echo initial")
+        var submitted = Data()
+        session.inputSink = { submitted.append($0) }
+        defer { session.disconnect() }
+        session.connect(using: HostLibraryModel(hosts: [host]))
+        session.status = .connected
+        session.receiveShellIntegrationEvent(.ordinaryStartupUnavailable(ticket: nil))
+        session.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: "/home"))
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(submitted.isEmpty)
+    }
+
     @Test(arguments: ["shell", "tmux", "zellij", "zmx", "herdr"])
     func runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother(backend: String) throws {
         let session = SSHSessionModel(hostID: UUID(), title: "Cwd")

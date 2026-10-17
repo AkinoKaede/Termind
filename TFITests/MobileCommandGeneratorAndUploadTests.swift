@@ -68,6 +68,9 @@ private final class MobileSSHCommandConnectionBox {
                 if data == Data("\u{1B}[777;1~".utf8) {
                     shellIntegrations.last?(.draft(draft))
                 }
+            },
+            submitInitialCommand: { [weak self] _, data, _ in
+                self?.writes.append(data)
             }
         )
     }
@@ -94,6 +97,65 @@ private final class MobileSSHCommandConnectionBox {
 
 @Suite @MainActor
 struct MobileCommandGeneratorTests {
+    @Test func ordinaryStartupFallbackSubmitsOnceAndOldConnectionCannotReleaseANewSnippet() async throws {
+        var (host, library) = try commandFixture()
+        host.shellIntegrationMode = .enabled
+        let snippet = Snippet(title: "Startup", body: "echo startup")
+        host.startupSnippetID = snippet.id
+        library.upsert(snippet)
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: library,
+            connectionServices: connections.services, initialCommand: "echo explicit")
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        await connections.sendShellEvents([.runtime(.init(status: .unavailable))])
+        #expect(await eventually { workspace.terminalContext.status == .unavailable })
+        #expect(connections.writes.isEmpty)
+        let fallback = SSHShellIntegrationEvent.ordinaryStartupUnavailable(
+            ticket: .init(generation: UUID(), inputRevision: 0))
+        await connections.sendShellEvents([fallback, fallback])
+        #expect(await eventually { connections.writes == [Data("echo explicit\r".utf8)] })
+        #expect(workspace.terminalContext.active == nil)
+        #expect(!workspace.canGenerateFromCurrentDraft)
+        #expect(workspace.workingDirectory == nil)
+
+        await connections.finishSession(.failure(.socket("test disconnect")), session: 0)
+        #expect(await eventually(attempts: 500) { connections.sessionCount == 2 && workspace.connected })
+        await connections.sendShellEvents([fallback], session: 0)
+        await connections.sendShellEvents([.runtime(.init(status: .unavailable))], session: 1)
+        #expect(await eventually { workspace.terminalContext.status == .unavailable })
+        #expect(connections.writes == [Data("echo explicit\r".utf8)])
+        await connections.sendShellEvents([fallback, fallback], session: 1)
+        #expect(
+            await eventually {
+                connections.writes == [Data("echo explicit\r".utf8), Data("echo startup\r".utf8)]
+            })
+    }
+
+    @Test func rejectedOrdinaryStartupDoesNotReplayAtALaterPrompt() async throws {
+        var (host, library) = try commandFixture()
+        host.shellIntegrationMode = .enabled
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: library,
+            connectionServices: connections.services, initialCommand: "echo initial")
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        await connections.sendShellEvents([
+            .ordinaryStartupUnavailable(ticket: nil),
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home"),
+            .promptReady,
+        ])
+        #expect(await eventually { workspace.canGenerateFromCurrentDraft })
+        #expect(workspace.pendingInitialCommand == nil)
+        #expect(connections.writes.isEmpty)
+    }
+
     @Test(arguments: ["shell", "tmux", "zellij", "zmx", "herdr"])
     func runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother(backend: String) async throws {
         var (host, library) = try commandFixture()

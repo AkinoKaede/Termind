@@ -98,12 +98,9 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
-    func discard(authorized: Bool = false) {
+    func discard() {
         guard !isDiscarded else { return }
-        if !authorized, app.deferPersistentClose(workspaces, action: { [weak self] in self?.discard(authorized: true) })
-        {
-            return
-        }
+        app.persistentClose.cancel()
         let states = orderedWorkspaceItems.map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
         app.rememberClosedWorkspaces(states, isWindow: true)
         closeAll(rememberForReopen: false, authorized: true)
@@ -416,7 +413,8 @@ final class MobileWorkspaceSessionModel {
                 usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
                 externalSFTPResourcePath: state.externalSFTPResourcePath,
                 externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
-            workspace.restoreRemoteSession(state.remoteSession)
+            workspace.restoreRemoteSession(state.descriptor.remoteSession)
+            workspace.sessionPersistence.requiresSelection = state.descriptor.kind == .ssh
             addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
         }
     }

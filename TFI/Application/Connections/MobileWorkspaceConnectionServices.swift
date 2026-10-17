@@ -23,5 +23,8 @@ struct MobileWorkspaceConnectionServices {
             (@Sendable (String) -> Void)?
         ) async throws -> any SFTPClientProtocol
     var writeSSH: (SSHPTYChannel, Data) async -> Void
+    var submitInitialCommand: @MainActor (SSHPTYChannel, Data, SSHOrdinaryStartupTicket) async -> Void = {
+        await $0.submitInitialCommand($1, ticket: $2)
+    }
 
 }

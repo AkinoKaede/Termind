@@ -386,34 +386,18 @@ final class MobileSceneModel {
         requestWindowClose(sessionID: workspaceSession.id)
     }
 
-    func closeAllWindows(authorized: Bool = false) {
+    func closeAllWindows() {
         guard !workspaceSession.isDiscarded else { return }
         let sessionIDs = app.openWorkspaceSessionIDs()
-        if !authorized,
-            app.deferPersistentClose(
-                sessionIDs.flatMap { app.workspaceSession(for: $0).workspaces },
-                action: { [weak self] in self?.closeAllWindows(authorized: true) })
-        {
-            return
-        }
         for id in sessionIDs.sorted() where id != workspaceSession.id {
-            requestWindowClose(sessionID: id, authorized: true)
+            requestWindowClose(sessionID: id)
         }
         if sessionIDs.contains(workspaceSession.id) {
-            requestWindowClose(sessionID: workspaceSession.id, authorized: true)
+            requestWindowClose(sessionID: workspaceSession.id)
         }
     }
 
-    private func requestWindowClose(sessionID: String, authorized: Bool = false) {
-        if !authorized,
-            app.deferPersistentClose(
-                app.workspaceSession(for: sessionID).workspaces,
-                action: { [weak self] in
-                    self?.requestWindowClose(sessionID: sessionID, authorized: true)
-                })
-        {
-            return
-        }
+    private func requestWindowClose(sessionID: String) {
         // UIKit's discard callback owns cleanup; a rejected request must preserve this session.
         let logger = app.logging.makeLogger(label: "termind.window")
         app.closeWorkspaceSession(sessionID) { error in

@@ -892,6 +892,11 @@ public actor SSHPTYChannel {
         worker.write(data)
     }
 
+    public func submitInitialCommand(_ data: Data, ticket: SSHOrdinaryStartupTicket) async {
+        guard resumable == nil else { return }
+        await worker.submitInitialCommand(data, ticket: ticket)
+    }
+
     /// Opens an SFTP subsystem Channel on the PTY Channel's authenticated connection.
     /// This is a fallback only: callers must first attempt their ordinary
     /// independent SFTP connection.
@@ -969,6 +974,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var shellIntegrationLifecycleLogger: RemoteShellIntegrationLifecycleLogger
     private var commandEventFilter: RemoteCommandEventFilter?
     private var contextFilter: RemoteTerminalContextFilter?
+    private var ordinaryStartup: RemoteShellStartupReadiness?
+    private var ordinaryStartupInputRevision: UInt64?
+    private var ordinaryStartupTicket: SSHOrdinaryStartupTicket?
     private var runtimeTask: Task<Void, Never>?
     private var runtimeTerminal: String?
     private var runtimeRevision: UInt64 = 0
@@ -1344,13 +1352,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     hostID: request.configuration.hostID,
                     enabled: shellIntegrationEnabled
                 )
-                if shellIntegrationEnabled {
-                    let bootstrap = RemoteShellIntegrationBootstrap(charset: request.configuration.charset)
-                    pendingWrites.append(bootstrap.startCommand)
-                    commandEventFilter = RemoteCommandEventFilter(
-                        token: bootstrap.token, charset: request.configuration.charset)
-                    shellIntegration = bootstrap
-                }
                 startPump()
                 progress?(.connected(request.configuration.hostID))
             }
@@ -1381,6 +1382,38 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             let converted = (try? inputConverter?.convert(data).data) ?? data
             if !converted.isEmpty { pendingWrites.append(converted) }
             pump()
+        }
+    }
+
+    func submitInitialCommand(_ data: Data, ticket: SSHOrdinaryStartupTicket) async {
+        do {
+            let (terminal, revision) = try await queue.perform { [self] in
+                guard ordinaryStartupTicket == ticket,
+                    ptyResize.generation == ticket.generation, runtimeInputRevision == ticket.inputRevision,
+                    runtimeAttachment == nil, ptyChannel != nil, let runtimeTerminal
+                else { throw TerminalRuntimeError.staleContext }
+                ordinaryStartupTicket = nil
+                return (runtimeTerminal, runtimeRevision)
+            }
+            let probe = RemoteTerminalProcessProbe(
+                execute: try await sessionCommandExecutor(runtime: true, expectedInput: ticket.inputRevision))
+            guard try await probe.isOrdinaryShell(terminal: terminal) else { throw TerminalRuntimeError.unsupported }
+            try await queue.perform { [self] in
+                guard ptyResize.generation == ticket.generation, runtimeInputRevision == ticket.inputRevision,
+                    runtimeRevision == revision, runtimeTerminal == terminal, runtimeAttachment == nil,
+                    ptyChannel != nil, latestRuntimeUpdate?.status != .multiplexer,
+                    latestRuntimeUpdate?.backend == nil
+                else { throw TerminalRuntimeError.staleContext }
+                runtimeInputRevision &+= 1
+                runtimeRevision &+= 1
+                let converted = (try? inputConverter?.convert(data).data) ?? data
+                if !converted.isEmpty { pendingWrites.append(converted) }
+                pump()
+            }
+        } catch {
+            logger.notice(
+                "ssh.initial_command.skipped",
+                metadata: ["reason": "ordinary_shell_not_verified"])
         }
     }
 
@@ -1534,16 +1567,19 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
                     })
                 else { throw TerminalRuntimeError.invalidResponse }
-                startupCommand =
-                    "export TERMIND_TMUX_HELPERS=\(try RemoteMultiplexerCommands.quote(helper)); exec \"$TERMIND_TMUX_HELPERS/shell\""
-                await queue.perform { self.runtimeHelper = helper }
+                startupCommand = try RemoteShellStartup.ordinaryCommand(helper: helper)
+                try await queue.perform {
+                    guard self.ptyResize.generation == generation else { throw CancellationError() }
+                    self.runtimeHelper = helper
+                }
             } catch {
                 try Task.checkCancellation()
                 // Startup-only integration is optional; never fall back to typing a bootstrap.
                 usesRuntime = false
+                startupCommand = "exec \"${SHELL:-/bin/sh}\" -l"
             }
         }
-        if let original = startupCommand, usesRuntime {
+        if let original = startupCommand, shellIntegrationEnabled {
             startupCommand =
                 "printf '\\033]777;TermindTerminal=\(runtimeToken.uuidString);%s\\007' \"$(tty)\";\n" + original
         }
@@ -1556,8 +1592,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             runtimeEnabled = runtimeIsEnabled
             allowsDefaultHistorySource = launch == nil && !runtimeIsEnabled
             runtimeWantsObservation = runtimeIsEnabled && launch != nil
-            if runtimeIsEnabled {
+            if shellIntegrationEnabled {
                 contextFilter = .init(token: runtimeToken.uuidString, charset: charset)
+            }
+            if runtimeIsEnabled {
                 publishRuntime(.init(status: .unknown))
             } else if shellIntegrationEnabled {
                 publishRuntime(.init(status: .unavailable))
@@ -1620,6 +1658,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             outputConverter = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
             workingDirectoryFilter = RemoteOSC7CharsetFilter(charset: charset)
             didReportExit = false
+            if launch == nil, shellIntegrationEnabled {
+                ordinaryStartup = .init(generation: generation)
+                ordinaryStartupInputRevision = runtimeInputRevision
+            }
             progress?(.connected(request.configuration.hostID))
             pump()
         }
@@ -2030,6 +2072,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 shellIntegration = update.isComplete ? nil : integration
                 applyShellIntegrationUpdate(update)
             }
+            if let generation = ptyResize.generation, ordinaryStartup?.poll(generation: generation) == true {
+                ordinaryStartupTicket =
+                    runtimeTerminal == nil || runtimeInputRevision != ordinaryStartupInputRevision
+                    ? nil : .init(generation: generation, inputRevision: runtimeInputRevision)
+                shellIntegrationHandler(
+                    .ordinaryStartupUnavailable(ticket: ordinaryStartupTicket))
+                if ordinaryStartupTicket == nil {
+                    logger.notice(
+                        "ssh.initial_command.skipped",
+                        metadata: ["reason": "terminal_missing_or_input_changed"])
+                }
+            }
 
             while !pendingWrites.isEmpty && DispatchTime.now().uptimeNanoseconds < deadline {
                 let written = pendingWrites.withFirstBytes { bytes -> Int in
@@ -2267,6 +2321,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func publishRuntime(_ proposed: TerminalRuntimeUpdate) {
+        ordinaryStartup?.receive(proposed)
         var update = proposed
         if runtimeControlUnavailable || channelBudget?.permitsConcurrentControl == false {
             if update.status == .multiplexer {
@@ -2509,6 +2564,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func stopRuntimeObservation() {
+        ordinaryStartup = nil
+        ordinaryStartupInputRevision = nil
+        ordinaryStartupTicket = nil
         activationTask?.task.cancel()
         activationTask = nil
         terminalActivation.reset()

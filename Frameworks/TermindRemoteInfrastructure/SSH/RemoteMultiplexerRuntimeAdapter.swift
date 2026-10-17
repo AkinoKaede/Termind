@@ -210,28 +210,34 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
             native=$(\(nativeCommand)) || exit 79
             focus=$(\(focusCommand)) || exit 79
             printf 'C|%s\\nN|%s\\nA|%s\\n' "$client" "$(hex "$native")" "$(hex "$focus")"
-            count=0
-            for file in "$helper"/ctx.*/journal; do
-                [ -f "$file" ] && [ ! -L "$file" ] || continue
-                count=$((count + 1)); [ "$count" -le 128 ] || exit 78
-                IFS='|' read -r tag token pane instance shell home pid history backend < "$file" || exit 78
-                [ "$tag" = M2 ] && [ "$backend" = '\(try identity.kind.rawValue)' ] || continue
-                [ "$token" = "$(cat "$helper/event-token")" ] || continue
-                dir=${file%/journal}
-                [ "${dir##*/}" = "$instance" ] || continue
-                shell_check "$pid" "$shell" "$dir" || continue
-                foreground=0
-                if foreground_shell "$pid" "$shell" "$dir"; then foreground=1; fi
-                printf 'BEGIN|%s\\n' "$foreground"
-                cat "$file" || exit 78
-                printf 'END\\n'
-            done
-            printf 'DONE\\n'
+            \(Self.journalCommand(backend: try identity.kind))
             """
         let result = try await execute(command)
         guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
         return try Self.parseSnapshot(
             result.stdout, reference: reference, charset: charset, clientBound: boundClient != nil)
+    }
+
+    static func journalCommand(backend: SessionPersistenceBackendID) -> String {
+        """
+        count=0
+        for file in "$helper"/ctx.*/journal; do
+            [ -f "$file" ] && [ ! -L "$file" ] || continue
+            IFS='|' read -r tag token pane instance shell home pid history backend < "$file" || exit 78
+            [ "$tag" = M2 ] && [ "$backend" = '\(backend.rawValue)' ] || continue
+            [ "$token" = "$(cat "$helper/event-token")" ] || continue
+            dir=${file%/journal}
+            [ "${dir##*/}" = "$instance" ] || continue
+            shell_check "$pid" "$shell" "$dir" || continue
+            count=$((count + 1)); [ "$count" -le 128 ] || exit 78
+            foreground=0
+            if foreground_shell "$pid" "$shell" "$dir"; then foreground=1; fi
+            printf 'BEGIN|%s\\n' "$foreground"
+            cat "$file" || exit 78
+            printf 'END\\n'
+        done
+        printf 'DONE\\n'
+        """
     }
 
     static func parse(

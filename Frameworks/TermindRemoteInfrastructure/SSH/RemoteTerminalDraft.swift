@@ -65,6 +65,7 @@ nonisolated enum RemoteTerminalDraft {
                 throw TerminalRuntimeError.staleContext
             }
             root = """
+                \(RemoteTmuxCommands.executionPreamble)
                 helper=$(tmux show-environment -t \(try RemoteMultiplexerCommands.quote(String(session))) TERMIND_TMUX_HELPERS) || exit 79
                 helper=${helper#TERMIND_TMUX_HELPERS=}
                 """

@@ -15,6 +15,34 @@ nonisolated struct RemoteTerminalProcessProbe {
 
     let execute: RemoteSessionCommandExecutor
 
+    func isOrdinaryShell(terminal: String) async throws -> Bool {
+        let result = try await execute(Self.ordinaryShellCommand(terminal: terminal))
+        return result.exitCode == 0 && !result.truncated && result.stdout == "TERMIND_ORDINARY_SHELL\n"
+    }
+
+    static func ordinaryShellCommand(terminal: String) throws -> String {
+        guard RemoteTmuxClientIdentity.validTerminal(terminal) else { throw TerminalRuntimeError.invalidResponse }
+        return """
+            export LC_ALL=C
+            tty=\(try RemoteMultiplexerCommands.quote(String(terminal.dropFirst("/dev/".count))))
+            rows=$(ps -t "$tty" -o pid= -o pgid= -o tpgid= -o tty= -o comm= | head -c 65537) || exit 79
+            [ "${#rows}" -le 65536 ] || exit 79
+            printf '%s\\n' "$rows" | awk -v tty="$tty" '
+                NF != 5 || $1 !~ /^[0-9]+$/ || $2 !~ /^[0-9]+$/ || $3 !~ /^[0-9]+$/ || $4 != tty {
+                    invalid=1; next
+                }
+                $2 == $3 && $3 > 0 {
+                    count++
+                    name=$5; sub(/^.*\\//,"",name); sub(/^-/,"",name)
+                    if (name ~ /^(sh|dash|ksh|ksh93|bash|zsh|fish|csh|tcsh)$/) shells++
+                }
+                END {
+                    if (!invalid && count == 1 && shells == 1) print "TERMIND_ORDINARY_SHELL"
+                    else exit 79
+                }'
+            """
+    }
+
     func inspect(terminal: String) async throws -> Client? {
         let result = try await execute(Self.command(terminal: terminal))
         guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }

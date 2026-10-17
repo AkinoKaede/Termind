@@ -192,6 +192,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     private var pendingConnectionStartupCommand: PendingInitialCommand?
     private var commandExcludedFromHistory: String?
     private var isInitialCommandSubmissionReady = false
+    private var initialCommandStartupTicket: SSHOrdinaryStartupTicket?
 
     var reconnectState: ReconnectState? { connection.reconnectState }
 
@@ -462,6 +463,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         isInitialCommandSubmissionReady = false
+        initialCommandStartupTicket = nil
         pendingConnectionStartupCommand = nil
         activeShellCommand = nil
         commandDraft.cancel()
@@ -1423,6 +1425,19 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         guard isShellIntegrationEnabled else { return }
+        if case .ordinaryStartupUnavailable(let ticket) = event {
+            guard sessionPersistence.attachment == nil else { return }
+            guard let ticket else {
+                pendingInitialCommand = nil
+                pendingConnectionStartupCommand = nil
+                initialCommandStartupTicket = nil
+                return
+            }
+            initialCommandStartupTicket = ticket
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
+            return
+        }
         if case .runtime(let update) = event {
             receiveRuntimeContext(update)
             return
@@ -1430,7 +1445,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         guard !hasRuntimeContext else { return }
         commandMonitor.receiveShellEvent(event)
         switch event {
-        case .runtime: break
+        case .runtime, .ordinaryStartupUnavailable: break
         case .available(let shell, let systemInfo, let homeDirectory):
             if let homeDirectory, homeDirectory.hasPrefix("/") {
                 homeResolution = .resolved(RemotePath.normalized(homeDirectory))
@@ -1538,7 +1553,22 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 in: initialCommand.command
             )
         }
-        insert(initialCommand.command, submit: true)
+        if let ticket = initialCommandStartupTicket {
+            initialCommandStartupTicket = nil
+            if let statusStore, let host = statusStore.host(hostID),
+                (try? statusStore.requireHostAccess(host)) == nil
+            {
+                return
+            }
+            let data = Data((initialCommand.command + "\r").utf8)
+            if let inputSink {
+                inputSink(data)
+            } else if let ssh {
+                Task { await ssh.submitInitialCommand(data, ticket: ticket) }
+            }
+        } else {
+            insert(initialCommand.command, submit: true)
+        }
     }
 
     private func submitPendingInitialCommandIfReady() {

@@ -790,8 +790,10 @@ struct MobileWorkspaceSessionTests {
         let first = MobileSceneModel(app: app, sessionID: "a")
         let second = MobileSceneModel(app: app, sessionID: "b")
         first.open(hostID: fixture.host.id, kind: .ssh)
-        second.open(hostID: fixture.host.id, kind: .sftp)
+        second.open(hostID: fixture.host.id, kind: .ssh)
         let original = try #require(second.workspaceSession.workspaces.first)
+        let reference = managedReference(hostID: fixture.host.id)
+        original.restoreRemoteSession(reference)
         let history = app.connectionHistory.entries()
         app.sceneChanged(first.id, phase: .active)
         app.sceneChanged(second.id, phase: .background)
@@ -810,6 +812,7 @@ struct MobileWorkspaceSessionTests {
         #expect(app.workspaceOwner(original.id) == nil)
         #expect(app.closedWorkspaceRecords.first?.isWindow == true)
         #expect(app.closedWorkspaceRecords.first?.items.map(\.id) == [original.id])
+        #expect(app.closedWorkspaceRecords.first?.items.first?.remoteSession == reference)
         #expect(second.workspaceSession.open(hostID: fixture.host.id, kind: .ssh) == nil)
     }
 
@@ -922,6 +925,8 @@ struct MobileWorkspaceSessionTests {
         scene.open(hostID: fixture.host.id, kind: .ssh)
         scene.activatePendingWorkspace()
         let workspace = try #require(scene.activeWorkspace)
+        let reference = managedReference(hostID: fixture.host.id)
+        workspace.restoreRemoteSession(reference)
         var requestedSessions: [String] = []
         app.closeWorkspaceSession = { id, _ in requestedSessions.append(id) }
 
@@ -929,10 +934,12 @@ struct MobileWorkspaceSessionTests {
 
         #expect(requestedSessions == ["owner"])
         #expect(scene.activeWorkspace === workspace)
+        #expect(workspace.sessionPersistence.attachment == reference)
         #expect(!scene.workspaceSession.isDiscarded)
         app.discardWorkspaceSessions(["owner"])
         #expect(scene.workspaceSession.workspaces.isEmpty)
         #expect(scene.workspaceSession.isDiscarded)
+        #expect(app.closedWorkspaceRecords.first?.items.first?.remoteSession == reference)
     }
 
     @Test func closeAllWindowsSnapshotsNativeSessionsAndRetainsRejectedWindows() throws {
@@ -942,8 +949,12 @@ struct MobileWorkspaceSessionTests {
         let first = MobileSceneModel(app: app, sessionID: "first")
         let second = MobileSceneModel(app: app, sessionID: "second")
         first.open(hostID: fixture.host.id, kind: .ssh)
-        second.open(hostID: fixture.host.id, kind: .sftp)
+        second.open(hostID: fixture.host.id, kind: .ssh)
+        let firstReference = managedReference(hostID: fixture.host.id)
+        first.workspaceSession.workspaces.first?.restoreRemoteSession(firstReference)
         let retainedWorkspace = try #require(second.workspaceSession.workspaces.first)
+        let retainedReference = managedReference(hostID: fixture.host.id)
+        retainedWorkspace.restoreRemoteSession(retainedReference)
         var nativeSessions: Set<String> = ["first", "second", "background"]
         var requestedSessions: [String] = []
         app.openWorkspaceSessionIDs = { nativeSessions }
@@ -962,6 +973,8 @@ struct MobileWorkspaceSessionTests {
         #expect(requestedSessions == ["background", "second", "first"])
         #expect(first.workspaceSession.isDiscarded)
         #expect(second.workspaceSession.workspaces.first === retainedWorkspace)
+        #expect(retainedWorkspace.sessionPersistence.attachment == retainedReference)
+        #expect(app.closedWorkspaceRecords.first?.items.first?.remoteSession == firstReference)
         #expect(fixture.defaults.object(forKey: MobileWorkspaceStore.key) == nil)
         #expect(!second.workspaceSession.isDiscarded)
         #expect(app.error == nil)
@@ -974,6 +987,8 @@ struct MobileWorkspaceSessionTests {
         let scene = MobileSceneModel(app: app, sessionID: "a")
         scene.open(hostID: fixture.host.id, kind: .ssh)
         let workspace = try #require(scene.workspaceSession.workspaces.first)
+        let reference = managedReference(hostID: fixture.host.id)
+        workspace.restoreRemoteSession(reference)
         var reportFailure: (@MainActor (any Error) -> Void)?
         app.closeWorkspaceSession = { _, failed in reportFailure = failed }
         scene.openSettings()
@@ -983,6 +998,7 @@ struct MobileWorkspaceSessionTests {
         failed(NSError(domain: "WindowCloseTest", code: 1))
 
         #expect(scene.workspaceSession.workspaces.first === workspace)
+        #expect(workspace.sessionPersistence.attachment == reference)
         #expect(!scene.workspaceSession.isDiscarded)
         #expect(fixture.defaults.object(forKey: MobileWorkspaceStore.key) == nil)
         #expect(scene.selectedDestination == .settings)
@@ -1044,6 +1060,12 @@ struct MobileWorkspaceSessionTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         try #require(condition())
+    }
+
+    private func managedReference(hostID: UUID) -> RemoteSessionReference {
+        .init(
+            backend: .tmux, session: .init(id: "$1", name: "build", identity: Data("identity".utf8)),
+            hostID: hostID, endpoint: "test.invalid:22", username: "user", ownershipToken: UUID())
     }
 
     private final class Fixture {

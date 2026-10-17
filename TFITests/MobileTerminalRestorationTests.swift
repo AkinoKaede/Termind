@@ -8,6 +8,57 @@ import Testing
 
 @Suite @MainActor
 struct MobileTerminalRestorationTests {
+    @Test(arguments: [false, true])
+    func unopenedManagedReferenceSurvivesTabAndWindowReopen(window: Bool) throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { for workspace in app.workspaces { workspace.disconnect() } }
+        let host = Host(name: "Server", host: "example.invalid")
+        app.library.upsert(host)
+        let reference = RemoteSessionReference(
+            backend: .tmux, session: .init(id: "$4", name: "build", identity: Data("identity".utf8)),
+            hostID: host.id, endpoint: "example.invalid:22", username: "user", ownershipToken: UUID())
+        let descriptor = MobileWorkspaceDescriptor(
+            hostID: host.id, title: "Saved", kind: .ssh, remoteSession: reference)
+        let source = MobileWorkspaceSessionModel(id: "source", app: app, descriptors: [descriptor])
+        #expect(source.workspaces.isEmpty)
+        if window { source.discard() } else { source.close(descriptor.id) }
+        let record = try #require(app.closedWorkspaceRecords.first)
+        #expect(record.isWindow == window)
+        #expect(record.items.first?.remoteSession == reference)
+        // Exercise the record-only reconstruction, not just retained in-process state.
+        app.closedWorkspaceStates[record.id] = nil
+        let destination = app.workspaceSession(for: "destination")
+        #expect(app.restoreClosedRecord(record.id, into: destination) == descriptor.id)
+        let reopened = try #require(destination.workspaces.first)
+        #expect(reopened.sessionPersistence.attachment == reference)
+        #expect(reopened.sessionPersistence.requiresSelection)
+        #expect(reopened.pendingInitialCommand == nil)
+    }
+
+    @Test func endedLiveSessionDoesNotResurrectItsDescriptorReference() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { for workspace in app.workspaces { workspace.disconnect() } }
+        let host = Host(name: "Server", host: "example.invalid")
+        app.library.upsert(host)
+        let reference = RemoteSessionReference(
+            backend: .tmux, session: .init(id: "$4", name: "build", identity: Data("identity".utf8)),
+            hostID: host.id, endpoint: "example.invalid:22", username: "user", ownershipToken: UUID())
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: "Ended", kind: .ssh, remoteSession: reference),
+            hosts: app.library)
+        defer { workspace.disconnect() }
+        workspace.restoreRemoteSession(reference)
+        workspace.sessionPersistence.markEnded()
+        app.rememberClosedWorkspaces([workspace.reopenState])
+        let record = try #require(app.closedWorkspaceRecords.first)
+        #expect(record.items.first?.remoteSession == nil)
+        let destination = app.workspaceSession(for: "destination")
+        #expect(app.restoreClosedRecord(record.id, into: destination) == workspace.id)
+        let reopened = try #require(destination.workspaces.first)
+        #expect(reopened.sessionPersistence.attachment == nil)
+        #expect(reopened.sessionPersistence.requiresSelection)
+    }
+
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
     func initialFailureRemainsRetryableAfterTransportCleanup(_ transport: HostTerminalProtocol) {
         let host = Host(name: "Server", host: "example.invalid")

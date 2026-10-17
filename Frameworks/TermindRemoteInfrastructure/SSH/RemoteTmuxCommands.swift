@@ -16,6 +16,18 @@ nonisolated struct TmuxSessionIdentity: Codable {
 }
 
 public nonisolated enum RemoteTmuxCommands {
+    static var executionPreamble: String {
+        """
+        termind_resolve_tmux() {
+            \(RemoteMultiplexerCommands.discovery(.tmux))
+            printf '%s' "$exe"
+        }
+        exe=$(termind_resolve_tmux) || exit $?
+        unset -f termind_resolve_tmux
+        export PATH="${exe%/*}:$PATH"
+        """
+    }
+
     public static func quote(_ value: String) throws -> String {
         try RemoteMultiplexerCommands.quote(value)
     }
@@ -42,7 +54,7 @@ public nonisolated enum RemoteTmuxCommands {
 
     public static var list: String {
         """
-        export LC_ALL=C
+        \(executionPreamble)
         \(describe)
         ids=$(tmux list-sessions -F '#{session_id}' 2>&1)
         code=$?
@@ -132,6 +144,7 @@ public nonisolated enum RemoteTmuxCommands {
             case \(shell) in */bash|*/zsh|*/fish) ;; *) exit 80 ;; esac
             """
         return """
+            \(executionPreamble)
             \(describe)
             session_shell=\(shell)
             id=$(tmux list-sessions -f '#{==:#{session_name},\(name)}' -F '#{session_id}' 2>/dev/null)
@@ -173,13 +186,15 @@ public nonisolated enum RemoteTmuxCommands {
         // The guard and attach share tmux's command queue; never use -d, -A, or a name prefix.
         let command = "attach-session -t \(target)"
         return
-            "exec tmux if-shell -t \(target) -F \(try quote(identityCondition(attachment))) \(try quote(command)) 'display-message -p TERMIND_IDENTITY_MISMATCH'"
+            executionPreamble
+            + "\nexec tmux if-shell -t \(target) -F \(try quote(identityCondition(attachment))) \(try quote(command)) 'display-message -p TERMIND_IDENTITY_MISMATCH'"
     }
 
     public static func terminate(_ attachment: RemoteSessionReference) throws -> String {
         guard attachment.ownershipToken != nil else { throw RemoteSessionFailure.ownershipMismatch }
         let target = try quote(attachment.session.id)
         return """
+            \(executionPreamble)
             [ "$(tmux display-message -p -t \(target) \(try quote(identityCondition(attachment))))" = 1 ] || exit 79
             tmux if-shell -t \(target) -F \(try quote(identityCondition(attachment))) \
             \(try quote("kill-session -t \(target) ; display-message -p TERMIND_ENDED"))
