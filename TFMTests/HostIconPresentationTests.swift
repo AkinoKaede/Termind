@@ -41,6 +41,16 @@ struct HostIconPresentationTests {
         #expect(HostIconCatalog.resolvedEntry(for: host) == nil)
     }
 
+    @Test func bundledMacOSArtworkUsesThePlatformLogoSource() throws {
+        let url = try #require(Bundle.main.url(forResource: "HostIcons", withExtension: "json"))
+        let catalog = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let entries = try #require(catalog["entries"] as? [[String: Any]])
+        let macOS = try #require(entries.first { $0["id"] as? String == "macos" })
+        #expect(macOS["package"] as? String == "simple-icons")
+        #expect(macOS["slug"] as? String == "macos")
+    }
+
     @Test(arguments: ["000000", "0078D4"], [ColorScheme.light, .dark])
     func brandColorsMeetIconSurfaceContrast(hex: String, scheme: ColorScheme) throws {
         let color = try #require(HostIconBrandColor.color(hex: hex, colorScheme: scheme))

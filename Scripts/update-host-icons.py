@@ -71,7 +71,7 @@ def main():
     tabler_source["source"] = "https://github.com/tabler/tabler-icons"
     metadata = {entry["title"]: entry for entry in json.loads(read(simple, "data/simple-icons.json"))}
     requested = json.loads((ROOT / "Scripts/linux-distribution-icons.json").read_text())
-    requested.append({"title": "Apple", "slug": "apple", "ids": ["macos"], "id": "macos"})
+    requested.append({"title": "macOS", "slug": "macos", "ids": ["macos"], "id": "macos"})
     for title, slug, ids in [
         ("BSD", "bsd", ["bsd", "dragonfly"]),
         ("FreeBSD", "freebsd", ["freebsd"]),
@@ -90,11 +90,10 @@ def main():
         entries = []
         for item in requested:
             info = metadata[item["title"]]
-            is_mac = item.get("id") == "macos"
             asset = "HostOS-" + item["id"] if "id" in item else "LinuxDistro-" + item["slug"]
             write_icon(assets, asset, read(simple, "icons/" + item["slug"] + ".svg"))
             entries.append({
-                "id": item.get("id", item["slug"]), "title": "macOS" if is_mac else item["title"],
+                "id": item.get("id", item["slug"]), "title": item["title"],
                 "asset": asset, "ids": item["ids"], "hex": info["hex"], "slug": item["slug"],
                 "sourceURL": info["source"], "license": info.get("license", {}).get("type"),
                 "package": "simple-icons",
