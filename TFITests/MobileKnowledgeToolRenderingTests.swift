@@ -104,7 +104,7 @@ struct MobileKnowledgeToolRenderingTests {
             .text(.init(text: String(repeating: "Full output line\n", count: 240), style: .monospaced))
         ])
         let full = UIHostingController(
-            rootView: AssistantToolDetails(items: detail.items, shortensText: false))
+            rootView: AssistantToolDetails(items: detail.items))
         let expanded = UIHostingController(
             rootView: AssistantCompactToolDetails(
                 detail: detail, isError: false, expanded: .constant(true)))

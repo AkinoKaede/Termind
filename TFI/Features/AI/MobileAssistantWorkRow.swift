@@ -125,32 +125,20 @@ struct MobileAssistantToolRow: View {
                 if let detail = AgentToolPresentation.detail(
                     for: card, presenter: TermindAgentTools.presenter(for: card.descriptor), locale: locale
                 ) {
-                    if AgentToolPresentation.usesCompactDetails(for: card.descriptor) {
-                        AssistantCompactToolDetails(
-                            detail: detail, isError: card.result?.isError == true,
-                            expanded: Binding(
-                                get: { presentation.isExpanded(.toolDetail(card.id)) },
-                                set: { value in
-                                    if value != presentation.isExpanded(.toolDetail(card.id)) {
-                                        presentation.toggleDisclosure(.toolDetail(card.id))
-                                    }
+                    AssistantCompactToolDetails(
+                        detail: detail, isError: card.result?.isError == true,
+                        expanded: Binding(
+                            get: { presentation.isExpanded(.toolDetail(card.id)) },
+                            set: { value in
+                                if value != presentation.isExpanded(.toolDetail(card.id)) {
+                                    presentation.toggleDisclosure(.toolDetail(card.id))
                                 }
-                            ),
-                            strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
-                            preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil,
-                            truncateMarker: AgentToolPresentation.truncationNotice(for: card)
-                        )
-                    } else {
-                        AssistantToolDetails(items: detail.items, isError: card.result?.isError == true) {
-                            UIPasteboard.general.string = $0
-                        }
-                    }
-                }
-                if !AgentToolPresentation.usesCompactDetails(for: card.descriptor),
-                    let marker = AgentToolPresentation.truncationNotice(for: card)
-                {
-                    Text(marker)
-                        .font(.caption2).foregroundStyle(.orange)
+                            }
+                        ),
+                        strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
+                        preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil,
+                        truncateMarker: AgentToolPresentation.truncationNotice(for: card)
+                    )
                 }
             }
             .padding(.leading, iconSize + 8)

@@ -837,24 +837,7 @@ private enum NativeTranscriptFactory {
                 for: card, presenter: TermindAgentTools.presenter(for: card.descriptor),
                 locale: context.configuration.locale
             ) {
-                if AgentToolPresentation.usesCompactDetails(for: card.descriptor) {
-                    detail.addArrangedSubview(compactToolDetail(projected, card: card, context: context))
-                } else {
-                    for item in projected.items {
-                        detail.addArrangedSubview(
-                            toolDetail(item, isError: card.result?.isError == true, context: context))
-                    }
-                }
-            }
-            if !AgentToolPresentation.usesCompactDetails(for: card.descriptor),
-                let marker = AgentToolPresentation.truncationNotice(for: card)
-            {
-                detail.addArrangedSubview(
-                    NativeLabel(
-                        marker,
-                        font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
-                        color: .systemOrange
-                    ))
+                detail.addArrangedSubview(compactToolDetail(projected, card: card, context: context))
             }
             stack.addArrangedSubview(detail)
         }
@@ -1370,7 +1353,7 @@ private enum NativeTranscriptFactory {
         let body = NativeStack.vertical()
         for item in expanded ? preview.fullItems : preview.items {
             body.addArrangedSubview(
-                toolDetail(item, isError: card.result?.isError == true, context: context, shortensText: false))
+                toolDetail(item, isError: card.result?.isError == true, context: context))
         }
         let needsMore = preview.isShortened
         let toggle = {
@@ -1400,7 +1383,7 @@ private enum NativeTranscriptFactory {
     }
 
     private static func toolDetail(
-        _ item: AgentToolDetail.Item, isError: Bool, context: NativeTranscriptContext, shortensText: Bool = true
+        _ item: AgentToolDetail.Item, isError: Bool, context: NativeTranscriptContext
     ) -> NSView {
         switch item {
         case .field(let field):
@@ -1459,10 +1442,9 @@ private enum NativeTranscriptFactory {
                         color: .secondaryLabelColor
                     ))
             }
-            let preview = shortensText ? AgentToolPresentation.preview(block.text) : nil
             stack.addArrangedSubview(
                 NativeLabel(
-                    preview?.displayed ?? block.text,
+                    block.text,
                     font: block.style == .monospaced
                         ? .monospacedSystemFont(
                             ofSize: NSFont.smallSystemFontSize,
@@ -1471,17 +1453,6 @@ private enum NativeTranscriptFactory {
                     color: isError ? .systemRed : .secondaryLabelColor,
                     selectable: true
                 ))
-            if let preview, preview.isShortened {
-                let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
-                actions.addArrangedSubview(
-                    NativeLabel(
-                        String(localized: AppStrings.Assistant.outputShortenedForDisplay),
-                        font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
-                        color: .secondaryLabelColor
-                    ))
-                actions.addArrangedSubview(NativeCopyButton(text: preview.full))
-                stack.addArrangedSubview(actions)
-            }
             return stack
         case .list(let list):
             let stack = NativeStack.vertical()

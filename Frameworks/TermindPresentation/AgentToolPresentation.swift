@@ -23,6 +23,7 @@ nonisolated public enum AgentToolPresentation {
         public let omittedCharacters: Int
     }
 
+    /// Header and approval sizing only. Every transcript result uses expandable details.
     public static func usesCompactDetails(for descriptor: AgentToolDescriptor) -> Bool {
         if isChatCollaborationTool(descriptor) { return true }
         if let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) {
@@ -488,7 +489,9 @@ nonisolated public enum AgentToolPresentation {
     }
 
     public static func compactStrategy(for descriptor: AgentToolDescriptor) -> AgentTruncateStrategy {
-        descriptor.target != .mcp && ["ssh_exec_run", "ssh_exec_output"].contains(descriptor.name) ? .tail : .head
+        descriptor.target != .mcp
+            && ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(descriptor.name)
+            ? .tail : .head
     }
 
     public static func truncationNotice(for card: AgentToolCard) -> String? {

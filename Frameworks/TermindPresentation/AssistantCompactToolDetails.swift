@@ -22,7 +22,7 @@ public struct AssistantCompactToolDetails: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             AssistantToolDetails(
-                items: expanded ? preview.fullItems : preview.items, isError: isError, shortensText: false
+                items: expanded ? preview.fullItems : preview.items, isError: isError
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)

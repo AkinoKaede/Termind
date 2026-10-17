@@ -14,25 +14,20 @@ extension EnvironmentValues {
     }
 }
 
+/// Renders retained items verbatim; transcript folding belongs to AssistantCompactToolDetails.
 public struct AssistantToolDetails: View {
     private let items: [AgentToolDetail.Item]
     private let isError: Bool
-    private let copy: ((String) -> Void)?
-    private let shortensText: Bool
     private let textColor: Color
     @Environment(\.assistantToolNavigation) private var navigate
     public init(
         items: [AgentToolDetail.Item],
         isError: Bool = false,
-        shortensText: Bool = true,
-        textColor: Color = .secondary,
-        copy: ((String) -> Void)? = nil
+        textColor: Color = .secondary
     ) {
         self.items = items
         self.isError = isError
-        self.shortensText = shortensText
         self.textColor = textColor
-        self.copy = copy
     }
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -62,20 +57,10 @@ public struct AssistantToolDetails: View {
         case .message(let text, let tint): Text(text).foregroundStyle(color(tint))
         case .text(let block):
             if let title = block.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }
-            let preview = shortensText ? AgentToolPresentation.preview(block.text) : nil
             ScrollView(.horizontal) {
-                Text(preview?.displayed ?? block.text)
+                Text(block.text)
                     .font(block.style == .monospaced ? .caption.monospaced() : .caption)
                     .foregroundStyle(isError ? Color.red : textColor)
-            }
-            if let preview, preview.isShortened {
-                HStack {
-                    Text(AppStrings.Assistant.outputShortenedForDisplay).font(.caption2).foregroundStyle(.secondary)
-                    if let copy {
-                        AssistantCopyButton(text: preview.full, copy: copy)
-                            .font(.caption).frame(minHeight: 44)
-                    }
-                }
             }
         case .list(let list):
             if let title = list.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }
@@ -144,7 +129,7 @@ public struct AssistantApprovalDetails: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AssistantToolDetails(items: detail.items, shortensText: false, textColor: .primary)
+            AssistantToolDetails(items: detail.items, textColor: .primary)
             if !reasons.isEmpty {
                 DisclosureGroup(isExpanded: $showsSafetyDetails) {
                     VStack(alignment: .leading, spacing: 4) {
