@@ -70,15 +70,6 @@ struct MobileHardwareKeyEditorRenderingTests {
         print("Hardware key editor snapshot: \(output.path)")
     }
 
-    private func descendant<T: UIViewController>(_ type: T.Type, in controller: UIViewController) -> T? {
-        if let value = controller as? T { return value }
-        return controller.children.lazy.compactMap { descendant(type, in: $0) }.first
-    }
-
-    private func descendant<T: UIView>(_ type: T.Type, in view: UIView) -> T? {
-        if let value = view as? T { return value }
-        return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
-    }
 }
 
 private struct HardwareKeyEditorHost: View {

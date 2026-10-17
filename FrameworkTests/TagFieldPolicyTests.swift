@@ -3,38 +3,24 @@ import Testing
 
 @testable import TermindPresentation
 
+nonisolated private let tagSuggestionCases: [([String], [String], String, [TagFieldPolicy.Row])] = [
+    (["production"], ["web", "production", "api"], "", [.existing("web"), .existing("api")]),
+    ([], ["api", "web"], " API ", [.existing("api")]),
+    ([], ["api", "web"], "PI", [.existing("api"), .create("PI")]),
+    ([], ["api"], "   ", [.existing("api")]),
+]
+
 @Suite
 struct TagFieldPolicyTests {
-    @Test
-    func rowsExcludeSelectedSuggestionsAndKeepStableOrder() {
-        #expect(
-            TagFieldPolicy.rows(
-                tags: ["production"], suggestions: ["web", "production", "api"], query: ""
-            ) == [.existing("web"), .existing("api")]
-        )
+    @Test(arguments: tagSuggestionCases)
+    func suggestionsExcludeSelectedTagsAndOnlyOfferCreateForNewPartialMatches(
+        tags: [String], suggestions: [String], query: String, expected: [TagFieldPolicy.Row]
+    ) {
+        #expect(TagFieldPolicy.rows(tags: tags, suggestions: suggestions, query: query) == expected)
     }
 
     @Test
-    func exactSuggestionMatchIgnoresCaseAndDoesNotOfferCreate() {
-        #expect(
-            TagFieldPolicy.rows(tags: [], suggestions: ["api", "web"], query: " API ") == [
-                .existing("api")
-            ]
-        )
-    }
-
-    @Test
-    func partialSuggestionMatchStillOffersCreate() {
-        #expect(
-            TagFieldPolicy.rows(tags: [], suggestions: ["api", "web"], query: "PI") == [
-                .existing("api"), .create("PI"),
-            ]
-        )
-    }
-
-    @Test
-    func whitespaceOnlyQueryDoesNotOfferCreate() {
-        #expect(TagFieldPolicy.rows(tags: [], suggestions: ["api"], query: "   ") == [.existing("api")])
+    func whitespaceOnlySubmissionIsIgnored() {
         #expect(TagFieldPolicy.submission(query: "   ", suggestions: ["api"]) == nil)
     }
 
@@ -46,12 +32,8 @@ struct TagFieldPolicyTests {
     }
 
     @Test
-    func removingUsesExactMatching() {
+    func removalIsCaseSensitiveAndSubmissionKeepsTheSuggestionSpelling() {
         #expect(TagFieldPolicy.removing("api", from: ["API", "api", "web"]) == ["API", "web"])
-    }
-
-    @Test
-    func submissionPreservesExistingSuggestionSpelling() {
         #expect(TagFieldPolicy.submission(query: " API ", suggestions: ["Api", "web"]) == "Api")
     }
 }

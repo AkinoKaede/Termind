@@ -612,15 +612,21 @@ struct AgentHostAuthenticationTests {
         #expect(password.isConsumed)
     }
 
-    @Test
-    func concurrentSFTPConnectionsShareOnePromptAndOnePendingConnection() async throws {
+    /// Concurrent SFTP-only and mixed exec/SFTP callers both join one pending
+    /// authentication and one primary connection.
+    @Test(arguments: [false, true])
+    func concurrentExecAndSFTPCallersShareOnePromptAndOneConnection(includeExec: Bool) async throws {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
-        async let first = setup.registry.sftpChannel(
-            hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction.sshInteraction, pool: setup.pool
-        )
+        async let first =
+            includeExec
+            ? setup.registry.connection(
+                hostID: setup.host.id, invocationID: UUID(),
+                interaction: interaction.sshInteraction, pool: setup.pool)
+            : setup.registry.sftpChannel(
+                hostID: setup.host.id, invocationID: UUID(),
+                interaction: interaction.sshInteraction, pool: setup.pool)
         async let second = setup.registry.sftpChannel(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
@@ -636,34 +642,10 @@ struct AgentHostAuthenticationTests {
         _ = try await (first, second)
         #expect(await interaction.requestCount == 1)
         #expect(await setup.backend.sftpOpens == 1)
-    }
-
-    @Test
-    func concurrentExecAndSFTPShareOnePromptAndOneConnection() async throws {
-        let setup = authenticationSetup()
-        let interaction = GatedAuthenticationResponder()
-
-        async let exec = setup.registry.connection(
-            hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction.sshInteraction, pool: setup.pool
-        )
-        async let sftp = setup.registry.sftpChannel(
-            hostID: setup.host.id, invocationID: UUID(),
-            interaction: interaction.sshInteraction, pool: setup.pool
-        )
-        while await interaction.requestCount == 0 { await Task.yield() }
-        #expect(await interaction.requestCount == 1)
-        await interaction.answer(
-            .submit(
-                AgentSSHAuthenticationAnswer(
-                    username: "deploy", password: "secret", save: false
-                )))
-
-        _ = try await (exec, sftp)
-        #expect(await interaction.requestCount == 1)
-        #expect(await setup.backend.execOpens == 1)
-        #expect(await setup.backend.sftpOpens == 1)
-        #expect(await setup.pool.openConnectionCount == 1)
+        if includeExec {
+            #expect(await setup.backend.execOpens == 1)
+            #expect(await setup.pool.openConnectionCount == 1)
+        }
     }
 
     @Test

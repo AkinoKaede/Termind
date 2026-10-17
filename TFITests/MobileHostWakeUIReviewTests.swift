@@ -82,9 +82,6 @@ struct MobileHostWakeUIReviewTests {
         #expect(app.workspaces.isEmpty)
     }
 
-    private func descendants(_ view: UIView) -> [UIView] {
-        [view] + view.subviews.flatMap { descendants($0) }
-    }
 }
 
 @MainActor

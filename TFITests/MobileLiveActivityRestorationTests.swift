@@ -269,14 +269,6 @@ struct MobileLiveActivityRestorationTests {
         TermindIOS.WorkspaceActivityAttributes.Session(id: UUID(), title: "Server", kind: "ssh", connected: false)
     }
 
-    private func eventually(_ condition: () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return condition()
-    }
-
     private final class Backend {
         var canStart = true
         var existing: [TestActivity] = []

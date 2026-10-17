@@ -50,6 +50,19 @@ struct SSHHostKeyAuthorizationTests {
         #expect(!proxy.allowsSaving)
     }
 
+    @Test func pinnedHostKeyAcceptsOnlyTheTrustedIdentity() throws {
+        let observed = constrainedObservation()
+        try SSHConnectionOpener.validateHostKey(observed, expected: [observed.identity])
+        #expect(throws: TermindSSHError.self) {
+            try SSHConnectionOpener.validateHostKey(observed, expected: [])
+        }
+        #expect(throws: TermindSSHError.self) {
+            try SSHConnectionOpener.validateHostKey(
+                observed,
+                expected: [SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: "SHA256:other")])
+        }
+    }
+
     @Test func knownKeyWithMatchingConstraintBypassesInteraction() async throws {
         let hostID = UUID()
         let observation = constrainedObservation()

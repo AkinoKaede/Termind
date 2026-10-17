@@ -762,14 +762,6 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    private func menuActions(_ menu: UIMenu) -> [UIAction] {
-        menu.children.flatMap { element -> [UIAction] in
-            if let action = element as? UIAction { return [action] }
-            if let submenu = element as? UIMenu { return menuActions(submenu) }
-            return []
-        }
-    }
-
     private func resolvedMenuActions(_ menu: UIMenu, in view: UIView) async throws -> [UIAction] {
         // SwiftUI supplies deferred menu elements. Present the native menu to ask UIKit to resolve them.
         let button = UIButton(frame: CGRect(x: 20, y: 100, width: 44, height: 44))

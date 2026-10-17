@@ -21,14 +21,16 @@ struct SFTPSocketRelayTests {
         #expect(relay.sourceSucceeded)
     }
 
+    /// A token that was already cancelled stops the relay as soon as the
+    /// observer is installed, and that EOF never authorizes a commit.
     @Test
-    func failedOrCancelledSourceEOFDoesNotAuthorizeCommit() throws {
+    func alreadyCancelledTokensImmediatelyStopNewRelays() throws {
+        let cancellation = TransferCancellationToken()
+        cancellation.cancel()
         let relay = try SFTPSocketRelay()
         defer { relay.close() }
-        let cancellation = TransferCancellationToken()
         let observer = cancellation.observeCancellation { relay.stop() }
         defer { cancellation.removeObserver(observer) }
-        cancellation.cancel()
         var byte: UInt8 = 0
         #expect(Darwin.recv(relay.reader, &byte, 1, 0) == 0)
         #expect(!relay.sourceSucceeded)
@@ -43,18 +45,6 @@ struct SFTPSocketRelayTests {
         #expect(Darwin.recv(relay.reader, &byte, 1, 0) == 1)
         relay.stop()
         #expect(!relay.sourceSucceeded)
-        #expect(Darwin.recv(relay.reader, &byte, 1, 0) == 0)
-    }
-
-    @Test
-    func alreadyCancelledTokensImmediatelyStopNewRelays() throws {
-        let cancellation = TransferCancellationToken()
-        cancellation.cancel()
-        let relay = try SFTPSocketRelay()
-        defer { relay.close() }
-        let observer = cancellation.observeCancellation { relay.stop() }
-        defer { cancellation.removeObserver(observer) }
-        var byte: UInt8 = 0
         #expect(Darwin.recv(relay.reader, &byte, 1, 0) == 0)
     }
 }

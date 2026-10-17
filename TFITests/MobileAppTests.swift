@@ -812,14 +812,6 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(library.knownHosts(for: host).map(\.fingerprint) == ["SHA256:first-use"])
     }
 
-    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return false
-    }
-
     private func connectionFixture() throws -> (TermindDomain.Host, HostLibraryModel) {
         let identity = Identity(name: "Deploy", username: "deploy")
         var host = TermindDomain.Host(name: "Example", host: "example.invalid")
@@ -1170,14 +1162,6 @@ struct MobileWorkspaceNavigationRenderingTests {
         return host
     }
 
-    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return false
-    }
-
     private func withHostedView<Content: View>(
         _ content: Content,
         check: (UIViewController) async throws -> Void
@@ -1209,37 +1193,6 @@ struct MobileWorkspaceNavigationRenderingTests {
                 return navigation
             }
             try? await Task.sleep(for: .milliseconds(20))
-        }
-        return nil
-    }
-
-    private func descendants<T: UIViewController>(
-        of type: T.Type,
-        in controller: UIViewController
-    ) -> [T] {
-        var pending = [controller]
-        var visited = Set<ObjectIdentifier>()
-        var results: [T] = []
-        while let next = pending.popLast() {
-            guard visited.insert(ObjectIdentifier(next)).inserted else { continue }
-            if let result = next as? T { results.append(result) }
-            pending.append(contentsOf: next.children)
-            if let presented = next.presentedViewController { pending.append(presented) }
-        }
-        return results
-    }
-
-    private func descendant<T: UIViewController>(
-        of type: T.Type,
-        in controller: UIViewController
-    ) -> T? {
-        descendants(of: type, in: controller).first
-    }
-
-    private func descendant<T: UIView>(of type: T.Type, in view: UIView) -> T? {
-        if let result = view as? T { return result }
-        for subview in view.subviews {
-            if let result = descendant(of: type, in: subview) { return result }
         }
         return nil
     }

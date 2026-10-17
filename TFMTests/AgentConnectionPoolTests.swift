@@ -189,17 +189,19 @@ struct AgentConnectionPoolTests {
     }
 
     @Test
-    func sftpThenExecReuseTheSamePrimaryConnection() async throws {
-        let backend = StubBackend()
-        let pool = makePool(backend)
-        let host = UUID()
+    func execAndSFTPReuseTheSamePrimaryConnectionInEitherOrder() async throws {
+        for execFirst in [true, false] {
+            let backend = StubBackend()
+            let pool = makePool(backend)
+            let host = UUID()
 
-        _ = try await pool.sftpChannel(hostID: host)
-        _ = try await pool.connection(hostID: host)
+            _ = try await (execFirst ? pool.connection(hostID: host) : pool.sftpChannel(hostID: host))
+            _ = try await (execFirst ? pool.sftpChannel(hostID: host) : pool.connection(hostID: host))
 
-        #expect(await backend.execOpens == 1)
-        #expect(await backend.sftpOpens == 0)
-        #expect(await pool.openConnectionCount == 1)
+            #expect(await backend.execOpens == 1)
+            #expect(await backend.sftpOpens == 0)
+            #expect(await pool.openConnectionCount == 1)
+        }
     }
 
     @Test

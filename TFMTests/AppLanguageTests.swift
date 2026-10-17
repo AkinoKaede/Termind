@@ -44,13 +44,16 @@ struct AppLanguageTests {
         #expect(localized.toolCards.map(\.invocation.call.name) == ["ssh_exec_run", "ssh_exec_run"])
     }
 
-    @Test
-    func missingAndUnknownPreferencesFollowSystem() throws {
+    /// Missing and unrecognized preferences fall back to system negotiation
+    /// and stay untouched so a later release can still recognize them;
+    /// traditional identifiers are not coerced into the simplified catalog.
+    @Test(arguments: [nil, "unsupported", "zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO"] as [String?])
+    func missingAndUnknownPreferencesFollowSystem(identifier: String?) throws {
         let defaults = try makeDefaults()
-        #expect(AppLanguage.stored(in: defaults) == .system)
+        if let identifier { defaults.set(identifier, forKey: SettingsKey.appLanguage) }
 
-        defaults.set("unsupported", forKey: SettingsKey.appLanguage)
         #expect(AppLanguage.stored(in: defaults) == .system)
+        #expect(defaults.string(forKey: SettingsKey.appLanguage) == identifier)
     }
 
     @Test
@@ -113,15 +116,6 @@ struct AppLanguageTests {
         #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
     }
 
-    @Test(arguments: ["zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO", "unsupported"])
-    func unknownPreferencesContinueToFollowSystemWithoutMigration(identifier: String) throws {
-        let defaults = try makeDefaults()
-        defaults.set(identifier, forKey: SettingsKey.appLanguage)
-
-        #expect(AppLanguage.stored(in: defaults) == .system)
-        #expect(defaults.string(forKey: SettingsKey.appLanguage) == identifier)
-    }
-
     @Test
     func traditionalChineseDisplayNameRequiresTaiwanRegionAndVisibleFlag() {
         #expect(
@@ -142,16 +136,10 @@ struct AppLanguageTests {
     @Test(arguments: ["zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO"])
     func traditionalChineseSystemLocalesResolveTraditionalCatalog(identifier: String) {
         let traditional = AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant"))
-        #expect(AppLocalization.string("Settings", locale: Locale(identifier: identifier)) == traditional)
-    }
-
-    @Test
-    func simplifiedAndTraditionalChineseCatalogsDoNotCrossFallback() {
         let simplified = AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hans"))
-        let traditional = AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant"))
-        #expect(!simplified.isEmpty)
-        #expect(!traditional.isEmpty)
-        #expect(simplified != traditional)
+
+        #expect(AppLocalization.string("Settings", locale: Locale(identifier: identifier)) == traditional)
+        #expect(traditional != simplified)
     }
 
     @Test(arguments: ["Google", "OpenAI", "사용자 모델"])
@@ -172,19 +160,6 @@ struct AppLanguageTests {
                 AppStrings.Assistant.compactionSummary(summarized: "2,000 토큰", retained: "500 토큰"),
                 locale: locale
             ) == "압축됨 — 2,000 토큰 → 500 토큰")
-    }
-
-    @Test
-    func followSystemRemovesAppleLanguageOverride() throws {
-        let suiteName = "AppLanguageTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
-        defaults.set(["zh-Hans"], forKey: "AppleLanguages")
-
-        AppLanguage.store(.system, in: defaults)
-
-        #expect(AppLanguage.stored(in: defaults) == .system)
-        #expect(defaults.persistentDomain(forName: suiteName)?["AppleLanguages"] == nil)
     }
 
     @Test

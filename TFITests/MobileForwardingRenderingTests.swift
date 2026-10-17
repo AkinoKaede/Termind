@@ -119,9 +119,6 @@ struct MobileForwardingRenderingTests {
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }
-    private func presented(in controller: UIViewController) -> UIViewController? {
-        controller.presentedViewController ?? controller.children.lazy.compactMap { presented(in: $0) }.first
-    }
     private func capture(_ view: UIView, name: String) throws {
         let data = UIGraphicsImageRenderer(bounds: view.bounds).pngData { _ in
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)

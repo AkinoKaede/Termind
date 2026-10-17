@@ -178,14 +178,6 @@ struct MobileEditorToolbarTests {
         return actions
     }
 
-    private func menuActions(_ menu: UIMenu) -> [UIAction] {
-        menu.children.flatMap { element -> [UIAction] in
-            if let action = element as? UIAction { return [action] }
-            if let submenu = element as? UIMenu { return menuActions(submenu) }
-            return []
-        }
-    }
-
     private func toolbarButton(
         namedOneOf names: Set<String>, in navigation: UINavigationController
     ) -> UIBarButtonItem? {
@@ -201,19 +193,6 @@ struct MobileEditorToolbarTests {
     }
 
     private func settle() async throws { try await Task.sleep(for: .milliseconds(700)) }
-
-    private func descendant<T: UIViewController>(of type: T.Type, in controller: UIViewController) -> T? {
-        var pending = [controller]
-        var visited = Set<ObjectIdentifier>()
-        while let next = pending.popLast() {
-            guard visited.insert(ObjectIdentifier(next)).inserted else { continue }
-            if let result = next as? T { return result }
-            pending.append(contentsOf: next.children)
-            if let presented = next.presentedViewController { pending.append(presented) }
-        }
-        return nil
-    }
-
 }
 
 @Observable @MainActor private final class EditorState {

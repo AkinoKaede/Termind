@@ -3,73 +3,106 @@
     import Foundation
     import TermindApplication
 
-    /// The same deterministic content exercises both native transcript renderers.
-    @MainActor
+    /// Deterministic tool cards shared by the desktop and mobile rendering tests.
+    /// No live store, account, network, or model service is involved.
     public enum AssistantTranscriptPreview {
-        public enum Phase: String, CaseIterable {
-            case thinking, tools, results
-        }
-
-        public static func work(language: AppLanguage, phase: Phase, now: Date = .now) -> AgentWorkGroup {
-            let conversation = ConversationModel.demo(language: language)
-            var group = conversation.workGroups[0]
-            group.run.startedAt = now.addingTimeInterval(-65)
-            group.run.finishedAt = phase == .results ? now : nil
-            group.run.state = phase == .results ? .completed : .running
-            let reasoning =
-                switch language {
-                case .simplifiedChinese:
-                    "**检查上游服务。**\n先读取 `nginx` 日志，再核对监听端口；暂不更改配置。"
-                case .traditionalChinese:
-                    "**檢查上游服務。**\n先讀取 `nginx` 日誌，再核對監聽連接埠；暫不變更設定。"
-                case .japanese:
-                    "**上流サービスを確認します。**\nまず`nginx`のログを読み、待ち受けポートを確認します。設定はまだ変更しません。"
-                case .korean:
-                    "**업스트림 서비스를 확인합니다.**\n먼저 `nginx` 로그를 읽고 수신 대기 포트를 확인합니다. 설정은 아직 변경하지 않습니다."
-                case .german:
-                    "**Vorgelagerten Dienst prüfen.**\nZuerst die `nginx`-Protokolle lesen und dann die lauschenden Ports prüfen, ohne die Konfiguration zu ändern."
-                case .french:
-                    "**Inspecter le service en amont.**\nLire les journaux `nginx`, puis vérifier les ports en écoute avant de modifier la configuration."
-                case .system, .english:
-                    "**Inspect the upstream service.**\nRead the `nginx` logs, then check listening ports before changing configuration."
-                }
-            if phase == .thinking {
-                let block = AgentReasoningBlock(text: reasoning, createdAt: now)
-                group.items = [.reasoning(block)]
-                group.activeReasoningBlockID = block.id
-            } else {
-                var cards = conversation.toolCards
-                cards[0].state = phase == .tools ? .running : .completed
-                cards[1].state = phase == .tools ? .completed : .failed
-                cards[0].result = AgentToolResult(
-                    callID: cards[0].invocation.call.id,
-                    content: "Active: active (running)\nMain PID: 421 (nginx)"
-                )
-                let failure =
-                    switch language {
-                    case .simplifiedChinese: "连接上游服务失败：连接被拒绝。"
-                    case .traditionalChinese: "連線至上游服務失敗：連線遭拒。"
-                    case .japanese: "上流サービスに接続できませんでした：接続が拒否されました。"
-                    case .korean: "업스트림 서비스에 연결할 수 없습니다. 연결이 거부되었습니다."
-                    case .german: "Verbindung zum vorgelagerten Dienst fehlgeschlagen: Verbindung abgelehnt."
-                    case .french: "Échec de la connexion au service en amont : connexion refusée."
-                    case .system, .english: "connect() failed: connection refused"
-                    }
-                cards[1].result = AgentToolResult(
-                    callID: cards[1].invocation.call.id,
-                    content: failure,
-                    isError: phase == .results
-                )
-                group.items = [
-                    .tools(
-                        .init(
-                            cards: cards, runID: group.id,
-                            reasoning: phase == .tools ? .init(sourceMessageID: UUID(), markdown: reasoning) : nil
-                        ))
-                ]
-                group.activeReasoningBlockID = nil
+        public static func knowledgeCards(language: AppLanguage) -> [AgentToolCard] {
+            let prose: String
+            switch language {
+            case .simplifiedChinese: prose = "部署之前先检查状态，并保留可复用的验证步骤。"
+            case .traditionalChinese: prose = "部署之前先檢查狀態，並保留可重用的驗證步驟。"
+            case .japanese: prose = "デプロイ前に状態を確認し、再利用できる検証手順を残してください。"
+            case .korean: prose = "배포 전에 상태를 확인하고 재사용할 수 있는 검증 절차를 남겨 주세요."
+            case .german:
+                prose =
+                    "Prüfen Sie vor der Bereitstellung den Status und bewahren Sie wiederverwendbare Prüfschritte auf."
+            case .french:
+                prose = "Vérifiez l’état avant le déploiement et conservez des étapes de vérification réutilisables."
+            case .english, .system: prose = "Check status before deploying and retain reusable verification steps."
             }
-            return group
+            let body = Array(repeating: prose, count: 80).joined(separator: "\n")
+            let operations: AgentJSONValue = .array(
+                (0..<8).map { index in
+                    .object(["action": .string("update"), "name": .string("deploy-\(index)"), "content": .string(body)])
+                })
+            struct Sample {
+                let name: String
+                let symbol: String
+                let arguments: [String: AgentJSONValue]
+                let result: AgentJSONValue
+                init(_ name: String, _ symbol: String, _ arguments: [String: AgentJSONValue], _ result: AgentJSONValue)
+                {
+                    self.name = name
+                    self.symbol = symbol
+                    self.arguments = arguments
+                    self.result = result
+                }
+            }
+            let samples: [Sample] = [
+                .init(
+                    "skills_list", "books.vertical", [:],
+                    .object([
+                        "skills": .array(
+                            (0..<15).map { index in
+                                .object([
+                                    "name": .string("deploy-\(index)"), "description": .string(prose),
+                                    "enabled": .bool(index.isMultiple(of: 2)), "read_only": .bool(index == 0),
+                                ])
+                            })
+                    ])),
+                .init(
+                    "skill_read_file", "book.closed", ["name": .string("deploy")],
+                    .object([
+                        "skill": .string("deploy"), "path": .string("SKILL.md"), "title": .string("Deploy"),
+                        "content": .string(body),
+                    ])),
+                .init(
+                    "skill_manage", "book.closed", ["operations": operations],
+                    .object([
+                        "saved": .bool(true), "available": .string("next_run"),
+                    ])),
+                .init(
+                    "skill_install", "square.and.arrow.down", ["name": .string("deploy")],
+                    .object([
+                        "saved": .bool(true), "name": .string("deploy"),
+                        "source": .string("https://github.com/example/skills/tree/main/deploy"),
+                        "available": .string("next_run"),
+                    ])),
+                .init(
+                    "memory", "brain",
+                    [
+                        "operations": .array([
+                            .object([
+                                "action": .string("add"), "target": .string("user"), "content": .string(prose),
+                            ])
+                        ])
+                    ], .object(["memory": .string("MEMORY\n" + body)])),
+                .init(
+                    "session_search", "magnifyingglass", ["query": .string("deploy")],
+                    .object([
+                        "messages": .array(
+                            (0..<8).map { index in
+                                .object([
+                                    "title": .string("Deploy \(index)"),
+                                    "role": .string(index.isMultiple(of: 2) ? "user" : "assistant"),
+                                    "content": .string(body), "conversation_id": .string("not-visible"),
+                                ])
+                            }), "next_offset": .number(8),
+                    ])),
+            ]
+            return samples.map { sample in
+                let name = sample.name
+                var card = AgentToolCard(
+                    invocation: .init(
+                        runID: UUID(), call: .init(id: name, name: name, arguments: .object(sample.arguments))),
+                    descriptor: .init(
+                        name: name, summary: name, inputSchema: .object([:]), target: .local, approvalPolicy: .approve,
+                        presentation: .init(
+                            symbol: sample.symbol, activity: .semanticLabel(.skill),
+                            presenterID: "builtin.\(name)", actionKind: .write)), state: .completed)
+                card.result = AgentToolResult(callID: name, content: sample.result.encodedString)
+                return card
+            }
         }
     }
 #endif

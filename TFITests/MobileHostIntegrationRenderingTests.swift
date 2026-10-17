@@ -209,10 +209,6 @@ struct MobileHostIntegrationRenderingTests {
             to: FileManager.default.temporaryDirectory.appending(path: "agent-forwarding-mobile-\(language).png"))
     }
 
-    private func descendants(_ view: UIView) -> [UIView] {
-        [view] + view.subviews.flatMap(descendants)
-    }
-
     private func menuActions(
         in button: UIButton, expectedCount: Int = 3, expectedGroups: [[String]]? = nil
     ) async throws -> [UIAction] {
@@ -234,15 +230,6 @@ struct MobileHostIntegrationRenderingTests {
     }
 
     private func menuActions(_ menu: UIMenu) -> [UIAction] {
-        menu.children.flatMap { element -> [UIAction] in
-            if let action = element as? UIAction { return [action] }
-            if let submenu = element as? UIMenu { return menuActions(submenu) }
-            return []
-        }
-    }
-
-    private func actionGroups(_ menu: UIMenu) -> [[String]] {
-        let actions = menu.children.compactMap { $0 as? UIAction }
         if !actions.isEmpty { return [actions.map(\.title)] }
         return menu.children.compactMap { $0 as? UIMenu }.flatMap(actionGroups)
     }

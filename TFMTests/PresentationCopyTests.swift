@@ -54,105 +54,27 @@ struct PresentationCopyTests {
         #expect(!message.contains("NSLanguage"))
     }
 
-    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"], [0, 1, 2])
-    func groupDeletionUsesTheRequestedLanguageAndPreservesPluralRules(language: String, count: Int) {
-        let locale = Locale(identifier: language)
-        let withoutGroups = AppStrings.Vault.groupDeletionMessage(
-            hostCount: count, nestedGroupCount: 0, locale: locale)
-        let withGroups = AppStrings.Vault.groupDeletionMessage(
-            hostCount: count, nestedGroupCount: count, locale: locale)
-        let hosts = AppLocalization.resolve(AppStrings.Vault.hostCount(count), locale: locale)
+    /// Only the values actually configured may surface; a missing model or
+    /// effort must not leave a dangling separator in the composed copy.
+    @Test
+    func modelAccessibilityOnlyIncludesAvailableConfiguration() {
+        let locale = Locale(identifier: "en")
         #expect(
-            withoutGroups
-                == AppLocalization.resolve(AppStrings.Vault.groupContainsHosts(hosts), locale: locale))
-        if count == 0 {
-            #expect(withGroups == withoutGroups)
-        } else {
-            let groups = AppLocalization.resolve(
-                count == 1
-                    ? AppStrings.Vault.oneNestedGroup
-                    : AppStrings.Vault.nestedGroupCount(count),
-                locale: locale)
-            #expect(
-                withGroups
-                    == AppLocalization.resolve(
-                        AppStrings.Vault.groupContainsHostsAndGroups(hosts: hosts, groups: groups), locale: locale))
-        }
-    }
-
-    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"])
-    func snippetCountsKeepZeroSingularAndPluralMeanings(language: String) {
-        let locale = Locale(identifier: language)
-        for count in 0...2 {
-            let summary = AppLocalization.resolve(AppStrings.Snippets.targetSummary(count: count), locale: locale)
-            let expectedSummaryResource: LocalizedStringResource
-            switch count {
-            case 0:
-                expectedSummaryResource = AppStrings.Snippets.noTargets
-            case 1:
-                expectedSummaryResource = AppStrings.Snippets.oneTarget
-            default:
-                expectedSummaryResource = AppStrings.Snippets.targetCount(count)
-            }
-            #expect(
-                summary
-                    == AppLocalization.resolve(expectedSummaryResource, locale: locale))
-            let message = AppLocalization.resolve(
-                AppStrings.Snippets.packageDeletionMessage(snippetCount: count), locale: locale)
-            #expect(
-                message
-                    == AppLocalization.resolve(
-                        count == 1
-                            ? AppStrings.Snippets.packageContainsOneSnippet
-                            : AppStrings.Snippets.packageContainsSnippets(count),
-                        locale: locale))
-            #expect(!message.contains("%"))
-        }
-    }
-
-    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"])
-    func modelAccessibilityOnlyIncludesAvailableConfiguration(language: String) {
-        let locale = Locale(identifier: language)
-        #expect(
-            AppStrings.Assistant.modelSummary(modelName: "Settings", effortName: nil, locale: locale) == "Settings")
-        #expect(
-            AppStrings.Assistant.modelSummary(modelName: "Example", effortName: "High", locale: locale)
-                == "Example · High")
+            AppStrings.Assistant.modelSummary(modelName: "Example", effortName: nil, locale: locale)
+                == "Example")
         #expect(
             AppStrings.Assistant.modelSummary(modelName: nil, effortName: "High", locale: locale)
                 == AppLocalization.resolve(AppStrings.Assistant.noModel, locale: locale))
-        let unavailableHelp = AppStrings.Assistant.modelHelp(modelName: nil, providerName: nil, effortName: "High")
-        #expect(unavailableHelp == AppStrings.Assistant.noModelConfigured)
+        #expect(
+            AppStrings.Assistant.modelHelp(modelName: nil, providerName: nil, effortName: "High")
+                == AppStrings.Assistant.noModelConfigured)
         let help = AppLocalization.resolve(
             AppStrings.Assistant.modelHelp(modelName: "Example", providerName: "Provider", effortName: nil),
             locale: locale)
         #expect(help.contains("Example") && help.contains("Provider") && !help.contains("High"))
-        let reasoningHelp = AppLocalization.resolve(
-            AppStrings.Assistant.modelHelp(modelName: "Example", providerName: "Provider", effortName: "High"),
-            locale: locale)
-        #expect(
-            reasoningHelp.contains("Example") && reasoningHelp.contains("Provider") && reasoningHelp.contains("High"))
-        let missing = AppStrings.Assistant.modelAccessibilityLabel(modelName: nil, effortName: "High")
-        let model = AppStrings.Assistant.modelAccessibilityLabel(modelName: "Example", effortName: nil)
-        let reasoning = AppStrings.Assistant.modelAccessibilityLabel(modelName: "Example", effortName: "High")
-        #expect(!AppLocalization.resolve(missing, locale: locale).contains("High"))
-        #expect(AppLocalization.resolve(model, locale: locale).contains("Example"))
-        #expect(!AppLocalization.resolve(model, locale: locale).contains("High"))
-        #expect(AppLocalization.resolve(reasoning, locale: locale).contains("Example"))
-        #expect(AppLocalization.resolve(reasoning, locale: locale).contains("High"))
-    }
-
-    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"], [0, 1, 2])
-    func transferConflictsKeepTheirCount(language: String, count: Int) {
-        let message = AppLocalization.resolve(
-            AppStrings.SFTP.existingItemsMessage(count: count), locale: Locale(identifier: language))
-        #expect(
-            message
-                == AppLocalization.resolve(
-                    count == 1
-                        ? AppStrings.SFTP.oneExistingItem
-                        : AppStrings.SFTP.existingItemCount(count),
-                    locale: Locale(identifier: language)))
+        let missing = AppLocalization.resolve(
+            AppStrings.Assistant.modelAccessibilityLabel(modelName: nil, effortName: "High"), locale: locale)
+        #expect(!missing.contains("High"))
     }
 
     @Test

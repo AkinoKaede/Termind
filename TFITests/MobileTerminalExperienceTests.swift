@@ -257,11 +257,4 @@ struct MobileTerminalExperienceTests {
         MobileWorkspace(descriptor: .init(hostID: UUID(), title: "Feedback", kind: kind), hosts: app.library)
     }
 
-    private func eventually(_ predicate: () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if predicate() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return predicate()
-    }
 }

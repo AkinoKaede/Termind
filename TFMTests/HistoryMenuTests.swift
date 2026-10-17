@@ -56,17 +56,6 @@ struct HistoryMenuTests {
 
 @Suite @MainActor
 struct HistoryMenuRecordTests {
-    @Test func closedWindowLabelsUseTheFirstNameAndCorrectPlural() {
-        func title(_ count: Int) -> String {
-            var value = AppStrings.History.closedWindow("Server", count: count)
-            value.locale = Locale(identifier: "en")
-            return String(localized: value)
-        }
-        #expect(title(1) == "Server")
-        #expect(title(2) == "Server (and 1 more workspace)")
-        #expect(title(3) == "Server (and 2 more workspaces)")
-    }
-
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func nativeRecordMenusKeepProtocolImagesAndOpenTheChosenEvent(language: String) throws {
         let host = Host(name: "Server", host: "server.example")

@@ -204,18 +204,6 @@ struct MobileHostAccessUIReviewTests {
         #expect(UIApplication.shared.sendAction(action, to: save.target, from: save, for: nil))
     }
 
-    private func descendant<T: UIViewController>(of type: T.Type, in controller: UIViewController) -> T? {
-        var pending = [controller]
-        var visited = Set<ObjectIdentifier>()
-        while let next = pending.popLast() {
-            guard visited.insert(ObjectIdentifier(next)).inserted else { continue }
-            if let result = next as? T { return result }
-            pending.append(contentsOf: next.children)
-            if let presented = next.presentedViewController { pending.append(presented) }
-        }
-        return nil
-    }
-
     private func views(in view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap { views(in: $0) }
     }

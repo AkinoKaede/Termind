@@ -111,29 +111,6 @@ struct MobileBatchStartupRenderingTests {
         try await check(window, controller)
     }
 
-    private func toolbarButton(named name: String, in navigation: UINavigationController) -> UIBarButtonItem? {
-        guard let item = navigation.topViewController?.navigationItem else { return nil }
-        let buttons =
-            item.leadingItemGroups.flatMap(\.barButtonItems) + item.trailingItemGroups.flatMap(\.barButtonItems)
-            + (item.leftBarButtonItems ?? []) + (item.rightBarButtonItems ?? [])
-        return buttons.first {
-            $0.accessibilityLabel == name || $0.title == name || $0.customView?.accessibilityLabel == name
-        }
-    }
-
-    private func descendant<T: UIViewController>(_ type: T.Type, in controller: UIViewController) -> T? {
-        if let result = controller as? T { return result }
-        return controller.children.lazy.compactMap { descendant(type, in: $0) }.first
-    }
-
-    private func descendants<T: UIView>(_ type: T.Type, in view: UIView) -> [T] {
-        (view as? T).map { [$0] } ?? view.subviews.flatMap { descendants(type, in: $0) }
-    }
-
-    private func presented(in controller: UIViewController) -> UIViewController? {
-        controller.presentedViewController ?? controller.children.lazy.compactMap { presented(in: $0) }.first
-    }
-
     private func capture(_ view: UIView, name: String) throws {
         let data = UIGraphicsImageRenderer(bounds: view.bounds).pngData { _ in
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)

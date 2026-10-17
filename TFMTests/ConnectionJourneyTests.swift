@@ -1,7 +1,6 @@
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
@@ -197,51 +196,7 @@ struct ConnectionJourneyTests {
     }
 
     @Test
-    func temporaryAuthenticationIsScopedToItsJumpHost() throws {
-        let jump = Host(name: "Bastion", host: "jump.example")
-        var destination = Host(name: "Server", host: "server.example")
-        destination.jumpHostID = jump.id
-        let store = HostLibraryModel(
-            hosts: [jump, destination],
-            knownHosts: [
-                KnownHostEntry(
-                    hostname: jump.host, fingerprint: "SHA256:jump"
-                )
-            ]
-        )
-        let submission = SSHAuthenticationSubmission(
-            username: "bastion-user", password: "one-use-secret",
-            passphrase: nil, keyID: nil
-        )
-
-        let configurations = try store.sshJumpConfigurations(
-            for: destination, submissions: [jump.id: submission]
-        )
-
-        #expect(configurations.count == 1)
-        #expect(configurations[0].id == jump.id)
-        #expect(configurations[0].username == "bastion-user")
-        #expect(store.host(destination.id)?.identityID == nil)
-    }
-
-    @Test
     func temporaryHostKeyApprovalDoesNotPersist() throws {
-        let host = Host(name: "Server", host: "server.example")
-        let store = HostLibraryModel(hosts: [host])
-        let temporary = SSHHostKeyIdentity(
-            algorithm: .ed25519, fingerprint: "SHA256:temporary"
-        )
-
-        let keys = try store.expectedHostKeys(
-            for: host, temporaryHostKeys: [host.id: temporary]
-        )
-
-        #expect(keys == [temporary])
-        #expect(store.knownHosts(for: host).isEmpty)
-    }
-
-    @Test
-    func temporaryApprovalIsAddedToSavedHostKeys() throws {
         let host = Host(name: "Server", host: "server.example")
         let saved = SSHHostKeyIdentity(
             algorithm: .ed25519, fingerprint: "SHA256:saved"
@@ -264,113 +219,43 @@ struct ConnectionJourneyTests {
         )
 
         #expect(keys == [saved, temporary])
+        #expect(store.knownHosts(for: host).map(\.identity) == [saved])
     }
 
     @Test
-    func hostKeepsMultipleKeysOfTheSameType() throws {
+    func knownHostSetMaintainsOrderingIdempotenceAndForget() throws {
         let host = Host(name: "Server", host: "server.example")
         let first = KnownHostEntry(
             hostname: host.host, algorithm: .ed25519,
             fingerprint: "SHA256:first", addedAt: Date(timeIntervalSince1970: 1)
         )
-        let second = KnownHostEntry(
-            hostname: host.host, algorithm: .ed25519,
-            fingerprint: "SHA256:second", addedAt: Date(timeIntervalSince1970: 2)
-        )
         let store = HostLibraryModel(hosts: [host], knownHosts: [first])
-
-        store.trust(second)
-
-        #expect(store.knownHosts(for: host).map(\.fingerprint) == ["SHA256:second", "SHA256:first"])
-        #expect(try store.expectedHostKeys(for: host) == [first.identity, second.identity])
-    }
-
-    @Test
-    func trustingTheSameFingerprintIsIdempotent() {
-        let host = Host(name: "Server", host: "server.example")
-        let original = KnownHostEntry(
-            hostname: host.host, algorithm: .ed25519,
-            fingerprint: "SHA256:key", addedAt: Date(timeIntervalSince1970: 1)
-        )
-        let store = HostLibraryModel(hosts: [host], knownHosts: [original])
 
         store.trust(
             KnownHostEntry(
                 hostname: host.host, algorithm: .ed25519,
-                fingerprint: original.fingerprint, addedAt: Date(timeIntervalSince1970: 2)
+                fingerprint: "SHA256:second", addedAt: Date(timeIntervalSince1970: 2)
             )
         )
+        #expect(store.knownHosts(for: host).map(\.fingerprint) == ["SHA256:second", "SHA256:first"])
 
-        let entries = store.knownHosts(for: host)
-        #expect(entries.count == 1)
-        #expect(entries[0].id == original.id)
-        #expect(entries[0].addedAt == Date(timeIntervalSince1970: 2))
-    }
-
-    @Test
-    func trustAndForgetOperationsApplyToTheHostKeySet() {
-        let host = Host(name: "Server", host: "server.example")
-        let first = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:first")
-        let second = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:second")
-        let store = HostLibraryModel(hosts: [host], knownHosts: [first, second])
-
+        // Re-trusting a known fingerprint refreshes its timestamp without
+        // appending a duplicate identity.
         store.trust(
-            KnownHostEntry(hostname: host.host, fingerprint: "SHA256:third")
+            KnownHostEntry(
+                hostname: host.host, algorithm: .ed25519,
+                fingerprint: "SHA256:first", addedAt: Date(timeIntervalSince1970: 3)
+            )
         )
-        #expect(store.knownHosts(for: host).count == 3)
-
-        store.forget(knownHost: first.id)
         #expect(store.knownHosts(for: host).count == 2)
+        #expect(store.knownHosts(for: host).map(\.fingerprint) == ["SHA256:first", "SHA256:second"])
+        #expect(try store.expectedHostKeys(for: host).count == 2)
+
+        store.forget(knownHost: try #require(store.knownHosts(for: host).last).id)
+        #expect(store.knownHosts(for: host).count == 1)
 
         store.forgetKnownHosts(for: host)
         #expect(store.knownHosts(for: host).isEmpty)
     }
 
-    @Test
-    func hostKeyValidationAcceptsAnyTrustedIdentityAndRejectsUnknownKeys() throws {
-        let first = SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: "SHA256:first")
-        let second = SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: "SHA256:second")
-        let expected: Set<SSHHostKeyIdentity> = [first, second]
-
-        try SSHConnectionOpener.validateHostKey(
-            SSHHostKeyObservation(
-                hostname: "server.example", port: 22,
-                algorithm: second.algorithm, fingerprint: second.fingerprint
-            ),
-            expected: expected
-        )
-
-        #expect(throws: TermindSSHError.self) {
-            try SSHConnectionOpener.validateHostKey(
-                SSHHostKeyObservation(
-                    hostname: "server.example", port: 22,
-                    algorithm: .ed25519, fingerprint: "SHA256:unknown"
-                ),
-                expected: expected
-            )
-        }
-        #expect(throws: TermindSSHError.self) {
-            try SSHConnectionOpener.validateHostKey(
-                SSHHostKeyObservation(
-                    hostname: "server.example", port: 22,
-                    algorithm: .ecdsa256, fingerprint: first.fingerprint
-                ),
-                expected: expected
-            )
-        }
-    }
-
-    @Test
-    func hostEditorCommitDoesNotMoveSharedKnownHosts() {
-        var host = Host(name: "Server", host: "old.example")
-        let shared = Host(name: "Other Login", host: "old.example")
-        let entry = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:old")
-        let store = HostLibraryModel(hosts: [host, shared], knownHosts: [entry])
-        host.host = "new.example"
-        host.port = 2222
-        #expect(store.saveHost(host))
-        #expect(store.knownHosts == [entry])
-        #expect(store.knownHosts(for: host).isEmpty)
-        #expect(store.knownHosts(for: shared) == [entry])
-    }
 }

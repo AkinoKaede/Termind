@@ -681,15 +681,19 @@ struct SFTPFeatureTests {
         #expect(await client.disconnectCount == 1)
     }
 
-    @Test
-    func increasingLimitsImmediatelyStartsQueuedTransfers() async {
+    /// Raising a limit starts queued work immediately; lowering it never stops
+    /// running transfers and only constrains what starts next.
+    @Test(arguments: [(1, 2, 2, 2), (3, 1, 4, 3)] as [(Int, Int, Int, Int)])
+    func limitChangesStartOrConstrainTheQueueWithoutStoppingActiveWork(
+        initialLimit: Int, updatedLimit: Int, transferCount: Int, maximumActive: Int
+    ) async {
         let gate = SFTPTransferClientGate()
         let coordinator = SFTPTransferCoordinator(
             store: HostLibraryModel(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
-            globalLimit: 1, perHostLimit: 1
+            globalLimit: initialLimit, perHostLimit: initialLimit
         )
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
-        for index in 0..<2 {
+        for index in 0..<transferCount {
             let hostID = UUID()
             coordinator.enqueue(
                 direction: .download, batchID: UUID(),
@@ -699,42 +703,20 @@ struct SFTPFeatureTests {
                 scopedRoot: root, overwrite: true
             )
         }
-        await gate.waitForStarts(1)
+        let running = min(initialLimit, transferCount)
+        await gate.waitForStarts(running)
 
-        coordinator.updateLimits(global: 2, perHost: 2)
+        coordinator.updateLimits(global: updatedLimit, perHost: updatedLimit)
 
-        await gate.waitForStarts(2)
-        #expect(await gate.maximumActive == 2)
-        await gate.releaseAll()
-    }
-
-    @Test
-    func decreasingLimitsLeavesActiveTransfersRunningAndConstrainsTheQueue() async {
-        let gate = SFTPTransferClientGate()
-        let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
-            globalLimit: 3, perHostLimit: 3
-        )
-        let root = URL(fileURLWithPath: NSTemporaryDirectory())
-        for index in 0..<4 {
-            let hostID = UUID()
-            coordinator.enqueue(
-                direction: .download, batchID: UUID(),
-                localURL: root.appendingPathComponent("decrease-limit-\(index)"),
-                remotePath: "/decrease-limit-\(index)", byteCount: 1, hostID: hostID,
-                configuration: makeTestConfiguration(hostID: hostID, host: "host-\(index)"),
-                scopedRoot: root, overwrite: true
-            )
+        if updatedLimit > initialLimit {
+            await gate.waitForStarts(maximumActive)
+        } else {
+            #expect(coordinator.activeCount == running)
+            #expect(coordinator.sftpTransfers.filter { $0.state == .queued }.count == transferCount - running)
+            await gate.releaseAll()
+            await gate.waitForStarts(transferCount)
         }
-        await gate.waitForStarts(3)
-
-        coordinator.updateLimits(global: 1, perHost: 1)
-
-        #expect(coordinator.activeCount == 3)
-        #expect(coordinator.sftpTransfers.filter { $0.state == .queued }.count == 1)
-        await gate.releaseAll()
-        await gate.waitForStarts(4)
-        #expect(await gate.maximumActive == 3)
+        #expect(await gate.maximumActive == maximumActive)
         await gate.releaseAll()
     }
 

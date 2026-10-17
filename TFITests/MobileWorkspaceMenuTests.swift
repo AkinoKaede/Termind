@@ -148,37 +148,6 @@ struct MobileWorkspaceMenuTests {
         return try #require(resolvedMenu)
     }
 
-    private func menuActions(_ menu: UIMenu) -> [UIAction] {
-        menu.children.flatMap { element -> [UIAction] in
-            if let action = element as? UIAction { return [action] }
-            if let submenu = element as? UIMenu { return menuActions(submenu) }
-            return []
-        }
-    }
-
-    private func toolbarButton(named name: String, in navigation: UINavigationController) -> UIBarButtonItem? {
-        guard let item = navigation.topViewController?.navigationItem else { return nil }
-        let buttons =
-            item.leadingItemGroups.flatMap(\.barButtonItems)
-            + item.trailingItemGroups.flatMap(\.barButtonItems)
-            + (item.leftBarButtonItems ?? [])
-            + (item.rightBarButtonItems ?? [])
-        return buttons.first {
-            $0.accessibilityLabel == name || $0.title == name || $0.customView?.accessibilityLabel == name
-        }
-    }
-
-    private func descendant<T: UIViewController>(of type: T.Type, in controller: UIViewController) -> T? {
-        var pending = [controller]
-        var visited = Set<ObjectIdentifier>()
-        while let next = pending.popLast() {
-            guard visited.insert(ObjectIdentifier(next)).inserted else { continue }
-            if let result = next as? T { return result }
-            pending.append(contentsOf: next.children)
-            if let presented = next.presentedViewController { pending.append(presented) }
-        }
-        return nil
-    }
 }
 
 private struct LifecycleMenuHost: View {

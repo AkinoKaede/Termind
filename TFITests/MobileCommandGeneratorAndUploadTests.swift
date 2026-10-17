@@ -714,13 +714,6 @@ struct MobileCommandGeneratorTests {
         return (host, library)
     }
 
-    private func eventually(attempts: Int = 100, _ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<attempts {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return false
-    }
 }
 
 @Suite(.serialized) @MainActor
@@ -1448,14 +1441,6 @@ struct MobileUploadBatchTests {
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(await client.createdDirectories.isEmpty)
         #expect(coordinator.sftpTransfers.isEmpty)
-    }
-
-    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return false
     }
 
     private func eventuallyAsync(_ condition: @escaping () async -> Bool) async -> Bool {

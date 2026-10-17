@@ -536,9 +536,11 @@ struct CloudSyncPhysicalDeletionTests {
         #expect(fixture.batch([.deleteRecord(id)]) == nil)
     }
 
-    @Test(arguments: SyncSafetyCategory.allCases)
-    func sendCompletionWithoutARecordResultReleasesPhysicalDeleteForRetry(
-        category: SyncSafetyCategory
+    /// A failed (or unreported) send must not strand the physical delete; with
+    /// overlapping sends the release waits for the last completion.
+    @Test(arguments: SyncSafetyCategory.allCases, [false, true])
+    func failedSendsReleasePhysicalDeleteForRetry(
+        category: SyncSafetyCategory, overlapping: Bool
     ) async throws {
         let fixture = try CloudSyncSafetyFixture(category: category)
         defer { fixture.stop() }
@@ -547,33 +549,16 @@ struct CloudSyncPhysicalDeletionTests {
         try fixture.markTombstone()
         try fixture.lifecycle.reconcilePendingChanges()
         try fixture.lifecycle.beginSend()
+        if overlapping { try fixture.lifecycle.beginSend() }
         _ = try #require(fixture.batch([.deleteRecord(id)]))
         #expect(fixture.batch([.deleteRecord(id)]) == nil)
 
         try fixture.lifecycle.finishSend(succeeded: false)
 
-        let retry = try #require(fixture.batch([.deleteRecord(id)]))
-        #expect(retry.recordIDsToDelete == [id])
-    }
-
-    @Test(arguments: SyncSafetyCategory.allCases)
-    func overlappingSendsReleasePhysicalDeleteOnlyAfterTheLastCompletion(
-        category: SyncSafetyCategory
-    ) async throws {
-        let fixture = try CloudSyncSafetyFixture(category: category)
-        defer { fixture.stop() }
-        try await fixture.start()
-        let id = fixture.recordIDs[0]
-        try fixture.markTombstone()
-        try fixture.lifecycle.reconcilePendingChanges()
-        try fixture.lifecycle.beginSend()
-        try fixture.lifecycle.beginSend()
-        _ = try #require(fixture.batch([.deleteRecord(id)]))
-
-        try fixture.lifecycle.finishSend(succeeded: false)
-        #expect(fixture.batch([.deleteRecord(id)]) == nil)
-
-        try fixture.lifecycle.finishSend(succeeded: false)
+        if overlapping {
+            #expect(fixture.batch([.deleteRecord(id)]) == nil)
+            try fixture.lifecycle.finishSend(succeeded: false)
+        }
         let retry = try #require(fixture.batch([.deleteRecord(id)]))
         #expect(retry.recordIDsToDelete == [id])
     }

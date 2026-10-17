@@ -651,13 +651,6 @@ struct MobileAssistantTests {
         return controller.sizeThatFits(in: CGSize(width: width, height: availableHeight)).height
     }
 
-    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return false
-    }
 }
 
 private struct MobileDelayedAgentModel: AgentModelStreaming {

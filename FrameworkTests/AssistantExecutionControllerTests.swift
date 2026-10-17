@@ -281,28 +281,10 @@ struct AssistantExecutionControllerTests {
         #expect(await repository.snapshots.last?.state == .interrupted)
     }
 
-    @Test
-    func cancelledPreparedEditCannotEnterHistoryMutation() async throws {
-        let repository = RecordingAgentRunRepository()
-        let controller = makeController(repository: repository)
-        let operations = AssistantConversationOperations(repository: repository)
-        let message = AgentTranscriptMessage(role: .user, text: "before", authoredText: "before")
-        let conversation = ConversationModel(
-            messages: [ChatMessage(id: message.id, role: .user, text: "before")], transcript: [message])
-        let prepared = try #require(
-            controller.prepareAgentEdit(conversation, messageID: message.id, text: "after"))
-
-        await controller.cancelPendingRuns().value
-
-        #expect(
-            try await !controller.performAgentEdit(
-                prepared, in: conversation, operations: operations))
-        #expect(await repository.truncationReplacement == nil)
-        #expect(conversation.transcript == [message])
-    }
-
-    @Test
-    func supersededPreparedEditCannotEnterHistoryMutation() async throws {
+    /// A prepared edit is single-use: cancellation or a newer preparation must
+    /// stop the stale edit before it mutates persisted history.
+    @Test(arguments: ["cancelled", "superseded"])
+    func invalidatedPreparedEditCannotEnterHistoryMutation(_ invalidation: String) async throws {
         let repository = RecordingAgentRunRepository()
         let controller = makeController(repository: repository)
         let operations = AssistantConversationOperations(repository: repository)
@@ -310,8 +292,12 @@ struct AssistantExecutionControllerTests {
         let conversation = ConversationModel(
             messages: [ChatMessage(id: message.id, role: .user, text: "before")], transcript: [message])
         let stale = try #require(
-            controller.prepareAgentEdit(conversation, messageID: message.id, text: "stale"))
-        #expect(controller.prepareAgentEdit(conversation, messageID: message.id, text: "current") != nil)
+            controller.prepareAgentEdit(conversation, messageID: message.id, text: "after"))
+        if invalidation == "cancelled" {
+            await controller.cancelPendingRuns().value
+        } else {
+            #expect(controller.prepareAgentEdit(conversation, messageID: message.id, text: "current") != nil)
+        }
 
         #expect(
             try await !controller.performAgentEdit(
@@ -319,7 +305,7 @@ struct AssistantExecutionControllerTests {
         #expect(await repository.truncationReplacement == nil)
         #expect(conversation.transcript == [message])
 
-        await controller.cancelPendingRuns().value
+        if invalidation == "superseded" { await controller.cancelPendingRuns().value }
     }
 
     @Test

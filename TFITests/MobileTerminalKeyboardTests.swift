@@ -31,7 +31,7 @@ struct MobileTerminalKeyboardTests {
             #expect(bar.intrinsicContentSize.height == expectedHeight)
             bar.frame = CGRect(x: 0, y: 0, width: width, height: expectedHeight)
             bar.layoutIfNeeded()
-            let scroll = try #require(descendants(of: bar).compactMap { $0 as? UIScrollView }.first)
+            let scroll = try #require(descendants(bar).compactMap { $0 as? UIScrollView }.first)
             #expect(scroll.contentSize.width > 0)
             let buttons = accessoryButtons(in: bar)
             for button in buttons {
@@ -68,7 +68,7 @@ struct MobileTerminalAccessoryPreview: UIViewRepresentable {
         guard scrollsToEnd else { return }
         DispatchQueue.main.async {
             uiView.layoutIfNeeded()
-            if let scroll = descendants(of: uiView).compactMap({ $0 as? UIScrollView }).first {
+            if let scroll = descendants(uiView).compactMap({ $0 as? UIScrollView }).first {
                 scroll.setContentOffset(
                     CGPoint(x: max(0, scroll.contentSize.width - scroll.bounds.width), y: 0), animated: false)
             }
@@ -81,13 +81,8 @@ struct MobileTerminalAccessoryPreview: UIViewRepresentable {
 }
 
 @MainActor
-private func descendants(of view: UIView) -> [UIView] {
-    view.subviews.flatMap { [$0] + descendants(of: $0) }
-}
-
-@MainActor
 private func accessoryButtons(in view: UIView) -> [UIButton] {
-    descendants(of: view).compactMap { $0 as? UIButton }
+    descendants(view).compactMap { $0 as? UIButton }
 }
 
 @Suite(.serialized, .requiresKeyWindow)

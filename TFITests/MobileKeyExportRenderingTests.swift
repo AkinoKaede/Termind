@@ -49,10 +49,6 @@ struct MobileKeyExportRenderingTests {
         }
     }
 
-    private func descendants(_ view: UIView) -> [UIView] {
-        [view] + view.subviews.flatMap(descendants)
-    }
-
     private func capture(_ window: UIWindow, language: String, state: String = "form") throws {
         window.layoutIfNeeded()
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in

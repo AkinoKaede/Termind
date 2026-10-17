@@ -58,6 +58,22 @@ struct HostEditorBindingsTests {
         #expect(host.identityID == identity.id)
     }
 
+    /// Renaming or re-porting a host must not silently attach the known-host
+    /// entries of another login that still uses the original address.
+    @Test func savingAnEditedAddressLeavesSharedKnownHostsAlone() {
+        var host = Host(name: "Server", host: "old.example")
+        let shared = Host(name: "Other Login", host: "old.example")
+        let entry = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:old")
+        let library = HostLibraryModel(hosts: [host, shared], knownHosts: [entry])
+        host.host = "new.example"
+        host.port = 2222
+
+        #expect(library.saveHost(host))
+        #expect(library.knownHosts == [entry])
+        #expect(library.knownHosts(for: host).isEmpty)
+        #expect(library.knownHosts(for: shared) == [entry])
+    }
+
     @Test(arguments: [false, true])
     func proxyEditsShareDefaultPortPolicyAndKeepProtocolsIndependent(_ telnet: Bool) {
         var host = Host(name: "Server", host: "server.invalid", telnetEnabled: true)
