@@ -84,11 +84,10 @@ public final class PersistentAgentMessage {
         id = message.id
         self.runID = runID
         role = message.role.rawValue
-        text = AgentPersistenceRedactor.visibleText(
-            AgentSecretLifecycle.persistedResultText(
-                toolName: message.toolName, original: message.text
-            )
-        )
+        text =
+            message.role == .tool
+            ? AgentPersistenceRedactor.toolResultText(message.text, toolName: message.toolName)
+            : AgentPersistenceRedactor.visibleText(message.text)
         authoredText = message.authoredText.map(AgentPersistenceRedactor.visibleText)
         imagesData = (try? JSONEncoder().encode(message.images)) ?? Data()
         reasoningData = AgentPersistenceRedactor.encoded(
@@ -216,14 +215,24 @@ public final class PersistentAgentToolResult {
         runID = invocation.runID
         invocationID = invocation.id
         callID = result.callID
-        content = AgentPersistenceRedactor.visibleText(
-            AgentSecretLifecycle.persistedResultText(
-                toolName: invocation.call.name, original: result.content
-            )
-        )
+        content = AgentPersistenceRedactor.toolResultText(result.content, toolName: invocation.call.name)
         isError = result.isError
-        isTruncated = result.isTruncated || content.count < result.content.count
+        isTruncated = result.isTruncated
         metadataData = AgentPersistenceRedactor.encoded(result.metadata)
+    }
+
+    var restoredResult: AgentToolResult {
+        var result = AgentToolResult(
+            callID: callID, content: content, isError: isError, isTruncated: isTruncated,
+            metadata: (try? JSONDecoder().decode([String: AgentJSONValue].self, from: metadataData)) ?? [:])
+        result.content = AgentPersistenceRedactor.restoredToolResultText(content, fallbacks: [result.modelContent])
+        if result.content != content {
+            result.isTruncated = true
+            if result.content.hasPrefix(AgentToolResult.untrustedDataOpeningMarker) {
+                result.metadata["untrusted"] = .bool(true)
+            }
+        }
+        return result
     }
 }
 

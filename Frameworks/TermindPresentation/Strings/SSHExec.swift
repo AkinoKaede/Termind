@@ -5,6 +5,7 @@ extension AppStrings {
         public static var handle: LocalizedStringResource { "Handle" }
         public static var command: LocalizedStringResource { "Command" }
         public static var commandOutput: LocalizedStringResource { "the command output" }
+        public static var output: LocalizedStringResource { "Output" }
         public static var stdout: LocalizedStringResource { "Standard output" }
         public static var stderr: LocalizedStringResource { "Standard error" }
         public static var exitCode: LocalizedStringResource { "Exit code" }

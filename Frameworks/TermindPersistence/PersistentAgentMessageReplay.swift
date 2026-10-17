@@ -12,7 +12,11 @@ public final class PersistentAgentMessageReplay {
     public init(_ message: AgentTranscriptMessage) {
         messageID = message.id
         contextData = message.contextSnapshot.map(AgentPersistenceRedactor.encoded) ?? Data()
-        modelText = message.modelText.map(AgentPersistenceRedactor.visibleText)
+        modelText = message.modelText.map {
+            message.role == .tool
+                ? AgentPersistenceRedactor.toolResultText($0, toolName: message.toolName)
+                : AgentPersistenceRedactor.visibleText($0)
+        }
     }
 
     public var contextSnapshot: AgentTurnContextSnapshot? {

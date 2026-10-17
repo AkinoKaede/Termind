@@ -72,7 +72,7 @@ nonisolated enum SSHExecToolPresentation {
         }
         let stdout = object["output"]?.stringValue ?? object["stdout"]?.stringValue ?? ""
         let stderr = object["stderr"]?.stringValue ?? ""
-        if !stdout.isEmpty { items.append(block(object["output"] == nil ? S.stdout : S.commandOutput, stdout)) }
+        if !stdout.isEmpty { items.append(block(object["output"] == nil ? S.stdout : S.output, stdout)) }
         if !stderr.isEmpty { items.append(block(S.stderr, stderr)) }
         if ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(card.descriptor.name),
             stdout.isEmpty, stderr.isEmpty

@@ -247,8 +247,20 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         (try? JSONDecoder().decode(
                             [AgentReasoningBlock].self, from: row.reasoningData
                         )) ?? []
+                    var text = row.text
+                    var modelText = replayByMessage[row.id]?.modelText
+                    if role == .tool {
+                        let result = results.last { $0.runID == row.runID && $0.callID == row.toolCallID }?
+                            .restoredResult
+                        modelText =
+                            modelText.map {
+                                AgentPersistenceRedactor.restoredToolResultText($0, fallbacks: [result?.modelContent])
+                            } ?? result?.modelContent
+                        text = AgentPersistenceRedactor.restoredToolResultText(
+                            text, fallbacks: [result?.content, modelText])
+                    }
                     return AgentTranscriptMessage(
-                        id: row.id, role: role, text: row.text,
+                        id: row.id, role: role, text: text,
                         authoredText: row.authoredText, images: images,
                         contextAttachments: contextAttachments,
                         reasoning: reasoning,
@@ -256,7 +268,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         toolCallID: row.toolCallID, toolName: row.toolName,
                         isError: row.isError, isCompaction: row.isCompaction,
                         contextSnapshot: replayByMessage[row.id]?.contextSnapshot,
-                        modelText: replayByMessage[row.id]?.modelText,
+                        modelText: modelText,
                         origin: originByMessage[row.id],
                         createdAt: row.createdAt
                     )
@@ -805,13 +817,13 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 // The last recorded one: a call id is unique to its invocation,
                 // so more than one row can only mean a rewritten result.
                 guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
+                let result = stored.restoredResult
                 recovered.append(
                     AgentTranscriptMessage(
                         id: AgentTranscriptMessage.toolResultID(runID: stored.runID, callID: call.id),
-                        role: .tool, text: stored.content, toolCallID: call.id,
+                        role: .tool, text: result.content, toolCallID: call.id,
                         toolName: names[call.id] ?? call.name, isError: stored.isError,
-                        modelText: (try? JSONDecoder().decode([String: AgentJSONValue].self, from: stored.metadataData))?[
-                            AgentToolResult.modelContentKey]?.stringValue
+                        modelText: result.modelContent
                     ))
             }
         }
@@ -846,15 +858,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             sourceMessageID: row.sourceMessageID,
             targetHostID: row.targetHostID, createdAt: row.createdAt
         )
-        let result = results.last(where: { $0.invocationID == row.id }).map { stored in
-            AgentToolResult(
-                callID: stored.callID, content: stored.content,
-                isError: stored.isError, isTruncated: stored.isTruncated,
-                metadata: (try? JSONDecoder().decode(
-                    [String: AgentJSONValue].self, from: stored.metadataData
-                )) ?? [:]
-            )
-        }
+        let result = results.last(where: { $0.invocationID == row.id })?.restoredResult
         let descriptor = AgentToolDescriptor(
             name: row.toolName, summary: row.toolName,
             inputSchema: .object(["type": .string("object")]),
