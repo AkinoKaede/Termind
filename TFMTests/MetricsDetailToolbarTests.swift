@@ -70,20 +70,22 @@ struct MetricsDetailToolbarTests {
     @Test(arguments: [AppLanguage.english, .simplifiedChinese, .traditionalChinese])
     func legacyCompactSearchOpensTheNativeFieldAndKeepsItsQueryWhenWidened(_ language: AppLanguage) async throws {
         let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: language)
-        let model = configuration.makeMetricsModel(hosts: .demo())
+        let hosts = HostLibraryModel.demo()
+        let model = configuration.makeMetricsModel(hosts: hosts)
+        let app = AppModel(hosts: hosts, serverMetrics: model)
         let server = try #require(model.servers.first)
         let state = WindowModel()
         state.selectedDestination = .metrics
         state.metricsHostID = server.id
         state.metricsModel = model
         let root = LegacyMetricsToolbarFixture(server: server)
-            .environment(state).environment(\.locale, language.locale)
+            .environment(app).environment(state).environment(\.locale, language.locale)
         let window = makeWindow(root)
         defer {
             window.orderOut(nil)
             window.contentViewController = nil
             window.close()
-            model.shutdown()
+            app.shutdownForTermination()
         }
         await settle(window)
         #expect(state.showsCompactMetricsDetail)

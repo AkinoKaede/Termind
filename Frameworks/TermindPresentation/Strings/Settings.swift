@@ -225,10 +225,6 @@ extension AppStrings {
             "Dark"
         }
 
-        public static var darkCustomConfiguration: LocalizedStringResource {
-            "Dark Custom Configuration"
-        }
-
         public static var deleteAllLoggingFilesConfirmation: LocalizedStringResource {
             "Delete all logging files?"
         }
@@ -418,10 +414,6 @@ extension AppStrings {
 
         public static var light: LocalizedStringResource {
             "Light"
-        }
-
-        public static var lightCustomConfiguration: LocalizedStringResource {
-            "Light Custom Configuration"
         }
 
         public static var limits: LocalizedStringResource {

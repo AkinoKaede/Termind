@@ -89,13 +89,14 @@ struct MobileLocalDiscoveryRenderingTests {
         try await Task.sleep(for: .milliseconds(700))
         window.layoutIfNeeded()
         let labels = accessibilityLabels(in: window)
-        #expect(labels.contains { $0.contains("192.168.1.24:22") })
+        for text in ["Mac mini", "mac-mini.local:22", "192.168.1.24:22", "Raspberry Pi", "raspberrypi.local:22"] {
+            #expect(labels.contains { $0.contains(text) })
+        }
         for resource in [
-            AppStrings.LocalNetwork.bonjour, AppStrings.LocalNetwork.advertisedSSH,
-            AppStrings.LocalNetwork.verifiedSSH, AppStrings.LocalNetwork.telnetPortOpen,
+            AppStrings.LocalNetwork.discovery, AppStrings.LocalNetwork.rescan, AppStrings.Common.cancel,
         ] {
-            let unwanted = AppLocalization.resolve(resource, locale: Locale(identifier: language))
-            #expect(!labels.contains { $0.contains(unwanted) })
+            let title = AppLocalization.resolve(resource, locale: Locale(identifier: language))
+            #expect(labels.contains { $0.contains(title) })
         }
         let data = UIGraphicsImageRenderer(bounds: window.bounds).pngData { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)

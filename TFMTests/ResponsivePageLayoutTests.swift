@@ -71,13 +71,15 @@ struct ResponsivePageLayoutTests {
     @Test
     func metricsPagesAndResizeKeepTheProcessTableAndBothScrollPositions() async throws {
         let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: .english)
-        let model = configuration.makeMetricsModel(hosts: .demo())
+        let hosts = HostLibraryModel.demo()
+        let model = configuration.makeMetricsModel(hosts: hosts)
+        let app = AppModel(hosts: hosts, serverMetrics: model)
         let server = try #require(model.servers.first)
         let state = WindowModel()
         state.selectedDestination = .metrics
         state.metricsModel = model
         state.metricsHostID = server.id
-        let hosting = NSHostingView(rootView: MetricsDetailView(server: server).environment(state))
+        let hosting = NSHostingView(rootView: MetricsDetailView(server: server).environment(app).environment(state))
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 900, height: 600),
             styleMask: .borderless, backing: .buffered, defer: false)
@@ -85,7 +87,7 @@ struct ResponsivePageLayoutTests {
         window.contentView = hosting
         defer {
             window.close()
-            model.shutdown()
+            app.shutdownForTermination()
         }
         await layout(hosting)
         let table = try #require(descendant(in: hosting, ofType: NSTableView.self))

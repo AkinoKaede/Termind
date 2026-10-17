@@ -56,18 +56,6 @@ extension AppStrings {
         public static var scanFailed: LocalizedStringResource {
             "Local discovery failed. Check your network and try again."
         }
-        public static var bonjour: LocalizedStringResource {
-            "Bonjour"
-        }
-        public static var verifiedSSH: LocalizedStringResource {
-            "SSH Verified"
-        }
-        public static var telnetPortOpen: LocalizedStringResource {
-            "Port 23 Open"
-        }
-        public static var advertisedSSH: LocalizedStringResource {
-            "SSH Advertised"
-        }
         public static var noMAC: LocalizedStringResource {
             "No physical network adapter was found. Enter the MAC address manually."
         }
