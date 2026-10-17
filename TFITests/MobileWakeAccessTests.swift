@@ -79,6 +79,17 @@ struct MobileWakeAccessTests {
         #expect(app.pro.isPaywallPresented)
         #expect(!configured)
     }
+
+    @Test func invalidWakeSaveUsesTheSharedMACValidationMessage() throws {
+        let app = try MobileAppModel(inMemory: true)
+        var host = TermindDomain.Host(name: "Host", host: "server.invalid")
+        host.wakeOnLAN.automaticallyWake = true
+        let message = String(localized: AppStrings.LocalNetwork.invalidMACAddress)
+        #expect(HostAccessError.presentationDescription(of: WakeOnLANError.invalidAddress) == message)
+        #expect(!app.library.saveHost(host))
+        #expect(app.library.storageError == message)
+        #expect(app.library.host(host.id) == nil)
+    }
 }
 
 private nonisolated struct UnexpectedMobileWakeSender: WakeOnLANSending {

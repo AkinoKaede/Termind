@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 
 // Keep localized copy in Presentation while shared policy failures retain their typed identity.
@@ -7,6 +8,7 @@ extension HostAccessError: @retroactive LocalizedError {
     /// A static reference also keeps this conformance linked in the static Presentation framework.
     public nonisolated static func presentationDescription(of error: any Error) -> String? {
         if let accessError = error as? Self { return accessError.errorDescription }
+        if let wakeError = error as? WakeOnLANError { return wakeError.errorDescription }
         return error.localizedDescription
     }
 

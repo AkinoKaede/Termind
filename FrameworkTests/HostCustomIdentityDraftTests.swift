@@ -131,4 +131,103 @@ struct HostCustomIdentityDraftTests {
         #expect(library.host(host.id)?.identityID == nil)
         #expect(library.host(host.id)?.proxy?.identityID == nil)
     }
+
+    @Test
+    func invalidWakePreferencesRejectBeforeChangingIdentitiesOrSecrets() throws {
+        let secrets = HostDraftRecordingSecrets()
+        var host = Host(
+            name: "Server", host: "server.invalid",
+            proxy: HostProxy(kind: .http, hostname: "proxy.invalid", port: 8080))
+        host.wakeOnLAN = .init(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
+        let library = HostLibraryModel(hosts: [host], secrets: secrets)
+        var initial = HostCustomIdentityDraft(host: host, library: library)
+        initial.sshUsername = "original"
+        initial.sshPassword = "ssh-original"
+        initial.selectCustomProxy(on: &host, using: library)
+        host.proxy?.username = "proxy-original"
+        initial.proxyPassword = "proxy-original"
+        try initial.save(into: &host, using: library)
+        let savedHost = try #require(library.host(host.id))
+        let identities = library.identities
+        let writes = secrets.writeCount
+        let ssh = try #require(library.customIdentity(for: host.id, purpose: .ssh))
+        let proxy = try #require(library.customIdentity(for: host.id, purpose: .proxy))
+
+        for preferences in [
+            WakeOnLANPreferences(macAddress: "", automaticallyWake: true),
+            WakeOnLANPreferences(macAddress: "02:11:22:33:44:GG", automaticallyWake: true),
+            WakeOnLANPreferences(macAddress: "02:11:22:33:44:GG"),
+        ] {
+            for removesProxy in [false, true] {
+                var candidate = savedHost
+                var draft = HostCustomIdentityDraft(host: candidate, library: library)
+                draft.sshUsername = "unsaved"
+                draft.sshPassword = "ssh-unsaved"
+                draft.proxyPassword = "proxy-unsaved"
+                if removesProxy { candidate.proxy = nil }
+                candidate.wakeOnLAN = preferences
+                #expect(throws: WakeOnLANError.self) {
+                    try draft.save(into: &candidate, using: library)
+                }
+                #expect(library.host(host.id) == savedHost)
+                #expect(library.identities == identities)
+                #expect(secrets.writeCount == writes)
+                #expect(try library.editablePassword(for: ssh) == "ssh-original")
+                #expect(try library.editablePassword(for: proxy) == "proxy-original")
+            }
+        }
+    }
+
+    @Test
+    func invalidWakePreferencesRejectBeforeCreatingIdentityOrSecret() {
+        let secrets = HostDraftRecordingSecrets()
+        let library = HostLibraryModel(secrets: secrets)
+        var host = Host(name: "Server", host: "server.invalid")
+        host.wakeOnLAN.automaticallyWake = true
+        var draft = HostCustomIdentityDraft()
+        draft.sshUsername = "user"
+        draft.sshPassword = "password"
+        #expect(throws: WakeOnLANError.self) {
+            try draft.save(into: &host, using: library)
+        }
+        #expect(library.hosts.isEmpty)
+        #expect(library.identities.isEmpty)
+        #expect(secrets.writeCount == 0)
+        #expect(host.identityID == nil)
+    }
+}
+
+private nonisolated final class HostDraftRecordingSecrets: SecretStoring, @unchecked Sendable {
+    private let base = InMemorySecretStore()
+    private let lock = NSLock()
+    private var writes = 0
+    var writeCount: Int { lock.withLock { writes } }
+
+    func string(for account: String, storage: PasswordStorage) throws -> String? {
+        try base.string(for: account, storage: storage)
+    }
+
+    func keyCredential(for account: String, storage: KeyStorage) throws -> StoredSSHKeyCredential? {
+        try base.keyCredential(for: account, storage: storage)
+    }
+
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {
+        lock.withLock { writes += 1 }
+        try base.setString(value, for: account, storage: storage)
+    }
+
+    func setKeyCredential(_ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage) throws {
+        lock.withLock { writes += 1 }
+        try base.setKeyCredential(value, for: account, storage: storage)
+    }
+
+    func removePassword(_ account: String, storage: PasswordStorage) throws {
+        lock.withLock { writes += 1 }
+        try base.removePassword(account, storage: storage)
+    }
+
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws {
+        lock.withLock { writes += 1 }
+        try base.removeKeyCredential(account, storage: storage)
+    }
 }

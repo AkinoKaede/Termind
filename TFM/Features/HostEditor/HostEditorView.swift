@@ -717,6 +717,7 @@ struct HostEditorView: View {
     private var isValid: Bool {
         !draft.host.trimmingCharacters(in: .whitespaces).isEmpty
             && draft.preferredTerminalProtocol != nil
+            && draft.wakeOnLAN.isValid
             && (!draft.sshEnabled || (draft.terminalTransports.isValid && (1...65_535).contains(draft.sshPort)))
             && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
             && customIdentity.isProxyValid(for: draft)

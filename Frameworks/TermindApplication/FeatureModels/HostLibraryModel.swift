@@ -1076,6 +1076,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func saveHost(_ host: Host) -> Bool {
+        guard host.wakeOnLAN.isValid else {
+            storageError = WakeOnLANError.invalidAddress.localizedDescription
+            return false
+        }
         do { try requireSavingHosts([host]) } catch HostAccessError.hostLimit {
             storageError = nil
             return false
@@ -2649,6 +2653,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func saveTailscaleHost(_ host: Host, username: String? = nil) -> Bool {
+        guard host.wakeOnLAN.isValid else {
+            storageError = WakeOnLANError.invalidAddress.localizedDescription
+            return false
+        }
         guard let existing = self.host(host.id), existing.isTailscaleManaged,
             host.tailscale == existing.tailscale, host.groupID == existing.groupID,
             host.name == existing.name, host.host == existing.host, host.port == 22,

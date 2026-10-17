@@ -34,6 +34,11 @@ public struct HostWakeOnLANSection: View {
                 isOn: WakeOnLANSettingsAccess(
                     invalidAddress: { invalidAddress = true }
                 ).automatic($preferences))
+            if !preferences.isValid {
+                Text(AppStrings.LocalNetwork.invalidMACAddress)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         } header: {
             Text(AppStrings.LocalNetwork.wakeOnLAN)
         }

@@ -4,6 +4,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPersistence
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -37,13 +38,20 @@ struct MobileWorkspaceSessionTests {
             .systemInfo(
                 RemoteSystemInfo(distributionID: "ubuntu", kernelName: "Linux")))
         #expect(workspace.activitySession.iconAsset == "HostOS-windows")
-        for (choice, symbol) in [("cloud", "cloud"), ("database", "cylinder")] {
+        for (choice, symbol) in [
+            ("cloud", "cloud"), ("database", "cylinder"), ("terminal", "terminal"),
+            ("database", "cylinder"), ("cloud", "cloud"),
+        ] {
             draft = try #require(app.library.host(host.id))
             draft.iconOverrideID = choice
             #expect(app.library.saveHost(draft))
+            #expect(app.library.host(host.id)?.iconOverrideID == choice)
+            #expect(HostIconCatalog.resolvedArtwork(for: app.library.host(host.id)).systemImageName == symbol)
             for _ in 0..<50 where workspace.activitySession.iconSystemName != symbol {
                 try await Task.sleep(for: .milliseconds(10))
             }
+            #expect(app.library.host(host.id)?.iconOverrideID == choice)
+            #expect(HostIconCatalog.resolvedArtwork(for: app.library.host(host.id)).systemImageName == symbol)
             #expect(workspace.activitySession.iconAsset == nil)
             #expect(workspace.activitySession.iconSystemName == symbol)
         }

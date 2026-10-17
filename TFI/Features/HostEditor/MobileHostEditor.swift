@@ -54,6 +54,7 @@ struct MobileHostEditor: View {
                 || !customIdentity.telnetProxyPassword.isEmpty,
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && draft.preferredTerminalProtocol != nil
+                && draft.wakeOnLAN.isValid
                 && (!draft.sshEnabled || (draft.terminalTransports.isValid && (1...65_535).contains(draft.sshPort)))
                 && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
                 && (draft.isTailscaleManaged || customIdentity.isSSHValid(for: draft))

@@ -127,6 +127,32 @@ struct WakeOnLANAccessTests {
         #expect(invalid)
         #expect(!preferences.automaticallyWake)
     }
+
+    @Test func editingAnEnabledWakeAddressPreservesTheToggleUntilCorrectedOrDisabled() {
+        var preferences = WakeOnLANPreferences(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
+        let binding = Binding(get: { preferences }, set: { preferences = $0 })
+        let automatic = WakeOnLANSettingsAccess(invalidAddress: {}).automatic(binding)
+        for address in ["02:11:22:33:44:GG", ""] {
+            binding.macAddress.wrappedValue = address
+            #expect(automatic.wrappedValue)
+            #expect(!preferences.isValid)
+        }
+        binding.macAddress.wrappedValue = "02-ab-cd-12-34-56"
+        #expect(preferences.isValid)
+        binding.macAddress.wrappedValue = ""
+        automatic.wrappedValue = false
+        #expect(preferences.isValid)
+    }
+
+    @Test func invalidWakeSaveUsesTheSharedMACValidationMessage() {
+        var host = Host(name: "Host", host: "server.invalid")
+        host.wakeOnLAN.macAddress = "invalid"
+        let library = HostLibraryModel()
+        let message = String(localized: AppStrings.LocalNetwork.invalidMACAddress)
+        #expect(HostAccessError.presentationDescription(of: WakeOnLANError.invalidAddress) == message)
+        #expect(!library.saveHost(host))
+        #expect(library.storageError == message)
+    }
 }
 
 private nonisolated struct UnexpectedWakeSender: WakeOnLANSending {

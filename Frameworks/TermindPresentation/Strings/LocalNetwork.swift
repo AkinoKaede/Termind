@@ -23,6 +23,9 @@ extension AppStrings {
         public static var invalidMAC: LocalizedStringResource {
             "Enter a valid unicast MAC address before enabling Auto Wake-on-LAN."
         }
+        public static var invalidMACAddress: LocalizedStringResource {
+            "Enter a valid unicast MAC address."
+        }
         public static var sent: LocalizedStringResource {
             "Wake request sent. The remote machine may take a moment to become available."
         }

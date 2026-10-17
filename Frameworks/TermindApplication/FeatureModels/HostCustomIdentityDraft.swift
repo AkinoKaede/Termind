@@ -221,6 +221,7 @@ public struct HostCustomIdentityDraft {
     }
 
     public mutating func save(into host: inout Host, using library: HostLibraryModel) throws {
+        guard host.wakeOnLAN.isValid else { throw WakeOnLANError.invalidAddress }
         try library.requireSavingHosts([host])
         if usesCustomSSH(for: host) {
             let identity = try library.saveCustomIdentity(

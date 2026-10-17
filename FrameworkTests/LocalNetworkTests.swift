@@ -32,6 +32,43 @@ struct LocalNetworkTests {
         }
     }
 
+    @Test func invalidWakePreferencesCannotReplaceASavedHost() throws {
+        var original = Host(name: "Server", host: "server.invalid")
+        original.wakeOnLAN = .init(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
+        let library = HostLibraryModel(hosts: [original])
+        for preferences in [
+            WakeOnLANPreferences(macAddress: "", automaticallyWake: true),
+            WakeOnLANPreferences(macAddress: "02:11:22:33:44:GG", automaticallyWake: true),
+            WakeOnLANPreferences(macAddress: "02:11:22:33:44:GG"),
+        ] {
+            var draft = original
+            draft.name = "Unsaved"
+            draft.wakeOnLAN = preferences
+            #expect(!library.saveHost(draft))
+            #expect(library.host(original.id) == original)
+            #expect(library.storageError != nil)
+        }
+        var corrected = original
+        corrected.wakeOnLAN.macAddress = "02-ab-cd-12-34-56"
+        #expect(library.saveHost(corrected))
+        #expect(library.host(original.id)?.wakeOnLAN.address?.rawValue == "02:AB:CD:12:34:56")
+        corrected.wakeOnLAN = .init()
+        #expect(library.saveHost(corrected))
+        #expect(library.host(original.id)?.wakeOnLAN == .init())
+        #expect(library.storageError == nil)
+    }
+
+    @Test func invalidWakePreferencesCannotCreateAHost() {
+        var host = Host(name: "Server", host: "server.invalid")
+        host.wakeOnLAN.automaticallyWake = true
+        let library = HostLibraryModel()
+        #expect(!library.saveHost(host))
+        #expect(library.hosts.isEmpty)
+        host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
+        #expect(library.saveHost(host))
+        #expect(library.host(host.id)?.wakeOnLAN.automaticallyWake == true)
+    }
+
     @Test func sendingIsFreeAndOnlyAutoUsesCooldown() throws {
         let sender = RecordingWakeSender()
         let state = WakeTestState()
@@ -260,6 +297,38 @@ struct LocalNetworkTests {
         var old = envelope
         old.formatVersion = 6
         #expect(throws: (any Error).self) { try VaultSyncCodec.encode(old) }
+    }
+
+    @Test func invalidWakePreferencesCannotMutateManagedHostPreferences() throws {
+        var group = HostGroup(name: "Tailnet")
+        group.tailscale = TailscaleGroupConfiguration(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "test.ts.net"))
+        let peer = TailscalePeer(
+            stableID: "peer", name: "Server", dnsName: "server.test.ts.net", online: true,
+            sshHostKeys: ["ssh-ed25519 test"])
+        let library = HostLibraryModel(groups: [group])
+        library.replaceTailscalePeers([peer], groupID: group.id)
+        var original = try #require(library.hosts.first)
+        original.wakeOnLAN = .init(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
+        #expect(library.saveTailscaleHost(original, username: "original"))
+        let savedGroup = try #require(library.group(group.id))
+        for preferences in [
+            WakeOnLANPreferences(macAddress: "", automaticallyWake: true),
+            WakeOnLANPreferences(macAddress: "02:11:22:33:44:GG"),
+        ] {
+            var draft = original
+            draft.wakeOnLAN = preferences
+            draft.iconOverrideID = "cloud"
+            #expect(!library.saveTailscaleHost(draft, username: "unsaved"))
+            #expect(!library.saveHost(draft))
+            #expect(library.group(group.id) == savedGroup)
+            #expect(library.host(original.id) == original)
+        }
+        original.wakeOnLAN = .init()
+        #expect(library.saveTailscaleHost(original, username: "corrected"))
+        library.replaceTailscalePeers([peer], groupID: group.id)
+        #expect(library.host(original.id)?.wakeOnLAN == .init())
+        #expect(library.tailscaleUsername(for: original) == "corrected")
     }
 }
 
