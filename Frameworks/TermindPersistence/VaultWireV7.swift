@@ -36,10 +36,11 @@ nonisolated enum VaultWireV7 {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             base = try values.decode(VaultWireV6.HostGroup.self, forKey: .base)
             wakeOnLAN = try values.decode([String: WakeOnLANPreferences].self, forKey: .wakeOnLAN)
+            let validPeerIDs = Set((base.domainValue.tailscale?.hostPreferences ?? [:]).keys)
             guard
                 wakeOnLAN.keys.allSatisfy({ key in
                     guard let id = UUID(uuidString: key), id.uuidString.lowercased() == key else { return false }
-                    return base.domainValue.tailscale?.hostPreferences[id] != nil
+                    return validPeerIDs.contains(id)
                 })
             else {
                 throw DecodingError.dataCorruptedError(

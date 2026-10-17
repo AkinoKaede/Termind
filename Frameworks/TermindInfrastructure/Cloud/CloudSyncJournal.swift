@@ -86,7 +86,8 @@ extension CloudSyncJournal {
             // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
             try markNeedsUpload([envelope.key])
         } else {
-            try markUploaded(envelope.key, version: envelope.version)
+            // Reconciled migration seeds can change payload without advancing their baseline clock.
+            if current == envelope { try markUploaded(envelope.key, version: envelope.version) }
             try updateSystemFields(CloudSyncRecordCoding.systemFields(of: record), for: envelope.key)
         }
     }

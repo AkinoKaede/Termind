@@ -36,10 +36,11 @@ nonisolated enum VaultWireV6 {
             let values = try decoder.container(keyedBy: CodingKeys.self)
             base = try values.decode(VaultWireV5.HostGroup.self, forKey: .base)
             terminalTransports = try values.decode([String: HostTerminalTransports].self, forKey: .terminalTransports)
+            let validPeerIDs = Set((base.domainValue.tailscale?.hostPreferences ?? [:]).keys)
             guard
                 terminalTransports.keys.allSatisfy({ key in
                     guard let id = UUID(uuidString: key), id.uuidString.lowercased() == key else { return false }
-                    return base.domainValue.tailscale?.hostPreferences[id] != nil
+                    return validPeerIDs.contains(id)
                 })
             else {
                 throw DecodingError.dataCorruptedError(

@@ -130,6 +130,44 @@ struct TerminalTransportTests {
         #expect(try VaultSyncCodec.decode(VaultSyncCodec.encode(envelope)) == envelope)
     }
 
+    @Test func v6GroupTransportOverridesRoundTripManyPeersAndRejectInvalidKeys() throws {
+        var group = HostGroup(name: "Large Tailnet")
+        var configuration = TailscaleGroupConfiguration(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "test.ts.net"))
+        for index in 0..<128 {
+            let id = try #require(UUID(uuidString: String(format: "aaaaaaaa-aaaa-aaaa-aaaa-%012x", index)))
+            var preferences = TailscaleHostPreferences()
+            preferences.username = "peer-\(index)"
+            preferences.terminalTransports.eternalTerminalEnabled = index.isMultiple(of: 2)
+            preferences.terminalTransports.eternalTerminalPort = 2022 + index
+            preferences.terminalTransports.defaultTransport = index.isMultiple(of: 2) ? .eternalTerminal : .ssh
+            configuration.hostPreferences[id] = preferences
+        }
+        group.tailscale = configuration
+        let payload = VaultRecordPayload.hostGroup(group)
+        let envelope = VaultEnvelope(
+            key: payload.key, version: .baseline(writerID: UUID()), payload: payload, formatVersion: 6)
+        let encoded = try VaultSyncCodec.encode(envelope)
+        #expect(try VaultSyncCodec.decode(encoded) == envelope)
+        let validKey = "aaaaaaaa-aaaa-aaaa-aaaa-000000000000"
+        for invalidKey in [validKey.uppercased(), "not-a-uuid", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"] {
+            var json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            var payloadJSON = try #require(json["payload"] as? [String: Any])
+            var groupJSON = try #require(payloadJSON["hostGroup"] as? [String: Any])
+            var value = try #require(groupJSON["_0"] as? [String: Any])
+            var transports = try #require(value["terminalTransports"] as? [String: Any])
+            let preferencesJSON = try #require(transports[validKey] as? [String: Any])
+            transports.removeValue(forKey: validKey)
+            transports[invalidKey] = preferencesJSON
+            value["terminalTransports"] = transports
+            groupJSON["_0"] = value
+            payloadJSON["hostGroup"] = groupJSON
+            json["payload"] = payloadJSON
+            let invalid = try JSONSerialization.data(withJSONObject: json)
+            #expect(throws: (any Error).self) { try VaultSyncCodec.decode(invalid) }
+        }
+    }
+
     @Test func checkpointsAreEncryptedConsumedOnceAndCannotResurrectAfterClose() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

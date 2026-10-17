@@ -299,6 +299,44 @@ struct LocalNetworkTests {
         #expect(throws: (any Error).self) { try VaultSyncCodec.encode(old) }
     }
 
+    @Test func v7GroupWakeOverridesRoundTripManyPeersAndRejectInvalidKeys() throws {
+        var group = HostGroup(name: "Large Tailnet")
+        var configuration = TailscaleGroupConfiguration(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "test.ts.net"))
+        for index in 0..<128 {
+            let id = try #require(UUID(uuidString: String(format: "aaaaaaaa-aaaa-aaaa-aaaa-%012x", index)))
+            var preferences = TailscaleHostPreferences()
+            preferences.username = "peer-\(index)"
+            preferences.terminalTransports.eternalTerminalEnabled = index.isMultiple(of: 2)
+            preferences.terminalTransports.eternalTerminalPort = 2022 + index
+            preferences.wakeOnLAN = .init(
+                macAddress: String(format: "02:11:22:33:44:%02X", index), automaticallyWake: index.isMultiple(of: 2))
+            configuration.hostPreferences[id] = preferences
+        }
+        group.tailscale = configuration
+        let payload = VaultRecordPayload.hostGroup(group)
+        let envelope = VaultEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
+        let encoded = try VaultSyncCodec.encode(envelope)
+        #expect(try VaultSyncCodec.decode(encoded) == envelope)
+        let validKey = "aaaaaaaa-aaaa-aaaa-aaaa-000000000000"
+        for invalidKey in [validKey.uppercased(), "not-a-uuid", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"] {
+            var json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            var payloadJSON = try #require(json["payload"] as? [String: Any])
+            var groupJSON = try #require(payloadJSON["hostGroup"] as? [String: Any])
+            var value = try #require(groupJSON["_0"] as? [String: Any])
+            var wake = try #require(value["wakeOnLAN"] as? [String: Any])
+            let preferencesJSON = try #require(wake[validKey] as? [String: Any])
+            wake.removeValue(forKey: validKey)
+            wake[invalidKey] = preferencesJSON
+            value["wakeOnLAN"] = wake
+            groupJSON["_0"] = value
+            payloadJSON["hostGroup"] = groupJSON
+            json["payload"] = payloadJSON
+            let invalid = try JSONSerialization.data(withJSONObject: json)
+            #expect(throws: (any Error).self) { try VaultSyncCodec.decode(invalid) }
+        }
+    }
+
     @Test func invalidWakePreferencesCannotMutateManagedHostPreferences() throws {
         var group = HostGroup(name: "Tailnet")
         group.tailscale = TailscaleGroupConfiguration(

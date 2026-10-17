@@ -272,6 +272,13 @@ public final class SettingsSyncJournal {
         }
     }
 
+    func storeMigrationSeed(_ payload: SettingsRecordPayload) throws {
+        let envelope = SettingsEnvelope(
+            key: payload.key, version: .baseline(writerID: try state().installationID), payload: payload)
+        var entries = try entriesByName()
+        try store(envelope, needsUpload: true, in: &entries)
+    }
+
     public func markNeedsUpload(_ keys: Set<SettingsRecordKey>) throws {
         let entries = try entriesByName()
         for key in keys where key.kind.participatesInSync {

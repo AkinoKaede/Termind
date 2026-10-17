@@ -101,4 +101,57 @@ struct CloudSyncCoordinatorLifecycleTests {
         #expect(!coordinator.lifecycle.accepts(network.nextEngine))
         coordinator.pause()
     }
+
+    @Test(arguments: [false, true])
+    func settingsStaleSaveAcknowledgementKeepsTheUpdatedSelectionPending(_ reconcilesLegacy: Bool) async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let domain = "SettingsSeedAcknowledgement.\(UUID())"
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
+        context.insert(try PersistentTerminalPreferences(.init(darkTheme: "Old Dark")))
+        let store = SettingsSyncPersistence(context: context, defaults: defaults)
+        try store.prepare()
+        let secrets = AISecretStore(context: context, keychain: InMemorySecretStore(), defaults: defaults)
+        let network = LifecycleNetwork()
+        let coordinator = SettingsSyncCoordinator(
+            persistence: store, secrets: secrets, defaults: defaults, environmentIdentifier: "Test",
+            makeTransport: { _, _ in network.transport })
+        coordinator.start()
+        defer { coordinator.pause() }
+        await coordinator.lifecycle.operation?.value
+        let key = SettingsRecordKey(kind: .terminalThemeSelection, id: "dark")
+        let id = CKRecord.ID(recordName: key.recordName, zoneID: coordinator.lifecycle.zoneID)
+        let oldRecord = try #require(coordinator.recordToSave(id, engine: network.nextEngine))
+        let old = try SettingsSyncCoordinator.envelope(from: oldRecord)
+        if reconcilesLegacy {
+            let payload = SettingsRecordPayload.terminal(.init(darkTheme: "New Dark"))
+            let envelope = SettingsEnvelope(
+                key: payload.key, version: .init(modifiedAt: .now, counter: 0, writerID: UUID()), payload: payload)
+            let record = try SettingsSyncCoordinator.makeRecord(
+                .init(envelope: envelope),
+                recordID: .init(recordName: payload.key.recordName, zoneID: coordinator.lifecycle.zoneID))
+            try coordinator.receiveRemoteRecords([record])
+        } else {
+            var library = try store.loadTerminalThemes()
+            library.select(.init(appearance: .dark, builtInThemeName: "New Dark"))
+            try store.saveTerminalThemes(library)
+        }
+        let current = try #require(try store.journal.envelope(for: key))
+        #expect(current.payload == .terminalThemeSelection(.init(appearance: .dark, builtInThemeName: "New Dark")))
+        #expect(current.payload != old.payload)
+        #expect((current.version == old.version) == reconcilesLegacy)
+        try coordinator.handleSentChanges(.init(savedRecords: [oldRecord], failedRecordSaves: []))
+        let pending = try #require(try store.journal.outgoingEntry(for: key))
+        #expect(pending.envelope == current)
+        #expect(pending.systemFieldsData != nil)
+        #expect(network.nextEngine.queued.contains(key.recordName))
+        let nextRecord = try #require(coordinator.recordToSave(id, engine: network.nextEngine))
+        #expect(try SettingsSyncCoordinator.envelope(from: nextRecord) == current)
+        try coordinator.handleSentChanges(.init(savedRecords: [nextRecord], failedRecordSaves: []))
+        #expect(try store.journal.outgoingEntry(for: key) == nil)
+        #expect(try store.journal.envelope(for: key) == current)
+        #expect(!network.nextEngine.queued.contains(key.recordName))
+    }
 }

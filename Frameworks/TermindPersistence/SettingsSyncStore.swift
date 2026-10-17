@@ -197,8 +197,17 @@ public final class SettingsSyncPersistence {
                     else { return nil }
                     return value.id
                 })
+            let previousTerminal = snapshot.terminal
             snapshot = try materialize()
-            let migrated = try migrateTerminalThemes(snapshot.terminal)
+            let migrated =
+                if merge.accepted.contains(where: { $0.key.kind == .terminal }) {
+                    try migrateTerminalThemes(
+                        snapshot.terminal, replacing: previousTerminal,
+                        preservingSelections: Set(
+                            merge.accepted.filter { $0.key.kind == .terminalThemeSelection }.map(\.key)))
+                } else {
+                    Set<SettingsRecordKey>()
+                }
             if !migrated.isEmpty {
                 merge.needsUpload.formUnion(migrated)
                 snapshot = try materialize()
@@ -297,6 +306,7 @@ public final class SettingsSyncPersistence {
         providers.sort { ($0.sortIndex, $0.id.uuidString) < ($1.sortIndex, $1.id.uuidString) }
         servers.sort { ($0.sortIndex, $0.id.uuidString) < ($1.sortIndex, $1.id.uuidString) }
         skillRows.sort { ($0.1, $0.0.id.uuidString) < ($1.1, $1.0.id.uuidString) }
+        terminalThemes.themes.sort { $0.id.uuidString < $1.id.uuidString }
         configuration.providers = providers.map(\.value)
         configuration.endpoints = Dictionary(uniqueKeysWithValues: providers.map { ($0.id, $0.endpoint) })
         configuration.mcpServers = servers.map(\.value)

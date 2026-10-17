@@ -98,50 +98,89 @@ extension SettingsSyncPersistence {
         }
     }
 
-    /// A selection record (including a tombstone) is the durable per-mode migration marker.
-    /// Seeds use baseline clocks, so they can never beat an explicit choice from another device.
-    func migrateTerminalThemes(_ preferences: TerminalPreferences) throws -> Set<SettingsRecordKey> {
+    /// Explicit choices and tombstones finish migration; untouched baseline seeds can follow
+    /// a subsequently accepted legacy winner without claiming a new user-choice clock.
+    func migrateTerminalThemes(
+        _ preferences: TerminalPreferences, replacing previous: TerminalPreferences? = nil,
+        preservingSelections: Set<SettingsRecordKey> = []
+    ) throws -> Set<SettingsRecordKey> {
         var changed = Set<SettingsRecordKey>()
         var library = try loadTerminalThemes()
         for isDark in [false, true] {
             let appearance: TerminalThemeAppearance = isDark ? .dark : .light
             let selectionKey = SettingsRecordKey(kind: .terminalThemeSelection, id: appearance.rawValue)
-            guard library.selection(isDark: isDark) == nil, try journal.envelope(for: selectionKey) == nil else {
+            let existing = try journal.envelope(for: selectionKey)
+            if existing != nil || library.selection(isDark: isDark) != nil {
+                guard let previous, !preservingSelections.contains(selectionKey),
+                    try isUntouchedLegacyThemeSeed(previous, isDark: isDark, selection: existing)
+                else { continue }
+            }
+            let seed = Self.legacyThemeSeed(preferences, isDark: isDark)
+            let base = isDark ? preferences.darkTheme : preferences.lightTheme
+            let defaultBase = isDark ? "Termind Dark" : "Termind Light"
+            // A fresh installation waits for legacy settings; a reconciled default stays a durable marker.
+            guard existing != nil || seed.theme != nil || base != defaultBase else {
                 continue
             }
-            let base = isDark ? preferences.darkTheme : preferences.lightTheme
-            let text = isDark ? preferences.darkCustomConfiguration : preferences.lightCustomConfiguration
-            let enabled = isDark ? preferences.darkCustomEnabled : preferences.lightCustomEnabled
-            let defaultBase = isDark ? "Termind Dark" : "Termind Light"
-            // Fresh installations wait for legacy cloud settings instead of publishing an empty migration.
-            guard enabled || !text.isEmpty || base != defaultBase else { continue }
-            var selection = TerminalThemeSelection(
-                appearance: appearance, builtInThemeName: base.isEmpty ? defaultBase : base)
             var payloads: [SettingsRecordPayload] = []
-            if enabled || !text.isEmpty {
-                let id = Self.legacyThemeID(appearance: appearance, base: base, text: text)
-                let key = SettingsRecordKey(kind: .terminalCustomTheme, id: id.uuidString.lowercased())
-                if try journal.envelope(for: key) == nil {
-                    let theme = TerminalCustomTheme(
-                        id: id, name: isDark ? "Custom Dark" : "Custom Light", appearance: appearance,
-                        baseThemeName: selection.builtInThemeName, configuration: text)
+            if let theme = seed.theme {
+                let payload = SettingsRecordPayload.terminalCustomTheme(theme)
+                // An existing native edit or tombstone owns this deterministic ID.
+                if try journal.envelope(for: payload.key) == nil {
                     library.themes.append(theme)
-                    payloads.append(.terminalCustomTheme(theme))
+                    payloads.append(payload)
                 }
-                if enabled { selection.customThemeID = id }
             }
-            library.select(selection)
-            payloads.append(.terminalThemeSelection(selection))
+            let selectionPayload = SettingsRecordPayload.terminalThemeSelection(seed.selection)
+            if existing?.payload != selectionPayload {
+                library.select(seed.selection)
+                payloads.append(selectionPayload)
+            }
             for payload in payloads {
-                let envelope = SettingsEnvelope(
-                    key: payload.key, version: .baseline(writerID: try journal.state().installationID), payload: payload
-                )
-                context.insert(try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: true))
+                try journal.storeMigrationSeed(payload)
                 changed.insert(payload.key)
             }
         }
         if !changed.isEmpty { try applyTerminalThemes(library) }
         return changed
+    }
+
+    private func isUntouchedLegacyThemeSeed(
+        _ preferences: TerminalPreferences, isDark: Bool, selection: SettingsEnvelope?
+    ) throws -> Bool {
+        let seed = Self.legacyThemeSeed(preferences, isDark: isDark)
+        guard let selection, selection.version == .baseline(writerID: selection.version.writerID),
+            !selection.isDeleted, selection.payload == .terminalThemeSelection(seed.selection)
+        else { return false }
+        if let theme = seed.theme {
+            let payload = SettingsRecordPayload.terminalCustomTheme(theme)
+            guard let envelope = try journal.envelope(for: payload.key),
+                envelope.version == .baseline(writerID: envelope.version.writerID),
+                !envelope.isDeleted, envelope.payload == payload
+            else { return false }
+        }
+        return true
+    }
+
+    private nonisolated static func legacyThemeSeed(
+        _ preferences: TerminalPreferences, isDark: Bool
+    ) -> (selection: TerminalThemeSelection, theme: TerminalCustomTheme?) {
+        let appearance: TerminalThemeAppearance = isDark ? .dark : .light
+        let base = isDark ? preferences.darkTheme : preferences.lightTheme
+        let text = isDark ? preferences.darkCustomConfiguration : preferences.lightCustomConfiguration
+        let enabled = isDark ? preferences.darkCustomEnabled : preferences.lightCustomEnabled
+        let defaultBase = isDark ? "Termind Dark" : "Termind Light"
+        var selection = TerminalThemeSelection(
+            appearance: appearance, builtInThemeName: base.isEmpty ? defaultBase : base)
+        var theme: TerminalCustomTheme?
+        if enabled || !text.isEmpty {
+            let id = legacyThemeID(appearance: appearance, base: base, text: text)
+            theme = TerminalCustomTheme(
+                id: id, name: isDark ? "Custom Dark" : "Custom Light", appearance: appearance,
+                baseThemeName: selection.builtInThemeName, configuration: text)
+            if enabled { selection.customThemeID = id }
+        }
+        return (selection, theme)
     }
 
     private nonisolated static func legacyThemeID(
