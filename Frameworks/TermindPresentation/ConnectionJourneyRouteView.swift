@@ -45,12 +45,13 @@ public struct ConnectionJourneyRouteView: View {
         let gapBetweenEndpointFrames = endpointSpacing - labelWidth
         let routeWidth = labelWidth + CGFloat(max(0, journey.endpoints.count - 1)) * endpointSpacing
         let canvasWidth = max(viewportWidth, routeWidth + 58)
+        let style = ConnectionJourneyRouteStyle(journey: journey)
 
         return ZStack(alignment: .topLeading) {
             HStack(spacing: 0) {
                 ForEach(journey.endpoints.indices.dropFirst(), id: \.self) { index in
                     JourneySegmentView(
-                        state: segmentState(for: index),
+                        state: style.state(for: .segment, at: index),
                         checkpoint: journey.checkpoint?.endpointIndex == index
                             ? journey.checkpoint?.kind : journey.completedCheckpoints[index],
                         checkpointIsWaiting: journey.checkpoint?.endpointIndex == index,
@@ -67,8 +68,8 @@ public struct ConnectionJourneyRouteView: View {
                     JourneyEndpointView(
                         endpoint: endpoint,
                         purpose: journey.purpose,
-                        state: endpointState(for: index),
-                        showsActivity: activityEndpointIndex == index,
+                        state: style.state(for: .endpoint, at: index),
+                        showsActivity: style.activityEndpointIndex == index,
                         localRequirement: journey.localRequirementEndpointIndex == index
                             ? journey.localRequirement : nil,
                         reduceMotion: reduceMotion
@@ -80,45 +81,6 @@ public struct ConnectionJourneyRouteView: View {
         }
         .frame(width: routeWidth, height: 92, alignment: .topLeading)
         .frame(width: canvasWidth, height: 92, alignment: .center)
-    }
-
-    private var activityEndpointIndex: Int? {
-        guard journey.phase == .connecting, journey.checkpoint == nil,
-            let lastIndex = journey.endpoints.indices.last
-        else { return nil }
-        if let recovery = journey.transportRecovery {
-            return recovery == .recovering ? lastIndex : nil
-        }
-        let candidate: Int
-        if journey.activeEndpointIndex > journey.completedEndpointIndex {
-            candidate = journey.activeEndpointIndex - 1
-        } else {
-            candidate = journey.completedEndpointIndex
-        }
-        return min(max(journey.endpoints.startIndex, candidate), lastIndex)
-    }
-
-    private func endpointState(for index: Int) -> JourneyVisualState {
-        if let recovery = journey.transportRecovery {
-            if index == journey.activeEndpointIndex {
-                return recovery == .failed ? .failed : .active
-            }
-            return index == 0 ? .complete : .pending
-        }
-        if case .failed = journey.phase, index <= journey.activeEndpointIndex { return .failed }
-        if index <= journey.completedEndpointIndex { return .complete }
-        return .pending
-    }
-
-    private func segmentState(for targetIndex: Int) -> JourneyVisualState {
-        if let recovery = journey.transportRecovery {
-            guard targetIndex == journey.activeEndpointIndex else { return .pending }
-            return recovery == .failed ? .failed : recovery == .recovering ? .active : .pending
-        }
-        if case .failed = journey.phase, targetIndex <= journey.activeEndpointIndex { return .failed }
-        if targetIndex <= journey.completedEndpointIndex { return .complete }
-        if targetIndex == journey.activeEndpointIndex { return .active }
-        return .pending
     }
 
     private func scrollToActivity(_ proxy: ScrollViewProxy) {
@@ -135,7 +97,6 @@ public struct ConnectionJourneyRouteView: View {
             proxy.scrollTo(target, anchor: .center)
         }
     }
-
 }
 
 #if os(macOS)
@@ -174,25 +135,10 @@ public struct ConnectionJourneyRouteView: View {
     }
 #endif
 
-private enum JourneyVisualState {
-    case pending
-    case active
-    case complete
-    case failed
-
-    var color: Color {
-        switch self {
-        case .pending: .secondary.opacity(0.55)
-        case .active, .complete: Color.accentColor
-        case .failed: Color.red
-        }
-    }
-}
-
 private struct JourneyEndpointView: View {
     let endpoint: ConnectionEndpoint
     let purpose: ConnectionPurpose
-    let state: JourneyVisualState
+    let state: ConnectionJourneyRouteStyle.State
     let showsActivity: Bool
     let localRequirement: ConnectionJourney.LocalRequirement?
     let reduceMotion: Bool
@@ -201,7 +147,7 @@ private struct JourneyEndpointView: View {
         ZStack(alignment: .top) {
             ZStack {
                 if showsActivity {
-                    JourneyActivityRing(size: 52, reduceMotion: reduceMotion)
+                    JourneyActivityRing(size: 52, color: state.color, reduceMotion: reduceMotion)
                 }
                 Circle()
                     .fill(.background)
@@ -260,7 +206,7 @@ private struct JourneyEndpointView: View {
 }
 
 private struct JourneySegmentView: View {
-    let state: JourneyVisualState
+    let state: ConnectionJourneyRouteStyle.State
     let checkpoint: ConnectionJourney.CheckpointKind?
     let checkpointIsWaiting: Bool
     let reduceMotion: Bool
@@ -275,13 +221,13 @@ private struct JourneySegmentView: View {
                 case .active:
                     if checkpointIsWaiting {
                         HStack(spacing: 0) {
-                            Rectangle().fill(Color.accentColor)
+                            Rectangle().fill(state.color)
                                 .frame(width: geometry.size.width / 2, height: 4)
                             Color.clear
                                 .frame(width: geometry.size.width / 2, height: 4)
                         }
                     } else {
-                        JourneyTravelingLine(reduceMotion: reduceMotion)
+                        JourneyTravelingLine(color: state.color, reduceMotion: reduceMotion)
                     }
                 case .pending:
                     EmptyView()
@@ -290,9 +236,9 @@ private struct JourneySegmentView: View {
                 if let checkpoint {
                     ZStack {
                         if checkpointIsWaiting {
-                            JourneyActivityRing(size: 42, reduceMotion: reduceMotion)
+                            JourneyActivityRing(size: 42, color: state.color, reduceMotion: reduceMotion)
                         }
-                        Circle().fill(Color.accentColor).frame(width: 28, height: 28)
+                        Circle().fill(state.color).frame(width: 28, height: 28)
                         Image(systemName: checkpoint == .authentication ? "key.fill" : "checkmark.shield.fill")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(Color.white)
@@ -311,12 +257,13 @@ private struct JourneySegmentView: View {
 }
 
 private struct JourneyTravelingLine: View {
+    let color: Color
     let reduceMotion: Bool
 
     var body: some View {
         if reduceMotion {
             HStack(spacing: 0) {
-                Rectangle().fill(Color.accentColor).frame(width: 34, height: 4)
+                Rectangle().fill(color).frame(width: 34, height: 4)
                 Spacer(minLength: 0)
             }
         } else {
@@ -328,8 +275,8 @@ private struct JourneyTravelingLine: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.accentColor,
-                                    Color.accentColor.opacity(0.55),
+                                    color,
+                                    color.opacity(0.55),
                                     .clear,
                                 ],
                                 startPoint: .leading, endPoint: .trailing
@@ -345,11 +292,12 @@ private struct JourneyTravelingLine: View {
 
 private struct JourneyActivityRing: View {
     let size: CGFloat
+    let color: Color
     let reduceMotion: Bool
 
     var body: some View {
         if reduceMotion {
-            Circle().stroke(Color.accentColor.opacity(0.45), lineWidth: 4)
+            Circle().stroke(color.opacity(0.45), lineWidth: 4)
                 .frame(width: size, height: size)
         } else {
             TimelineView(.animation) { timeline in
@@ -361,9 +309,9 @@ private struct JourneyActivityRing: View {
                     .stroke(
                         AngularGradient(
                             colors: [
-                                Color.accentColor.opacity(0.15),
-                                Color.accentColor,
-                                Color.accentColor.opacity(0.32),
+                                color.opacity(0.15),
+                                color,
+                                color.opacity(0.32),
                             ],
                             center: .center
                         ),

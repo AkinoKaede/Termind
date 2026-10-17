@@ -28,6 +28,7 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
     private var bridge: TerminalTCPBridge?
     private var reader: Task<Void, Never>?
     private var observer: Task<Void, Never>?
+    private var connectionState: ETConnectionState = .idle
     private var closed = false
 
     init(receive: @escaping EventHandler) {
@@ -106,6 +107,7 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
 
     private func receiveState(_ state: ETConnectionState) async {
         guard !closed else { return }
+        connectionState = state
         switch state {
         case .connected: await receive(.connected)
         case .reconnecting, .disconnected: await receive(.recovering)
@@ -144,6 +146,9 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
     func resume() async throws {
         try checkOpen()
         await session?.resumeFromApplicationBackground()
+        try checkOpen()
+        // ET keeps a live connection across suspension and does not repeat its connected event on resume.
+        if connectionState == .connected { await receive(.connected) }
     }
 
     func prepareRetry() async {
