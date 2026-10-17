@@ -1410,6 +1410,7 @@ private enum NativeTranscriptFactory {
                 font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
                 color: .secondaryLabelColor
             )
+            if field.value.isEmpty { return key }
             key.widthAnchor.constraint(greaterThanOrEqualToConstant: 76).isActive = true
             row.addArrangedSubview(key)
             let font: NSFont =

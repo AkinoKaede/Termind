@@ -22,7 +22,7 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
     private static func text(_ items: [AgentToolDetail.Item]) -> String {
         items.map { item in
             switch item {
-            case .field(let field): return field.label + ": " + field.value
+            case .field(let field): return field.value.isEmpty ? field.label : field.label + ": " + field.value
             case .message(let value, _): return value
             case .text(let block): return [block.title, block.text].compactMap { $0 }.joined(separator: "\n")
             case .list(let list):

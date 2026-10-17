@@ -22,7 +22,7 @@ nonisolated enum SSHExecToolPresentation {
         }
         typealias S = AppStrings.SSHExec
         func text(_ resource: LocalizedStringResource) -> String { AppLocalization.resolve(resource, locale: locale) }
-        func field(_ title: LocalizedStringResource, _ value: String, mono: Bool = false) -> AgentToolDetail.Item {
+        func field(_ title: LocalizedStringResource, _ value: String = "", mono: Bool = false) -> AgentToolDetail.Item {
             .field(.init(label: text(title), value: value, isMonospaced: mono))
         }
         func block(_ title: LocalizedStringResource, _ value: String) -> AgentToolDetail.Item {
@@ -49,8 +49,7 @@ nonisolated enum SSHExecToolPresentation {
         var items: [AgentToolDetail.Item] = []
         if let command = args["command"]?.stringValue { items.append(block(S.command, command)) }
         if card.descriptor.name == "ssh_exec_run" {
-            items.append(
-                .message(text(args["run_in_background"]?.boolValue == true ? S.background : S.foreground), .secondary))
+            items.append(field(args["run_in_background"]?.boolValue == true ? S.background : S.foreground))
         }
         if let handle = object["handle"]?.stringValue ?? args["handle"]?.stringValue {
             items.append(field(S.handle, handle, mono: true))
@@ -64,7 +63,7 @@ nonisolated enum SSHExecToolPresentation {
         }
         if let count = object["bytes_written"]?.integerValue { items.append(field(S.bytes, String(count), mono: true)) }
         if let closed = object["stdin_closed"]?.boolValue {
-            items.append(.message(text(closed ? S.stdinClosed : S.stdinOpen), .secondary))
+            items.append(field(closed ? S.stdinClosed : S.stdinOpen))
         }
         if let error = object["error"]?.stringValue { items.append(.message(error, .failure)) }
         if object["remote_termination_confirmed"]?.boolValue == false {
@@ -77,7 +76,7 @@ nonisolated enum SSHExecToolPresentation {
         if ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(card.descriptor.name),
             stdout.isEmpty, stderr.isEmpty
         {
-            items.append(.message(text(card.result == nil ? S.pending : S.noOutput), .secondary))
+            items.append(card.result == nil ? .message(text(S.pending), .secondary) : field(S.noOutput))
         }
         if let note = object["note"]?.stringValue { items.append(.message(note, .warning)) }
         return .init(items: items)

@@ -45,16 +45,18 @@ public struct AssistantToolDetails: View {
         case .field(let field):
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(field.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                if let navigation = field.navigation, let navigate {
-                    Button(field.value) { navigate(navigation) }
-                        .font(field.isMonospaced ? .caption.monospaced() : .caption)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.tint)
-                } else if let url = linkURL(field.url) {
-                    Link(field.value, destination: url).font(.caption)
-                } else {
-                    Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
-                        .foregroundStyle(isError ? Color.red : .primary)
+                if !field.value.isEmpty {
+                    if let navigation = field.navigation, let navigate {
+                        Button(field.value) { navigate(navigation) }
+                            .font(field.isMonospaced ? .caption.monospaced() : .caption)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.tint)
+                    } else if let url = linkURL(field.url) {
+                        Link(field.value, destination: url).font(.caption)
+                    } else {
+                        Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
+                            .foregroundStyle(isError ? Color.red : .primary)
+                    }
                 }
             }
         case .message(let text, let tint): Text(text).foregroundStyle(color(tint))
