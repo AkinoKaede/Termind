@@ -9,11 +9,13 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
     public let fullItems: [AgentToolDetail.Item]
     public var isShortened: Bool { items != fullItems }
 
-    public init(
-        _ detail: AgentToolDetail, strategy: AgentTruncateStrategy = .head, preservesFirstText: Bool = false
-    ) {
+    public init(_ detail: AgentToolDetail) {
         fullItems = detail.items
-        var budget = Budget(strategy: strategy, preservesFirstText: preservesFirstText)
+        guard detail.layout.truncateStrategy != .none else {
+            items = detail.items
+            return
+        }
+        var budget = Budget(strategy: detail.layout.truncateStrategy)
         items = budget.project(detail.items)
     }
 
@@ -47,7 +49,6 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
         var rows = AgentToolDetailPreview.rowLimit
         var bytes = AgentToolDetailPreview.byteLimit
         var strategy: AgentTruncateStrategy
-        var preservesFirstText: Bool
 
         mutating func project(_ items: [AgentToolDetail.Item]) -> [AgentToolDetail.Item] {
             var result: [AgentToolDetail.Item] = []
@@ -57,8 +58,7 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
                     // Command metadata and notices are never part of the body budget.
                     result.append(item)
                 case .text(var block):
-                    if preservesFirstText {
-                        preservesFirstText = false
+                    if !block.isCollapsible {
                         result.append(item)
                         continue
                     }
@@ -86,15 +86,25 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
         }
 
         mutating func projectRows(_ values: [AgentToolDetail.ListRow]) -> [AgentToolDetail.ListRow] {
-            var result: [AgentToolDetail.ListRow] = []
-            for value in values.prefix(max(0, rows)) {
-                let size = AgentToolDetailPreview.rowText(value).utf8.count
+            let count = min(values.count, max(0, rows))
+            let indices: [Int]
+            switch strategy {
+            case .head, .none:
+                indices = Array(values.indices.prefix(count))
+            case .tail:
+                indices = Array(values.indices.reversed().prefix(count))
+            case .middle:
+                indices = (0..<count).map { $0.isMultiple(of: 2) ? $0 / 2 : values.count - 1 - $0 / 2 }
+            }
+            var selected: [Int] = []
+            for index in indices {
+                let size = AgentToolDetailPreview.rowText(values[index]).utf8.count
                 guard size <= bytes else { break }
-                result.append(value)
+                selected.append(index)
                 bytes -= size
             }
-            rows -= result.count
-            return result
+            rows -= selected.count
+            return selected.sorted().map { values[$0] }
         }
     }
 }

@@ -140,7 +140,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
     public static let schedulesDataTransfer = true
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.sftp_read", present: present
+        id: "builtin.sftp_read", layout: .compact, present: present
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "doc.text", activity: .semanticArgument(key: "path", fallback: .remoteFile),

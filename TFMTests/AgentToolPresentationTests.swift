@@ -261,7 +261,7 @@ struct AgentToolPresentationTests {
         ] {
             let card = makeCard(name: name, target: .local)
             #expect(
-                AgentToolPresentation.usesCompactDetails(for: card.descriptor),
+                TermindAgentTools.presenter(id: "builtin.\(card.descriptor.name)")?.layout.singleLineHeader == true,
                 Comment(rawValue: "\(name) should use bounded compact details"))
         }
     }

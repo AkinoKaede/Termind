@@ -76,6 +76,7 @@ nonisolated public enum TermindAgentTools {
     }
 
     public static func presenter(for descriptor: AgentToolDescriptor) -> AgentToolDetailPresenter? {
+        guard descriptor.target != .mcp else { return nil }
         if let id = descriptor.presentation?.presenterID { return presenter(id: id) }
         return legacyPresenter(forToolNamed: descriptor.name)
     }

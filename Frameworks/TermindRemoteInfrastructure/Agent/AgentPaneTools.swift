@@ -61,7 +61,8 @@ nonisolated public struct ListPanesTool: AgentToolDefinition, AgentToolSchemaBui
 }
 
 nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuilding {
-    public static let presenter = AgentToolDetailPresenter(id: "builtin.read_pane", present: present)
+    public static let presenter = AgentToolDetailPresenter(
+        id: "builtin.read_pane", layout: .init(truncateStrategy: .none), present: present)
     public let panes: AgentPaneAccess
     public var truncateStrategy: AgentTruncateStrategy { .none }
 

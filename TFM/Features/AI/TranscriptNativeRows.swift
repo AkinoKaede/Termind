@@ -786,6 +786,7 @@ private enum NativeTranscriptFactory {
         let stack = NativeStack.vertical()
         let disclosureID = AssistantTranscriptDisclosureID.tool(card.id)
         let expanded = context.presentation.disclosures.isExpanded(disclosureID, default: defaultExpanded)
+        let presenter = TermindAgentTools.presenter(for: card.descriptor)
         let host = card.invocation.targetHostID.flatMap(context.actions.hostName)
         let title = AgentToolPresentation.summary(
             for: card,
@@ -802,7 +803,7 @@ private enum NativeTranscriptFactory {
             reviewing: card.state == .reviewing,
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
-            lineLimit: AgentToolPresentation.usesCompactDetails(for: card.descriptor) ? 1 : (expanded ? 0 : 1)
+            lineLimit: presenter?.layout.singleLineHeader == true ? 1 : (expanded ? 0 : 1)
         )
         header.alphaValue = card.state == .interrupted ? 0.5 : 1
         header.toolTip =
@@ -834,7 +835,7 @@ private enum NativeTranscriptFactory {
                     ))
             }
             if let projected = AgentToolPresentation.detail(
-                for: card, presenter: TermindAgentTools.presenter(for: card.descriptor),
+                for: card, presenter: presenter,
                 locale: context.configuration.locale
             ) {
                 detail.addArrangedSubview(compactToolDetail(projected, card: card, context: context))
@@ -1345,9 +1346,7 @@ private enum NativeTranscriptFactory {
     private static func compactToolDetail(
         _ detail: AgentToolDetail, card: AgentToolCard, context: NativeTranscriptContext
     ) -> NSView {
-        let preview = AgentToolDetailPreview(
-            detail, strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
-            preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil)
+        let preview = AgentToolDetailPreview(detail)
         let id = AssistantTranscriptDisclosureID.toolDetail(card.id)
         let expanded = context.presentation.disclosures.isExpanded(id)
         let body = NativeStack.vertical()

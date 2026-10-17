@@ -10,25 +10,6 @@ import Testing
 
 @Suite @MainActor
 struct RemoteOutputToolPresentationTests {
-    @Test(arguments: ["ssh_exec_run", "ssh_exec_output", "sftp_read"])
-    func compactPolicyRequiresBuiltInHostIdentity(_ name: String) {
-        var descriptor = card(name, output: "").descriptor
-        #expect(AgentToolPresentation.usesCompactDetails(for: descriptor))
-        descriptor.presentation?.presenterID = nil
-        #expect(AgentToolPresentation.usesCompactDetails(for: descriptor))
-        descriptor.presentation?.presenterID = "external.\(name)"
-        #expect(!AgentToolPresentation.usesCompactDetails(for: descriptor))
-        descriptor.presentation?.presenterID = "builtin.\(name)"
-        for target: AgentToolDescriptor.Target in [.mcp, .local] {
-            descriptor.target = target
-            #expect(!AgentToolPresentation.usesCompactDetails(for: descriptor))
-        }
-        descriptor.target = .host
-        descriptor.name = "ssh_exec_cancel"
-        descriptor.presentation?.presenterID = "builtin.ssh_exec_cancel"
-        #expect(!AgentToolPresentation.usesCompactDetails(for: descriptor))
-    }
-
     @Test(arguments: ["ssh_exec_run", "ssh_exec_output", "sftp_read"], [380.0, 720.0])
     func longOutputExpandsCompletelyWithoutCopyControls(_ name: String, _ width: Double) throws {
         let output = (0..<180).map { "line \($0): " + String(repeating: "output ", count: 8) }.joined(separator: "\n")

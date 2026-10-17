@@ -10,10 +10,9 @@ public struct AssistantCompactToolDetails: View {
 
     public init(
         detail: AgentToolDetail, isError: Bool, expanded: Binding<Bool>,
-        strategy: AgentTruncateStrategy = .head, preservesFirstText: Bool = false,
         truncateMarker: String? = nil
     ) {
-        preview = AgentToolDetailPreview(detail, strategy: strategy, preservesFirstText: preservesFirstText)
+        preview = AgentToolDetailPreview(detail)
         self.isError = isError
         self.truncateMarker = truncateMarker
         _expanded = expanded

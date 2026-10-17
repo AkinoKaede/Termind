@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 
 @Suite struct AgentKnowledgeToolPresentationTests {
@@ -74,10 +75,10 @@ import Testing
     @Test func unknownPresenterOrRemoteIdentityCannotSelectKnowledgePolicy() {
         var value = card("memory")
         value.descriptor.presentation?.presenterID = "remote.memory"
-        #expect(!AgentToolPresentation.usesCompactDetails(for: value.descriptor))
+        #expect(TermindAgentTools.presenter(for: value.descriptor) == nil)
         value.descriptor.presentation?.presenterID = "builtin.memory"
         value.descriptor.target = .mcp
-        #expect(!AgentToolPresentation.usesCompactDetails(for: value.descriptor))
+        #expect(TermindAgentTools.presenter(for: value.descriptor) == nil)
     }
 
     @Test func approvalKeepsBodyOutOfItsTitleAndProjectsTheCompleteArguments() {

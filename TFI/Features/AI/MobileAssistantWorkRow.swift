@@ -97,6 +97,7 @@ struct MobileAssistantToolRow: View {
 
     var body: some View {
         let expanded = presentation.isExpanded(.tool(card.id), default: defaultExpanded)
+        let presenter = TermindAgentTools.presenter(for: card.descriptor)
         MobileAssistantDisclosure(expanded: expanded, toggle: toggle) {
             HStack(spacing: 8) {
                 Image(systemName: AgentToolPresentation.symbol(for: card))
@@ -108,7 +109,7 @@ struct MobileAssistantToolRow: View {
                     )
                 )
                 .foregroundStyle(card.state == .running ? Color.secondary : .primary)
-                .lineLimit(AgentToolPresentation.usesCompactDetails(for: card.descriptor) ? 1 : (expanded ? nil : 1))
+                .lineLimit(presenter?.layout.singleLineHeader == true ? 1 : (expanded ? nil : 1))
                 .modifier(MobileAssistantScanning(active: card.state == .running))
                 if card.state == .reviewing {
                     Image(systemName: "checkmark.shield").foregroundStyle(.orange)
@@ -123,7 +124,7 @@ struct MobileAssistantToolRow: View {
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
                 if let detail = AgentToolPresentation.detail(
-                    for: card, presenter: TermindAgentTools.presenter(for: card.descriptor), locale: locale
+                    for: card, presenter: presenter, locale: locale
                 ) {
                     AssistantCompactToolDetails(
                         detail: detail, isError: card.result?.isError == true,
@@ -135,8 +136,6 @@ struct MobileAssistantToolRow: View {
                                 }
                             }
                         ),
-                        strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
-                        preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil,
                         truncateMarker: AgentToolPresentation.truncationNotice(for: card)
                     )
                 }

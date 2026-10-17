@@ -5,7 +5,9 @@ import TermindDomain
 
 nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_exec_run", present: SSHCommandPresentation.present,
+        id: "builtin.ssh_exec_run",
+        layout: .init(singleLineHeader: true, boundsApprovalHeight: true, truncateStrategy: .tail),
+        present: SSHCommandPresentation.present,
         presentArguments: presentArguments)
     public let authentication: AgentSSHAuthenticationRegistry
     public let pool: AgentConnectionPool
@@ -153,7 +155,11 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
         typealias F = AgentToolDetailFormatting
         var items: [AgentToolDetail.Item] = []
         if let command = input.arguments["command"]?.stringValue {
-            items.append(F.text("Command", command, locale: input.locale))
+            items.append(
+                .text(
+                    .init(
+                        title: F.localized("Command", locale: input.locale), text: command,
+                        style: .monospaced, isCollapsible: false)))
         }
         // Retained only for historical cards, not accepted by the executable schema.
         F.appendField(

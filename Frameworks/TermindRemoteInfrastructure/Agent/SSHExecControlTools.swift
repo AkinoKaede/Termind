@@ -37,7 +37,9 @@ nonisolated enum SSHExecResults: AgentToolSchemaBuilding {
 
 nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_exec_output", present: SSHCommandPresentation.present,
+        id: "builtin.ssh_exec_output",
+        layout: .init(singleLineHeader: true, boundsApprovalHeight: true, truncateStrategy: .tail),
+        present: SSHCommandPresentation.present,
         presentArguments: SSHExecResults.handleArguments)
     public let background: AgentBackgroundCommands
     public let scope: UUID

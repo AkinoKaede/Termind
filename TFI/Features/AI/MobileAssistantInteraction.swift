@@ -101,7 +101,7 @@ struct MobileAssistantInteraction: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
-            .frame(maxHeight: AgentToolPresentation.usesCompactDetails(for: approval.descriptor) ? approvalHeight : nil)
+            .frame(maxHeight: presentation.detail.layout.boundsApprovalHeight ? approvalHeight : nil)
 
             HStack {
                 Button(AppStrings.Common.deny.swiftUIKey, systemImage: "xmark", role: .destructive) {

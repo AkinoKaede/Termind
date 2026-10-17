@@ -25,8 +25,10 @@ nonisolated enum SSHExecToolPresentation {
         func field(_ title: LocalizedStringResource, _ value: String = "", mono: Bool = false) -> AgentToolDetail.Item {
             .field(.init(label: text(title), value: value, isMonospaced: mono))
         }
-        func block(_ title: LocalizedStringResource, _ value: String) -> AgentToolDetail.Item {
-            .text(.init(title: text(title), text: value, style: .monospaced))
+        func block(
+            _ title: LocalizedStringResource, _ value: String, isCollapsible: Bool = true
+        ) -> AgentToolDetail.Item {
+            .text(.init(title: text(title), text: value, style: .monospaced, isCollapsible: isCollapsible))
         }
         func status(_ value: String) -> String {
             switch value {
@@ -47,7 +49,9 @@ nonisolated enum SSHExecToolPresentation {
             return .init(items: rows.isEmpty ? [.message(text(S.noCommands), .secondary)] : [.list(.init(rows: rows))])
         }
         var items: [AgentToolDetail.Item] = []
-        if let command = args["command"]?.stringValue { items.append(block(S.command, command)) }
+        if let command = args["command"]?.stringValue {
+            items.append(block(S.command, command, isCollapsible: false))
+        }
         if card.descriptor.name == "ssh_exec_run" {
             items.append(field(args["run_in_background"]?.boolValue == true ? S.background : S.foreground))
         }

@@ -23,18 +23,6 @@ nonisolated public enum AgentToolPresentation {
         public let omittedCharacters: Int
     }
 
-    /// Header and approval sizing only. Every transcript result uses expandable details.
-    public static func usesCompactDetails(for descriptor: AgentToolDescriptor) -> Bool {
-        if isChatCollaborationTool(descriptor) { return true }
-        if let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) {
-            return kind != .legacySkill
-        }
-        guard descriptor.target == .host,
-            ["ssh_exec_run", "ssh_exec_output", "sftp_read"].contains(descriptor.name)
-        else { return false }
-        return descriptor.presentation?.presenterID.map { $0 == "builtin.\(descriptor.name)" } ?? true
-    }
-
     public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
         truncationNotice(for: card) != nil
     }
@@ -72,7 +60,8 @@ nonisolated public enum AgentToolPresentation {
                     request.invocation.call.arguments, presenter: presenter,
                     hidesHostID: hostName != nil,
                     hidesSensitiveChatArguments: isChatCollaborationTool(request.descriptor),
-                    locale: locale)
+                    locale: locale),
+                layout: presenter?.layout ?? .init()
             )
         )
     }
@@ -336,6 +325,15 @@ nonisolated public enum AgentToolPresentation {
     public static func detail(
         for card: AgentToolCard, presenter: AgentToolDetailPresenter? = nil, locale: Locale = .current
     ) -> AgentToolDetail? {
+        let presenter = card.descriptor.target == .mcp ? nil : presenter
+        guard var detail = detailContent(for: card, presenter: presenter, locale: locale) else { return nil }
+        detail.layout = presenter?.layout ?? .init()
+        return detail
+    }
+
+    private static func detailContent(
+        for card: AgentToolCard, presenter: AgentToolDetailPresenter?, locale: Locale
+    ) -> AgentToolDetail? {
         if let ssh = SSHExecToolPresentation.detail(for: card, locale: locale) { return ssh }
         guard let result = card.result else { return nil }
 
@@ -486,12 +484,6 @@ nonisolated public enum AgentToolPresentation {
         return OutputPreview(
             displayed: selected.content, full: full, isShortened: selected.isTruncated,
             omittedCharacters: max(0, full.count - selected.content.count))
-    }
-
-    public static func compactStrategy(for descriptor: AgentToolDescriptor) -> AgentTruncateStrategy {
-        descriptor.target != .mcp
-            && ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(descriptor.name)
-            ? .tail : .head
     }
 
     public static func truncationNotice(for card: AgentToolCard) -> String? {
