@@ -97,6 +97,7 @@ final class MobileWorkspace: Identifiable {
     let transfers: SFTPTransferCoordinator?
     private var transferContext: SFTPTransferContext?
     private var transferSnapshot: SSHAdditionalConnectionSnapshot?
+    private var persistentSessionSnapshot: SSHAdditionalConnectionSnapshot?
     var resumeCheckpoint: TerminalTransportCheckpoint?
     var requiresTransportRecovery = false
     var terminalRecoveryStore: TerminalRecoveryStore = .shared
@@ -1260,6 +1261,7 @@ final class MobileWorkspace: Identifiable {
                 if transportState == .recovering || transportState == .suspended || transportState == .failed { return }
                 let additionalSnapshot = hosts.additionalConnectionSnapshot(from: config)
                 transferSnapshot = additionalSnapshot
+                persistentSessionSnapshot = additionalSnapshot
                 if let sftp {
                     transferContext = SFTPTransferContext(
                         snapshot: additionalSnapshot, hostStore: hosts, channel: sftp)
@@ -1719,29 +1721,27 @@ final class MobileWorkspace: Identifiable {
         didChangeState?(activitySession)
     }
 
-    func terminatePersistentSession(
-        _ reference: RemoteSessionReference, isCurrentOwner: @MainActor () -> Bool = { true }
-    ) async throws {
-        guard sessionPersistence.attachment == reference, let channel = ssh else {
-            throw RemoteSessionFailure.sessionMissing
+    func takePersistentSessionCloseRequest() -> RemoteSessionCloseRequest? {
+        guard let reference = sessionPersistence.attachment, reference.isManaged else { return nil }
+        let snapshot: SSHAdditionalConnectionSnapshot
+        if let persistentSessionSnapshot {
+            snapshot = persistentSessionSnapshot
+        } else {
+            guard let host = connectionHost(reference.hostID),
+                let restored = try? hosts.resumableControlSnapshot(for: host, username: reference.username)
+            else { return nil }
+            snapshot = restored
         }
-        try await channel.releaseTerminalForControl()
-        connected = false
-        resetCommandGeneratorShellState()
-        status = String(localized: AppStrings.Connections.disconnected)
-        let execute = try await channel.sessionCommandExecutor()
-        let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
-        let sessions = try await backend.sessions()
-        guard isCurrentOwner(), ssh === channel, sessionPersistence.attachment == reference else {
-            throw CancellationError()
-        }
-        guard sessions.contains(where: { backend.matches(reference, session: $0) }) else {
-            throw RemoteSessionFailure.ownershipMismatch
-        }
-        try await backend.terminate(reference)
-        if sessionPersistence.attachment == reference { sessionPersistence.markEnded() }
-        connected = false
-        status = String(localized: AppStrings.SessionPersistence.ended)
+        guard snapshot.hostID == reference.hostID,
+            "\(snapshot.target.host):\(snapshot.target.port)" == reference.endpoint
+        else { return nil }
+        // Resumable transports have no reusable SSH control connection; their control callback
+        // can prompt for authentication, so only an ordinary SSH transport is transferred.
+        let transferred = transport == .ssh ? ssh : nil
+        if transferred != nil { ssh = nil }
+        return RemoteSessionCloseRequest(
+            reference: reference, snapshot: snapshot,
+            connection: transferred.map { RemoteSessionCloseConnection(channel: $0) })
     }
 
     private func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
@@ -1878,7 +1878,7 @@ final class MobileWorkspace: Identifiable {
 
     /// Connection intent only: closed runtimes, entered credentials and one-shot commands are not retained.
     struct ReopenState {
-        let descriptor: MobileWorkspaceDescriptor
+        var descriptor: MobileWorkspaceDescriptor
         var transientHost: Host? = nil
         var connectionRoute: SSHConnectionRoute? = nil
         var usernameHint: String? = nil

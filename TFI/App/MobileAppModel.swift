@@ -139,6 +139,7 @@ final class MobileAppModel {
     private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
     let workspaceConnectionServices: MobileWorkspaceConnectionServices
+    let persistentSessionCloser: RemoteSessionCloseCoordinator
     let recentlyClosedStore = RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>>(
         defaults: nil, key: "mobile.recentlyClosed.v2")
     private var orphanedSessionIDs: Set<String> = []
@@ -298,6 +299,10 @@ final class MobileAppModel {
             persistence: persistence, secrets: secrets,
             localDefaults: memoryOnly ? nil : settingsDefaults
         )
+        let sessionTerminator = dependencies.persistentSessionTerminator
+        persistentSessionCloser = RemoteSessionCloseCoordinator { [library] request in
+            try await sessionTerminator.terminate(request, hosts: library)
+        }
         let tailscaleDevices = devices
         let tailscaleAccess = pro
         library.hostAccess.entitlement = pro.status
@@ -712,6 +717,7 @@ final class MobileAppModel {
         assistant.suspendRecording()
         background.begin { [weak self] in
             guard let self else { return }
+            persistentSessionCloser.cancelAll()
             for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
             forwardings.stopAll()
             transfers.pauseAll()
@@ -761,7 +767,6 @@ final class MobileAppModel {
     func discardWorkspaceSessions(_ ids: Set<String>) {
         guard !ids.isEmpty else { return }
         // Native dismissal detaches clients; only explicit workspace closure ends owned remote work.
-        persistentClose.cancel()
         discardedSessionIDs.formUnion(ids)
         orphanedSessionIDs.subtract(ids)
         for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
@@ -858,36 +863,19 @@ final class MobileAppModel {
         return available.first(where: isNotificationSceneActive) ?? available.first
     }
 
-    let persistentClose = RemoteSessionCloseCoordinator()
-
-    func authorizePersistentClose(_ targets: [MobileWorkspace]) async -> Bool {
-        let owners = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, workspaceOwner($0.id)) })
-        let ownerIDs = Set(targets.compactMap { workspaceOwner($0.id) })
-        let snapshot = workspaceSessions.filter { ownerIDs.contains($0.id) }.map { $0.orderedWorkspaceItems.map(\.id) }
-        let allowed = await persistentClose.close(attachments: targets.compactMap { $0.sessionPersistence.attachment })
-        {
-            reference in
-            guard let workspace = targets.first(where: { $0.sessionPersistence.attachment == reference }),
-                self.containsWorkspace(workspace.id), self.workspaceOwner(workspace.id) == owners[workspace.id]
-            else { throw CancellationError() }
-            try await workspace.terminatePersistentSession(reference) {
-                self.containsWorkspace(workspace.id) && self.workspaceOwner(workspace.id) == owners[workspace.id]
+    func closePersistentSessions(_ targets: [MobileWorkspaceItem]) -> Set<UUID> {
+        let requests = targets.compactMap { item -> (UUID, RemoteSessionCloseRequest)? in
+            if let workspace = item.workspace {
+                return workspace.takePersistentSessionCloseRequest().map { (item.id, $0) }
             }
-            for workspace in targets
-            where workspace.sessionPersistence.attachment?.hasSameIdentity(as: reference) == true {
-                workspace.sessionPersistence.markEnded()
-            }
-        }
-        return allowed
-            && snapshot
-                == workspaceSessions.filter { ownerIDs.contains($0.id) }.map { $0.orderedWorkspaceItems.map(\.id) }
-    }
-
-    func deferPersistentClose(_ targets: [MobileWorkspace], action: @escaping @MainActor () -> Void) -> Bool {
-        guard targets.contains(where: { $0.sessionPersistence.attachment?.isManaged == true }) else { return false }
-        guard !persistentClose.isClosing else { return true }
-        Task { if await authorizePersistentClose(targets) { action() } }
-        return true
+            guard let reference = item.descriptor.remoteSession, reference.isManaged,
+                let host = item.host, host.id == reference.hostID,
+                "\(host.host):\(host.sshPort)" == reference.endpoint,
+                let snapshot = try? library.resumableControlSnapshot(for: host, username: reference.username)
+            else { return nil }
+            return (item.id, RemoteSessionCloseRequest(reference: reference, snapshot: snapshot))
+        }.sorted { $0.1.connection != nil && $1.1.connection == nil }
+        return Set(requests.compactMap { persistentSessionCloser.enqueue($0.1) ? $0.0 : nil })
     }
 
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {

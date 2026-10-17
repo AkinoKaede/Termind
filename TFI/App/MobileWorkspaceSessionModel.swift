@@ -81,7 +81,6 @@ final class MobileWorkspaceSessionModel {
     }
 
     func releaseForRecovery() {
-        app.persistentClose.cancel()
         manuallyUnreadIDs.removeAll()
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -100,7 +99,6 @@ final class MobileWorkspaceSessionModel {
 
     func discard() {
         guard !isDiscarded else { return }
-        app.persistentClose.cancel()
         let states = orderedWorkspaceItems.map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
         app.rememberClosedWorkspaces(states, isWindow: true)
         closeAll(rememberForReopen: false, authorized: true)
@@ -295,19 +293,11 @@ final class MobileWorkspaceSessionModel {
     }
 
     func close(_ id: UUID, rememberForReopen: Bool = true, authorized: Bool = false) {
-        if !authorized,
-            app.deferPersistentClose(
-                workspaces.filter { $0.id == id },
-                action: { [weak self] in
-                    self?.close(id, rememberForReopen: rememberForReopen, authorized: true)
-                })
-        {
-            return
-        }
         manuallyUnreadIDs.remove(id)
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
-        if rememberForReopen { rememberClosedWorkspaces([id]) }
+        let ending = authorized ? [] : app.closePersistentSessions(orderedWorkspaceItems.filter { $0.id == id })
+        if rememberForReopen { rememberClosedWorkspaces([id], endingRemoteSessions: ending) }
         app.workspaceDidClose(id)
         if let workspace = workspaces.first(where: { $0.id == id }) {
             workspace.didChangeState = nil
@@ -324,20 +314,11 @@ final class MobileWorkspaceSessionModel {
     }
 
     func closeOtherWorkspaces(than id: MobileWorkspace.ID, authorized: Bool = false) {
-        if !authorized,
-            app.deferPersistentClose(
-                workspaces.filter { $0.id != id },
-                action: { [weak self] in
-                    self?.closeOtherWorkspaces(than: id, authorized: true)
-                })
-        {
-            return
-        }
         let knownIDs = Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id))
         guard knownIDs.contains(id), knownIDs.count > 1 else { return }
-        rememberClosedWorkspaces(knownIDs.subtracting([id]))
-
         let closing = workspaces.filter { $0.id != id }
+        let ending = authorized ? [] : app.closePersistentSessions(orderedWorkspaceItems.filter { $0.id != id })
+        rememberClosedWorkspaces(knownIDs.subtracting([id]), endingRemoteSessions: ending)
         for closedID in knownIDs where closedID != id { app.workspaceDidClose(closedID) }
         manuallyUnreadIDs = manuallyUnreadIDs.intersection([id])
         workspaces.removeAll { $0.id != id }
@@ -351,19 +332,11 @@ final class MobileWorkspaceSessionModel {
     }
 
     func closeAll(rememberForReopen: Bool = true, authorized: Bool = false) {
-        if !authorized,
-            app.deferPersistentClose(
-                workspaces,
-                action: { [weak self] in
-                    self?.closeAll(rememberForReopen: rememberForReopen, authorized: true)
-                })
-        {
-            return
-        }
         manuallyUnreadIDs.removeAll()
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
-        if rememberForReopen { rememberClosedWorkspaces(Set(workspaceDisplayOrder)) }
         let closing = workspaces
+        let ending = authorized ? [] : app.closePersistentSessions(orderedWorkspaceItems)
+        if rememberForReopen { rememberClosedWorkspaces(Set(workspaceDisplayOrder), endingRemoteSessions: ending) }
         for id in Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id)) {
             app.workspaceDidClose(id)
         }
@@ -377,9 +350,12 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
-    private func rememberClosedWorkspaces(_ ids: Set<UUID>) {
+    private func rememberClosedWorkspaces(_ ids: Set<UUID>, endingRemoteSessions: Set<UUID> = []) {
         for item in orderedWorkspaceItems where ids.contains(item.id) {
-            app.rememberClosedWorkspaces([item.workspace?.reopenState ?? .init(descriptor: item.descriptor)])
+            var state = item.workspace?.reopenState ?? .init(descriptor: item.descriptor)
+            // Reopen must not attach to a session whose explicit termination is already in flight.
+            if endingRemoteSessions.contains(item.id) { state.descriptor.remoteSession = nil }
+            app.rememberClosedWorkspaces([state])
         }
     }
 

@@ -129,6 +129,7 @@ final class AppModel {
 
     @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self, sizes: windowSizeStore)
     let connections: RemoteConnectionCoordinator
+    let persistentSessionCloser: RemoteSessionCloseCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
     let settingsSync: SettingsSyncCoordinator?
@@ -294,6 +295,10 @@ final class AppModel {
         )
         self.externalToolCalls = externalToolCalls
         connections = connectionCoordinator
+        let sessionTerminator = RemoteSessionTerminator.live(coordinator: connectionCoordinator)
+        persistentSessionCloser = RemoteSessionCloseCoordinator { [hosts] request in
+            try await sessionTerminator.terminate(request, hosts: hosts)
+        }
         serialPorts = dependencies.serialPortService
         agentRunRepository = MemoryIndexedAgentRepository(
             base: dependencies.agentRunRepository ?? InMemoryAgentRunRepository(), memory: memory)
@@ -760,6 +765,7 @@ final class AppModel {
         guard !window.isClosed, windows[ObjectIdentifier(window)]?.value !== window else { return }
         configureConnectionHistory(in: window)
         window.connectionCoordinator = connections
+        window.persistentSessionCloser = persistentSessionCloser
         window.hostStore = hosts
         window.rememberClosedWorkspace = { [weak self] in self?.rememberClosedWorkspaces([$0]) }
         window.rememberClosedWindow = { [weak self] workspaces, selected in
@@ -997,6 +1003,7 @@ final class AppModel {
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {
         isTerminating = true
+        persistentSessionCloser.cancelAll()
         notificationBadge?.stop()
         sftpNotifications?.stop()
         assistantNotifications.stop()

@@ -36,17 +36,31 @@ struct MobileWorkspaceListView: View {
     static let historyLimit = 5
 
     var body: some View {
+        // List evaluates its content lazily. Keep section metadata and rows on the same snapshot.
+        let items = scene.workspaceSession.orderedWorkspaceItems
+        let recentHosts = items.isEmpty ? historyRows : []
         List {
             Section {
                 Button(action: scene.openTransfers) {
                     Label(AppStrings.SFTP.transfers.swiftUIKey, systemImage: "arrow.up.arrow.down")
                 }
             }
-            if !scene.workspaceSession.orderedWorkspaceItems.isEmpty || historyRows.isEmpty {
-                Section(AppStrings.Navigation.workspaces.swiftUIKey) { workspaceRows }
-            }
-            if scene.workspaceSession.orderedWorkspaceItems.isEmpty, !historyRows.isEmpty {
-                Section(AppStrings.Workspace.recents.swiftUIKey) { historyRowsContent }
+            // Do not replace the section while UIKit is applying workspace row deletions.
+            Section {
+                if items.isEmpty && recentHosts.isEmpty {
+                    ContentUnavailableView(
+                        AppStrings.Workspace.noWorkspaces.swiftUIKey, systemImage: "terminal",
+                        description: Text(AppStrings.Workspace.useConnectToStartAWorkspace)
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
+                workspaceRows(items)
+                historyRowsContent(recentHosts)
+            } header: {
+                Text(
+                    recentHosts.isEmpty
+                        ? AppStrings.Navigation.workspaces.swiftUIKey : AppStrings.Workspace.recents.swiftUIKey)
             }
         }
         .navigationTitle(AppStrings.Navigation.workspaces.swiftUIKey)
@@ -108,16 +122,8 @@ struct MobileWorkspaceListView: View {
     }
 
     @ViewBuilder
-    private var workspaceRows: some View {
-        if scene.workspaceSession.orderedWorkspaceItems.isEmpty {
-            ContentUnavailableView(
-                AppStrings.Workspace.noWorkspaces.swiftUIKey, systemImage: "terminal",
-                description: Text(AppStrings.Workspace.useConnectToStartAWorkspace)
-            )
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-        }
-        ForEach(scene.workspaceSession.orderedWorkspaceItems) { item in
+    private func workspaceRows(_ items: [MobileWorkspaceItem]) -> some View {
+        ForEach(items) { item in
             Button {
                 scene.selectWorkspace(item.id)
             } label: {
@@ -165,9 +171,11 @@ struct MobileWorkspaceListView: View {
             )
             .accessibilityIdentifier("workspace-\(item.id)")
             .swipeActions {
-                Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark", role: .destructive) {
+                // Let the model's list snapshot own row removal, not the swipe action's optimistic deletion.
+                Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark") {
                     scene.closeWorkspace(item.id)
                 }
+                .tint(.red)
             }
             .contextMenu {
                 let hasUnread = scene.workspaceSession.unreadCount(for: item.id) > 0
@@ -199,8 +207,8 @@ struct MobileWorkspaceListView: View {
     }
 
     @ViewBuilder
-    private var historyRowsContent: some View {
-        ForEach(historyRows) { row in
+    private func historyRowsContent(_ rows: [MobileRecentHostRow]) -> some View {
+        ForEach(rows) { row in
             historyButton(row)
                 .contextMenu {
                     let kinds = MobileConnectionHistoryActionPolicy.availableMenuKinds(for: row.host)

@@ -9,9 +9,12 @@ import Testing
 @Suite @MainActor
 struct MobileTerminalRestorationTests {
     @Test(arguments: [false, true])
-    func unopenedManagedReferenceSurvivesTabAndWindowReopen(window: Bool) throws {
+    func unopenedManagedReferenceIsPreservedOnlyForPassiveWindowClose(window: Bool) throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { for workspace in app.workspaces { workspace.disconnect() } }
+        defer {
+            app.persistentSessionCloser.cancelAll()
+            for workspace in app.workspaces { workspace.disconnect() }
+        }
         let host = Host(name: "Server", host: "example.invalid")
         app.library.upsert(host)
         let reference = RemoteSessionReference(
@@ -24,13 +27,14 @@ struct MobileTerminalRestorationTests {
         if window { source.discard() } else { source.close(descriptor.id) }
         let record = try #require(app.closedWorkspaceRecords.first)
         #expect(record.isWindow == window)
-        #expect(record.items.first?.remoteSession == reference)
+        #expect(record.items.first?.remoteSession == (window ? reference : nil))
+        #expect(app.persistentSessionCloser.isClosing == !window)
         // Exercise the record-only reconstruction, not just retained in-process state.
         app.closedWorkspaceStates[record.id] = nil
         let destination = app.workspaceSession(for: "destination")
         #expect(app.restoreClosedRecord(record.id, into: destination) == descriptor.id)
         let reopened = try #require(destination.workspaces.first)
-        #expect(reopened.sessionPersistence.attachment == reference)
+        #expect(reopened.sessionPersistence.attachment == (window ? reference : nil))
         #expect(reopened.sessionPersistence.requiresSelection)
         #expect(reopened.pendingInitialCommand == nil)
     }

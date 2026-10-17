@@ -17,6 +17,7 @@ struct MobileAppDependencies {
     var diagnosis = DiagnosisController()
     var logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
     var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
+    var persistentSessionTerminator = RemoteSessionTerminator.live(coordinator: RemoteConnectionCoordinator())
     var container: ModelContainer? = nil
     var liveActivities: MobileLiveActivityController? = nil
     var terminalRecoveryStore: TerminalRecoveryStore = .shared
@@ -45,6 +46,7 @@ struct MobileAppDependencies {
             diagnosis: DiagnosisController(defaults: .standard, reporter: FirebaseDiagnosticDataReporter.live()),
             logging: logging,
             connectionCoordinator: coordinator,
+            persistentSessionTerminator: .live(coordinator: coordinator),
             terminalEffects: .live,
             makeForwardings: {
                 PortForwardingController(

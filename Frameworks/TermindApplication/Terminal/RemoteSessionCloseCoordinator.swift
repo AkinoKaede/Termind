@@ -1,44 +1,111 @@
 import Foundation
-import Observation
 import TermindDomain
 
-@MainActor
-@Observable
-public final class RemoteSessionCloseCoordinator {
-    public private(set) var isClosing = false
-    private var generation = UUID()
+public nonisolated struct RemoteSessionCloseRequest: Sendable {
+    public let reference: RemoteSessionReference
+    public let snapshot: SSHAdditionalConnectionSnapshot
+    public let connection: RemoteSessionCloseConnection?
 
-    public init() {}
+    public init(
+        reference: RemoteSessionReference, snapshot: SSHAdditionalConnectionSnapshot,
+        connection: RemoteSessionCloseConnection? = nil
+    ) {
+        self.reference = reference
+        self.snapshot = snapshot
+        self.connection = connection
+    }
+}
 
-    public func cancel() {
-        generation = UUID()
+/// A transferred connection has exactly one cleanup owner, even after cancellation or deduplication.
+public actor RemoteSessionCloseConnection {
+    private let prepare: @Sendable () async throws -> RemoteSessionCommandExecutor
+    private let release: @Sendable () async -> Void
+    private var released = false
+
+    public init(
+        prepare: @escaping @Sendable () async throws -> RemoteSessionCommandExecutor,
+        release: @escaping @Sendable () async -> Void
+    ) {
+        self.prepare = prepare
+        self.release = release
     }
 
-    /// Ending an owned session is best-effort; failures fall back to disconnecting
-    /// without discarding its recovery identity or interrupting the close with UI.
-    public func close(
-        attachments: [RemoteSessionReference], intent: TerminalTeardownIntent = .explicitClose,
-        terminate: @MainActor (RemoteSessionReference) async throws -> Void
-    ) async -> Bool {
-        guard intent.endsManagedSession else { return true }
-        let managed = attachments.filter(\.isManaged).reduce(into: [RemoteSessionReference]()) { unique, reference in
-            if !unique.contains(where: { $0.hasSameIdentity(as: reference) }) { unique.append(reference) }
+    public func executor() async throws -> RemoteSessionCommandExecutor {
+        guard !released else { throw TermindSSHError.disconnected }
+        return try await prepare()
+    }
+
+    public func disconnect() async {
+        guard !released else { return }
+        released = true
+        await release()
+    }
+}
+
+/// Owns one-shot cleanup independently of the workspace and its terminal transport.
+@MainActor
+public final class RemoteSessionCloseCoordinator {
+    public typealias Terminate = @MainActor (RemoteSessionCloseRequest) async throws -> Void
+
+    private struct Pending {
+        let reference: RemoteSessionReference
+        let task: Task<Void, Never>
+    }
+    public var isClosing: Bool { !pending.isEmpty }
+
+    private var pending: [UUID: Pending] = [:]
+    private let terminate: Terminate
+    private let timeout: Duration
+
+    public init(timeout: Duration = .seconds(30), terminate: @escaping Terminate) {
+        self.timeout = timeout
+        self.terminate = terminate
+    }
+
+    deinit {
+        for entry in pending.values { entry.task.cancel() }
+    }
+
+    @discardableResult
+    public func enqueue(
+        _ request: RemoteSessionCloseRequest, intent: TerminalTeardownIntent = .explicitClose
+    ) -> Bool {
+        guard intent.endsManagedSession, request.reference.isManaged else {
+            if let connection = request.connection { Task { await connection.disconnect() } }
+            return false
         }
-        guard !managed.isEmpty else { return true }
-        guard !isClosing else { return false }
-        let attempt = generation
-        isClosing = true
-        defer { isClosing = false }
-        for attachment in managed {
-            guard generation == attempt, !Task.isCancelled else { return false }
-            do {
-                try await terminate(attachment)
-            } catch is CancellationError {
-                return false
-            } catch {
-                // Ownership checks still apply. Never force termination or mark a failed session ended.
+        if pending.values.contains(where: { $0.reference.hasSameIdentity(as: request.reference) }) {
+            if let connection = request.connection { Task { await connection.disconnect() } }
+            return true
+        }
+        let id = UUID()
+        let task = Task { [weak self, terminate, timeout] in
+            let operation = Task {
+                try Task.checkCancellation()
+                try await terminate(request)
             }
+            let deadline = Task {
+                try await Task.sleep(for: timeout)
+                operation.cancel()
+            }
+            defer { deadline.cancel() }
+            await withTaskCancellationHandler {
+                _ = try? await operation.value
+            } onCancel: {
+                operation.cancel()
+            }
+            await request.connection?.disconnect()
+            self?.pending[id] = nil
         }
-        return generation == attempt && !Task.isCancelled
+        pending[id] = Pending(reference: request.reference, task: task)
+        return true
+    }
+
+    public func cancelAll() {
+        for entry in pending.values { entry.task.cancel() }
+    }
+
+    public func waitUntilIdle() async {
+        for entry in Array(pending.values) { await entry.task.value }
     }
 }

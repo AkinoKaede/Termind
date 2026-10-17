@@ -148,6 +148,11 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// passphrase material are resolved only for each attempted transfer
     /// connection and never retained here. Cleared with the SSH connection.
     private(set) var transferSnapshot: SSHAdditionalConnectionSnapshot?
+    private var persistentSessionSnapshot: SSHAdditionalConnectionSnapshot?
+    var isRemoteSessionClosing = false
+    var restorableRemoteSession: RemoteSessionReference? {
+        isRemoteSessionClosing ? nil : sessionPersistence.attachment
+    }
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
     var connectionRoute: SSHConnectionRoute? {
         get { connection.connectionRoute }
@@ -1029,6 +1034,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             transferSnapshot =
                 statusStore?.additionalConnectionSnapshot(from: configuration)
                 ?? SSHAdditionalConnectionSnapshot(configuration: configuration)
+            persistentSessionSnapshot = statusStore?.additionalConnectionSnapshot(from: configuration)
             suppliedAuthentications.removeAll()
             suppliedProxyAuthentications.removeAll()
             temporaryHostKeys.removeAll()
@@ -1118,34 +1124,29 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         connectionJourney.updateTransportRecovery(state, message: message)
     }
 
-    /// A normal remote-shell exit owns the pane lifecycle, not the reusable
-    /// Ghostty surface lifecycle. Marking the in-memory backend as finished
-    /// makes the surface permanently stop producing input, which is incorrect
-    /// for Termind's retained pane model. Close the pane through its current
-    /// Workspace instead; transport failures remain visible for reconnection.
-    func terminatePersistentSession(
-        _ reference: RemoteSessionReference, isCurrentOwner: @MainActor () -> Bool = { true }
-    ) async throws {
-        guard sessionPersistence.attachment == reference, let channel = ssh else {
-            throw RemoteSessionFailure.sessionMissing
+    func takePersistentSessionCloseRequest(hosts: any RemoteSessionHostStore) -> RemoteSessionCloseRequest? {
+        guard let reference = sessionPersistence.attachment, reference.isManaged else { return nil }
+        let snapshot: SSHAdditionalConnectionSnapshot
+        if let persistentSessionSnapshot {
+            snapshot = persistentSessionSnapshot
+        } else {
+            guard let host = connectionRoute?.host(reference.hostID) ?? hosts.host(reference.hostID) ?? transientHost,
+                let restored = try? hosts.resumableControlSnapshot(for: host, username: reference.username)
+            else { return nil }
+            snapshot = restored
         }
-        try await channel.releaseTerminalForControl()
-        status = .disconnected
-        resetCommandGeneratorShellState()
-        workingDirectory = nil
-        let execute = try await channel.sessionCommandExecutor()
-        let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
-        let sessions = try await backend.sessions()
-        guard isCurrentOwner(), ssh === channel, sessionPersistence.attachment == reference else {
-            throw CancellationError()
-        }
-        guard sessions.contains(where: { backend.matches(reference, session: $0) }) else {
-            throw RemoteSessionFailure.ownershipMismatch
-        }
-        try await backend.terminate(reference)
-        if sessionPersistence.attachment == reference { sessionPersistence.markEnded() }
+        guard snapshot.hostID == reference.hostID,
+            "\(snapshot.target.host):\(snapshot.target.port)" == reference.endpoint
+        else { return nil }
+        let transferred = transport == .ssh ? ssh : nil
+        if transferred != nil { ssh = nil }
+        return RemoteSessionCloseRequest(
+            reference: reference, snapshot: snapshot,
+            connection: transferred.map { RemoteSessionCloseConnection(channel: $0) })
     }
 
+    /// Normal shell exit closes the pane, not the reusable Ghostty surface.
+    /// Transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
         resetCommandGeneratorShellState()
         workingDirectory = nil
@@ -1348,7 +1349,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
         copy.transport = transport
-        copy.sessionPersistence.attachment = sessionPersistence.attachment
+        copy.sessionPersistence.attachment = restorableRemoteSession
         copy.connectionRoute = connectionRoute
         copy.connectionOrigin = connectionOrigin
         copy.connectionCoordinator = connectionCoordinator

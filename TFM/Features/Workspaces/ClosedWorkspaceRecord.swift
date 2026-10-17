@@ -17,7 +17,7 @@ struct ClosedWorkspaceRecord: Codable, Identifiable {
         let layout =
             workspace.panes.contains { $0.sshSession?.isExternalTemporaryConnection == true }
             ? nil : workspace.workspaceTemplateLayout(in: hosts)
-        self.remoteSessions = workspace.panes.map { $0.sshSession?.sessionPersistence.attachment }
+        self.remoteSessions = workspace.panes.map { $0.sshSession?.restorableRemoteSession }
         self.id = workspace.id
         self.title = workspace.title(in: hosts)
         self.symbol = workspace.symbol

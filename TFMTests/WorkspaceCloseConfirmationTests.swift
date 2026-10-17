@@ -155,7 +155,7 @@ struct WorkspaceCloseConfirmationTests {
         }
 
         #expect(native.delegate?.windowShouldClose?(native) == true)
-        #expect(!model.persistentClose.isClosing)
+        #expect(model.persistentSessionCloser?.isClosing != true)
         model.closeForWindow()
         #expect(model.isClosed)
         #expect(model.workspaces.isEmpty)
@@ -165,7 +165,7 @@ struct WorkspaceCloseConfirmationTests {
         #expect(restored.focusedPane.sshSession?.sessionPersistence.attachment == reference)
     }
 
-    @Test func failedManagedPaneCloseDisconnectsAndKeepsItsRecoveryReference() async throws {
+    @Test func closeWithoutACleanupOwnerKeepsItsRecoveryReference() throws {
         let host = Host(name: "Server", host: "server.example")
         let hosts = HostLibraryModel(hosts: [host])
         let workspace = Workspace.sshSession(host: host)
@@ -179,12 +179,8 @@ struct WorkspaceCloseConfirmationTests {
         model.rememberClosedWorkspace = { saved = ClosedWorkspaceRecord($0, hosts: hosts) }
         defer { model.closeForWindow() }
 
-        // There is no live SSH transport to end the remote session.
+        // An unregistered window has no app-owned remote cleanup coordinator.
         model.closeSelected()
-        for _ in 0..<200 {
-            if model.workspaces.isEmpty { break }
-            try await Task.sleep(for: .milliseconds(5))
-        }
         #expect(model.workspaces.isEmpty)
         #expect(session.sessionPersistence.attachment == reference)
         #expect(session.status == .disconnected)

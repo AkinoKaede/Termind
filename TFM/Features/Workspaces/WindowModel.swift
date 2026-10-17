@@ -1490,7 +1490,6 @@ final class WindowModel {
     /// Moving preserves live transports and does not populate close history.
     func takeWorkspaceForMove(_ id: Workspace.ID) -> Workspace? {
         guard !isClosed, let workspace = workspaces.first(where: { $0.id == id }) else { return nil }
-        persistentClose.cancel()
         removeWorkspaceForMove(id)
         workspace.lifecycleRouter = nil
         dragging = nil
@@ -1510,7 +1509,6 @@ final class WindowModel {
         guard !isClosed, let pane = pane(id), pane.isCombinable,
             let source = workspace(holding: id)
         else { return nil }
-        persistentClose.cancel()
         if source.panes.count == 1 { return takeWorkspaceForMove(source.id) }
         guard source.closePane(id) else { return nil }
         let workspace = automaticallyNamedWorkspace(pane: pane)
@@ -1520,40 +1518,21 @@ final class WindowModel {
         return workspace
     }
 
-    let persistentClose = RemoteSessionCloseCoordinator()
+    var persistentSessionCloser: RemoteSessionCloseCoordinator?
 
-    func authorizePersistentClose(_ sessions: [SSHSessionModel]) async -> Bool {
-        let workspaceIDs = Set(workspaces.map(\.id))
-        let paneIDs = Set(workspaces.flatMap(\.panes).map(\.id))
-        let references = sessions.compactMap { $0.sessionPersistence.attachment }
-        let allowed = await persistentClose.close(attachments: references) { [weak self] reference in
-            guard let self, let session = sessions.first(where: { $0.sessionPersistence.attachment == reference }),
-                self.workspaces.flatMap(\.panes).contains(where: { $0.sshSession === session })
-            else { throw CancellationError() }
-            try await session.terminatePersistentSession(reference) {
-                self.workspaces.flatMap(\.panes).contains(where: { $0.sshSession === session })
-            }
-            for session in sessions
-            where session.sessionPersistence.attachment?.hasSameIdentity(as: reference) == true {
-                session.sessionPersistence.markEnded()
-            }
+    private func closePersistentSessions(_ sessions: [SSHSessionModel]) {
+        guard let hostStore, let persistentSessionCloser else { return }
+        let requests = sessions.compactMap { session in
+            session.takePersistentSessionCloseRequest(hosts: hostStore).map { (session, $0) }
+        }.sorted { $0.1.connection != nil && $1.1.connection == nil }
+        for (session, request) in requests {
+            if persistentSessionCloser.enqueue(request) { session.isRemoteSessionClosing = true }
         }
-        // Confirmation covers this snapshot, never workspaces added or moved while it was open.
-        return allowed && workspaceIDs == Set(workspaces.map(\.id))
-            && paneIDs == Set(workspaces.flatMap(\.panes).map(\.id))
-    }
-
-    private func deferPersistentClose(_ sessions: [SSHSessionModel], action: @escaping @MainActor () -> Void) -> Bool {
-        guard sessions.contains(where: { $0.sessionPersistence.attachment?.isManaged == true }) else { return false }
-        guard !persistentClose.isClosing else { return true }
-        Task { if await authorizePersistentClose(sessions) { action() } }
-        return true
     }
 
     func closeForWindow() {
         guard !isClosed else { return }
         // Window dismissal disconnects clients but preserves remote sessions and their recovery references.
-        persistentClose.cancel()
         rememberClosedWindow?(workspaces, selectedWorkspaceID)
         isClosed = true
         for workspace in workspaces {
@@ -1572,13 +1551,8 @@ final class WindowModel {
     // MARK: - Closing
 
     func close(_ id: Workspace.ID, authorized: Bool = false) {
-        if !authorized, let target = workspaces.first(where: { $0.id == id }),
-            deferPersistentClose(
-                target.panes.compactMap(\.sshSession), action: { [weak self] in self?.close(id, authorized: true) })
-        {
-            return
-        }
         guard let index = workspaces.firstIndex(where: { $0.id == id }) else { return }
+        if !authorized { closePersistentSessions(workspaces[index].panes.compactMap(\.sshSession)) }
         let removed = workspaces.remove(at: index)
         removed.disconnectConnections()
         rememberClosedWorkspace?(removed)
@@ -1603,12 +1577,9 @@ final class WindowModel {
     }
 
     func closeOthers(than id: Workspace.ID, authorized: Bool = false) {
-        if !authorized,
-            deferPersistentClose(
-                workspaces.filter { $0.id != id }.flatMap(\.panes).compactMap(\.sshSession),
-                action: { [weak self] in self?.closeOthers(than: id, authorized: true) })
-        {
-            return
+        guard workspaces.contains(where: { $0.id == id }) else { return }
+        if !authorized {
+            closePersistentSessions(workspaces.filter { $0.id != id }.flatMap(\.panes).compactMap(\.sshSession))
         }
         for workspace in workspaces where workspace.id != id {
             workspace.disconnectConnections()
@@ -1619,13 +1590,8 @@ final class WindowModel {
     }
 
     func closeAll(intent: TerminalTeardownIntent = .explicitClose, authorized: Bool = false) {
-        if !intent.endsManagedSession { persistentClose.cancel() }
-        if !authorized, intent.endsManagedSession,
-            deferPersistentClose(
-                workspaces.flatMap(\.panes).compactMap(\.sshSession),
-                action: { [weak self] in self?.closeAll(authorized: true) })
-        {
-            return
+        if !authorized, intent.endsManagedSession {
+            closePersistentSessions(workspaces.flatMap(\.panes).compactMap(\.sshSession))
         }
         for workspace in workspaces {
             workspace.disconnectConnections()
@@ -1662,13 +1628,7 @@ final class WindowModel {
             close(workspace.id, authorized: authorized)
             return
         }
-        if !authorized,
-            deferPersistentClose(
-                [pane.sshSession].compactMap { $0 },
-                action: { [weak self] in self?.closePane(paneID, authorized: true) })
-        {
-            return
-        }
+        if !authorized { closePersistentSessions([pane.sshSession].compactMap { $0 }) }
         pane.disconnectConnection()
         _ = workspace.closePane(paneID)
         // Keep only the removed pane: reopening must not reconnect surviving
