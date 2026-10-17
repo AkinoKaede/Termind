@@ -14,7 +14,9 @@ struct WorkspaceLiveActivity: Widget {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     appIcon(size: 28)
-                    status(context)
+                    workspaceCount(context.state.workspaceCount)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     Spacer(minLength: 0)
@@ -102,20 +104,6 @@ struct WorkspaceLiveActivity: Widget {
     }
 
     private func workspaceCount(_ count: Int) -> Text {
-        switch count {
-        case 1: Text("One workspace")
-        case 2: Text("Two workspaces")
-        default: Text("\(count) workspaces")
-        }
-    }
-
-    private func status(_ context: ActivityViewContext<WorkspaceActivityAttributes>) -> some View {
-        Group {
-            if context.isStale {
-                Text("Open to Check Connections")
-            } else {
-                Text("\(context.state.connectedCount) connected · \(context.state.workspaceCount) workspaces")
-            }
-        }.font(.caption).foregroundStyle(.secondary)
+        Text(AppStrings.Workspace.count(count))
     }
 }

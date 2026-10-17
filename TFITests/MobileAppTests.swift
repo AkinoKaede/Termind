@@ -1564,32 +1564,32 @@ struct MobileWorkspaceRestorationTests {
         #expect(next.closedWorkspaceRecords.isEmpty)
     }
 
-    @Test func activityFallbackRebuildsWithNewIdentityAndDeduplicatesAcrossScenes() throws {
+    @Test func legacyActivityLinksOpenOnlyExistingWorkspacesAndNeverRebuildClosedOnes() throws {
         let app = try MobileAppModel(inMemory: true)
-        var host = TermindDomain.Host(name: "Saved", host: "example.invalid")
-        host.sessionPersistence = .init(enabled: true, onConnect: .createManaged)
+        let host = TermindDomain.Host(name: "Saved", host: "example.invalid")
         app.library.upsert(host)
-        let source = UUID()
-        let session = WorkspaceActivityAttributes.Session(
-            id: source, title: "Old", kind: "ssh", connected: false,
-            recovery: .init(sourceWorkspaceID: source, hostID: host.id, kind: "ssh"))
         let first = MobileSceneModel(app: app, sessionID: "first")
         let second = MobileSceneModel(app: app, sessionID: "second")
-        first.open(session.destinationURL)
-        let rebuilt = try #require(app.workspaces.first)
-        #expect(rebuilt.id != source)
-        #expect(rebuilt.sessionPersistence.requiresSelection)
+        let source = try #require(first.workspaceSession.open(hostID: host.id, kind: .ssh))
+        let url = try #require(URL(string: "termind://workspace/\(source)?v=1&host=\(host.id)&kind=ssh"))
+        first.open(url)
+        first.activatePendingWorkspace()
+        #expect(first.activeWorkspace?.id == source)
+        #expect(first.activeWorkspace?.sessionPersistence.requiresSelection == false)
         var activated: [UUID] = []
         app.activateWorkspaceSession = { owner, id, _ in
             #expect(owner == "first")
             activated.append(id)
         }
-        second.open(session.destinationURL)
-        first.open(session.destinationURL)
+        second.open(url)
+        first.open(url)
         #expect(app.workspaces.count == 1)
-        #expect(activated == [rebuilt.id])
-        app.testWorkspaceSession.closeAll()
+        #expect(activated == [source])
         first.workspaceSession.closeAll()
+        first.open(url)
+        second.open(url)
+        #expect(first.isWorkspaceUnavailable && second.isWorkspaceUnavailable)
+        #expect(app.workspaces.isEmpty)
     }
 
     @Test func oldAndDeletedHostLinksCannotGuessAConnection() throws {

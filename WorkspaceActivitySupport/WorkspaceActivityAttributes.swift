@@ -22,15 +22,7 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
         var recovery: Recovery? = nil
 
         var destinationURL: URL {
-            guard let recovery else { return WorkspaceActivityAttributes.destinationURL(for: id) }
-            var components = URLComponents(
-                url: WorkspaceActivityAttributes.destinationURL(for: id), resolvingAgainstBaseURL: false)!
-            components.queryItems = [
-                URLQueryItem(name: "v", value: "1"),
-                URLQueryItem(name: "host", value: recovery.hostID.uuidString),
-                URLQueryItem(name: "kind", value: recovery.kind),
-            ]
-            return components.url!
+            WorkspaceActivityAttributes.destinationURL(for: id)
         }
     }
 

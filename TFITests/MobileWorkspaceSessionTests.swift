@@ -777,18 +777,116 @@ struct MobileWorkspaceSessionTests {
         #expect(app.connectionHistory.entries().isEmpty)
     }
 
-    @Test func coldLaunchDoesNotClaimOldNativeSceneWorkspaces() throws {
+    @Test(
+        arguments: [false, true],
+        [
+            ConnectionHistoryEntry.Kind.ssh, .sftp, .telnet, .mosh, .eternalTerminal,
+        ])
+    func coldLaunchKeepsRecordsWhenOldNativeWindowIsDiscarded(
+        afterHandoff: Bool, kind: ConnectionHistoryEntry.Kind
+    ) throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
         let original = try fixture.makeApp()
-        let id = try #require(original.workspaceSession(for: "old").open(hostID: fixture.host.id, kind: .ssh))
+        var host = fixture.host
+        host.telnetEnabled = true
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        original.library.upsert(host)
+        let id = try #require(original.workspaceSession(for: "old").open(hostID: host.id, kind: kind))
         let app = try fixture.makeApp()
-        app.discardWorkspaceSessions(["old"])
+        if !afterHandoff { app.discardWorkspaceSessions(["old"]) }
         let scene = MobileSceneModel(app: app, sessionID: "new")
-        scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
-        #expect(scene.isWorkspaceUnavailable)
+        app.reconcileWorkspaceSessions(openSessionIDs: ["new"], activeSessionID: "new")
+        if afterHandoff { app.discardWorkspaceSessions(["old"]) }
+        #expect(scene.workspaceSession.savedWorkspaceDescriptors.map(\.id) == [id])
         #expect(app.workspaces.isEmpty)
+        #expect(try MobileWorkspaceStore(defaults: fixture.defaults).load().sessions["new"]?.map(\.id) == [id])
+        scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+        scene.activatePendingWorkspace()
+        #expect(!scene.isWorkspaceUnavailable)
+        #expect(scene.activeWorkspace?.id == id)
+        #expect(scene.activeWorkspace?.sessionPersistence.requiresSelection == false)
         #expect(app.closedWorkspaceRecords.isEmpty)
+    }
+
+    @Test func coldLaunchKeepsExistingNativeOwnersUntilTheyBindAndExplicitlyClose() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let first = MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Shell", kind: .ssh)
+        let second = MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Files", kind: .sftp)
+        try MobileWorkspaceStore(defaults: fixture.defaults).save(.init(sessions: ["a": [first], "b": [second]]))
+        let app = try fixture.makeApp()
+        let active = MobileSceneModel(app: app, sessionID: "a")
+        app.reconcileWorkspaceSessions(openSessionIDs: ["a", "b"], activeSessionID: "a")
+        var activated: [String] = []
+        app.activateWorkspaceSession = { owner, _, _ in activated.append(owner) }
+        active.open(WorkspaceActivityAttributes.destinationURL(for: second.id))
+        #expect(activated == ["b"])
+        #expect(app.workspaceOwner(first.id) == "a")
+        #expect(app.workspaceOwner(second.id) == "b")
+        #expect(app.workspaces.isEmpty)
+        let bound = MobileSceneModel(app: app, sessionID: "b")
+        app.discardWorkspaceSessions(["b"])
+        #expect(bound.workspaceSession.isDiscarded)
+        #expect(!app.containsWorkspace(second.id))
+        #expect(app.containsWorkspace(first.id))
+        #expect(try MobileWorkspaceStore(defaults: fixture.defaults).load().sessions["b"] == nil)
+        #expect(app.closedWorkspaceRecords.first?.items == [second])
+    }
+
+    @Test func orphanedColdWindowsTransferAsOneCompleteSnapshotAndIgnoreLateDiscards() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let records = (0..<4).map {
+            MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Workspace \($0)", kind: .ssh)
+        }
+        let store = MobileWorkspaceStore(defaults: fixture.defaults)
+        try store.save(
+            .init(sessions: ["active": [records[0]], "old-a": [records[1]], "old-b": [records[2], records[3]]]))
+        let app = try fixture.makeApp()
+        app.discardWorkspaceSessions(["old-a"])
+        app.reconcileWorkspaceSessions(openSessionIDs: [], activeSessionID: nil)
+        #expect(app.workspaces.isEmpty)
+        #expect(app.workspaceOwner(records[1].id) == "old-a")
+        let active = MobileSceneModel(app: app, sessionID: "active")
+        // UIKit can briefly keep a discarded cold session in its openSessions set.
+        app.reconcileWorkspaceSessions(openSessionIDs: ["active", "old-a"], activeSessionID: "active")
+        #expect(active.workspaceSession.savedWorkspaceDescriptors == records)
+        #expect(try store.load().sessions["active"] == records)
+        #expect(try store.load().sessions.values.flatMap { $0 }.count == records.count)
+        app.discardWorkspaceSessions(["old-a", "old-b"])
+        app.persistWorkspaceDescriptors()
+        #expect(active.workspaceSession.savedWorkspaceDescriptors == records)
+        #expect(try store.load().sessions["active"] == records)
+        #expect(app.closedWorkspaceRecords.isEmpty)
+    }
+
+    @Test func failedHandoffKeepsTheSourceRuntimeAndOwnership() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let damaged = Data("unreadable".utf8)
+        fixture.defaults.set(damaged, forKey: MobileWorkspaceStore.restorationKey)
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "a")
+        let second = MobileSceneModel(app: app, sessionID: "b")
+        let third = MobileSceneModel(app: app, sessionID: "c")
+        first.open(hostID: fixture.host.id, kind: .ssh)
+        third.open(hostID: fixture.host.id, kind: .sftp)
+        first.activatePendingWorkspace()
+        third.activatePendingWorkspace()
+        let workspace = try #require(first.activeWorkspace)
+        let other = try #require(third.activeWorkspace)
+
+        app.reconcileWorkspaceSessions(openSessionIDs: ["b"], activeSessionID: "b")
+
+        #expect(first.activeWorkspace === workspace)
+        #expect(app.workspaceOwner(workspace.id) == "a")
+        #expect(third.activeWorkspace === other)
+        #expect(app.workspaceOwner(other.id) == "c")
+        #expect(second.workspaceSession.orderedWorkspaceItems.isEmpty)
+        #expect(fixture.defaults.data(forKey: MobileWorkspaceStore.restorationKey) == damaged)
+        #expect(app.error != nil)
     }
 
     @Test func missingNativeSessionHandsOffLiveWorkspacesWithoutReconnecting() throws {

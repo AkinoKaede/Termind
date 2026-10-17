@@ -27,9 +27,12 @@ struct MobileWorkspaceStoreTests {
             id: id, title: "Saved", kind: "ssh", connected: false,
             recovery: .init(sourceWorkspaceID: id, hostID: UUID(), kind: "ssh", remoteSession: reference))
         #expect(!session.destinationURL.absoluteString.contains("private"))
+        #expect(session.destinationURL.query == nil)
         #expect(WorkspaceActivityAttributes.recovery(from: session.destinationURL)?.remoteSession == nil)
         #expect(WorkspaceActivityAttributes.workspaceID(from: session.destinationURL) == id)
-        let injected = try #require(URL(string: session.destinationURL.absoluteString + "&command=whoami"))
+        let legacy = "termind://workspace/\(id)?v=1&host=\(UUID())&kind=ssh"
+        #expect(WorkspaceActivityAttributes.workspaceID(from: try #require(URL(string: legacy))) == id)
+        let injected = try #require(URL(string: legacy + "&command=whoami"))
         #expect(WorkspaceActivityAttributes.workspaceID(from: injected) == nil)
     }
 

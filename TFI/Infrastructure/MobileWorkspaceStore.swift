@@ -1,6 +1,6 @@
 import Foundation
 
-/// Retire local workspace snapshots without migrating them into a new cache.
+/// Device-local connection intent and recovery references, never credentials or one-shot commands.
 @MainActor
 final class MobileWorkspaceStore {
     static let key = "mobile.workspaces.v1"

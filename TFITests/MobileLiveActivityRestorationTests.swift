@@ -46,7 +46,7 @@ struct MobileLiveActivityRestorationTests {
         #expect(existing.updates.count == 1)
     }
 
-    @Test func removedRecoveryCannotBeReadBackFromStaleSystemContent() {
+    @Test func authoritativeSnapshotDropsOrphanedSystemEntries() async {
         let backend = Backend()
         let id = UUID()
         let recovery = TermindIOS.WorkspaceActivityAttributes.Recovery(
@@ -57,9 +57,11 @@ struct MobileLiveActivityRestorationTests {
         existing.contentState = .snapshot([card], focusedID: id)
         backend.existing = [existing]
         let controller = MobileLiveActivityController(services: backend.services)
-        #expect(controller.recovery(for: id) == recovery)
-        controller.remove(id)
-        #expect(controller.recovery(for: id) == nil)
+        let current = session()
+        controller.update([current])
+        #expect(await eventually { existing.updates.last?.sessions.map(\.id) == [current.id] })
+        controller.update([])
+        #expect(await eventually { existing.ended })
     }
 
     @Test func closeLastThenOpenWaitsForOldActivityToFinishEnding() async {
@@ -84,7 +86,11 @@ struct MobileLiveActivityRestorationTests {
         #expect(backend.created.first?.ended == false)
     }
 
-    @Test func coldLaunchRetainsRecoverableSystemActivityWithoutConnecting() async throws {
+    @Test(arguments: [false, true])
+    func coldLaunchPublishesSavedRecordsAndCanCloseWithoutConnecting(openBeforeClose: Bool) async throws {
+        let name = "ActivityRestoration.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
         let seed = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         seed.library.upsert(host)
@@ -97,11 +103,15 @@ struct MobileLiveActivityRestorationTests {
             recovery: .init(
                 sourceWorkspaceID: oldID, hostID: host.id, kind: "ssh",
                 remoteSession: try JSONEncoder().encode(reference)))
+        let descriptor = MobileWorkspaceDescriptor(
+            id: oldID, hostID: host.id, title: card.title, kind: .ssh, remoteSession: reference)
+        try MobileWorkspaceStore(defaults: defaults).save(.init(sessions: ["old": [descriptor]]))
         let backend = Backend()
         let existing = TestActivity(focusedWorkspaceID: oldID)
-        existing.contentState = .snapshot([card], focusedID: oldID)
+        let orphan = session()
+        existing.contentState = .snapshot([card, orphan], focusedID: oldID)
         backend.existing = [existing]
-        var dependencies = MobileAppDependencies.testing()
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
         dependencies.container = seed.container
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
         let app = try MobileAppModel(dependencies: dependencies)
@@ -109,23 +119,106 @@ struct MobileLiveActivityRestorationTests {
         #expect(await eventually { !existing.updates.isEmpty })
         #expect(!existing.ended)
         #expect(existing.updates.last?.connectedCount == 0)
+        #expect(existing.updates.last?.sessions.map(\.id) == [oldID])
         #expect(app.workspaces.isEmpty)
         #expect(backend.requests.isEmpty)
         let scene = MobileSceneModel(app: app, sessionID: "new")
-        scene.open(card.destinationURL)
-        let rebuilt = try #require(app.workspaces.first)
-        #expect(rebuilt.id != oldID)
-        #expect(rebuilt.sessionPersistence.requiresSelection)
-        #expect(rebuilt.sessionPersistence.attachment == reference)
+        app.discardWorkspaceSessions(["old"])
+        app.reconcileWorkspaceSessions(openSessionIDs: ["new"], activeSessionID: "new")
+        #expect(scene.workspaceSession.savedWorkspaceDescriptors == [descriptor])
+        if openBeforeClose {
+            scene.open(card.destinationURL)
+            let restored = try #require(app.workspaces.first)
+            #expect(restored.id == oldID)
+            #expect(!restored.sessionPersistence.requiresSelection)
+            #expect(restored.sessionPersistence.attachment == reference)
+            #expect(!scene.isWorkspaceUnavailable)
+        }
         scene.workspaceSession.closeAll()
         #expect(await eventually { existing.ended })
+        #expect(try MobileWorkspaceStore(defaults: defaults).load().sessions.values.allSatisfy(\.isEmpty))
+        scene.open(card.destinationURL)
+        #expect(scene.isWorkspaceUnavailable)
+        #expect(app.workspaces.isEmpty)
         app.sceneChanged(scene.id, phase: .active)
         #expect(backend.requests.isEmpty)
+    }
+
+    @Test func failedSnapshotReadPreservesTheSystemCardAndStoredBytes() async throws {
+        let name = "ActivityReadFailure.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let damaged = Data("unreadable".utf8)
+        defaults.set(damaged, forKey: MobileWorkspaceStore.restorationKey)
+        let backend = Backend()
+        let existing = TestActivity()
+        existing.contentState = .snapshot([session()], focusedID: nil)
+        backend.existing = [existing]
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
+        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
+        let app = try MobileAppModel(dependencies: dependencies)
+        app.sceneChanged(UUID(), phase: .active)
+        app.persistWorkspaceDescriptors()
+        for _ in 0..<20 { await Task.yield() }
+        #expect(app.error != nil)
+        #expect(existing.updates.isEmpty)
+        #expect(!existing.ended)
+        #expect(defaults.data(forKey: MobileWorkspaceStore.restorationKey) == damaged)
+    }
+
+    @Test func explicitOpenIncludesDormantRecordsButLaunchDoesNotRecreateADismissedCard() async throws {
+        let name = "DormantActivityRecords.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let seed = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Server", host: "example.invalid")
+        seed.library.upsert(host)
+        let records = [
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Shell", kind: .ssh),
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Files", kind: .sftp),
+        ]
+        try MobileWorkspaceStore(defaults: defaults).save(.init(sessions: ["owner": records]))
+        let backend = Backend()
+        backend.existing = [TestActivity(state: .dismissed)]
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
+        dependencies.container = seed.container
+        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
+        let app = try MobileAppModel(dependencies: dependencies)
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        app.sceneChanged(scene.id, phase: .active)
+        #expect(await eventually { backend.existing[0].ended })
+        #expect(backend.requests.isEmpty)
+        #expect(app.workspaces.isEmpty)
+
+        scene.open(WorkspaceActivityAttributes.destinationURL(for: records[0].id))
+        scene.activatePendingWorkspace()
+        try #require(await eventually { backend.requests.count == 1 })
+        #expect(backend.requests[0].workspaceCount == 2)
+        #expect(backend.requests[0].connectedCount == 0)
+        #expect(Set(backend.requests[0].sessions.map(\.id)) == Set(records.map(\.id)))
+        #expect(scene.workspaceSession.recentWorkspaces == [records[1]])
+        let workspace = try #require(scene.activeWorkspace)
+        #expect(!workspace.sessionPersistence.requiresSelection)
+        #expect(workspace.sessionPersistence.prompt == nil)
+        scene.workspaceSession.closeAll()
+        #expect(await eventually { backend.created[0].ended })
+        #expect(scene.workspaceSession.reopenLastClosed() == records[1].id)
+        try #require(await eventually { backend.requests.count == 2 })
+        #expect(backend.requests[1].sessions.map(\.id) == [records[1].id])
+        #expect(backend.requests[1].connectedCount == 0)
+        scene.workspaceSession.closeAll()
     }
 
     @Test func coldLaunchWithoutRecoveryEndsUnusableCard() async throws {
         let backend = Backend()
         let existing = TestActivity()
+        let id = UUID()
+        existing.contentState = .snapshot(
+            [
+                .init(
+                    id: id, title: "Orphan", kind: "ssh", connected: true,
+                    recovery: .init(sourceWorkspaceID: id, hostID: UUID(), kind: "ssh"))
+            ], focusedID: id)
         backend.existing = [existing]
         var dependencies = MobileAppDependencies.testing()
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)

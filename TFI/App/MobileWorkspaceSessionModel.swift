@@ -22,7 +22,7 @@ struct MobileWorkspaceItem: Identifiable {
     var id: MobileWorkspaceDescriptor.ID { descriptor.id }
 }
 
-/// In-process connection intent and live workspaces belonging to one native scene.
+/// Saved connection intent and live workspaces belonging to one native scene.
 @MainActor
 @Observable
 final class MobileWorkspaceSessionModel {
@@ -50,9 +50,7 @@ final class MobileWorkspaceSessionModel {
         guard orderedWorkspaceItems.contains(where: { $0.id == id }) else { return }
         manuallyUnreadIDs.insert(id)
     }
-    private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor] {
-        didSet { app.persistWorkspaceDescriptors() }
-    }
+    private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor]
     private var workspaceDisplayOrder: [MobileWorkspace.ID]
     var canReopen: Bool { !isDiscarded && !app.closedWorkspaceRecords.isEmpty }
     var reopensWindow: Bool { app.closedWorkspaceRecords.first?.isWindow == true }
@@ -76,7 +74,7 @@ final class MobileWorkspaceSessionModel {
 
     var recovery: Recovery {
         Recovery(
-            workspaces: workspaces, descriptors: savedWorkspaceDescriptors, order: workspaceDisplayOrder,
+            workspaces: workspaces, descriptors: restorableDescriptors, order: workspaceDisplayOrder,
             manuallyUnreadIDs: manuallyUnreadIDs)
     }
 
@@ -111,14 +109,8 @@ final class MobileWorkspaceSessionModel {
     }
 
     var restorableDescriptors: [MobileWorkspaceDescriptor] {
-        savedWorkspaceDescriptors.compactMap { saved in
-            let descriptor = workspaces.first { $0.id == saved.id }?.restorationDescriptor ?? saved
-            // Tailnet peers can be rediscovered after the scene's descriptors load.
-            guard let host = app.library.host(descriptor.hostID) else { return descriptor }
-            guard host.isEnabled(descriptor.kind.terminalProtocol ?? .ssh) else { return nil }
-            if descriptor.kind.terminalProtocol?.isResumable == true { return descriptor }
-            return descriptor.kind == .ssh
-                && (host.sessionPersistence.enabled || descriptor.remoteSession != nil) ? descriptor : nil
+        savedWorkspaceDescriptors.map { saved in
+            workspaces.first { $0.id == saved.id }?.restorationDescriptor ?? saved
         }
     }
 
@@ -181,27 +173,6 @@ final class MobileWorkspaceSessionModel {
             startup = .none
         }
         let workspace = makeWorkspace(host: host, kind: kind, startup: startup)
-        addWorkspaces([workspace])
-        return workspace.id
-    }
-
-    func rebuild(_ recovery: WorkspaceActivityAttributes.Recovery) -> UUID? {
-        guard !isDiscarded, let host = app.library.host(recovery.hostID),
-            let kind = ConnectionHistoryEntry.Kind(rawValue: recovery.kind),
-            MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host)
-        else { return nil }
-        if kind.terminalProtocol?.isResumable == true {
-            // A stale activity cannot recreate an explicitly closed resumable session.
-            return nil
-        }
-        let workspace = makeWorkspace(host: host, kind: kind)
-        if let data = recovery.remoteSession,
-            let reference = try? JSONDecoder().decode(RemoteSessionReference.self, from: data),
-            reference.hostID == host.id, kind == .ssh
-        {
-            workspace.restoreRemoteSession(reference)
-        }
-        workspace.sessionPersistence.requiresSelection = true
         addWorkspaces([workspace])
         return workspace.id
     }
@@ -289,6 +260,7 @@ final class MobileWorkspaceSessionModel {
         if let savedIndex, let workspace {
             savedWorkspaceDescriptors[savedIndex] = workspace.descriptor
         }
+        app.persistWorkspaceDescriptors()
         return true
     }
 
@@ -307,6 +279,7 @@ final class MobileWorkspaceSessionModel {
         workspaces.removeAll { $0.id == id }
         savedWorkspaceDescriptors.removeAll { $0.id == id }
         workspaceDisplayOrder.removeAll { $0 == id }
+        app.persistWorkspaceDescriptors()
     }
 
     var closableWorkspaceCount: Int {
@@ -329,6 +302,7 @@ final class MobileWorkspaceSessionModel {
             workspace.didRequestClose = nil
             workspace.close()
         }
+        app.persistWorkspaceDescriptors()
     }
 
     func closeAll(rememberForReopen: Bool = true, authorized: Bool = false) {
@@ -348,6 +322,7 @@ final class MobileWorkspaceSessionModel {
             workspace.didRequestClose = nil
             workspace.close()
         }
+        app.persistWorkspaceDescriptors()
     }
 
     private func rememberClosedWorkspaces(_ ids: Set<UUID>, endingRemoteSessions: Set<UUID> = []) {
@@ -390,7 +365,6 @@ final class MobileWorkspaceSessionModel {
                 externalSFTPResourcePath: state.externalSFTPResourcePath,
                 externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
             workspace.restoreRemoteSession(state.descriptor.remoteSession)
-            workspace.sessionPersistence.requiresSelection = state.descriptor.kind == .ssh
             addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
         }
     }
@@ -401,7 +375,9 @@ final class MobileWorkspaceSessionModel {
         guard !isDiscarded else { return nil }
         if let workspace = workspaces.first(where: { $0.id == id }) { return workspace }
         guard let descriptor = savedWorkspaceDescriptors.first(where: { $0.id == id }) else { return nil }
-        guard app.library.host(descriptor.hostID) != nil else {
+        guard let host = app.library.host(descriptor.hostID),
+            MobileConnectionHistoryActionPolicy.isAvailable(descriptor.kind, for: host)
+        else {
             return nil
         }
         let workspace = MobileWorkspace(
@@ -410,7 +386,6 @@ final class MobileWorkspaceSessionModel {
         workspace.requiresTransportRecovery = descriptor.kind.terminalProtocol?.isResumable == true
         if descriptor.kind.isSSHTerminal {
             workspace.restoreRemoteSession(descriptor.remoteSession)
-            workspace.sessionPersistence.requiresSelection = descriptor.kind == .ssh
         }
         addWorkspaces([workspace])
         return workspace
@@ -471,7 +446,7 @@ final class MobileWorkspaceSessionModel {
             let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
             savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
         }
-        app.workspacesDidOpen(added)
+        app.workspacesDidOpen()
         for workspace in added { workspace.connect() }
         app.persistWorkspaceDescriptors()
     }

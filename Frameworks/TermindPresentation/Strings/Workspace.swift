@@ -2,6 +2,14 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Workspace {
+        public static func count(_ count: Int) -> LocalizedStringResource {
+            switch count {
+            case 1: "One workspace"
+            case 2: "Two workspaces"
+            default: "\(count) workspaces"
+            }
+        }
+
         public static var advisoryTelnetPassword: LocalizedStringResource {
             "This link includes an advisory Telnet password. It will be used once and will not be saved."
         }

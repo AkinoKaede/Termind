@@ -132,7 +132,22 @@ final class MobileAppModel {
     let diagnosis: DiagnosisController
     let logging: any ApplicationLogManaging
     let liveActivities: MobileLiveActivityController
-    @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
+    private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] {
+        workspaceSessions.filter { !$0.isDiscarded }.flatMap { session in
+            session.orderedWorkspaceItems.map { item in
+                if let workspace = item.workspace { return workspace.activitySession }
+                let descriptor = item.descriptor
+                let artwork = HostIconCatalog.resolvedArtwork(for: item.host)
+                return WorkspaceActivityAttributes.Session(
+                    id: descriptor.id, title: descriptor.title, kind: descriptor.kind.rawValue,
+                    connected: false, iconAsset: artwork.assetName, iconSystemName: artwork.systemImageName,
+                    recovery: .init(
+                        sourceWorkspaceID: descriptor.id, hostID: descriptor.hostID, kind: descriptor.kind.rawValue,
+                        remoteSession: descriptor.remoteSession.flatMap { try? JSONEncoder().encode($0) }))
+            }
+        }
+    }
+    private var hasLoadedWorkspaceSnapshot = false
     @ObservationIgnored private var activeConnectionHistoryIDs: [MobileWorkspace.ID: ConnectionHistoryEntry.ID] = [:]
     private let defaults: UserDefaults?
     private let settingsDefaults: UserDefaults
@@ -143,11 +158,12 @@ final class MobileAppModel {
     let recentlyClosedStore = RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>>(
         defaults: nil, key: "mobile.recentlyClosed.v2")
     private var orphanedSessionIDs: Set<String> = []
+    private var unboundRestoredSessionIDs: Set<String> = []
+    private var retiredRestoredSessionIDs: Set<String> = []
     // Disconnect and discard are separate UIKit callbacks. A later explicit discard must still close
     // precisely the workspaces recovered from that window, even if another window already received them.
     private var recoveredWorkspaceIDs: [String: Set<UUID>] = [:]
     private var discardedSessionIDs: Set<String> = []
-    private var activityRebuilds: [UUID: UUID] = [:]
     var closedWorkspaceStates: [UUID: [MobileWorkspace.ReopenState]] = [:]
     var pendingClosedWindows: Set<UUID> = []
     var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void
@@ -468,19 +484,33 @@ final class MobileAppModel {
             workspaceSessions = snapshot.sessions.sorted { $0.key < $1.key }.map {
                 MobileWorkspaceSessionModel(id: $0.key, app: self, descriptors: $0.value)
             }
+            unboundRestoredSessionIDs = Set(snapshot.sessions.keys)
+            hasLoadedWorkspaceSnapshot = true
+            updateWorkspaceActivity()
         } catch {
             self.error = error.localizedDescription
         }
         observeHostArtwork()
     }
 
-    func persistWorkspaceDescriptors() {
+    private var workspaceSnapshot: MobileWorkspaceStore.Snapshot {
         let sessions = workspaceSessions.filter { !$0.isDiscarded }.map { ($0.id, $0.restorableDescriptors) }
+        return .init(sessions: Dictionary(uniqueKeysWithValues: sessions))
+    }
+
+    func persistWorkspaceDescriptors() {
         do {
-            try workspaceStore.save(.init(sessions: Dictionary(uniqueKeysWithValues: sessions)))
+            try workspaceStore.save(workspaceSnapshot)
         } catch {
             self.error = error.localizedDescription
         }
+        updateWorkspaceActivity()
+    }
+
+    private func updateWorkspaceActivity() {
+        // A failed read is not an authoritative empty list.
+        guard hasLoadedWorkspaceSnapshot else { return }
+        liveActivities.update(workspaceActivitySessions)
     }
 
     private func reconcileConnectionPreferences() {
@@ -584,7 +614,7 @@ final class MobileAppModel {
 
     func reconcileWorkspaceSessions(openSessionIDs: Set<String>, activeSessionID: String?) {
         orphanedSessionIDs = Set(workspaceSessions.map(\.id))
-            .subtracting(openSessionIDs).subtracting(discardedSessionIDs)
+            .subtracting(openSessionIDs.subtracting(retiredRestoredSessionIDs)).subtracting(discardedSessionIDs)
         let target = activeSessionID.flatMap { id in workspaceSessions.first { $0.id == id } }
         if let target, openSessionIDs.contains(target.id) { recoverOrphanedWorkspaces(into: target) }
     }
@@ -592,13 +622,31 @@ final class MobileAppModel {
     private func recoverOrphanedWorkspaces(into target: MobileWorkspaceSessionModel) {
         orphanedSessionIDs.remove(target.id)
         guard !target.isDiscarded else { return }
-        for source in workspaceSessions where orphanedSessionIDs.contains(source.id) {
-            let recovery = source.recovery
-            recoveredWorkspaceIDs[source.id, default: []].formUnion(recovery.order)
+        let sources = workspaceSessions.filter { orphanedSessionIDs.contains($0.id) }
+        guard !sources.isEmpty else { return }
+        let recoveries = sources.map { ($0, $0.recovery) }
+        var snapshot = workspaceSnapshot
+        for (source, recovery) in recoveries {
+            snapshot.sessions[source.id] = []
+            snapshot.sessions[target.id, default: []].append(contentsOf: recovery.descriptors)
+        }
+        // Commit the complete handoff before releasing any source, including dormant records.
+        do {
+            try workspaceStore.save(snapshot)
+        } catch {
+            self.error = String(localized: AppStrings.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
+            return
+        }
+        for (source, recovery) in recoveries {
+            // Only a window used in this process can later explicitly close its transferred work.
+            if !unboundRestoredSessionIDs.contains(source.id) {
+                recoveredWorkspaceIDs[source.id, default: []].formUnion(recovery.order)
+            }
             source.releaseForRecovery()
             target.acceptRecovery(recovery)
             orphanedSessionIDs.remove(source.id)
         }
+        updateWorkspaceActivity()
     }
 
     func sceneChanged(_ id: UUID, phase: ScenePhase, workspaceSessionID: String? = nil) {
@@ -627,7 +675,7 @@ final class MobileAppModel {
             for workspace in workspaces { workspace.resumeAfterBackground() }
             reconcileSync()
             outbox.start()
-            liveActivities.update(workspaceActivitySessions)
+            updateWorkspaceActivity()
             metrics.start()
         }
     }
@@ -687,7 +735,7 @@ final class MobileAppModel {
         forwardings.stop(plan.forwardingRuleIDs)
         library.replacePersistedSnapshot(snapshot)
         forwardings.reconcileConfiguration()
-        liveActivities.update(workspaceActivitySessions)
+        updateWorkspaceActivity()
     }
 
     func removeScene(_ id: UUID) {
@@ -724,14 +772,17 @@ final class MobileAppModel {
             assistant.expireBackground()
         }
         for workspace in workspaces { workspace.suspendResumableTransport() }
-        liveActivities.update(workspaceActivitySessions)
+        updateWorkspaceActivity()
     }
 
     func focusWorkspaceActivity(_ id: UUID) {
+        guard hasLoadedWorkspaceSnapshot else { return }
         liveActivities.focus(id, in: workspaceActivitySessions)
     }
 
     func workspaceSession(for id: String) -> MobileWorkspaceSessionModel {
+        unboundRestoredSessionIDs.remove(id)
+        retiredRestoredSessionIDs.remove(id)
         if let session = workspaceSessions.first(where: { $0.id == id }) { return session }
         let session = MobileWorkspaceSessionModel(id: id, app: self, descriptors: [])
         workspaceSessions.append(session)
@@ -747,24 +798,13 @@ final class MobileAppModel {
         return nil
     }
 
-    /// Main-actor publication happens before authentication, merging concurrent scene/link deliveries.
-    func rebuildActivityWorkspace(from url: URL, into session: MobileWorkspaceSessionModel) -> UUID? {
-        guard let source = WorkspaceActivityAttributes.workspaceID(from: url) else { return nil }
-        if containsWorkspace(source) { return source }
-        if let rebuilt = activityRebuilds[source], containsWorkspace(rebuilt) { return rebuilt }
-        let fallback = WorkspaceActivityAttributes.recovery(from: url)
-        guard let recovery = liveActivities.recovery(for: source) ?? fallback,
-            recovery.version == 1, recovery.sourceWorkspaceID == source,
-            fallback == nil || (fallback?.hostID == recovery.hostID && fallback?.kind == recovery.kind),
-            let id = session.rebuild(recovery)
-        else { return nil }
-        activityRebuilds[source] = id
-        liveActivities.remove(source)
-        liveActivities.update(workspaceActivitySessions)
-        return id
-    }
-
     func discardWorkspaceSessions(_ ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        // UIKit may discard last process's windows before their records find a new native owner.
+        let restored = ids.intersection(unboundRestoredSessionIDs)
+        retiredRestoredSessionIDs.formUnion(restored)
+        orphanedSessionIDs.formUnion(restored)
+        let ids = ids.subtracting(restored)
         guard !ids.isEmpty else { return }
         // Native dismissal detaches clients; only explicit workspace closure ends owned remote work.
         discardedSessionIDs.formUnion(ids)
@@ -787,7 +827,7 @@ final class MobileAppModel {
         for id in ids { recoveredWorkspaceIDs[id] = nil }
         for session in workspaceSessions where ids.contains(session.id) { session.discard() }
         workspaceSessions.removeAll { ids.contains($0.id) }
-
+        persistWorkspaceDescriptors()
     }
 
     func containsWorkspace(_ id: UUID) -> Bool {
@@ -901,26 +941,20 @@ final class MobileAppModel {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 for workspace in self.workspaces { workspace.refreshHostArtwork() }
+                self.updateWorkspaceActivity()
                 self.observeHostArtwork()
             }
         }
     }
 
-    func workspacesDidOpen(_ added: [MobileWorkspace]) {
-        workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
+    func workspacesDidOpen() {
+        guard hasLoadedWorkspaceSnapshot else { return }
         liveActivities.start(workspaceActivitySessions)
     }
 
     func workspaceDidClose(_ id: UUID) {
         Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(id) }
         endConnectionHistory(for: id)
-        liveActivities.remove(id)
-        for source in activityRebuilds.keys where activityRebuilds[source] == id {
-            liveActivities.remove(source)
-        }
-        activityRebuilds = activityRebuilds.filter { $0.value != id }
-        workspaceActivitySessions.removeAll { $0.id == id }
-        liveActivities.update(workspaceActivitySessions)
     }
 
     private func startConnectionHistory(for workspace: MobileWorkspace) {
@@ -939,11 +973,7 @@ final class MobileAppModel {
 
     private func observeActivityState(of workspace: MobileWorkspace) {
         workspace.didChangeState = { [weak self] session in
-            guard let self,
-                let index = workspaceActivitySessions.firstIndex(where: { $0.id == session.id })
-            else { return }
-            workspaceActivitySessions[index] = session
-            liveActivities.update(workspaceActivitySessions)
+            guard let self, containsWorkspace(session.id) else { return }
             persistWorkspaceDescriptors()
         }
     }

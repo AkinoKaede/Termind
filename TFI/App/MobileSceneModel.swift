@@ -464,9 +464,8 @@ final class MobileSceneModel {
             return
         }
         isWorkspaceUnavailable = false
-        let id =
-            app.containsWorkspace(sourceID) ? sourceID : app.rebuildActivityWorkspace(from: url, into: workspaceSession)
-        guard let id, let owner = app.workspaceOwner(id) else {
+        let id = sourceID
+        guard let owner = app.workspaceOwner(id) else {
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
             workspaceID = nil

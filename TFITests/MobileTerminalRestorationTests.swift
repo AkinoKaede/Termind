@@ -35,7 +35,7 @@ struct MobileTerminalRestorationTests {
         #expect(app.restoreClosedRecord(record.id, into: destination) == descriptor.id)
         let reopened = try #require(destination.workspaces.first)
         #expect(reopened.sessionPersistence.attachment == (window ? reference : nil))
-        #expect(reopened.sessionPersistence.requiresSelection)
+        #expect(!reopened.sessionPersistence.requiresSelection)
         #expect(reopened.pendingInitialCommand == nil)
     }
 
@@ -60,7 +60,7 @@ struct MobileTerminalRestorationTests {
         #expect(app.restoreClosedRecord(record.id, into: destination) == workspace.id)
         let reopened = try #require(destination.workspaces.first)
         #expect(reopened.sessionPersistence.attachment == nil)
-        #expect(reopened.sessionPersistence.requiresSelection)
+        #expect(!reopened.sessionPersistence.requiresSelection)
     }
 
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
@@ -141,9 +141,7 @@ struct MobileTerminalRestorationTests {
         let logs = workspace.journey.logs
         workspace.receiveTransportState(.connected)
         #expect(workspace.journey.logs == logs)
-        try await Task.sleep(for: .milliseconds(750))
-        #expect(!workspace.journey.isPresented)
-        #expect(workspace.acceptsTerminalInput)
+        #expect(await eventually { !workspace.journey.isPresented && workspace.acceptsTerminalInput })
         #expect(workspace.terminal === terminal)
         workspace.receiveTransportState(.failed, failure: "Original resume error")
         #expect(workspace.journey.phase == .failed("Original resume error"))
@@ -265,7 +263,7 @@ struct MobileTerminalRestorationTests {
         #expect(saved.sessions["two"] == [et])
         let workspace = try #require(app.workspaceSession(for: "one").openWorkspace(tmux.id))
         #expect(workspace.sessionPersistence.attachment == reference)
-        #expect(workspace.sessionPersistence.requiresSelection)
+        #expect(!workspace.sessionPersistence.requiresSelection)
         workspace.disconnect()
     }
 
