@@ -235,6 +235,35 @@ struct MobileShortcutTests {
         #expect(scene.activeWorkspace?.descriptor.kind == .ssh)
     }
 
+    @Test(arguments: HostTerminalProtocol.allCases)
+    func hostCardActivationCreatesAndReusesTheDefaultTerminal(transport: HostTerminalProtocol) throws {
+        let app = try MobileAppModel(inMemory: true)
+        var host = Host(name: "Default transport", host: "example.invalid")
+        host.sshEnabled = transport != .telnet
+        host.telnetEnabled = true
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        if transport != .telnet { host.terminalTransports.defaultTransport = transport }
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        defer {
+            scene.closeAllWorkspaces()
+            app.outbox.stop()
+        }
+
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+        let workspace = try #require(scene.activeWorkspace)
+        #expect(workspace.descriptor.kind == .terminal(transport))
+        #expect(scene.workspaceActivatedByHostRow(for: host)?.workspace === workspace)
+
+        scene.selectedDestination = .vault
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+        #expect(scene.activeWorkspace === workspace)
+        #expect(scene.workspaceSession.workspaces.count == 1)
+    }
+
     @Test func hostCardActivationForgetsAClosedRecentWorkspace() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")

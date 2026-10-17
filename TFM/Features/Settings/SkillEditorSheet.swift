@@ -140,6 +140,7 @@ struct SkillEditorPage: View {
     private func descriptionSection(_ skill: AgentSkill) -> some View {
         Section {
             TextEditor(text: binding(\.summary))
+                .autohidingScrollers()
                 .font(.callout)
                 .frame(minHeight: 60)
                 .scrollContentBackground(.hidden)
@@ -170,6 +171,7 @@ struct SkillEditorPage: View {
     private func bodySection(_ skill: AgentSkill) -> some View {
         Section {
             TextEditor(text: binding(\.body))
+                .autohidingScrollers()
                 .font(.callout.monospaced())
                 .frame(minHeight: 220)
                 .scrollContentBackground(.hidden)

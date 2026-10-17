@@ -70,7 +70,7 @@ public struct MemorySettingsSection: View {
         .sheet(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
             NavigationStack {
                 Form {
-                    TextEditor(text: $draft).frame(minHeight: 220)
+                    TextEditor(text: $draft).autohidingScrollers().frame(minHeight: 220)
                     if let error = memory.error { Text(error).foregroundStyle(.red) }
                     if editing != nil {
                         let usage = MemoryDateAnnotations.draftUsage(draft)

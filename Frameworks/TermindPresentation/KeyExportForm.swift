@@ -95,6 +95,7 @@ public struct KeyExportForm: View {
 
     private var scriptEditor: some View {
         TextEditor(text: $model.options.script)
+            .autohidingScrollers()
             .font(scriptFont)
             .multilineTextAlignment(.leading)
             .frame(minHeight: 240)

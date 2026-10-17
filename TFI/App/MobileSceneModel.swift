@@ -225,36 +225,28 @@ final class MobileSceneModel {
         }
     }
 
-    /// Reuses this scene's most recently selected preferred terminal workspace for the Host.
+    /// Reuses this scene's most recently selected terminal workspace for the Host, regardless of transport.
     /// Explicit connection actions continue to call `open(hostID:kind:)` so
     /// users can still create independent SSH and SFTP workspaces.
     func activateHost(_ hostID: Host.ID) {
-        guard let host = app.library.host(hostID), let connectionProtocol = host.preferredTerminalProtocol else {
-            return
-        }
-        let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
+        guard let host = app.library.host(hostID) else { return }
         guard let workspace = workspaceActivatedByHostRow(for: host) else {
-            open(hostID: hostID, kind: kind)
+            guard let connectionProtocol = host.preferredTerminalProtocol else { return }
+            open(hostID: hostID, kind: .terminal(connectionProtocol))
             return
         }
         selectWorkspace(workspace.id)
     }
 
     /// The connection a Vault Host card will reopen in this window.
-    func workspaceActivatedByHostRow(for host: Host) -> MobileWorkspace? {
-        guard let connectionProtocol = host.preferredTerminalProtocol else { return nil }
-        let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
-        let matchingIDs = Set(
-            workspaceSession.workspaces.lazy
-                .filter { $0.descriptor.hostID == host.id && $0.descriptor.kind == kind }
-                .map(\.id)
-        )
-        let workspaceID =
-            recentWorkspaceIDs.first(where: matchingIDs.contains)
-            ?? workspaceSession.workspaces.last(where: {
-                $0.descriptor.hostID == host.id && $0.descriptor.kind == kind
-            })?.id
-        return workspaceID.flatMap { id in workspaceSession.workspaces.first { $0.id == id } }
+    func workspaceActivatedByHostRow(for host: Host) -> MobileWorkspaceItem? {
+        let matchingItems = workspaceSession.orderedWorkspaceItems.filter {
+            $0.descriptor.hostID == host.id && $0.descriptor.kind.terminalProtocol != nil
+        }
+        if let id = recentWorkspaceIDs.first(where: { id in matchingItems.contains { $0.id == id } }) {
+            return matchingItems.first { $0.id == id }
+        }
+        return matchingItems.last
     }
 
     func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
@@ -448,7 +440,6 @@ final class MobileSceneModel {
             return
         }
         if WorkspaceActivityAttributes.accepts(url) {
-            app.updateWorkspaceActivity()
             isWorkspaceUnavailable = false
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
@@ -464,8 +455,6 @@ final class MobileSceneModel {
             }
             return
         }
-        // Even an expired link must reconcile system cards against the authoritative local list.
-        app.updateWorkspaceActivity()
         isWorkspaceUnavailable = false
         let id = sourceID
         guard let owner = app.workspaceOwner(id) else {

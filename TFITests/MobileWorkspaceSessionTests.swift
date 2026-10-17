@@ -704,13 +704,18 @@ struct MobileWorkspaceSessionTests {
         #expect(second.isWorkspaceUnavailable)
     }
 
-    @Test func vaultHostIndicatorFollowsTheWorkspaceOpenedByItsCard() throws {
+    @Test(arguments: HostTerminalProtocol.allCases)
+    func vaultHostIndicatorFollowsTheWorkspaceOpenedByItsCard(transport: HostTerminalProtocol) throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
         let app = try fixture.makeApp()
         let scene = MobileSceneModel(app: app, sessionID: "vault-card")
         let other = MobileSceneModel(app: app, sessionID: "other-window")
-        let host = fixture.host
+        var host = fixture.host
+        host.telnetEnabled = true
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        app.library.upsert(host)
 
         other.open(hostID: host.id, kind: .ssh)
         #expect(scene.workspaceActivatedByHostRow(for: host) == nil)
@@ -719,15 +724,64 @@ struct MobileWorkspaceSessionTests {
         #expect(scene.workspaceActivatedByHostRow(for: host) == nil)
 
         scene.open(hostID: host.id, kind: .ssh)
-        let first = try #require(scene.workspaceActivatedByHostRow(for: host))
-        scene.open(hostID: host.id, kind: .ssh)
-        let second = try #require(scene.workspaceActivatedByHostRow(for: host))
+        let first = try #require(scene.workspaceActivatedByHostRow(for: host)?.workspace)
+        scene.open(hostID: host.id, kind: .terminal(transport))
+        let second = try #require(scene.workspaceActivatedByHostRow(for: host)?.workspace)
         #expect(first !== second)
+        #expect(second.descriptor.kind == .terminal(transport))
 
         scene.selectWorkspace(first.id)
-        #expect(scene.workspaceActivatedByHostRow(for: host) === first)
+        #expect(scene.workspaceActivatedByHostRow(for: host)?.workspace === first)
         scene.activateHost(host.id)
         #expect(scene.activeWorkspace === first)
+    }
+
+    @Test(arguments: [false, true], HostTerminalProtocol.allCases)
+    func vaultHostReopensDormantWorkspaceWithoutCreatingADuplicate(
+        olderWorkspaceIsLive: Bool, transport: HostTerminalProtocol
+    ) throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let kind = ConnectionHistoryEntry.Kind.terminal(transport)
+        let saved = MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Saved shell", kind: kind)
+        var host = fixture.host
+        host.telnetEnabled = true
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        host.terminalTransports.defaultTransport = transport == .ssh ? .mosh : .ssh
+        let older = MobileWorkspaceDescriptor(
+            hostID: host.id, title: "Older default terminal", kind: .terminal(host.terminalTransports.defaultTransport))
+        let files = MobileWorkspaceDescriptor(hostID: host.id, title: "Files", kind: .sftp)
+        let unrelated = MobileWorkspaceDescriptor(hostID: UUID(), title: "Other host", kind: .ssh)
+        let otherWindow = MobileWorkspaceDescriptor(hostID: host.id, title: "Other window", kind: kind)
+        let records = [older, saved, files, unrelated]
+        try MobileWorkspaceStore(defaults: fixture.defaults).save(
+            .init(sessions: ["vault-card": records, "other-window": [otherWindow]]))
+        let app = try fixture.makeApp()
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "vault-card")
+        if olderWorkspaceIsLive {
+            #expect(scene.workspaceSession.openWorkspace(older.id) != nil)
+        }
+
+        let item = try #require(scene.workspaceActivatedByHostRow(for: host))
+        #expect(item.id == saved.id)
+        #expect(item.workspace == nil)
+        #expect(app.workspaces.count == (olderWorkspaceIsLive ? 1 : 0))
+
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+        let reopened = try #require(scene.activeWorkspace)
+        #expect(reopened.descriptor == saved)
+        #expect(scene.workspaceSession.orderedWorkspaceItems.map(\.id) == records.map(\.id))
+        #expect(scene.workspaceActivatedByHostRow(for: host)?.workspace === reopened)
+        #expect(app.workspaceSession(for: "other-window").workspaces.isEmpty)
+
+        scene.selectedDestination = .vault
+        scene.activateHost(host.id)
+        scene.activatePendingWorkspace()
+        #expect(scene.activeWorkspace === reopened)
+        #expect(app.workspaces.count == (olderWorkspaceIsLive ? 2 : 1))
     }
 
     @Test func everyCreationEntryPointUsesTheReceivingWindow() throws {

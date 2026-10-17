@@ -38,6 +38,7 @@ public struct SnippetScriptSection<Assessment: View>: View {
     public var body: some View {
         Section(AppStrings.Snippets.script.swiftUIKey) {
             TextEditor(text: $script)
+                .autohidingScrollers()
                 .multilineTextAlignment(.leading)
                 .font(.body.monospaced())
                 .frame(minHeight: minHeight)

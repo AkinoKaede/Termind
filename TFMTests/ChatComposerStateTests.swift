@@ -100,6 +100,8 @@ struct ChatComposerStateTests {
         defer { window.close() }
 
         let emptyScroller = try await requireComposerScroller(in: hosting)
+        emptyScroller.scrollerStyle = .legacy
+        emptyScroller.tile()
         #expect(emptyScroller.autohidesScrollers)
         #expect(emptyScroller.hasVerticalScroller)
         #expect(emptyScroller.verticalScroller?.isHidden == true)
@@ -110,6 +112,7 @@ struct ChatComposerStateTests {
             $0.verticalScroller?.isEnabled == true
         }
         #expect(overflowingScroller.autohidesScrollers)
+        #expect(overflowingScroller.verticalScroller?.isHidden == false)
 
         state.text = "Short again"
         let shortScroller = try await requireComposerScroller(in: hosting) {
@@ -2446,7 +2449,7 @@ private struct ComposerScrollerTestView: View {
 
     var body: some View {
         TextEditor(text: $state.text)
-            .background { TextEditorScrollViewConfigurator() }
+            .autohidingScrollers()
     }
 }
 

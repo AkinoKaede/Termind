@@ -49,8 +49,9 @@ enum MobileWorkspaceSceneRouting {
 
     static func reconcile(app: MobileAppModel, activeSessionID: String?) {
         app.reconcileWorkspaceSessions(
-            openSessionIDs: Set(UIApplication.shared.openSessions.map(\.persistentIdentifier)),
-            activeSessionID: activeSessionID)
+            openSessionIDs: openSessionIDs(),
+            activeSessionID: activeSessionID,
+            supportsMultipleScenes: UIApplication.shared.supportsMultipleScenes)
     }
 
     static func activate(sessionID: String, workspaceID: UUID, unavailable: @escaping @MainActor () -> Void) {

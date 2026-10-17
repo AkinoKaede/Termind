@@ -15,6 +15,7 @@ struct TerminalCustomConfigurationEditorPage: View {
     @State private var importError: String?
     @State private var fieldsHeight: CGFloat = 0
     @State private var headingHeight: CGFloat = 0
+    @State private var footerHeight: CGFloat = 0
 
     init(
         draft: TerminalCustomThemeDraft, model: TerminalSettingsModel, availableFontFamilies: [String] = []
@@ -29,7 +30,7 @@ struct TerminalCustomConfigurationEditorPage: View {
         GeometryReader { geometry in
             let contentWidth = geometry.size.width - 8
             let sideBySide = contentWidth >= 700 && !typeSize.isAccessibilitySize
-            let panelHeight = max(460, geometry.size.height - fieldsHeight - 24)
+            let panelHeight = max(460, geometry.size.height - fieldsHeight - footerHeight - 40)
             let layout =
                 sideBySide
                 ? AnyLayout(HStackLayout(alignment: .top, spacing: 16))
@@ -52,6 +53,7 @@ struct TerminalCustomConfigurationEditorPage: View {
                                     headingHeight = $0
                                 }
                             TextEditor(text: $draft.value.configuration)
+                                .autohidingScrollers()
                                 .font(.system(.body, design: .monospaced))
                                 .textContentType(.none)
                                 .autocorrectionDisabled()
@@ -74,6 +76,14 @@ struct TerminalCustomConfigurationEditorPage: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: sideBySide ? panelHeight : nil)
                     }
+                    Text(AppStrings.Settings.terminalConfigurationExplanation)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .onGeometryChange(for: CGFloat.self) {
+                            $0.size.height
+                        } action: {
+                            footerHeight = $0
+                        }
                 }
                 // Native text-field focus rings extend outside the control's layout bounds.
                 .padding(4)
@@ -163,9 +173,6 @@ struct TerminalCustomConfigurationEditorPage: View {
             if let error = importError ?? model.storageError {
                 Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
             }
-            Text(AppStrings.Settings.terminalConfigurationExplanation)
-                .font(.caption).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

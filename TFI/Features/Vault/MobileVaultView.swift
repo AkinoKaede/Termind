@@ -789,7 +789,7 @@ struct MobileVaultView: View {
             MobileHostCardContent(
                 host: host,
                 address: app.library.preferredTerminalLoginAddress(for: host),
-                status: scene?.workspaceActivatedByHostRow(for: host).flatMap {
+                status: scene?.workspaceActivatedByHostRow(for: host)?.workspace.flatMap {
                     MobileWorkspaceConnectionIndicator.resolve(
                         connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
                     )?.status

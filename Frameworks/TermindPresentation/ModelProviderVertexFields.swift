@@ -98,7 +98,7 @@ public struct ModelProviderVertexFields: View {
         .sheet(isPresented: $pasting, onDismiss: { json = "" }) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Paste Service Account JSON").font(.headline)
-                TextEditor(text: $json).font(.body.monospaced()).autocorrectionDisabled()
+                TextEditor(text: $json).autohidingScrollers().font(.body.monospaced()).autocorrectionDisabled()
                     #if os(iOS)
                         .textInputAutocapitalization(.never)
                     #endif

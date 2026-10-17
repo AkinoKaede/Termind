@@ -21,7 +21,7 @@ extension AppStrings {
         public static var privacyPolicy: LocalizedStringResource {
             "Privacy Policy"
         }
-
+ 
         public static var termindPro: LocalizedStringResource {
             "Termind Pro"
         }

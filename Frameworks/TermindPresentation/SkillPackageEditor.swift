@@ -73,7 +73,7 @@ public struct SkillPackageEditor: View {
             NavigationStack {
                 Form {
                     TextField("Relative Path", text: $path)
-                    TextEditor(text: $text).font(.body.monospaced()).frame(minHeight: 240)
+                    TextEditor(text: $text).autohidingScrollers().font(.body.monospaced()).frame(minHeight: 240)
                     if let error { Text(error).foregroundStyle(.red) }
                 }
                 .navigationTitle("Supporting File")

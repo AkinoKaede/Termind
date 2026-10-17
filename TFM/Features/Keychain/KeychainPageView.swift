@@ -754,6 +754,7 @@ private struct SoftwareKeyEditor: View {
         text: Binding<String>, minHeight: CGFloat, placeholder: LocalizedStringResource
     ) -> some View {
         TextEditor(text: text)
+            .autohidingScrollers()
             .font(.caption.monospaced())
             .frame(minHeight: minHeight)
             .scrollContentBackground(.hidden)

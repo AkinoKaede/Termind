@@ -41,6 +41,7 @@ struct TerminalCustomConfigurationEditorLayoutTests {
         let editor = try #require(fixture.descendant(NSTextView.self))
         let scroll = try #require(editor.enclosingScrollView)
         let preview = try #require(fixture.descendant(AppTerminalView.self))
+        scroll.scrollerStyle = .legacy
         let editorHeight = scroll.bounds.height
         let previewHeight = preview.bounds.height
         #expect(editorHeight > 400)
@@ -54,11 +55,16 @@ struct TerminalCustomConfigurationEditorLayoutTests {
             #expect(abs(scroll.bounds.height - editorHeight) <= 1)
             #expect(abs(preview.bounds.height - previewHeight) <= 1)
             fixture.expectFillsPage(editor: scroll, preview: preview)
+            #expect(scroll.autohidesScrollers)
             if text == Self.longConfiguration {
+                #expect(scroll.verticalScroller?.isHidden == false)
+                #expect(scroll.verticalScroller?.isEnabled == true)
                 #expect(editor.bounds.height > scroll.contentSize.height)
                 editor.scrollRangeToVisible(NSRange(location: (text as NSString).length, length: 0))
                 #expect(scroll.contentView.bounds.minY > 0)
                 #expect(abs(scroll.bounds.height - editorHeight) <= 1)
+            } else {
+                #expect(scroll.verticalScroller?.isHidden == true)
             }
         }
         #expect(!fixture.window.isVisible)
@@ -139,9 +145,11 @@ struct TerminalCustomConfigurationEditorLayoutTests {
         let draft: TerminalCustomThemeDraft
         let controller: NSHostingController<AnyView>
         let window: NSWindow
+        let language: String
         var view: NSView { controller.view }
 
         init(language: String = "en", isDark: Bool = true, typeSize: DynamicTypeSize = .large) {
+            self.language = language
             let theme = TerminalCustomTheme(
                 name: "Layout", appearance: isDark ? .dark : .light,
                 baseThemeName: isDark ? "Termind Dark" : "Termind Light")
@@ -187,9 +195,17 @@ struct TerminalCustomConfigurationEditorLayoutTests {
         func expectFillsPage(editor: NSScrollView, preview: AppTerminalView) {
             let editorFrame = editor.convert(editor.bounds, to: view)
             let previewFrame = preview.convert(preview.bounds, to: view)
+            let footer = NSHostingView(
+                rootView: Text(AppStrings.Settings.terminalConfigurationExplanation)
+                    .font(.caption)
+                    .frame(width: view.bounds.width - 32, alignment: .leading)
+                    .environment(\.locale, Locale(identifier: language)))
+            let footerHeight = footer.fittingSize.height
             let editorBottom = view.isFlipped ? view.bounds.maxY - editorFrame.maxY : editorFrame.minY
             let previewBottom = view.isFlipped ? view.bounds.maxY - previewFrame.maxY : previewFrame.minY
-            #expect(abs(editorBottom - 16) <= 1)
+            // Leave the localized footer, its spacing, and the page inset below both panels.
+            #expect(footerHeight > 0)
+            #expect(abs(editorBottom - footerHeight - 32) <= 1)
             // The terminal and color specimens share one panel; specimens sit below the native surface.
             #expect(previewBottom > editorBottom)
             #expect(previewFrame.height >= 220)

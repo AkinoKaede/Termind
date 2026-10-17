@@ -486,7 +486,7 @@ final class MobileAppModel {
             }
             unboundRestoredSessionIDs = Set(snapshot.sessions.keys)
             hasLoadedWorkspaceSnapshot = true
-            updateWorkspaceActivity()
+            liveActivities.restore(workspaceActivitySessions)
         } catch {
             self.error = error.localizedDescription
         }
@@ -507,7 +507,7 @@ final class MobileAppModel {
         updateWorkspaceActivity()
     }
 
-    func updateWorkspaceActivity() {
+    private func updateWorkspaceActivity() {
         // A failed read is not an authoritative empty list.
         guard hasLoadedWorkspaceSnapshot else { return }
         liveActivities.update(workspaceActivitySessions)
@@ -612,9 +612,15 @@ final class MobileAppModel {
         // openSessions reconciliation can establish that its window has actually disappeared.
     }
 
-    func reconcileWorkspaceSessions(openSessionIDs: Set<String>, activeSessionID: String?) {
+    func reconcileWorkspaceSessions(
+        openSessionIDs: Set<String>, activeSessionID: String?, supportsMultipleScenes: Bool = true
+    ) {
+        // On single-window devices UIKit can still report archived sessions from a previous launch.
+        // Their workspaces belong in the current list, not in an unreachable Live Activity-only owner.
+        let ownerIDs =
+            supportsMultipleScenes ? openSessionIDs : Set([activeSessionID].compactMap { $0 })
         orphanedSessionIDs = Set(workspaceSessions.map(\.id))
-            .subtracting(openSessionIDs.subtracting(retiredRestoredSessionIDs)).subtracting(discardedSessionIDs)
+            .subtracting(ownerIDs.subtracting(retiredRestoredSessionIDs)).subtracting(discardedSessionIDs)
         let target = activeSessionID.flatMap { id in workspaceSessions.first { $0.id == id } }
         if let target, openSessionIDs.contains(target.id) { recoverOrphanedWorkspaces(into: target) }
     }
