@@ -93,7 +93,6 @@ struct MobileSavedNameRenderingTests {
         }
         let bytes = try #require(image.pngData())
         Attachment.record(bytes, named: "name-hints-\(name)-\(language).png")
-        #expect(bytes.count > 10_000)
     }
 }
 

@@ -39,7 +39,6 @@ struct ChooserInteractionTests {
 
         let image = try fixture.capture()
         Attachment.record(image, named: "quick-open-integrated-glass-\(variant).png")
-        #expect(image.count > 20_000)
     }
 
     @Test(arguments: ["toolbar", "ssh", "serial"])

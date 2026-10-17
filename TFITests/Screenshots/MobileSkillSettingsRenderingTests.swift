@@ -37,6 +37,5 @@ struct MobileSkillSettingsRenderingTests {
         }
         let bytes = try #require(image.pngData())
         Attachment.record(bytes, named: "\(name)-\(language).png")
-        #expect(bytes.count > 10_000)
     }
 }

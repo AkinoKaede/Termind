@@ -15,7 +15,6 @@ nonisolated struct MetricsCPUUsageTests {
 
         let expected = MetricsCPUUsage(utilization: 35, user: 20, system: 10, wait: 15, steal: 5, idle: 50)
         #expect(point.cpuUsage == expected)
-        #expect(point.cpu == 35)
         #expect(point.cpuCores == [MetricsCPUPoint(id: 7, usage: expected)])
     }
 

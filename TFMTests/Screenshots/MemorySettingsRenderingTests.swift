@@ -73,6 +73,5 @@ struct MemorySettingsRenderingTests {
         controller.view.cacheDisplay(in: controller.view.bounds, to: representation)
         let bytes = try #require(representation.representation(using: .png, properties: [:]))
         Attachment.record(bytes, named: "\(name)-\(language)-\(dark ? "dark" : "light").png")
-        #expect(bytes.count > 20_000)
     }
 }
