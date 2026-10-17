@@ -18,18 +18,6 @@ struct MarkdownParsingTests {
     }
 
     @Test
-    func newlineInsideAParagraphUsesUpstreamSoftBreaks() {
-        let blocks = TermindMarkdownParser.parse("**Note:** this matters\nAnother line here")
-        guard case .paragraph(let inlines)? = blocks.first else {
-            Issue.record("expected a paragraph, got \(blocks)")
-            return
-        }
-        #expect(inlines.contains(.softBreak))
-        #expect(!inlines.contains(.lineBreak))
-        #expect(inlineText(inlines).contains("matters Another"))
-    }
-
-    @Test
     func tableCarriesItsColumnAlignments() {
         let blocks = TermindMarkdownParser.parse(
             "| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |"
@@ -230,11 +218,21 @@ struct MarkdownParsingTests {
         #expect(TermindMarkdownParser.parse("").isEmpty)
     }
 
-    @Test(arguments: ["first\\\nsecond", "first  \nsecond"])
-    func explicitHardBreaksRemainLineBreaks(source: String) {
+    @Test(arguments: [
+        "**Note:** this matters\nAnother line here",
+        "first\\\nsecond",
+        "first  \nsecond",
+    ])
+    func paragraphLineBreaksFollowUpstreamSoftAndHardRules(source: String) {
         let inlines = paragraphInlines(TermindMarkdownParser.parse(source).first)
-        #expect(inlines.contains(.lineBreak))
-        #expect(inlineText(inlines) == "first\nsecond")
+        if source.hasPrefix("**Note:**") {
+            #expect(inlines.contains(.softBreak))
+            #expect(!inlines.contains(.lineBreak))
+            #expect(inlineText(inlines).contains("matters Another"))
+        } else {
+            #expect(inlines.contains(.lineBreak))
+            #expect(inlineText(inlines) == "first\nsecond")
+        }
     }
 
     @MainActor

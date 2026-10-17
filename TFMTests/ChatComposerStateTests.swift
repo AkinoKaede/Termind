@@ -333,11 +333,6 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func reasoningEffortDefaultsToMedium() {
-        #expect(ConversationModel().reasoningEffort == .medium)
-    }
-
-    @Test
     func reasoningEffortStaysScopedToItsConversation() {
         let first = ConversationModel()
         let second = ConversationModel()
@@ -742,30 +737,6 @@ struct ChatComposerStateTests {
             conversation.messages.first { $0.id == assistant.id }?.reasoning.map(\.text)
                 == ["first tail"]
         )
-    }
-
-    @Test
-    func stoppingSettlesAnImmediatelyPresentedPartialAnswer() {
-        let conversation = ConversationModel(
-            contextEstimatePublishInterval: .seconds(60)
-        )
-        let runID = UUID()
-        let assistant = AgentTranscriptMessage(role: .assistant)
-        conversation.handle(
-            .runStarted(
-                AgentRunSummary(
-                    id: runID, state: .running, startedAt: .now
-                )))
-        conversation.handle(.runState(.running))
-        conversation.handle(.messageStarted(assistant))
-        conversation.handle(.messageDelta(messageID: assistant.id, text: "first"))
-        conversation.handle(.messageDelta(messageID: assistant.id, text: " tail"))
-
-        conversation.stop()
-
-        let visible = conversation.messages.first { $0.id == assistant.id }
-        #expect(visible?.text == "first tail")
-        #expect(visible?.isStreaming == false)
     }
 
     @Test

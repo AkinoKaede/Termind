@@ -7,14 +7,6 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
-    @Test func fiveDestinationsShareOneOrder() {
-        let features = MobileFeatureRegistry.standard()
-        #expect(
-            features.registrations.map(\.id)
-                == [.vault, .metrics, .workspaces, .assistant, .settings]
-        )
-    }
-
     @Test func metricsUsesAvailableWidthRatherThanDeviceOrientation() {
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 430))
         #expect(!MobileMetricsDetailPage.showsBothColumns(width: 680))

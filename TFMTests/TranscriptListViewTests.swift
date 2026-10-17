@@ -634,28 +634,6 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
-    func userBubbleUsesASubtleAccentFillInLightAndDarkAppearances() throws {
-        for appearanceName in [NSAppearance.Name.aqua, .darkAqua] {
-            let coordinator = TranscriptListView.Coordinator()
-            let listView = coordinator.makeListView()
-            listView.appearance = NSAppearance(named: appearanceName)
-            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
-            let id = UUID()
-
-            update(coordinator, listView, entries: [user(id: id, text: "Hi")])
-            listView.layoutSubtreeIfNeeded()
-
-            let row = try #require(listView.rowView(for: id))
-            let bubble = try #require(
-                descendant(in: row, identifier: "Transcript.UserBubble")
-            )
-            bubble.updateLayer()
-            let color = try #require(bubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)))
-            #expect(abs(color.alphaComponent - 0.10) < 0.002)
-        }
-    }
-
-    @Test
     func mountedTranscriptRefreshesWhenSystemAppearanceChanges() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()

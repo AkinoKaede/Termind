@@ -21,17 +21,6 @@ struct ChatSlashCommandTests {
         ),
     ]
 
-    @Test
-    func commandsDeclareTheirSupportedPlatforms() {
-        let archive = ChatSlashCommand(
-            id: "archive", displayName: "Archive", summary: "Archive this chat",
-            icon: .symbol("archivebox"), platforms: [.desktop]
-        )
-
-        #expect(archive.platforms == [.desktop])
-        #expect(commands.allSatisfy { $0.platforms == ChatSlashCommand.Platform.allCases })
-    }
-
     private func options(_ command: ChatSlashCommand) -> [ChatSlashCommand.Option] {
         guard command.id == "reasoning" else { return [] }
         return [

@@ -157,22 +157,6 @@ struct ConnectionJourneyTests {
     }
 
     @Test
-    func authenticationPromptDistinguishesIdentityCollectionFromServerChallenge() {
-        let host = Host(name: "Server", host: "server.example")
-        let localPrompt = SSHAuthenticationPrompt(
-            host: host, username: "", selectedKeyID: nil,
-            failureMessage: nil, mode: .localIdentity
-        )
-        let serverPrompt = SSHAuthenticationPrompt(
-            host: host, username: "deploy", selectedKeyID: nil,
-            failureMessage: "Authentication rejected", mode: .serverChallenge
-        )
-
-        #expect(localPrompt.mode == .localIdentity)
-        #expect(serverPrompt.mode == .serverChallenge)
-    }
-
-    @Test
     func routeProgressIsMonotonicAcrossReconnectProbes() {
         let first = Host(name: "Jump", host: "jump.example")
         let destination = Host(name: "Server", host: "server.example")

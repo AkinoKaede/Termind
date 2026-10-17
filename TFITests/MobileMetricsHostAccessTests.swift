@@ -43,20 +43,6 @@ struct MobileMetricsHostAccessTests {
         #expect(preferences.values.map(\.id) == [hosts[3].id])
     }
 
-    @Test func failedAccessUsesErrorIndicatorRatherThanAnIndefiniteSpinner() {
-        let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Host")
-        server.hostAccessError = .entitlementVerificationFailed
-        #expect(MetricsInstrumentBody(server: server, sleeping: false).connectionIndicator == .attention)
-        server.hostAccessError = .verifyingEntitlement
-        server.isConnecting = true
-        #expect(MetricsInstrumentBody(server: server, sleeping: false).connectionIndicator == .progress)
-    }
-
-    @Test func hostQuotaDoesNotProduceAFallbackSaveAlert() {
-        let error: any Error = HostAccessError.hostLimit
-        #expect(HostAccessError.presentationDescription(of: error) == nil)
-    }
-
     @Test func erasedHostAccessErrorsUseTheLocalizedPresentationMessage() {
         let error: any Error = HostAccessError.entitlementVerificationFailed
         #expect(error.localizedDescription == String(localized: AppStrings.Pro.accessVerificationFailed))

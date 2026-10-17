@@ -13,43 +13,37 @@ struct PortForwardingPresentationTests {
         #expect(!PortForwardingFieldPresentation.hostTitle(for: host).contains(host.displayAddress))
     }
 
-    @Test(arguments: [PortForwardingRule.Kind.local, .dynamic])
-    func localAndDynamicForwardingUseTheLocalPortResource(_ kind: PortForwardingRule.Kind) {
+    @Test(arguments: [
+        (PortForwardingRule.Kind.local, "Local Port"),
+        (.dynamic, "Local Port"),
+        (.remote, "Remote Port"),
+    ])
+    func portLabelNamesThePortThatKindForwards(
+        _ kind: PortForwardingRule.Kind,
+        _ resource: String
+    ) {
         #expect(
             PortForwardingFieldPresentation.portLabel(for: kind).key
-                == LocalizedStringResource("Local Port").key)
+                == LocalizedStringResource(stringLiteral: resource).key)
     }
 
-    @Test func remoteForwardingUsesTheRemotePortResource() {
-        #expect(
-            PortForwardingFieldPresentation.portLabel(for: .remote).key
-                == LocalizedStringResource("Remote Port").key)
-    }
-
-    @Test(arguments: [PortForwardingRule.Kind.local, .remote])
-    func fixedDestinationsAreShownForLocalAndRemoteForwarding(_ kind: PortForwardingRule.Kind) {
-        #expect(PortForwardingFieldPresentation.showsDestination(for: kind))
-
+    @Test(arguments: [PortForwardingRule.Kind.local, .remote, .dynamic])
+    func destinationFieldsFollowTheForwardingKind(_ kind: PortForwardingRule.Kind) {
         let expected: [String]
         switch kind {
         case .local:
+            #expect(PortForwardingFieldPresentation.showsDestination(for: kind))
             expected = [localDeviceName, "SSH Host", "Destination"]
         case .remote:
+            #expect(PortForwardingFieldPresentation.showsDestination(for: kind))
             expected = ["SSH Host", localDeviceName, "Destination"]
         case .dynamic:
-            Issue.record("Dynamic forwarding does not show a fixed destination.")
-            return
+            #expect(!PortForwardingFieldPresentation.showsDestination(for: kind))
+            expected = ["SOCKS5", localDeviceName, "SSH Host", "Requested Destination"]
         }
         assertOrdered(
             expected,
             in: PortForwardingFieldPresentation.directionDescription(for: kind).key)
-    }
-
-    @Test func dynamicForwardingOmitsFixedDestinationFields() {
-        #expect(!PortForwardingFieldPresentation.showsDestination(for: .dynamic))
-        assertOrdered(
-            ["SOCKS5", localDeviceName, "SSH Host", "Requested Destination"],
-            in: PortForwardingFieldPresentation.directionDescription(for: .dynamic).key)
     }
 
     private var localDeviceName: String {

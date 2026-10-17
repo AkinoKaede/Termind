@@ -194,11 +194,6 @@ struct AppLanguageTests {
         #expect(!DeviceCensorship.containsColoredPixel([]))
     }
 
-    private func pluralForms(in localization: [String: Any]) -> [String: Any] {
-        let variations = localization["variations"] as? [String: Any]
-        return variations?["plural"] as? [String: Any] ?? [:]
-    }
-
     private func makeDefaults() throws -> UserDefaults {
         let suiteName = "AppLanguageTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))

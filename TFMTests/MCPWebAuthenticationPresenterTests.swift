@@ -30,14 +30,16 @@ struct MCPWebAuthenticationPresenterTests {
         #expect(throws: MCPWebAuthenticationError.sessionUnavailable) { try result.get() }
     }
 
-    @Test func backgroundFailureDoesNotExposeSystemErrorDetails() async {
-        let result = await deliver(error: NSError(domain: "OAuth fixture", code: 99))
-        #expect(throws: MCPWebAuthenticationError.sessionUnavailable) { try result.get() }
-    }
+    @Test func unavailableSessionsHideBothMissingCallbackAndBackgroundFailures() async {
+        let missingCallback = await deliver()
+        #expect(throws: MCPWebAuthenticationError.sessionUnavailable) {
+            try missingCallback.get()
+        }
 
-    @Test func missingCallbackReturnsSessionUnavailable() async {
-        let result = await deliver()
-        #expect(throws: MCPWebAuthenticationError.sessionUnavailable) { try result.get() }
+        let backgroundFailure = await deliver(error: NSError(domain: "OAuth fixture", code: 99))
+        #expect(throws: MCPWebAuthenticationError.sessionUnavailable) {
+            try backgroundFailure.get()
+        }
     }
 
     private func deliver(callback: URL? = nil, error: (any Error)? = nil) async -> Result<URL, any Error> {
