@@ -146,7 +146,8 @@ final class MCPServerTools {
             services: AgentToolServices()
                 .setting(handler.sshInteraction, for: .sshInteraction),
             runID: runID, permissionMode: .fullAccess,
-            userIntent: "MCP client: \(clientName)"
+            userIntent: "MCP client: \(clientName)",
+            outputProjection: AgentToolOutputProjection(audience: .externalClient)
         )
         let call = AgentToolCall(id: callID, name: name, arguments: arguments)
         let id = UUID()

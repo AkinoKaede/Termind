@@ -291,22 +291,29 @@ public final class AssistantChatCoordinator: AgentChatModelCatalog, AgentChatCoo
             throw AgentToolError.invalidArguments("The chat does not exist.")
         }
         configure(conversation)
-        let offset = try Self.offset(cursor)
+        let parts = cursor?.split(separator: ":", omittingEmptySubsequences: false).map(String.init) ?? []
+        guard parts.count <= 2 else { throw AgentToolError.invalidArguments("The chat cursor is invalid.") }
+        let offset = try Self.offset(parts.first)
+        let lineOffset = try parts.count == 2 ? Self.offset(parts[1]) : 1
+        guard lineOffset > 0 else { throw AgentToolError.invalidArguments("The chat cursor is invalid.") }
         let visible = conversation.messages
         guard offset <= visible.count else {
             throw AgentToolError.invalidArguments("The chat cursor is invalid.")
         }
         let page = Array(visible.dropFirst(offset).prefix(20))
-        var budget = 40_000
-        var wasTruncated = false
-        let messages = page.map { message -> AgentJSONValue in
-            let allowed = max(0, min(8_000, budget))
-            let text = String(message.text.prefix(allowed))
-            if text.count < message.text.count { wasTruncated = true }
-            budget -= text.count
+        if lineOffset > 1 {
+            guard let first = page.first, lineOffset <= AgentTruncateResult.logicalLines(first.text).count else {
+                throw AgentToolError.invalidArguments("The chat cursor is invalid.")
+            }
+        }
+        let messages = page.enumerated().map { index, message -> AgentJSONValue in
+            let start = index == 0 ? lineOffset : 1
+            let text =
+                start == 1 ? message.text : AgentTruncateResult.logicalLines(message.text).dropFirst(start - 1).joined()
             return .object([
                 "role": .string(message.role == .user ? "user" : "assistant"),
                 "text": .string(text),
+                "line_offset": .number(Double(start)),
                 "agent_origin": .bool(message.origin != nil),
             ])
         }
@@ -320,9 +327,10 @@ public final class AssistantChatCoordinator: AgentChatModelCatalog, AgentChatCoo
         var result = chatObject(conversation)
         result["messages"] = .array(messages)
         result["message_count"] = .number(Double(page.count))
+        result["message_offset"] = .number(Double(offset))
         result["tool_summaries"] = .array(toolRows)
         result["deliveries"] = .array(receipts.suffix(20).map(receiptJSON))
-        result["truncated"] = .bool(wasTruncated)
+        result["truncated"] = .bool(false)
         let next = offset + page.count
         if next < visible.count { result["next_cursor"] = .string(String(next)) }
         return .object(result)

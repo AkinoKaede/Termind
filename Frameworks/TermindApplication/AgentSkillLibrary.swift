@@ -117,48 +117,49 @@ public nonisolated enum AgentSkillLibrary {
               non-PTY mode or let the user interact in their terminal rather than retrying blindly.
               Foreground interjection can hand execution to background but cannot reopen closed stdin.
 
-            ## Plan output before running: use > for verbose commands
+            ## Output and automatic capture
 
-            ssh_exec_output(handle) returns an immediate, cumulative snapshot, not a new-output cursor.
-            Each stream keeps only its latest 256 KiB, prefixed with `[N chars were truncated]` when
-            older output was discarded. Re-reading cannot recover it. For builds, long logs or output
-            that must remain complete, choose an authorized remote log path before starting.
-            Use shell command substitution to generate a timestamped path, print it, then redirect:
+            ssh_exec_run and ssh_exec_output return combined output in stdout/stderr callback-arrival
+            order, plus handle, status, exit_code, signal, error and stdin_closed. ssh_exec_output is an
+            immediate cumulative snapshot, not a consuming cursor. Keep the handle and check completion.
+            Model responses keep a tail of whole logical lines within 64 KiB (65,536 UTF-8 bytes) and
+            2,000 lines. They never cut a line in half; a single oversized line may be omitted entirely.
+            An unterminated final line can still be an interactive prompt.
+
+            On truncation, read the exact generated <conversationID>/outputs/ssh-exec-<UUID>.txt path from the result's
+            notice. scratch_read(path, offset, limit) pages the saved output; scratch_search(query, path)
+            finds matching lines. The running command updates one cumulative file. A truncated ssh_exec_output
+            response saves its own snapshot as <conversationID>/outputs/ssh-exec-output-<UUID>.txt.
+            AgentKit marks truncation as [Showing lines <start>-<end> of <total>. Full output: <path>].
+            Without a complete saved copy, the same marker omits the Full output clause.
+            A snapshot capture covers the reported output, not future output. Check capture_error:
+            file/workspace quotas or write errors mean a complete saved copy is unavailable. Do not claim
+            that truncation can always be recovered when capture failed. Captures are local to this app,
+            not remote paths, and are not automatically deleted when a conversation is deleted.
+
+            Scratch is shared across conversations. Choose task-specific relative paths for your own
+            files, inspect before overwriting, and follow returned paths rather than inventing filenames.
+            Parent directories are created automatically; do not use absolute paths or '..'.
+
+            For output expected to exceed scratch quotas, choose an authorized remote log path before
+            starting and redirect there. For example, in one ssh_exec_run call:
 
             ```sh
-            log="/tmp/task-$(date +%Y%m%d-%H%M%S).log"
+            log="$(mktemp /tmp/task.XXXXXXXX)"
             printf 'Log: %s\\n' "$log"
             command > "$log" 2>&1
             ```
 
-            To keep stdout data and stderr diagnostics separate:
-
-            ```sh
-            base="/tmp/task-$(date +%Y%m%d-%H%M%S)"
-            printf 'Stdout: %s.out\\nStderr: %s.err\\n' "$base" "$base"
-            command > "$base.out" 2> "$base.err"
-            ```
-
-            - Run each block in a single ssh_exec_run call. Shell variables do not persist between calls.
-              Reuse the printed path for later reads; do not run date again to reconstruct it.
-            - `>` creates or truncates; `>>` appends. Use a new task-specific path or confirm overwriting
-              existing data. Quote paths. `2>&1` must follow `>` to capture both streams in that file.
-            - Redirection runs on the remote host and does not background the command. Use
-              run_in_background=true for long-running work; do not add shell `&` merely to return early.
-              Keep the command handle to check its status even when stdout and stderr are redirected.
-
-            Inspect a bounded slice with `tail -n 100` using the printed path, or read selected ranges with
-            sftp_read(host_id, path, offset, limit). Follow its next_offset for another page; one response
-            is not necessarily the whole file. Do not dump a large log back with cat, tail -f, or tee.
-            Report the remote log path so the user can retrieve the full artifact through SFTP.
-            For input-driven commands, keep needed prompts visible: they may be on stderr, and redirecting
-            both streams can hide them. Never log secrets; redirection does not sanitize command output.
+            Use the printed remote path with sftp_read or a bounded `tail -n 100`. Shell variables do
+            not persist between calls. Redirection is optional, is not backgrounding, and does not
+            sanitize output. Never log secrets; do not redirect prompts needed for interactive input.
+            External MCP clients receive their own full snapshots, without assistant scratch captures.
 
             ## stdin workflow
 
             1. Start the intended consumer with ssh_exec_run(..., run_in_background=true). Keep its
                returned handle; do not start another copy just to supply input.
-            2. Use ssh_exec_output(handle) to inspect stdout, stderr, status and stdin_closed. A running
+            2. Use ssh_exec_output(handle) to inspect output, status and stdin_closed. A running
                status alone does not prove the program is waiting for input. Follow its actual protocol
                or prompt; a pipe consumer may need data immediately without printing a prompt.
             3. Send input with ssh_exec_stdin using the same handle. Choose the text or secret flow

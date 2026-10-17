@@ -9,7 +9,7 @@ nonisolated public enum AgentToolPresentation {
         case secondary, warning, success, failure
     }
 
-    public static let displayCharacterLimit = 8_192
+    public static let displayByteLimit = AgentTruncateLimits.maximumBytes
     public static let displayLineLimit = 120
 
     private static let chatCollaborationToolNames: Set<String> = [
@@ -35,7 +35,7 @@ nonisolated public enum AgentToolPresentation {
     }
 
     public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
-        card.result?.isTruncated == true && !isLocalPaneTool(card.descriptor, named: "read_pane")
+        truncationNotice(for: card) != nil
     }
 
     private static func isLocalPaneTool(_ descriptor: AgentToolDescriptor, named name: String) -> Bool {
@@ -477,59 +477,23 @@ nonisolated public enum AgentToolPresentation {
     /// it for Copy, while the Text view only receives the small preview.
     public static func preview(
         _ full: String,
-        characterLimit: Int = displayCharacterLimit,
+        byteLimit: Int = displayByteLimit,
         lineLimit: Int = displayLineLimit
     ) -> OutputPreview {
-        let lineCount = full.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
-        guard full.count > characterLimit || lineCount > lineLimit else {
-            return OutputPreview(
-                displayed: full, full: full, isShortened: false, omittedCharacters: 0
-            )
-        }
-
-        // Five eighths at the front and three eighths at the back keeps the
-        // command and initial diagnostics while retaining the final failure.
-        // Leave room for the marker itself; a final tightening pass below
-        // makes the bound exact even when the omitted count has many digits.
-        let contentCharacterLimit = max(2, characterLimit - min(80, characterLimit / 4))
-        let headCharacters = max(1, contentCharacterLimit * 5 / 8)
-        let tailCharacters = max(1, contentCharacterLimit - headCharacters)
-        let contentLineLimit = max(2, lineLimit - 1)
-        let headLines = max(1, contentLineLimit * 5 / 8)
-        let tailLines = max(1, contentLineLimit - headLines)
-
-        let headByCharacters = full.index(
-            full.startIndex,
-            offsetBy: min(headCharacters, full.count)
-        )
-        let tailByCharacters = full.index(
-            full.endIndex,
-            offsetBy: -min(tailCharacters, full.count)
-        )
-        let headByLines = boundaryAfterLines(headLines, in: full)
-        let tailByLines = boundaryBeforeLastLines(tailLines, in: full)
-        var headEnd = min(headByCharacters, headByLines)
-        var tailStart = max(tailByCharacters, tailByLines)
-
-        // The limits above normally leave a gap. Keep the fallback defensive
-        // for tiny custom limits used by unit tests.
-        tailStart = max(tailStart, headEnd)
-        var displayed = renderedPreview(full, headEnd: headEnd, tailStart: tailStart)
-        while displayed.count > characterLimit, headEnd > full.startIndex || tailStart < full.endIndex {
-            let overflow = displayed.count - characterLimit
-            let availableHead = full.distance(from: full.startIndex, to: headEnd)
-            let availableTail = full.distance(from: tailStart, to: full.endIndex)
-            let dropHead = min(availableHead, max(1, overflow * 5 / 8))
-            let dropTail = min(availableTail, max(0, overflow - dropHead))
-            headEnd = full.index(headEnd, offsetBy: -dropHead)
-            tailStart = full.index(tailStart, offsetBy: dropTail)
-            displayed = renderedPreview(full, headEnd: headEnd, tailStart: tailStart)
-        }
-        let omitted = full.distance(from: headEnd, to: tailStart)
+        let selected = AgentTruncateResult.apply(
+            full, strategy: .middle, limits: .init(bytes: byteLimit, lines: lineLimit))
         return OutputPreview(
-            displayed: displayed, full: full,
-            isShortened: true, omittedCharacters: omitted
-        )
+            displayed: selected.content, full: full, isShortened: selected.isTruncated,
+            omittedCharacters: max(0, full.count - selected.content.count))
+    }
+
+    public static func compactStrategy(for descriptor: AgentToolDescriptor) -> AgentTruncateStrategy {
+        descriptor.target != .mcp && ["ssh_exec_run", "ssh_exec_output"].contains(descriptor.name) ? .tail : .head
+    }
+
+    public static func truncationNotice(for card: AgentToolCard) -> String? {
+        guard !isLocalPaneTool(card.descriptor, named: "read_pane") else { return nil }
+        return card.result?.truncateMarker
     }
 
     private static func approvalArgumentItems(
@@ -569,41 +533,6 @@ nonisolated public enum AgentToolPresentation {
 
     private static func isChatCollaborationTool(_ descriptor: AgentToolDescriptor) -> Bool {
         descriptor.target == .local && chatCollaborationToolNames.contains(descriptor.name)
-    }
-
-    private static func renderedPreview(
-        _ full: String, headEnd: String.Index, tailStart: String.Index
-    ) -> String {
-        let omitted = full.distance(from: headEnd, to: tailStart)
-        let marker = String(localized: "[… \(omitted) characters omitted …]")
-        return String(full[..<headEnd]) + "\n\(marker)\n" + String(full[tailStart...])
-    }
-
-    private static func boundaryAfterLines(_ count: Int, in text: String) -> String.Index {
-        guard count > 0 else { return text.startIndex }
-        var lines = 1
-        var index = text.startIndex
-        while index < text.endIndex {
-            if text[index] == "\n" {
-                if lines == count { return index }
-                lines += 1
-            }
-            index = text.index(after: index)
-        }
-        return index
-    }
-
-    private static func boundaryBeforeLastLines(_ count: Int, in text: String) -> String.Index {
-        var remaining = count
-        var index = text.endIndex
-        while index > text.startIndex, remaining > 0 {
-            index = text.index(before: index)
-            if text[index] == "\n" { remaining -= 1 }
-        }
-        if index < text.endIndex, text[index] == "\n" {
-            return text.index(after: index)
-        }
-        return index
     }
 
     private static func output(

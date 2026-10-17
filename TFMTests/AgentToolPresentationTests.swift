@@ -395,7 +395,7 @@ struct AgentToolPresentationTests {
             return
         }
         #expect(list.rows.count == AgentToolDetailPreview.rowLimit)
-        #expect(displayed.count <= AgentToolDetailPreview.characterLimit + 20)
+        #expect(displayed.count <= AgentToolDetailPreview.byteLimit + 20)
     }
 
     @Test
@@ -844,24 +844,24 @@ struct AgentToolPresentationTests {
 
         #expect(preview.isShortened)
         #expect(preview.full == full)
-        #expect(preview.displayed.count <= AgentToolPresentation.displayCharacterLimit)
+        #expect(preview.displayed.utf8.count <= AgentToolPresentation.displayByteLimit)
         #expect(
             preview.displayed.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
                 <= AgentToolPresentation.displayLineLimit
         )
         #expect(preview.displayed.hasPrefix("line 0"))
-        #expect(preview.displayed.contains("characters omitted"))
+        #expect(preview.displayed.contains("\n...\n"))
         #expect(preview.displayed.hasSuffix(String(repeating: "x", count: 80)))
         #expect(preview.omittedCharacters > 0)
     }
 
     @Test
-    func outputPreviewCountsUnicodeCharactersWithoutCorruptingEitherEnd() {
-        let full = "开头🧭" + String(repeating: "中", count: 200) + "结尾✅"
-        let preview = AgentToolPresentation.preview(full, characterLimit: 80, lineLimit: 120)
+    func outputPreviewKeepsCompleteUnicodeLinesAtEitherEnd() {
+        let full = "开头🧭\n" + String(repeating: "中\n", count: 200) + "结尾✅"
+        let preview = AgentToolPresentation.preview(full, byteLimit: 80, lineLimit: 120)
 
         #expect(preview.isShortened)
-        #expect(preview.displayed.count <= 80)
+        #expect(preview.displayed.utf8.count <= 80)
         #expect(preview.displayed.hasPrefix("开头🧭"))
         #expect(preview.displayed.hasSuffix("结尾✅"))
         #expect(preview.full == full)

@@ -5,10 +5,20 @@ import TermindDomain
 
 nonisolated enum SSHExecResults: AgentToolSchemaBuilding {
     static func snapshot(_ invocation: AgentToolInvocation, _ value: AgentJSONValue) -> AgentToolResult {
-        var result = result(invocation, value)
-        result.isError = value.objectValue?["status"]?.stringValue == "failed"
-        // Generic JSON projection would discard the handle on large command output.
-        result.hasBoundedModelContent = true
+        var fields = value.objectValue ?? [:]
+        let capture = fields.removeValue(forKey: "output_capture").flatMap(AgentOutputCaptureInfo.init(json:))
+        let id = fields.removeValue(forKey: "output_capture_id")
+        let revision = fields.removeValue(forKey: "output_revision")
+        let totalLines = fields.removeValue(forKey: "output_total_lines")
+        let lineOffset = fields.removeValue(forKey: "output_line_offset")
+        let truncated = fields.removeValue(forKey: "output_truncated")?.boolValue ?? false
+        var result = result(invocation, .object(fields), truncated: truncated)
+        result.isError = fields["status"]?.stringValue == "failed"
+        result.outputCapture = capture
+        result.metadata["output_capture_id"] = id
+        result.metadata["output_revision"] = revision
+        result.metadata["output_total_lines"] = totalLines
+        result.metadata["output_line_offset"] = lineOffset
         return result
     }
 
@@ -31,6 +41,7 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
         presentArguments: SSHExecResults.handleArguments)
     public let background: AgentBackgroundCommands
     public let scope: UUID
+    public var truncateStrategy: AgentTruncateStrategy { .tail }
 
     public init(background: AgentBackgroundCommands, scope: UUID) {
         self.background = background
@@ -40,7 +51,7 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "ssh_exec_output",
-            "Return the current cumulative ssh_exec_run snapshot immediately. Reads do not consume output or extend retention. No waiting or timeout.",
+            "Return the current cumulative ssh_exec_run snapshot immediately. Reads do not consume output or extend retention. No waiting or timeout. Combined output uses complete-line tail selection at 64 KiB / 2000 lines; truncation notices include the generated scratch path for scratch_read or scratch_search.",
             properties: ["handle": Self.string(max: 64)], required: ["handle"],
             target: .host, approvalPolicy: .approve, concurrency: .parallel,
             presentation: .init(
@@ -52,7 +63,10 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
         -> AgentToolResult
     {
         SSHExecResults.snapshot(
-            invocation, try await background.output(SSHExecResults.handle(invocation), scope: scope))
+            invocation,
+            try await background.output(SSHExecResults.handle(invocation), scope: scope) {
+                "\(scope.uuidString.lowercased())/outputs/ssh-exec-output-\(UUID().uuidString.lowercased()).txt"
+            })
     }
 }
 

@@ -16,6 +16,8 @@ public nonisolated struct PlanningSSHExecRunTool: AgentToolDefinition {
         base = SSHExecRunTool(authentication: authentication, pool: pool, background: background, scope: scope)
     }
 
+    public var truncateStrategy: AgentTruncateStrategy { base.truncateStrategy }
+
     public var descriptor: AgentToolDescriptor { base.descriptor }
 
     public func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {

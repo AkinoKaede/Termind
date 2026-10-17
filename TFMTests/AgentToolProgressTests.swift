@@ -125,7 +125,9 @@ struct AgentCommandOutputStreamTests {
     @Test
     func reportsCarryEverythingSoFarRatherThanTheLatestChunk() async {
         let reports = Reports()
-        let stream = AgentCommandOutputStream(interval: .zero) { out, error in
+        let stream = AgentCommandOutputStream(
+            interval: .zero, accumulator: AgentOutputAccumulator(path: { "tests/output.txt" })
+        ) { out, error in
             reports.append(out, error)
         }
 
@@ -135,16 +137,17 @@ struct AgentCommandOutputStreamTests {
 
         // The card replaces its result wholesale, so a report carrying only the
         // newest chunk would make the output flicker rather than grow.
-        #expect(reports.values.map(\.0) == ["one\n", "one\ntwo\n", "one\ntwo\n"])
-        #expect(reports.values.map(\.1) == ["", "", "oops\n"])
-        #expect(stream.captured.standardOut == "one\ntwo\n")
-        #expect(stream.captured.standardError == "oops\n")
+        #expect(reports.values.map(\.0) == ["one\n", "one\ntwo\n", "one\ntwo\noops\n"])
+        #expect(reports.values.map(\.1) == ["", "", ""])
+        #expect(await stream.snapshot().output == "one\ntwo\noops\n")
     }
 
     @Test
     func chunksInsideTheIntervalAreCapturedButNotReported() async {
         let reports = Reports()
-        let stream = AgentCommandOutputStream(interval: .seconds(60)) { out, error in
+        let stream = AgentCommandOutputStream(
+            interval: .seconds(60), accumulator: AgentOutputAccumulator(path: { "tests/output.txt" })
+        ) { out, error in
             reports.append(out, error)
         }
 
@@ -153,31 +156,36 @@ struct AgentCommandOutputStreamTests {
 
         #expect(reports.values.count == 1, "the second chunk is inside the window")
         // Throttling a report must never drop the output it was reporting.
-        #expect(stream.captured.standardOut == "first second")
+        #expect(await stream.snapshot().output == "first second")
     }
 
     @Test
-    func captureRetainsLatestOutputAndCountsDiscardedCharactersInsideTheBudget() {
-        let stream = AgentCommandOutputStream(interval: .zero, limit: 64) { _, _ in }
-        stream.handler(Data(String(repeating: "a", count: 100).utf8), false)
-        stream.handler(Data("latest".utf8), false)
-        let output = stream.captured.standardOut
-        #expect(output == "[68 chars were truncated]\n" + String(repeating: "a", count: 32) + "latest")
-        #expect(output.utf8.count <= 64)
-        #expect(stream.captured.standardError.isEmpty)
+    func captureRetainsWholeTailLinesAndSavesTheCompleteOutput() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workspace = AgentScratchWorkspace(base: directory)
+        let accumulator = AgentOutputAccumulator(workspace: workspace, path: { "chat/outputs/ssh-exec-test.txt" })
+        let stream = AgentCommandOutputStream(interval: .zero, accumulator: accumulator) { _, _ in }
+        let text = String(repeating: "first line\n", count: 7_000) + "latest>"
+        stream.handler(Data(text.utf8), false)
+        let snapshot = await stream.snapshot()
+        #expect(snapshot.output.hasSuffix("latest>"))
+        #expect(snapshot.output.utf8.count <= 65_536)
+        #expect(snapshot.isTruncated)
+        let path = try #require(snapshot.capture?.path)
+        #expect(try await workspace.data(at: path).data == Data(text.utf8))
     }
 
     @Test
-    func truncationPreservesUTF8AndCountsScalarsRatherThanBytes() {
-        let stream = AgentCommandOutputStream(interval: .zero, limit: 64) { _, _ in }
-        let scalar = "\u{1F642}"
-        let data = Data(String(repeating: scalar, count: 30).utf8)
+    func callbacksCanSplitAUnicodeScalarWithoutCorruptingTheSnapshot() async {
+        let accumulator = AgentOutputAccumulator(path: { "tests/output.txt" })
+        let stream = AgentCommandOutputStream(interval: .zero, accumulator: accumulator) { _, _ in }
+        let text = String(repeating: "\u{1F642}\n", count: 30)
+        let data = Data(text.utf8)
         stream.handler(Data(data.prefix(13)), true)
+        #expect(!accumulator.preview.contains("\u{FFFD}"))
         stream.handler(Data(data.dropFirst(13)), true)
-        let output = stream.captured.standardError
-        #expect(output == "[21 chars were truncated]\n" + String(repeating: scalar, count: 9))
-        #expect(output.utf8.count <= 64)
-        #expect(stream.captured.standardOut.isEmpty)
+        #expect(await stream.snapshot().output == text)
     }
 
     /// Locked rather than an actor: the callback under test may not await, so

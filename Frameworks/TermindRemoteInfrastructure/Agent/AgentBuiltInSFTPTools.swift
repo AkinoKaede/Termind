@@ -133,7 +133,7 @@ nonisolated public struct SFTPStatTool: SFTPToolDefinition {
 nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     public static let name = "sftp_read"
     public static let summary =
-        "Read a UTF-8 remote file by lines (offset starts at 1). Pages contain at most 2,000 lines or 50 KiB. Continue at next_offset."
+        "Read a UTF-8 remote file by lines (offset starts at 1). Pages contain at most 2,000 lines or 64 KiB. Continue at next_offset."
     public static let extraProperties = [
         "offset": integer(min: 1, max: 10_000_000), "limit": integer(min: 1, max: 2_000),
     ]
@@ -148,7 +148,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     )
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
-    public func estimatedByteCount(arguments _: Arguments) throws -> Int64? { 50 * 1_024 }
+    public func estimatedByteCount(arguments _: Arguments) throws -> Int64? { Int64(AgentTruncateLimits.maximumBytes) }
     public func perform(
         client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation

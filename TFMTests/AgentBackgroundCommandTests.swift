@@ -13,11 +13,60 @@ private nonisolated func exited(_ code: Int32 = 0) -> SSHExecResult {
 @Suite
 struct AgentBackgroundCommandTests {
     @Test
+    func outputToolCapturesEachFullSnapshotWithItsOwnNameUnderTheConversation() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workspace = AgentScratchWorkspace(base: directory)
+        let scope = UUID()
+        let accumulator = AgentOutputAccumulator(
+            workspace: workspace,
+            path: {
+                "\(scope.uuidString.lowercased())/outputs/ssh-exec-\(UUID().uuidString.lowercased()).txt"
+            })
+        let stream = AgentCommandOutputStream(accumulator: accumulator) { _, _ in }
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let source = "first\n" + String(repeating: "output\n", count: 2_100) + "last>"
+        let handle = try await commands.start(
+            scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: false, stream: stream
+        ) { session in
+            session.start { _ in 0 }
+            stream.handler(Data(source.utf8), false)
+            return exited()
+        }
+        try await commands.waitForCompletion(handle, scope: scope)
+        let run = await stream.snapshot()
+        #expect(run.capture?.path?.hasPrefix("\(scope.uuidString.lowercased())/outputs/ssh-exec-") == true)
+        let tool = SSHExecOutputTool(background: commands, scope: scope)
+        let call = AgentToolInvocation(
+            runID: UUID(),
+            call: .init(
+                id: "output", name: "ssh_exec_output",
+                arguments: .object([
+                    "handle": .string(handle.uuidString)
+                ])))
+        let context = AgentToolExecutionContext(
+            runID: call.runID, conversationID: scope, userIntent: "read output", secretBroker: SecretBroker(),
+            userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:],
+            authorize: { _ in .allow }, workspace: workspace)
+        let first = try await tool.execute(call, context: context)
+        let second = try await tool.execute(call, context: context)
+        let path = try #require(first.outputCapture?.path)
+        #expect(path.hasPrefix("\(scope.uuidString.lowercased())/outputs/ssh-exec-output-"))
+        #expect(path.hasSuffix(".txt"))
+        #expect(second.outputCapture?.path != path)
+        #expect(try await workspace.data(at: path).data == Data(source.utf8))
+        #expect(first.metadata["output_total_lines"] == .number(2_102))
+        await commands.closeAll()
+    }
+
+    @Test
     func outputIsImmediateCumulativeAndRepeatableAfterCompletion() async throws {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
         let scope = UUID()
         let release = AsyncRelease()
-        let stream = AgentCommandOutputStream { _, _ in }
+        let stream = AgentCommandOutputStream(
+            accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+        ) { _, _ in }
         let handle = try await commands.start(
             scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: false, stream: stream
         ) { session in
@@ -28,7 +77,7 @@ struct AgentBackgroundCommandTests {
         stream.handler(Data("step one\n".utf8), false)
         let running = try await commands.output(handle, scope: scope)
         #expect(running.objectValue?["status"] == .string("running"))
-        #expect(running.objectValue?["stdout"] == .string("step one\n"))
+        #expect(running.objectValue?["output"] == .string("step one\n"))
         #expect(running.objectValue?["stdin_closed"] == .bool(true))
         #expect(try await commands.output(handle, scope: scope) == running)
 
@@ -39,8 +88,7 @@ struct AgentBackgroundCommandTests {
         let finished = try await commands.output(handle, scope: scope)
         #expect(finished.objectValue?["status"] == .string("exited"))
         #expect(finished.objectValue?["exit_code"] == .number(7))
-        #expect(finished.objectValue?["stdout"] == .string("step one\nstep two\n"))
-        #expect(finished.objectValue?["stderr"] == .string("failure\n"))
+        #expect(finished.objectValue?["output"] == .string("step one\nstep two\nfailure\n"))
         #expect(try await commands.output(handle, scope: scope) == finished)
         #expect(await commands.count == 1)
         await commands.closeAll()
@@ -52,7 +100,9 @@ struct AgentBackgroundCommandTests {
         await #expect(throws: CocoaError.self) {
             try await commands.start(
                 scope: UUID(), hostID: UUID(), command: "build", keepsStdinOpen: true,
-                stream: AgentCommandOutputStream { _, _ in }
+                stream: AgentCommandOutputStream(
+                    accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+                ) { _, _ in }
             ) { _ in throw CocoaError(.fileReadNoPermission) }
         }
         #expect(await commands.count == 0)
@@ -68,7 +118,9 @@ struct AgentBackgroundCommandTests {
         let task = Task {
             try await commands.start(
                 scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: true,
-                stream: AgentCommandOutputStream { _, _ in }
+                stream: AgentCommandOutputStream(
+                    accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+                ) { _, _ in }
             ) { session in
                 await connecting.release()
                 await release.wait()
@@ -94,7 +146,9 @@ struct AgentBackgroundCommandTests {
         let release = AsyncRelease()
         let handle = try await commands.start(
             scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: true,
-            stream: AgentCommandOutputStream { _, _ in }
+            stream: AgentCommandOutputStream(
+                accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+            ) { _, _ in }
         ) { session in
             session.start { _ in 0 }
             await release.wait()
@@ -122,7 +176,9 @@ struct AgentBackgroundCommandTests {
         let release = AsyncRelease()
         let handle = try await commands.start(
             scope: scope, hostID: host, command: "build", keepsStdinOpen: true,
-            stream: AgentCommandOutputStream { _, _ in }
+            stream: AgentCommandOutputStream(
+                accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+            ) { _, _ in }
         ) { session in
             session.start { _ in 0 }
             await release.wait()
@@ -132,7 +188,7 @@ struct AgentBackgroundCommandTests {
         #expect(await commands.list(scope: scope, hostID: UUID()).objectValue?["commands"] == .array([]))
         let rows = await commands.list(scope: scope, hostID: host).objectValue?["commands"]?.arrayValue
         #expect(rows?.count == 1)
-        #expect(rows?.first?.objectValue?["stdout"] == nil)
+        #expect(rows?.first?.objectValue?["output"] == nil)
         await #expect(throws: AgentBackgroundCommandError.self) {
             try await commands.cancel(handle, scope: otherScope)
         }
@@ -155,7 +211,9 @@ struct AgentBackgroundCommandTests {
         let writes = InputLog()
         let handle = try await commands.start(
             scope: scope, hostID: UUID(), command: "cat", keepsStdinOpen: true,
-            stream: AgentCommandOutputStream { _, _ in }
+            stream: AgentCommandOutputStream(
+                accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+            ) { _, _ in }
         ) { session in
             session.start { try await writes.write($0) }
             await release.wait()
@@ -184,7 +242,9 @@ struct AgentBackgroundCommandTests {
         let signal = AgentInterjectionSignal()
         let handle = try await commands.start(
             scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: false,
-            stream: AgentCommandOutputStream { _, _ in }
+            stream: AgentCommandOutputStream(
+                accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+            ) { _, _ in }
         ) { session in
             session.start { _ in 0 }
             await release.wait()
@@ -224,7 +284,9 @@ struct AgentBackgroundCommandTests {
         let writes = InputLog()
         let handle = try await commands.start(
             scope: scope, hostID: hostID, command: "cat", keepsStdinOpen: true,
-            stream: AgentCommandOutputStream { _, _ in }
+            stream: AgentCommandOutputStream(
+                accumulator: AgentOutputAccumulator(path: { "tests/outputs/ssh-exec-\(UUID().uuidString).txt" })
+            ) { _, _ in }
         ) { session in
             session.start { try await writes.write($0) }
             await release.wait()

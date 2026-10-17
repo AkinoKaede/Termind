@@ -11,6 +11,7 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
     public let pool: AgentConnectionPool
     public let background: AgentBackgroundCommands
     public let scope: UUID
+    public var truncateStrategy: AgentTruncateStrategy { .tail }
 
     public init(
         authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
@@ -29,8 +30,10 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
             Run a non-PTY SSH command. Discover host_id with list_hosts when needed; Termind handles login. \
             run_in_background defaults to false: wait for completion without a runtime timeout and close stdin. \
             Set true for long-lived commands or commands needing ssh_exec_stdin; return after confirmed startup. \
-            Returns handle, host_id, status (running/exited/failed), stdout, stderr, exit_code, signal, \
-            stdin_closed and error. Output keeps the latest 256 KiB per stream with an in-band truncation count. \
+            Returns handle, host_id, status (running/exited/failed), combined output, exit_code, signal, \
+            stdin_closed and error. Model output keeps the latest complete lines within 64 KiB / 2000 lines. \
+            Truncated output is saved to <conversationID>/outputs/ssh-exec-<UUID>.txt in shared scratch; \
+            use scratch_read or scratch_search with that exact path. Capture failures are explicit. \
             Handles belong to this conversation/session; finished results remain for ten minutes. \
             Use ssh_exec_output for snapshots and ssh_exec_cancel for local cleanup. Never include plaintext secrets.
             """,
@@ -91,11 +94,14 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
         let hostID = try arguments.uuid("host_id")
         let command = try arguments.string("command")
         let isBackground = arguments.optionalBool("run_in_background") ?? false
-        let stream = AgentCommandOutputStream { out, error in
+        let accumulator = context.makeOutputAccumulator {
+            "\(scope.uuidString.lowercased())/outputs/ssh-exec-\(UUID().uuidString.lowercased()).txt"
+        }
+        let stream = AgentCommandOutputStream(accumulator: accumulator) { out, _ in
             var result = Self.result(
                 invocation,
                 .object([
-                    "status": .string("running"), "stdout": .string(out), "stderr": .string(error),
+                    "status": .string("running"), "output": .string(out),
                 ]))
             result.metadata["presentation_phase"] = .string("command")
             context.report(result)

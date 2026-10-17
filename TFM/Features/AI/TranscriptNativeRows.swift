@@ -846,10 +846,12 @@ private enum NativeTranscriptFactory {
                     }
                 }
             }
-            if AgentToolPresentation.showsOutputTruncatedNotice(for: card) {
+            if !AgentToolPresentation.usesCompactDetails(for: card.descriptor),
+                let marker = AgentToolPresentation.truncationNotice(for: card)
+            {
                 detail.addArrangedSubview(
                     NativeLabel(
-                        String(localized: AppStrings.Assistant.outputTruncated),
+                        marker,
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
                         color: .systemOrange
                     ))
@@ -1360,7 +1362,9 @@ private enum NativeTranscriptFactory {
     private static func compactToolDetail(
         _ detail: AgentToolDetail, card: AgentToolCard, context: NativeTranscriptContext
     ) -> NSView {
-        let preview = AgentToolDetailPreview(detail)
+        let preview = AgentToolDetailPreview(
+            detail, strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
+            preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil)
         let id = AssistantTranscriptDisclosureID.toolDetail(card.id)
         let expanded = context.presentation.disclosures.isExpanded(id)
         let body = NativeStack.vertical()
@@ -1368,26 +1372,25 @@ private enum NativeTranscriptFactory {
             body.addArrangedSubview(
                 toolDetail(item, isError: card.result?.isError == true, context: context, shortensText: false))
         }
-        let scale = max(1, NSFont.preferredFont(forTextStyle: .caption1).pointSize / NSFont.smallSystemFontSize)
-        let height = 180 * scale
-        let width = body.widthAnchor.constraint(equalToConstant: max(1, context.contentWidth - 48))
-        width.isActive = true
-        body.layoutSubtreeIfNeeded()
-        let needsMore = preview.isShortened || body.fittingSize.height > height
-        width.isActive = false
-        let clipped = NativePlanPreview(content: body, expanded: expanded, previewHeight: height)
+        let needsMore = preview.isShortened
         let toggle = {
             context.presentation.disclosures.toggleDisclosure(id)
             context.invalidate(context.entryID, false)
         }
-        clipped.handler = needsMore ? toggle : nil
         let stack = NativeStack.vertical()
-        stack.addArrangedSubview(clipped)
+        stack.addArrangedSubview(body)
+        if let marker = AgentToolPresentation.truncationNotice(for: card) {
+            let notice = NativeLabel(
+                marker, font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1), color: .systemOrange)
+            notice.identifier = NSUserInterfaceItemIdentifier("AssistantTool.TruncationNotice")
+            stack.addArrangedSubview(notice)
+        }
         if expanded || needsMore {
             let more = NativeButton(
                 title: AppLocalization.resolve(
                     expanded ? AppStrings.Assistant.showLess : AppStrings.Assistant.showMore,
                     locale: context.configuration.locale))
+            more.alignment = .left
             more.identifier = NSUserInterfaceItemIdentifier("AssistantTool.More")
             more.handler = toggle
             stack.addArrangedSubview(more)

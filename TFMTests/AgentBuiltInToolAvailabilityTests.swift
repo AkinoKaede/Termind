@@ -311,15 +311,16 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(all.isSuperset(of: ["fetch", "web_search", "skill_read_file", "present_plan"]))
     }
 
-    /// A selected group whose dependency is missing contributes nothing. The
-    /// alternative — registering `fetch` with no fetcher — puts a tool in front
-    /// of the model that can only ever fail.
+    /// Missing optional services never hide the mandatory shared scratch workspace.
     @Test
-    func aSelectedGroupWithoutItsDependencyRegistersNothing() {
+    func groupsWithoutTheirServicesStillRegisterMandatoryScratch() {
         let names = Set(
             AgentToolCatalog.registry(builtIn: .init(groups: [.web, .scratch, .planning]))
                 .descriptors.map(\.name)
         )
-        #expect(names.isEmpty)
+        #expect(names.contains("scratch_read"))
+        #expect(names.contains("scratch_write"))
+        #expect(names.allSatisfy { $0.hasPrefix("scratch_") })
+        #expect(!names.contains("scratch_fetch"))
     }
 }

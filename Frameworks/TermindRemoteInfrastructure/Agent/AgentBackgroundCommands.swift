@@ -67,6 +67,7 @@ public actor AgentBackgroundCommands {
         let task = Task {
             let result: Result<SSHExecResult, any Error>
             do { result = .success(try await operation(session)) } catch { result = .failure(error) }
+            _ = await stream.snapshot()
             self.complete(handle, result: result)
             switch result {
             case .success: session.finish()
@@ -122,15 +123,26 @@ public actor AgentBackgroundCommands {
         return (entry.hostID, entry.command)
     }
 
-    public func output(_ handle: UUID, scope: UUID) throws -> AgentJSONValue {
+    public func output(
+        _ handle: UUID, scope: UUID, capturePath: (@Sendable () -> String)? = nil
+    ) async throws -> AgentJSONValue {
         let entry = try entry(handle, scope: scope)
         var fields = metadata(handle, entry)
         fields.removeValue(forKey: "command")
         fields.removeValue(forKey: "started_at")
         fields.removeValue(forKey: "finished_at")
-        let output = entry.stream.captured
-        fields["stdout"] = .string(output.standardOut)
-        fields["stderr"] = .string(output.standardError)
+        let envelopeBytes =
+            AgentJSONValue.object(fields).encodedString.utf8.count
+            + AgentToolResult.untrustedDataOpeningMarker.utf8.count
+            + AgentToolResult.untrustedDataClosingMarker.utf8.count + 16
+        let output = await entry.stream.snapshot(envelopeBytes: envelopeBytes, capturePath: capturePath)
+        fields["output"] = .string(output.output)
+        fields["output_capture"] = output.capture?.json
+        fields["output_capture_id"] = .string(entry.stream.captureID.uuidString)
+        fields["output_revision"] = .number(Double(output.revision))
+        fields["output_truncated"] = .bool(output.isTruncated)
+        fields["output_total_lines"] = .number(Double(output.totalLines))
+        fields["output_line_offset"] = .number(Double(output.lineOffset))
         return .object(fields)
     }
 

@@ -44,8 +44,12 @@ nonisolated public enum TermindAgentPolicy {
         context block lists only surface-specific overrides, not the complete catalog. Unlisted tools
         retain their supplied definitions and policies. terminal_suggest availability does not restrict
         ssh_exec_run or SFTP tools; tool approval policies and Plan-mode restrictions still apply.
-        The scratch_* tools are a private staging directory that persists across this conversation and
-        is not shown to the user, so put working copies and drafts there rather than in your replies.
+        Scratch is a mandatory, device-local workspace shared by all conversations, not a conversation-private
+        directory. Choose explicit task-specific relative paths, such as investigations/nginx/notes.md,
+        for every read and write. Check existing files before overwriting them. Missing parent directories
+        are created automatically. Use scratch_copy, scratch_move and scratch_replace for staged files.
+        Automatically captured tool output uses generated <conversationID>/outputs/<tool-name>-<UUID>.txt paths. Follow the exact
+        path in the truncation notice with scratch_read or scratch_search; never guess a capture filename.
         For a remote file you intend to change, scratch_pull, scratch_replace, then scratch_push: the
         file's contents then never enter this conversation, and the only step the user is asked to
         approve is the one that reaches their host. Duplicate or rename a staged file with scratch_copy

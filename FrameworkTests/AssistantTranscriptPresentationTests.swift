@@ -177,7 +177,7 @@ struct AssistantTranscriptPresentationTests {
         #expect(preview.full == full)
         #expect(preview.displayed.hasPrefix("line 0:"))
         #expect(preview.displayed.contains("line 249:"))
-        #expect(preview.displayed.count <= AgentToolPresentation.displayCharacterLimit)
+        #expect(preview.displayed.utf8.count <= AgentToolPresentation.displayByteLimit)
         #expect(preview.displayed.split(separator: "\n", omittingEmptySubsequences: false).count <= 120)
     }
 

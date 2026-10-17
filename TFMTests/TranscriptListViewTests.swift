@@ -1074,6 +1074,69 @@ struct TranscriptListViewBridgeTests {
         #expect(mask.animation(forKey: "scan") != nil)
     }
 
+    @Test(arguments: [360.0, 900.0])
+    func compactToolExpansionKeepsBothButtonTitlesLeftAligned(width: Double) throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let runID = UUID()
+        let invocation = AgentToolInvocation(
+            runID: runID,
+            call: AgentToolCall(id: "read", name: "sftp_read", arguments: .object([:]))
+        )
+        var card = AgentToolCard(
+            invocation: invocation,
+            descriptor: AgentToolDescriptor(
+                name: "sftp_read", summary: "Read a file", inputSchema: .object([:]),
+                target: .host, approvalPolicy: .approve,
+                presentation: .init(
+                    symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile),
+                    presenterID: "builtin.sftp_read")
+            )
+        )
+        card.state = .running
+        card.result = AgentToolResult(
+            callID: "read",
+            content: AgentJSONValue.object([
+                "path": .string("/tmp/report.txt"),
+                "content": .string((1...20).map { "Line \($0)" }.joined(separator: "\n")),
+                "bytes": .number(150),
+            ]).encodedString
+        )
+        card.result?.truncateMarker = AgentTruncateMarker.render(ranges: [1...20], totalLines: 100)
+        presentation.disclosures.toggleDisclosure(.tool(card.id))
+        let entry = TranscriptEntry(
+            id: runID,
+            content: .work(
+                AgentWorkGroup(
+                    run: AgentRunSummary(id: runID, state: .running, startedAt: .now),
+                    items: [.tools(AgentToolBatch(cards: [card], runID: runID, reasoning: nil))],
+                    orderedAt: .now, anchorMessageID: nil, appearsAfterAnswer: false,
+                    activeReasoningBlockID: nil
+                ))
+        )
+        listView.frame = CGRect(x: 0, y: 0, width: width, height: 1_200)
+        update(coordinator, listView, entries: [entry], presentation: presentation)
+        listView.layoutSubtreeIfNeeded()
+
+        for title in ["Show more", "Show less"] {
+            let row = try #require(listView.rowView(for: runID))
+            let button = try #require(descendant(in: row, identifier: "AssistantTool.More") as? NSButton)
+            let details = try #require(descendant(in: row, identifier: "AssistantTool.CompactDetails") as? NSStackView)
+            let notice = try #require(descendant(in: details, identifier: "AssistantTool.TruncationNotice"))
+            #expect(button.title == title)
+            #expect(button.alignment == .left)
+            #expect(abs(details.convert(button.bounds, from: button).minX) <= 1)
+            #expect(
+                try #require(details.arrangedSubviews.firstIndex(of: notice))
+                    < #require(details.arrangedSubviews.firstIndex(of: button)))
+            button.performClick(nil)
+            coordinator.refreshDisplayedRow(runID, in: listView)
+            listView.layoutSubtreeIfNeeded()
+        }
+        #expect(!presentation.disclosures.isExpanded(.toolDetail(card.id)))
+    }
+
     @Test
     func singleRunningToolTitleStillInstallsTheScanningMask() throws {
         let coordinator = TranscriptListView.Coordinator()

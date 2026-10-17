@@ -49103,47 +49103,6 @@
         }
       }
     },
-    "Output truncated" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ausgabe abgeschnitten"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sortie tronquée"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出力が切り詰められました"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "출력이 잘림"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输出已截断"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸出已截斷"
-          }
-        }
-      }
-    },
     "Output will appear here" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -86226,71 +86185,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
-          }
-        }
-      }
-    },
-    "[… %lld characters omitted …]" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "[… %lld Zeichen ausgelassen …]"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "[… %lld Zeichen ausgelassen …]"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "[… %lld caractère omis …]"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "[… %lld caractères omis …]"
-                }
-              }
-            }
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "[… %lld文字省略 …]"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "[… %lld자 생략 …]"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "[…%lld字符省略…]"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "[…%lld字元省略…]"
           }
         }
       }

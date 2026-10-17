@@ -22,15 +22,7 @@ public enum AssistantToolRegistry {
         let localSearch: ScrubberWebClient? = ai.webSearch.isEnabled && !native ? ScrubberWebClient() : nil
         var registry = AgentToolRegistry([AnyAgentTool]())
         if model.abilities.contains(.toolCall) {
-            // One workspace per conversation, not per run: a file staged before the
-            // user interrupted, or before they typed a follow-up, is still there for
-            // the run that answers them. Isolation comes from the scope directory
-            // being keyed by conversation, so one chat can never read what another
-            // pulled off a host.
-            let scratch = AgentScratchWorkspace(
-                conversationID: conversation.id,
-                applicationName: TermindAgentPolicy.scratchDirectoryName
-            )
+            let scratch = AgentScratchWorkspace.shared(applicationName: TermindAgentPolicy.scratchDirectoryName)
             // One client for both, rather than two default-constructed ones: `fetch`
             // and `scratch_fetch` read the same web the same way and differ only in
             // where the page ends up.

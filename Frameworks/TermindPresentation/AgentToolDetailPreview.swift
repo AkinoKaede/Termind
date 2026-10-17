@@ -3,15 +3,17 @@ import Foundation
 
 /// A whole-card budget, not one budget per block. Full values remain untouched for expansion.
 nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
-    public static let characterLimit = 600
+    public static let byteLimit = AgentTruncateLimits.maximumBytes
     public static let rowLimit = 5
     public let items: [AgentToolDetail.Item]
     public let fullItems: [AgentToolDetail.Item]
     public var isShortened: Bool { items != fullItems }
 
-    public init(_ detail: AgentToolDetail) {
+    public init(
+        _ detail: AgentToolDetail, strategy: AgentTruncateStrategy = .head, preservesFirstText: Bool = false
+    ) {
         fullItems = detail.items
-        var budget = Budget()
+        var budget = Budget(strategy: strategy, preservesFirstText: preservesFirstText)
         items = budget.project(detail.items)
     }
 
@@ -42,57 +44,41 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
     }
 
     private struct Budget {
-        var characters = AgentToolDetailPreview.characterLimit
         var rows = AgentToolDetailPreview.rowLimit
-        var hasRoom: Bool { characters > 0 && rows > 0 }
-
-        mutating func take(_ value: String) -> String {
-            guard characters > 0 else { return "" }
-            let result = value.count > characters ? String(value.prefix(max(0, characters - 1))) + "…" : value
-            characters -= result.count
-            return result
-        }
-
-        mutating func optional(_ value: String?) -> String? {
-            value.map { take($0) }
-        }
+        var bytes = AgentToolDetailPreview.byteLimit
+        var strategy: AgentTruncateStrategy
+        var preservesFirstText: Bool
 
         mutating func project(_ items: [AgentToolDetail.Item]) -> [AgentToolDetail.Item] {
             var result: [AgentToolDetail.Item] = []
             for item in items {
-                guard hasRoom else { break }
                 switch item {
-                case .field(var field):
-                    rows -= 1
-                    field.label = take(field.label)
-                    field.value = take(field.value)
-                    result.append(.field(field))
-                case .message(let value, let tint):
-                    rows -= 1
-                    result.append(.message(take(value), tint))
+                case .field, .message:
+                    // Command metadata and notices are never part of the body budget.
+                    result.append(item)
                 case .text(var block):
-                    rows -= 1
-                    block.title = optional(block.title)
-                    block.text = take(block.text)
-                    result.append(.text(block))
-                case .list(var list):
-                    list.title = optional(list.title)
-                    list.rows = projectRows(list.rows)
-                    if list.rows.isEmpty {
-                        rows -= 1
-                        list.emptyMessage = optional(list.emptyMessage)
+                    if preservesFirstText {
+                        preservesFirstText = false
+                        result.append(item)
+                        continue
                     }
+                    let selected = AgentTruncateResult.apply(
+                        block.text, strategy: strategy,
+                        limits: .init(bytes: bytes, lines: max(0, rows)))
+                    rows -= selected.returnedLines
+                    bytes -= selected.content.utf8.count
+                    block.text = selected.content
+                    if !block.text.isEmpty { result.append(.text(block)) }
+                case .list(var list):
+                    list.rows = projectRows(list.rows)
                     result.append(.list(list))
                 case .groupedList(var list):
-                    list.summary = take(list.summary)
-                    var sections: [AgentToolDetail.ListSection] = []
-                    for var section in list.sections {
-                        guard hasRoom else { break }
-                        section.title = take(section.title)
+                    list.sections = list.sections.compactMap { section in
+                        guard rows > 0 else { return nil }
+                        var section = section
                         section.rows = projectRows(section.rows)
-                        sections.append(section)
+                        return section
                     }
-                    list.sections = sections
                     result.append(.groupedList(list))
                 }
             }
@@ -101,18 +87,13 @@ nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
 
         mutating func projectRows(_ values: [AgentToolDetail.ListRow]) -> [AgentToolDetail.ListRow] {
             var result: [AgentToolDetail.ListRow] = []
-            for var row in values {
-                guard hasRoom else { break }
-                rows -= 1
-                row.title = take(row.title)
-                row.subtitle = optional(row.subtitle)
-                row.detail = optional(row.detail)
-                row.badges = row.badges.compactMap { badge in
-                    guard characters > 0 else { return nil }
-                    return take(badge)
-                }
-                result.append(row)
+            for value in values.prefix(max(0, rows)) {
+                let size = AgentToolDetailPreview.rowText(value).utf8.count
+                guard size <= bytes else { break }
+                result.append(value)
+                bytes -= size
             }
+            rows -= result.count
             return result
         }
     }

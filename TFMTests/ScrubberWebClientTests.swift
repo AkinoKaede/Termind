@@ -50,9 +50,13 @@ struct ScrubberWebClientTests {
         #expect(!original.content.contains("# Readable"))
     }
 
-    @Test
-    func fetchBoundsEitherRepresentationAt256KiB() async throws {
-        let oversized = String(repeating: "x", count: 256 * 1_024 + 100)
+    @Test(arguments: ["markdown", "original"])
+    func fetchUsesSharedProjectionAndCapturesTheCompleteRepresentation(_ format: String) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workspace = AgentScratchWorkspace(base: directory)
+        let execution = context(workspace: workspace)
+        let oversized = String(repeating: "x", count: 65_536 + 100)
         let client = ScrubberWebClient(
             document: { url in
                 AgentWebDocument(
@@ -61,16 +65,20 @@ struct ScrubberWebClientTests {
             },
             search: { _, _ in [] }
         )
-        let result = try await FetchTool(web: client).execute(
-            invocation("fetch", ["url": .string("https://example.com")]),
-            context: context()
-        )
-        #expect(result.isTruncated)
-        #expect(result.content.contains("\"truncated\":true"))
+        let call = invocation("fetch", ["url": .string("https://example.com"), "format": .string(format)])
+        let result = try await FetchTool(web: client).execute(call, context: execution)
+        #expect(!result.isTruncated)
+        #expect(result.content.contains(oversized))
+        let path = try #require(result.outputCapture?.path)
+        #expect(path.hasPrefix("\(execution.runID.uuidString.lowercased())/outputs/fetch-"))
+        #expect(String(decoding: try await workspace.data(at: path).data, as: UTF8.self).contains(oversized))
+        let projected = await AgentToolOutputProjection(workspace: workspace).project(result, invocation: call)
+        #expect(try #require(projected.modelContent).utf8.count <= 65_536)
+        #expect(projected.truncateMarker?.contains("Full output: \(path)") == true)
     }
 
     @Test
-    func webSearchReturnsBoundedMarkdownAndEngine() async throws {
+    func webSearchDoesNotKeepTheOldPerResult32KiBCut() async throws {
         let oversized = String(repeating: "m", count: 32 * 1_024 + 10)
         let client = ScrubberWebClient(
             document: { _ in throw AgentWebError.emptyDocument },
@@ -90,7 +98,9 @@ struct ScrubberWebClientTests {
             invocation("web_search", ["query": .string("swift concurrency")]),
             context: context()
         )
-        #expect(result.isTruncated)
+        #expect(!result.isTruncated)
+        #expect(result.content.contains(oversized))
+        #expect(result.outputCapture == nil)
         #expect(result.content.contains("\"engine\":\"google\""))
         #expect(result.content.contains("\"markdown\":"))
         #expect(!result.content.contains("<html>"))
@@ -117,11 +127,11 @@ struct ScrubberWebClientTests {
         )
     }
 
-    private func context() -> AgentToolExecutionContext {
+    private func context(workspace: AgentScratchWorkspace = .shared()) -> AgentToolExecutionContext {
         AgentToolExecutionContext(
             runID: UUID(), userIntent: "read the page", secretBroker: SecretBroker(),
             userInteraction: UnavailableAgentUserInteraction(),
-            preflightMetadata: [:], authorize: { _ in .allow }
+            preflightMetadata: [:], authorize: { _ in .allow }, workspace: workspace
         )
     }
 }

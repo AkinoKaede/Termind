@@ -135,7 +135,10 @@ struct MobileAssistantToolRow: View {
                                         presentation.toggleDisclosure(.toolDetail(card.id))
                                     }
                                 }
-                            )
+                            ),
+                            strategy: AgentToolPresentation.compactStrategy(for: card.descriptor),
+                            preservesFirstText: card.invocation.call.arguments.objectValue?["command"] != nil,
+                            truncateMarker: AgentToolPresentation.truncationNotice(for: card)
                         )
                     } else {
                         AssistantToolDetails(items: detail.items, isError: card.result?.isError == true) {
@@ -143,8 +146,11 @@ struct MobileAssistantToolRow: View {
                         }
                     }
                 }
-                if AgentToolPresentation.showsOutputTruncatedNotice(for: card) {
-                    Text(AppStrings.Assistant.outputTruncated).font(.caption2).foregroundStyle(.orange)
+                if !AgentToolPresentation.usesCompactDetails(for: card.descriptor),
+                    let marker = AgentToolPresentation.truncationNotice(for: card)
+                {
+                    Text(marker)
+                        .font(.caption2).foregroundStyle(.orange)
                 }
             }
             .padding(.leading, iconSize + 8)

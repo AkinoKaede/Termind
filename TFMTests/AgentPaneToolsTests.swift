@@ -171,14 +171,20 @@ struct AgentPaneToolsTests {
     }
 
     @Test
-    func readTruncatesOnUnicodeBoundaryWithoutNormalizingLines() async throws {
+    func readPreservesTheCompleteViewportWithoutTruncation() async throws {
+        let fixture = Fixture()
         let input = "α  \n" + String(repeating: "😀", count: 20_000)
-        let (limited, truncated) = ReadPaneTool.limitUTF8(input)
-        #expect(truncated)
-        #expect(limited.utf8.count <= 65_536)
-        #expect(limited.hasPrefix("α  \n"))
-        #expect(String(decoding: Array(limited.utf8), as: UTF8.self) == limited)
-        #expect(!ReadPaneTool.limitUTF8("  \n\n").1)
+        fixture.texts[fixture.first] = input
+        let tool = ReadPaneTool(panes: fixture.access())
+        let call = invocation("read_pane", paneID: fixture.first.uuidString)
+        let result = try await tool.execute(call, context: context(call))
+        let projected = await AgentToolOutputProjection().project(
+            result, invocation: call, strategy: tool.truncateStrategy)
+        #expect(tool.truncateStrategy == .none)
+        #expect(projected.modelContent == result.content)
+        let payload = try #require(result.untrustedPayload)
+        #expect(try AgentJSONValue.decode(Data(payload.utf8)).objectValue?["text"] == .string(input))
+        #expect(!result.isTruncated)
     }
 
     @Test
@@ -279,26 +285,28 @@ struct AgentPaneToolsTests {
     }
 
     @Test
-    func largeReadMarksSourceTruncationInResultAndModelProjection() async throws {
+    func largePaneReadsBypassProjectionAndDoNotImpersonateMCPMarkers() async throws {
         let fixture = Fixture()
         fixture.texts[fixture.first] = String(repeating: "😀", count: 20_000)
         let call = invocation("read_pane", paneID: fixture.first.uuidString)
         let tool = ReadPaneTool(panes: fixture.access())
         let result = try await tool.execute(call, context: context(call))
-        #expect(result.isTruncated)
-        #expect(try payload(result)["truncated"] == .bool(true))
-        #expect(try #require(payload(result)["text"]?.stringValue).utf8.count == 65_536)
-        let projected = await AgentToolOutputProjection(maximumBytes: 128).project(result, invocation: call)
+        #expect(!result.isTruncated)
+        #expect(try payload(result)["truncated"] == .bool(false))
+        #expect(try #require(payload(result)["text"]?.stringValue).utf8.count == 80_000)
+        let projected = await AgentToolOutputProjection(maximumBytes: 128).project(
+            result, invocation: call, strategy: tool.truncateStrategy)
         let model = try #require(projected.modelContent)
-        #expect(model.contains("\"source_truncated\":true"))
-        #expect(model.contains("source_notice"))
+        #expect(model == result.content)
+        #expect(projected.truncateMarker == nil)
 
         let card = AgentToolCard(invocation: call, descriptor: tool.descriptor, state: .completed, result: result)
         #expect(!AgentToolPresentation.showsOutputTruncatedNotice(for: card))
         let mcp = AgentToolDescriptor(
             name: "read_pane", summary: "A separate MCP tool", inputSchema: .object([:]),
             target: .mcp, approvalPolicy: .approve, concurrency: .parallel)
-        let mcpCard = AgentToolCard(invocation: call, descriptor: mcp, state: .completed, result: result)
+        var mcpCard = AgentToolCard(invocation: call, descriptor: mcp, state: .completed, result: result)
+        mcpCard.result?.truncateMarker = AgentTruncateMarker.render(ranges: [1...10], totalLines: 20)
         #expect(AgentToolPresentation.showsOutputTruncatedNotice(for: mcpCard))
     }
 

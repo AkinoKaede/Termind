@@ -69,7 +69,6 @@ struct RemoteOutputToolPresentationTests {
             }
             configure()
             let compactHeight = row.measuredHeight(for: width)
-            #expect(compactHeight <= 320)
             #expect(!descendants(row).compactMap { $0 as? NSTextField }.contains { $0.stringValue == output })
             try expectOnlyExpansionControl()
             try button("AssistantTool.More").performClick(nil)
@@ -83,6 +82,23 @@ struct RemoteOutputToolPresentationTests {
             #expect(!state.disclosures.isExpanded(.toolDetail(value.id)))
             #expect(abs(row.measuredHeight(for: width) - compactHeight) < 0.5)
         }
+    }
+
+    @Test
+    func displayFoldingNeverCreatesAMarkerAndActualMarkersAreReusedVerbatim() throws {
+        var value = card("ssh_exec_output", output: String(repeating: "line\n", count: 100))
+        let presenter = try #require(TermindAgentTools.presenter(for: value.descriptor))
+        let detail = try #require(
+            AgentToolPresentation.detail(for: value, presenter: presenter, locale: Locale(identifier: "zh-Hans")))
+        #expect(AgentToolDetailPreview(detail).isShortened)
+        #expect(AgentToolPresentation.truncationNotice(for: value) == nil)
+        value.result?.isTruncated = true
+        #expect(AgentToolPresentation.truncationNotice(for: value) == nil)
+        let marker = AgentTruncateMarker.render(
+            ranges: [10...20], totalLines: 20,
+            capture: .init(path: "chat/outputs/ssh-exec-output-test.txt", bytes: 100, lines: 20))
+        value.result?.truncateMarker = marker
+        #expect(AgentToolPresentation.truncationNotice(for: value) == marker)
     }
 
     private func card(_ name: String, output: String) -> AgentToolCard {

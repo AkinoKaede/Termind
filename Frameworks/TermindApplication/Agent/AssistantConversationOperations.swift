@@ -79,13 +79,7 @@ public final class AssistantConversationOperations {
         }
         try await repository.deleteConversation(conversation.id)
         await conversation.secretBroker.discardAll()
-        do {
-            try await AgentScratchWorkspace(
-                conversationID: conversation.id,
-                applicationName: TermindAgentPolicy.scratchDirectoryName
-            ).removeScope()
-            return (true, nil)
-        } catch { return (true, error.localizedDescription) }
+        return (true, nil)
     }
 
     public func fork(_ source: ConversationModel, at messageID: UUID, title: String) async throws -> ConversationModel?
@@ -108,11 +102,6 @@ public final class AssistantConversationOperations {
                     state: $0.state.rawValue, result: $0.result, review: $0.review)
             }, lastRunState: .completed, title: "", metadata: fork.metadata)
         do {
-            try await Task.detached(priority: .utility) {
-                try AgentScratchWorkspace.copyScope(
-                    from: source.id, to: fork.id,
-                    applicationName: TermindAgentPolicy.scratchDirectoryName)
-            }.value
             try await repository.createConversation(stored)
             do {
                 try modelSelections?.persistFork(fork)
@@ -122,9 +111,6 @@ public final class AssistantConversationOperations {
             }
             return fork
         } catch {
-            try? await AgentScratchWorkspace(
-                conversationID: fork.id, applicationName: TermindAgentPolicy.scratchDirectoryName
-            ).removeScope()
             throw error
         }
     }

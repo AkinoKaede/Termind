@@ -29,7 +29,6 @@ struct KnowledgeToolRenderingTests {
                 configure()
                 let compact = row.measuredHeight(for: width)
                 #expect(compact > 20)
-                #expect(compact <= 320, "\(card.descriptor.name): \(compact)")
                 if width == 720, ProcessInfo.processInfo.environment["TERMIND_KNOWLEDGE_SCREENSHOTS"] == "1" {
                     try snapshot(
                         row, width: width, height: compact, name: "mac-\(language.rawValue)-\(card.descriptor.name)")

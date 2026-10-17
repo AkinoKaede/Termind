@@ -5,13 +5,17 @@ import SwiftUI
 public struct AssistantCompactToolDetails: View {
     private let preview: AgentToolDetailPreview
     private let isError: Bool
+    private let truncateMarker: String?
     @Binding private var expanded: Bool
-    @ScaledMetric(relativeTo: .caption) private var previewHeight: CGFloat = 180
-    @State private var contentHeight: CGFloat = 0
 
-    public init(detail: AgentToolDetail, isError: Bool, expanded: Binding<Bool>) {
-        preview = AgentToolDetailPreview(detail)
+    public init(
+        detail: AgentToolDetail, isError: Bool, expanded: Binding<Bool>,
+        strategy: AgentTruncateStrategy = .head, preservesFirstText: Bool = false,
+        truncateMarker: String? = nil
+    ) {
+        preview = AgentToolDetailPreview(detail, strategy: strategy, preservesFirstText: preservesFirstText)
         self.isError = isError
+        self.truncateMarker = truncateMarker
         _expanded = expanded
     }
 
@@ -22,21 +26,17 @@ public struct AssistantCompactToolDetails: View {
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGFloat.self) {
-                $0.size.height
-            } action: {
-                contentHeight = $0
+            if let truncateMarker {
+                Text(truncateMarker)
+                    .font(.caption2).foregroundStyle(.orange)
             }
-            .frame(maxHeight: expanded ? nil : previewHeight, alignment: .top)
-            .fixedSize(horizontal: false, vertical: true)
-            .clipped()
-            if expanded || preview.isShortened || contentHeight > previewHeight {
+            if expanded || preview.isShortened {
                 Button(
                     expanded ? AppStrings.Assistant.showLess.swiftUIKey : AppStrings.Assistant.showMore.swiftUIKey
                 ) { expanded.toggle() }
                 .accessibilityIdentifier("AssistantTool.More")
                 .font(.caption)
-                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
         }
         .accessibilityIdentifier("AssistantTool.CompactDetails")

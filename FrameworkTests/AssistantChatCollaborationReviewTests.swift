@@ -226,9 +226,42 @@ struct AssistantChatCollaborationReviewTests {
         let target = fixture.addTarget()
         target.messages = [ChatMessage(role: .assistant, text: String(repeating: "x", count: 20_000))]
         let read = try await fixture.coordinator.readChat(id: target.id, cursor: nil)
-        #expect(read.objectValue?["truncated"]?.boolValue == true)
+        #expect(read.objectValue?["truncated"]?.boolValue == false)
         let text = try #require(read.objectValue?["messages"]?.arrayValue?.first?.objectValue?["text"]?.stringValue)
-        #expect(text.count == 8_000)
+        #expect(text.count == 20_000)
+    }
+
+    @Test func readChatContinuesAtTheFirstUnreturnedWholeLineWithoutCapturingPages() async throws {
+        let fixture = ChatReviewFixture()
+        let target = fixture.addTarget()
+        let original = String(repeating: String(repeating: "\"", count: 400) + "\n", count: 200) + "last>"
+        target.messages = [ChatMessage(role: .assistant, text: original)]
+        var cursor: String?
+        var received = ""
+        var pages = 0
+        repeat {
+            let page = try await fixture.coordinator.readChat(id: target.id, cursor: cursor)
+            var raw = AgentToolResult(callID: "call", content: page.encodedString)
+            raw.hasBoundedModelContent = true
+            let projected = await AgentToolOutputProjection().project(
+                raw,
+                invocation: .init(runID: UUID(), call: .init(id: "call", name: "read_chat", arguments: .object([:]))))
+            let model = try #require(projected.modelContent)
+            #expect(model.utf8.count <= 65_536)
+            #expect(projected.outputCapture == nil)
+            let framed = AgentToolResult(callID: "call", content: model, metadata: ["untrusted": .bool(true)])
+            let payload = try #require(framed.untrustedPayload)
+            let fields = try #require(AgentJSONValue.decode(Data(payload.utf8)).objectValue)
+            received +=
+                fields["messages"]?.arrayValue?.compactMap { $0.objectValue?["text"]?.stringValue }.joined() ?? ""
+            let next = fields["next_cursor"]?.stringValue
+            #expect(next == nil || next != cursor)
+            cursor = next
+            pages += 1
+        } while cursor != nil && pages < 10
+        #expect(cursor == nil)
+        #expect(pages > 1)
+        #expect(received == original)
     }
 
     @Test func listingBatchesMixedCreatorRelationsOncePerPage() async throws {

@@ -317,10 +317,6 @@ extension AppStrings {
             "Output shortened for display"
         }
 
-        public static var outputTruncated: LocalizedStringResource {
-            "Output truncated"
-        }
-
         public static var pastedImage: LocalizedStringResource {
             "Pasted image"
         }

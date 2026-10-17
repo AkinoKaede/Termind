@@ -63,6 +63,7 @@ nonisolated public struct ListPanesTool: AgentToolDefinition, AgentToolSchemaBui
 nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(id: "builtin.read_pane", present: present)
     public let panes: AgentPaneAccess
+    public var truncateStrategy: AgentTruncateStrategy { .none }
 
     public init(panes: AgentPaneAccess) { self.panes = panes }
 
@@ -112,32 +113,18 @@ nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuil
         case .noSurface:
             throw AgentToolError.invalidArguments("The pane's terminal surface is not established.")
         case .text(let pane, let text):
-            let (limited, truncated) = Self.limitUTF8(text)
             return Self.result(
                 invocation,
                 .object([
                     "pane_id": .string(pane.id.uuidString),
                     "title": .string(pane.title),
                     "host_id": pane.hostID.map { .string($0.uuidString) } ?? .null,
-                    "text": .string(limited),
-                    "truncated": .bool(truncated),
-                ]), truncated: truncated)
+                    "text": .string(text),
+                    "truncated": .bool(false),
+                ]))
         }
     }
 
-    public static func limitUTF8(_ text: String, maxBytes: Int = 65_536) -> (String, Bool) {
-        guard text.utf8.count > maxBytes else { return (text, false) }
-        var bytes = 0
-        var end = text.startIndex
-        while end < text.endIndex {
-            let next = text.index(after: end)
-            let size = text[end..<next].utf8.count
-            if bytes + size > maxBytes { break }
-            bytes += size
-            end = next
-        }
-        return (String(text[..<end]), true)
-    }
 }
 
 nonisolated private enum AgentPaneToolCopy {

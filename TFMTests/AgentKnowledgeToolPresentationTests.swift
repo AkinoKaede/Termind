@@ -131,8 +131,10 @@ import Testing
         #expect(preview.isShortened)
         #expect(preview.fullItems == detail.items)
         let rendered = AgentToolDetailPreview(AgentToolDetail(items: preview.items)).fullText
-        // Separators are formatting, not source text; all source strings share the 600-character budget.
-        #expect(rendered.count <= 610)
+        // Five complete logical lines share the card body budget; headings are metadata.
+        #expect(rendered.utf8.count <= AgentToolDetailPreview.byteLimit + 100)
+        #expect(preview.items.count == 5)
+        #expect(rendered.hasSuffix(text))
         #expect(preview.fullText.contains("Block 31"))
         #expect(preview.fullText.hasSuffix(text))
     }

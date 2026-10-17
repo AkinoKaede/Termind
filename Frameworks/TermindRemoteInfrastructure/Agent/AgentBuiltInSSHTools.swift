@@ -142,9 +142,12 @@ nonisolated public enum SSHCommandPresentation {
             F.appendField(
                 &items, "Signal", object["signal"]?.stringValue,
                 locale: input.locale, monospaced: true)
-            let stdout = object["stdout"]?.stringValue ?? ""
+            let stdout = object["output"]?.stringValue ?? object["stdout"]?.stringValue ?? ""
             let stderr = object["stderr"]?.stringValue ?? ""
-            if !stdout.isEmpty { items.append(F.text("Standard output", stdout, locale: input.locale)) }
+            if !stdout.isEmpty {
+                items.append(
+                    F.text(object["output"] == nil ? "Standard output" : "Content", stdout, locale: input.locale))
+            }
             if !stderr.isEmpty { items.append(F.text("Standard error", stderr, locale: input.locale)) }
             if stdout.isEmpty, stderr.isEmpty, object["note"] == nil {
                 items.append(.message(F.localized("No output", locale: input.locale), .secondary))

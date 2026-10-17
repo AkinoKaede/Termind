@@ -45,7 +45,7 @@ struct AgentScratchTests {
 
         let outside = base.appending(path: "outside.txt")
         try Data("outside".utf8).write(to: outside)
-        let scope = base.appending(path: id.uuidString)
+        let scope = base
         try FileManager.default.createSymbolicLink(
             at: scope.appending(path: "link.txt"), withDestinationURL: outside
         )
@@ -58,23 +58,22 @@ struct AgentScratchTests {
         await #expect(throws: (any Error).self) { try await workspace.read("inside.txt") }
         // And it is not reported as content either, so nothing can act on it.
         let listed = try await workspace.list(nil, recursive: true).map(\.path)
-        #expect(listed == ["anchor.txt"])
+        #expect(listed == ["anchor.txt", "outside.txt"])
         let searched = try await workspace.search("anchor")
         #expect(searched.matches.map(\.path) == ["anchor.txt"])
-        #expect(searched.searchedFiles == 1)
+        #expect(searched.searchedFiles == 2)
     }
 
     @Test
-    func twoConversationsCannotSeeEachOther() async throws {
+    func conversationsShareFilesAndDeletionDoesNotRemoveScratch() async throws {
         let base = Fixture.base()
         let first = AgentScratchWorkspace(conversationID: UUID(), base: base)
         let second = AgentScratchWorkspace(conversationID: UUID(), base: base)
 
         _ = try await first.write("notes.md", data: Data("first".utf8))
-        #expect(try await second.list(nil, recursive: true).isEmpty)
-        await #expect(throws: (any Error).self) { try await second.read("notes.md") }
+        #expect(try await second.read("notes.md").content == "first")
 
-        // And deleting one scope leaves the other alone.
+        // A conversation lifecycle event never owns the shared files.
         _ = try await second.write("notes.md", data: Data("second".utf8))
         try await first.removeScope()
         #expect(try await second.read("notes.md").content == "second")
@@ -235,7 +234,8 @@ struct AgentScratchTests {
         #expect(outcome.matchingLines == 3)
         #expect(outcome.matches.count == 1)
         #expect(outcome.matches[0].text.contains("target"))
-        #expect(outcome.matches[0].textTruncated)
+        #expect(!outcome.matches[0].textTruncated)
+        #expect(outcome.matches[0].text == longLine)
         #expect(outcome.isTruncated)
     }
 
@@ -623,7 +623,7 @@ struct AgentScratchTests {
         #expect(properties["scratch_path"] == nil)
         #expect(properties.keys.sorted() == ["format", "url"])
         #expect(fetch?.approvalPolicy == .ask)
-        #expect(!tools.contains { $0.descriptor.name.hasPrefix("scratch_") })
+        #expect(tools.contains { $0.descriptor.name == "scratch_read" })
     }
 
     /// The built-in SFTP tools were deliberately left alone: `scratch_pull` and
@@ -635,7 +635,7 @@ struct AgentScratchTests {
             connections: Fixture.pool(StubTransferSFTPClient())
         )
         let names = tools.map(\.descriptor.name)
-        #expect(!names.contains { $0.hasPrefix("scratch_") })
+        #expect(names.contains("scratch_read"))
         for name in ["sftp_read", "sftp_write"] {
             let properties =
                 tools.first { $0.descriptor.name == name }?
@@ -651,7 +651,7 @@ struct AgentScratchTests {
     }
 
     @Test
-    func searchToolBoundsItsEncodedTranscriptResult() async throws {
+    func searchUsesDefaultProjectionRatherThanItsOwnResponseCeiling() async throws {
         let workspace = Fixture.workspace()
         let line = String(repeating: "\u{0001}", count: 1_100) + "target"
         let body = Array(repeating: line, count: 100).joined(separator: "\n")
@@ -671,11 +671,16 @@ struct AgentScratchTests {
         let object = try #require(
             try AgentJSONValue.decode(Data(payload.utf8)).objectValue
         )
-        #expect(payload.utf8.count <= 128 * 1_024)
-        #expect(result.isTruncated)
+        #expect(payload.utf8.count > 65_536)
+        let projected = await AgentToolOutputProjection(workspace: workspace).project(
+            result, invocation: Fixture.invocation("scratch_search", [:]), strategy: tool.truncateStrategy)
+        #expect(try #require(projected.modelContent).utf8.count <= 65_536)
+        #expect(projected.metadata["output_truncated"] == .bool(true))
+        #expect(projected.outputCapture == nil)
+        #expect(tool.truncateStrategy == .head)
         #expect(object["matching_lines"]?.integerValue == 100)
-        #expect((object["returned_matches"]?.integerValue ?? 100) < 100)
-        #expect(object["truncated"]?.boolValue == true)
+        #expect(object["returned_matches"]?.integerValue == 100)
+        #expect(object["truncated"]?.boolValue == false)
     }
 
     // MARK: - Transfer
@@ -875,7 +880,7 @@ struct AgentScratchTests {
         #expect(try await workspace.data(at: "docs/page.md").data == Data(page.utf8))
     }
 
-    /// The reason the tool exists. `fetch` truncates at 256 KB because that is what
+    /// Scratch fetch writes the whole document without a model preview;
     /// crosses the context window; nothing does here, so the page arrives whole.
     @Test
     func fetchIsNotBoundedByTheInlineCeilingThatBoundsTheResultOfFetch() async throws {

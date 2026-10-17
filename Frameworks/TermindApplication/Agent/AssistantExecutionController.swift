@@ -558,8 +558,7 @@ public final class AssistantExecutionController {
         // only records events would leave this off — see `AgentStreamPacing`.
         configuration.streamPacing = .animated
         configuration.outputProjection = AgentToolOutputProjection(
-            workspace: AgentScratchWorkspace(
-                conversationID: conversation.id, applicationName: TermindAgentPolicy.scratchDirectoryName))
+            workspace: AgentScratchWorkspace.shared(applicationName: TermindAgentPolicy.scratchDirectoryName))
         configuration.contextSnapshot = { _, _ in frozenContext }
         configuration.contextPipeline = { sessionContext, promptID, planning in
             var pipeline = AgentContextPipeline.chat(
