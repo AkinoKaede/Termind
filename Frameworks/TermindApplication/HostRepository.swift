@@ -21,6 +21,14 @@ public nonisolated enum HostUseCase: Hashable, Sendable {
         case .sshTerminal, .sftp, .jumpHost, .metrics, .portForwarding, .snippetExecution, .keyExport: .ssh
         }
     }
+
+    public func accessProtocol(for host: Host) -> HostTerminalProtocol {
+        switch self {
+        case .preferredTerminal: host.preferredTerminalProtocol ?? .ssh
+        case .telnetTerminal: .telnet
+        default: .ssh
+        }
+    }
 }
 
 public nonisolated struct HostProtocolUnavailableError: LocalizedError, Equatable, Sendable {

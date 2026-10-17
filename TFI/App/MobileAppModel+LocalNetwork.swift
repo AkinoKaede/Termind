@@ -11,18 +11,24 @@ extension MobileAppModel {
         LocalDiscoveryModel(service: LANHostDiscovery(connectionProtocol: connectionProtocol))
     }
 
-    func requestWake(_ host: Host, configure: () -> Void) -> String? {
-        switch library.requestWake(host) {
-        case .accessDenied:
-            if library.isLocked(host) { pro.presentPaywall() }
+    func requestWake(_ host: Host, configure: () -> Void) async -> String? {
+        do {
+            switch try await library.requestWake(host) {
+            case .configurationRequired:
+                configure()
+                return nil
+            case .sent:
+                return String(localized: AppStrings.LocalNetwork.sent)
+            case .failed:
+                return String(localized: AppStrings.LocalNetwork.wakeFailed)
+            }
+        } catch HostAccessError.lockedHost {
+            pro.presentPaywall()
             return nil
-        case .configurationRequired:
-            configure()
+        } catch is CancellationError {
             return nil
-        case .sent:
-            return String(localized: AppStrings.LocalNetwork.sent)
-        case .failed:
-            return String(localized: AppStrings.LocalNetwork.wakeFailed)
+        } catch {
+            return HostAccessError.presentationDescription(of: error)
         }
     }
 

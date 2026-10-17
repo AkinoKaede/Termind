@@ -45,7 +45,9 @@ struct HostContextMenu: View {
             let showsTailscale = host.isTailscaleManaged || app.tailscale.peer(for: host) != nil
             if showsWake {
                 Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
-                    window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+                    Task {
+                        window.wakeNotice = await app.requestWake(host) { window.openHostEditor(host: host) }
+                    }
                 }
             }
             if showsTailscale {
@@ -60,7 +62,7 @@ struct HostContextMenu: View {
                 window.openHostEditor(host: host)
             }
             Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
-                HostMenuEntries.duplicate(host, in: app)
+                Task { await HostMenuEntries.duplicate(host, in: app, window: window) }
             }
             .disabled(host.isTailscaleManaged)
             Divider()
@@ -204,7 +206,9 @@ enum HostMenuEntries {
                 NativeMenuEntry(
                     title: AppStrings.LocalNetwork.wake, symbol: "power"
                 ) {
-                    window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+                    Task {
+                        window.wakeNotice = await app.requestWake(host) { window.openHostEditor(host: host) }
+                    }
                 })
         }
         if showsTailscale {
@@ -226,31 +230,21 @@ enum HostMenuEntries {
                     title: AppStrings.Common.duplicate, symbol: MenuSymbol.duplicate,
                     isEnabled: !host.isTailscaleManaged
                 ) {
-                    duplicate(host, in: app)
+                    Task { await duplicate(host, in: app, window: window) }
                 })
         }
         return entries
     }
 
-    static func duplicate(_ host: Host, in app: AppModel) {
-        var copy = host
-        if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-            copy.identityID = nil
+    static func duplicate(_ host: Host, in app: AppModel, window: WindowModel) async {
+        do {
+            let saved = try await app.hostLibrary.duplicateHost(
+                host, name: String(localized: AppStrings.Vault.duplicatedHostName(host.name)))
+            if !saved { window.hostAccessError = app.hostLibrary.storageError }
+        } catch is CancellationError {
+        } catch {
+            window.hostAccessError = HostAccessError.presentationDescription(of: error)
         }
-        if host.proxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-            copy.proxy?.identityID = nil
-            copy.proxy?.username = ""
-        }
-        if host.telnetIdentityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-            copy.telnetIdentityID = nil
-        }
-        if host.telnetProxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-            copy.telnetProxy?.identityID = nil
-            copy.telnetProxy?.username = ""
-        }
-        copy.id = UUID()
-        copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
-        app.hostLibrary.upsert(copy)
     }
 }
 

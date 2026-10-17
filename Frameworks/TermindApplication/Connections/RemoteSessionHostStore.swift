@@ -9,8 +9,8 @@ import struct TermindDomain.Host
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck?
-    func requireHostAccess(_ host: Host) throws
-    func resolveHostAccess(_ host: Host) async throws
+    func requireHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) throws
+    func resolveHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) async throws
     func requireSavingHosts(_ proposed: [Host]) throws
     func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction?
     func host(_ id: Host.ID) -> Host?
@@ -75,8 +75,15 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 
 extension RemoteSessionHostStore {
     public func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck? { nil }
-    public func requireHostAccess(_ host: Host) throws {}
-    public func resolveHostAccess(_ host: Host) async throws { try requireHostAccess(host) }
+    // Explicit overloads preserve witness dispatch; default arguments on a fallback can bypass it.
+    public func requireHostAccess(_ host: Host) throws { try requireHostAccess(host, protocol: .ssh) }
+    public func requireHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) throws {}
+    public func resolveHostAccess(_ host: Host) async throws { try await resolveHostAccess(host, protocol: .ssh) }
+    public func resolveHostAccess(
+        _ host: Host, protocol connectionProtocol: HostTerminalProtocol
+    ) async throws {
+        try requireHostAccess(host, protocol: connectionProtocol)
+    }
     public func resolveHostAccess(_ host: Host, route: SSHConnectionRoute?) async throws {
         try await resolveHostAccess(host)
         for node in route?.hosts ?? [] { try await resolveHostAccess(node) }
@@ -133,7 +140,7 @@ extension RemoteSessionHostStore {
     }
 
     public func telnetConnectionConfiguration(for host: Host) throws -> TelnetConnectionConfiguration {
-        try requireHostAccess(host)
+        try requireHostAccess(host, protocol: .telnet)
         guard host.telnetEnabled else { throw HostProtocolUnavailableError(useCase: .telnetTerminal) }
         let identity = identity(for: host, protocol: .telnet)
         let username = identity?.username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -144,10 +151,13 @@ extension RemoteSessionHostStore {
         } else {
             password = nil
         }
-        return TelnetConnectionConfiguration(
+        var configuration = TelnetConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.telnetPort,
             username: username?.isEmpty == false ? username : nil,
             password: password, charset: host.telnetCharset)
+        configuration.accessCheck = connectionAccessCheck(for: [host.id])
+        configuration.beforeConnect = connectionWakeAction(for: [host.id])
+        return configuration
     }
 
     /// Captures a desktop authentication form without saving its input. A

@@ -34,6 +34,14 @@ nonisolated enum HostOpenTarget: Hashable, Sendable {
     case eternalTerminalSession
     case telnetSession
     case sftpChannel
+
+    func accessProtocol(for host: Host) -> HostTerminalProtocol {
+        switch self {
+        case .preferredTerminal: host.preferredTerminalProtocol ?? .ssh
+        case .telnetSession: .telnet
+        default: .ssh
+        }
+    }
 }
 
 /// App-wide state shared by every window: the saved hosts, and the one code path
@@ -1064,7 +1072,7 @@ final class AppModel {
     ) -> Workspace? {
         guard
             admitHostOpen(
-                host, in: window,
+                host, protocol: target.accessProtocol(for: host), in: window,
                 whenResolved: { [weak self, weak window] in
                     guard let self, let window else { return }
                     self.open(host, as: target, in: window)
@@ -1101,7 +1109,7 @@ final class AppModel {
         for node in target.route.hosts {
             guard
                 admitHostOpen(
-                    node, in: window,
+                    node, protocol: target.connectionProtocol, in: window,
                     whenResolved: { [weak self, weak window] in
                         guard let self, let window else { return }
                         self.openQuickConnect(target, in: window)
@@ -1111,7 +1119,7 @@ final class AppModel {
         for id in target.route.sourceHostIDs.values {
             if let saved = hosts.host(id),
                 !admitHostOpen(
-                    saved, in: window,
+                    saved, protocol: target.connectionProtocol, in: window,
                     whenResolved: { [weak self, weak window] in
                         guard let self, let window else { return }
                         self.openQuickConnect(target, in: window)
@@ -1290,19 +1298,20 @@ final class AppModel {
     ) {
         if let pending = hosts.first(where: {
             do {
-                try self.hosts.requireHostAccess($0)
+                try self.hosts.requireHostAccess($0, protocol: target.accessProtocol(for: $0))
                 return false
             } catch {
                 return (error as? HostAccessError) == .verifyingEntitlement
             }
         }) {
-            _ = admitHostOpen(pending, in: window) { [weak self, weak window] in
+            _ = admitHostOpen(pending, protocol: target.accessProtocol(for: pending), in: window) {
+                [weak self, weak window] in
                 guard let self, let window else { return }
                 self.open(hosts, as: target, layout: layout, in: window)
             }
             return
         }
-        let hosts = hosts.filter { admitHostOpen($0, in: window) }
+        let hosts = hosts.filter { admitHostOpen($0, protocol: target.accessProtocol(for: $0), in: window) }
         guard !hosts.isEmpty else { return }
         configureConnectionHistory(in: window)
         switch layout {
@@ -1316,17 +1325,18 @@ final class AppModel {
     }
 
     private func admitHostOpen(
-        _ host: Host, in window: WindowModel, whenResolved: (() -> Void)? = nil
+        _ host: Host, protocol connectionProtocol: HostTerminalProtocol,
+        in window: WindowModel, whenResolved: (() -> Void)? = nil
     ) -> Bool {
         do {
-            try hosts.requireHostAccess(host)
+            try hosts.requireHostAccess(host, protocol: connectionProtocol)
             return true
         } catch {
             if case HostAccessError.verifyingEntitlement = error {
                 Task { [weak self, weak window] in
                     guard let self, let window else { return }
                     do {
-                        try await hosts.resolveHostAccess(host)
+                        try await hosts.resolveHostAccess(host, protocol: connectionProtocol)
                         whenResolved?()
                     } catch {
                         if case HostAccessError.lockedHost = error {

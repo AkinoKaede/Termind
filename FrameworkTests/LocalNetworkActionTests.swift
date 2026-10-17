@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
@@ -8,6 +9,90 @@ import struct TermindDomain.Host
 @Suite @MainActor
 struct LocalNetworkActionTests {
     enum IdentitySelection: CaseIterable { case unsaved, hostCustom, reusable }
+
+    @Test(arguments: [false, true])
+    func telnetConfigurationWakesOnlyItsTargetAndRejectsRetainedAccessAfterExpiry(sshEnabled: Bool) async throws {
+        var hosts = (0..<4).map {
+            Host(name: "Host \($0)", host: "host.invalid", createdAt: Date(timeIntervalSince1970: Double($0)))
+        }
+        hosts[0].sshEnabled = sshEnabled
+        hosts[0].telnetEnabled = true
+        hosts[0].jumpHostID = hosts[3].id
+        hosts[0].wakeOnLAN = .init(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
+        hosts[3].telnetEnabled = true
+        hosts[3].wakeOnLAN = .init(macAddress: "02:11:22:33:44:66", automaticallyWake: true)
+        let library = HostLibraryModel(hosts: hosts)
+        let sender = ManualWakeSender()
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
+        let retained = try library.telnetConnectionConfiguration(for: hosts[3])
+        library.hostAccess.entitlement = .free
+        let allowed = try library.telnetConnectionConfiguration(for: hosts[0])
+        try allowed.accessCheck?()
+        await allowed.beforeConnect?()
+        #expect(sender.sent.map(\.rawValue) == ["02:11:22:33:44:55"])
+        let connection = TelnetConnection(output: { _ in })
+        defer { connection.disconnect() }
+        await #expect(throws: HostAccessError.lockedHost(hosts[3].id)) {
+            try await connection.connect(using: retained)
+        }
+        await retained.beforeConnect?()
+        #expect(sender.sent.count == 1)
+    }
+
+    @Test(arguments: [false, true])
+    func pendingManualWakeUsesFreshPreferencesAndHonorsCancellation(cancelled: Bool) async throws {
+        var hosts = (0..<4).map {
+            Host(name: "Host \($0)", host: "host.invalid", createdAt: Date(timeIntervalSince1970: Double($0)))
+        }
+        hosts[3].wakeOnLAN.macAddress = "02:11:22:33:44:55"
+        let library = HostLibraryModel(hosts: hosts)
+        let sender = ManualWakeSender()
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
+        library.hostAccess.entitlement = .loading
+        var continuation: CheckedContinuation<Void, Never>?
+        library.resolveInitialHostEntitlement = {
+            await withCheckedContinuation { continuation = $0 }
+            library.hostAccess.entitlement = .purchased(.purchased)
+        }
+        defer { library.resolveInitialHostEntitlement = nil }
+        let target = hosts[3]
+        let operation = Task { try await library.requestWake(target) }
+        for _ in 0..<200 where continuation == nil { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(continuation != nil)
+        #expect(sender.sent.isEmpty)
+        var updated = target
+        updated.wakeOnLAN.macAddress = "02:11:22:33:44:66"
+        library.upsert(updated)
+        if cancelled { operation.cancel() }
+        continuation?.resume()
+        do {
+            let outcome = try await operation.value
+            #expect(!cancelled)
+            #expect(outcome == .sent)
+        } catch {
+            #expect(cancelled && error is CancellationError)
+        }
+        #expect(sender.sent.map(\.rawValue) == (cancelled ? [] : ["02:11:22:33:44:66"]))
+    }
+
+    @Test func deletingTheHostDuringEntitlementResolutionCancelsManualWake() async throws {
+        var hosts = (0..<4).map {
+            Host(name: "Host \($0)", host: "host.invalid", createdAt: Date(timeIntervalSince1970: Double($0)))
+        }
+        hosts[3].wakeOnLAN.macAddress = "02:11:22:33:44:55"
+        let target = hosts[3]
+        let library = HostLibraryModel(hosts: hosts)
+        let sender = ManualWakeSender()
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
+        library.hostAccess.entitlement = .loading
+        library.resolveInitialHostEntitlement = {
+            library.projectHostDeletion(target.id)
+            library.hostAccess.entitlement = .purchased(.purchased)
+        }
+        defer { library.resolveInitialHostEntitlement = nil }
+        await #expect(throws: CancellationError.self) { try await library.requestWake(target) }
+        #expect(sender.sent.isEmpty)
+    }
 
     @Test(arguments: IdentitySelection.allCases)
     func macLookupUsesOnlyTheSelectedEditorAuthentication(_ selection: IdentitySelection) async throws {
@@ -98,7 +183,7 @@ struct LocalNetworkActionTests {
         #expect(library.groups == [group])
     }
 
-    @Test func lockedManualWakeNeverSendsOrRequestsConfiguration() {
+    @Test func lockedManualWakeNeverSendsOrRequestsConfiguration() async throws {
         var hosts = (0..<4).map {
             Host(name: "Host \($0)", host: "host.invalid", createdAt: Date(timeIntervalSince1970: Double($0)))
         }
@@ -107,14 +192,17 @@ struct LocalNetworkActionTests {
         library.hostAccess.entitlement = .free
         let sender = ManualWakeSender()
         library.wakeOnLAN = WakeOnLANController(sender: sender)
-        #expect(library.requestWake(hosts[3]) == .accessDenied)
+        await #expect(throws: HostAccessError.lockedHost(hosts[3].id)) {
+            try await library.requestWake(hosts[3])
+        }
         #expect(sender.sent.isEmpty)
         library.hostAccess.entitlement = .purchased(.purchased)
-        #expect(library.requestWake(hosts[3]) == .sent)
+        let outcome = try await library.requestWake(hosts[3])
+        #expect(outcome == .sent)
         #expect(sender.sent.count == 1)
     }
 
-    @Test func manualWakeReadsLatestSavedPreferences() {
+    @Test func manualWakeReadsLatestSavedPreferences() async throws {
         var host = Host(name: "Host", host: "host.invalid")
         host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
         let library = HostLibraryModel(hosts: [host])
@@ -123,26 +211,31 @@ struct LocalNetworkActionTests {
         var updated = host
         updated.wakeOnLAN.macAddress = "02:11:22:33:44:66"
         library.upsert(updated)
-        #expect(library.requestWake(host) == .sent)
+        let sent = try await library.requestWake(host)
+        #expect(sent == .sent)
         #expect(sender.sent.map(\.rawValue) == ["02:11:22:33:44:66"])
         updated.wakeOnLAN = .init()
         library.upsert(updated)
-        #expect(library.requestWake(host) == .configurationRequired)
+        let unconfigured = try await library.requestWake(host)
+        #expect(unconfigured == .configurationRequired)
         #expect(sender.sent.count == 1)
     }
 
-    @Test func manualWakeReportsMissingServiceAndSendFailure() {
+    @Test func manualWakeReportsMissingServiceAndSendFailure() async throws {
         var host = Host(name: "Host", host: "host.invalid")
         host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
         let library = HostLibraryModel()
-        #expect(library.requestWake(host) == .failed)
+        let unavailable = try await library.requestWake(host)
+        #expect(unavailable == .failed)
         let sender = ManualWakeSender()
         library.wakeOnLAN = WakeOnLANController(sender: sender)
         sender.fails = true
-        #expect(library.requestWake(host) == .failed)
+        let failed = try await library.requestWake(host)
+        #expect(failed == .failed)
         #expect(sender.sent.isEmpty)
         sender.fails = false
-        #expect(library.requestWake(host) == .sent)
+        let sent = try await library.requestWake(host)
+        #expect(sent == .sent)
     }
 
     private func finish(_ model: HostMACAddressModel) async throws {
@@ -221,10 +314,6 @@ private nonisolated final class ManualWakeSender: WakeOnLANSending, @unchecked S
             addresses.append(address)
         }
     }
-}
-
-@MainActor private final class ManualWakeAccess {
-    var allowed = false
 }
 
 @MainActor private final class MACLookupTailscaleProvider: TailscaleConnectionProviding {

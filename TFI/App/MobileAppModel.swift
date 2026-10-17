@@ -547,22 +547,15 @@ final class MobileAppModel {
         if let storageError = library.storageError { error = storageError }
     }
 
-    func duplicateHost(_ host: Host) {
-        guard !host.isTailscaleManaged else { return }
-        var copy = host
-        if host.identityID.flatMap(library.identity)?.isHostCustom == true { copy.identityID = nil }
-        if host.telnetIdentityID.flatMap(library.identity)?.isHostCustom == true { copy.telnetIdentityID = nil }
-        if host.proxy?.identityID.flatMap(library.identity)?.isHostCustom == true {
-            copy.proxy?.identityID = nil
-            copy.proxy?.username = ""
+    func duplicateHost(_ host: Host) async {
+        do {
+            let saved = try await library.duplicateHost(
+                host, name: String(localized: AppStrings.Vault.duplicatedHostName(host.name)))
+            if !saved { error = library.storageError }
+        } catch is CancellationError {
+        } catch {
+            self.error = HostAccessError.presentationDescription(of: error)
         }
-        if host.telnetProxy?.identityID.flatMap(library.identity)?.isHostCustom == true {
-            copy.telnetProxy?.identityID = nil
-            copy.telnetProxy?.username = ""
-        }
-        copy.id = UUID()
-        copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
-        library.upsert(copy)
     }
 
     func lastConnectedAt(for hostID: Host.ID) -> Date? {

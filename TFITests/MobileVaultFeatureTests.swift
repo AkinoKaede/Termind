@@ -170,23 +170,25 @@ struct MobileVaultFeatureTests {
             ])
     }
 
-    @Test func duplicatingAHostPersistsAnIndependentCopyWithTheSameConfiguration() throws {
-        let app = try MobileAppModel(inMemory: true)
+    @Test func duplicatingAHostPersistsAnIndependentCopyWithTheSameConfiguration() async throws {
         let group = HostGroup(name: "Production")
         let jump = TermindDomain.Host(name: "Jump", host: "jump.example.invalid")
-        app.library.upsert(group)
-        app.library.upsert(jump)
         let host = TermindDomain.Host(
             name: "Remote", host: "remote.example.invalid", port: 2222, identityID: UUID(),
+            createdAt: Date(timeIntervalSince1970: 100),
             jumpHostID: jump.id,
             proxy: HostProxy(kind: .socks5, hostname: "proxy.example.invalid", port: 1080),
             sftpChannelInitialPath: "/srv/app", groupID: group.id, tags: ["production", "api"],
             colorTag: .teal, detectedDistribution: DetectedDistribution(id: "debian"),
             shellIntegrationMode: .enabled, portForwardingMaxConnections: 12)
-        app.library.upsert(host)
+        var dependencies = MobileAppDependencies.testing()
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        _ = try HostPersistence(context: container.mainContext).save(.init(hosts: [jump, host], groups: [group]))
+        dependencies.container = container
+        let app = try MobileAppModel(dependencies: dependencies)
         let original = try #require(app.library.host(host.id))
 
-        app.duplicateHost(original)
+        await app.duplicateHost(original)
 
         #expect(app.library.hosts.count == 3)
         #expect(app.library.host(original.id) == original)
@@ -197,6 +199,9 @@ struct MobileVaultFeatureTests {
         expected.id = copy.id
         expected.name = copy.name
         expected.sortIndex = copy.sortIndex
+        #expect(copy.createdAt != nil)
+        #expect(copy.createdAt != original.createdAt)
+        expected.createdAt = copy.createdAt
         #expect(copy == expected)
         app.outbox.stop()
     }

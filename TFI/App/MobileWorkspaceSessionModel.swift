@@ -151,12 +151,12 @@ final class MobileWorkspaceSessionModel {
         initialPath: String? = nil
     ) -> UUID? {
         guard !isDiscarded, let host = app.library.host(hostID) else { return nil }
-        do { try app.library.requireHostAccess(host) } catch {
+        do { try app.library.requireHostAccess(host, protocol: kind.terminalProtocol ?? .ssh) } catch {
             if case HostAccessError.verifyingEntitlement = error {
                 Task { [weak self] in
                     guard let self else { return }
                     do {
-                        try await app.library.resolveHostAccess(host)
+                        try await app.library.resolveHostAccess(host, protocol: kind.terminalProtocol ?? .ssh)
                         guard !isDiscarded else { return }
                         _ = open(hostID: hostID, kind: kind, initialPath: initialPath)
                     } catch {

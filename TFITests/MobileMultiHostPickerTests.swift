@@ -72,7 +72,7 @@ struct MobileMultiHostPickerTests {
     }
 
     @Test
-    func batchMetricsAdditionIsAtomicAndUsesTheCurrentEntitlement() {
+    func batchMetricsAdditionHasNoIndependentLimitAndDeduplicates() {
         let hosts = (0..<5).map { Host(name: "Host \($0)", host: "host\($0).invalid") }
         let preferences = PickerMetricsPreferences()
         let metrics = MobileMetricsModel(
@@ -80,15 +80,18 @@ struct MobileMultiHostPickerTests {
         defer { metrics.core.shutdown() }
         metrics.pause()
 
-        #expect(metrics.add([hosts[0].id]))
-        let saved = preferences.values
-        #expect(!metrics.add(hosts[1...3].map(\.id)))
-        #expect(preferences.values == saved)
-        #expect(metrics.selections.map(\.id) == [hosts[0].id])
-        #expect(metrics.add([hosts[0].id, hosts[1].id, hosts[1].id, hosts[2].id]))
-        #expect(metrics.selections.count == 3)
-        #expect(metrics.add(hosts[3...4].map(\.id)))
+        let initial = metrics.add([hosts[0].id])
+        #expect(initial)
+        let batch = metrics.add(hosts[1...3].map(\.id))
+        #expect(batch)
+        #expect(metrics.selections.map(\.id) == Array(hosts.prefix(4)).map(\.id))
+        let repeated = metrics.add([hosts[0].id, hosts[1].id, hosts[1].id, hosts[2].id])
+        #expect(repeated)
+        #expect(metrics.selections.count == 4)
+        let final = metrics.add(hosts[3...4].map(\.id))
+        #expect(final)
         #expect(metrics.selections.map(\.id) == hosts.map(\.id))
+        #expect(preferences.values.map(\.id) == hosts.map(\.id))
     }
 
     @Test
@@ -108,7 +111,7 @@ struct MobileMultiHostPickerTests {
     }
 
     @Test
-    func mobileMetricsCanSwapAtTheFreeLimitAndRemoveAllHosts() {
+    func mobileMetricsCanReplaceAndRemoveAllHosts() {
         let hosts = (0..<4).map { Host(name: "Host \($0)", host: "host\($0).invalid") }
         let preferences = PickerMetricsPreferences()
         let metrics = MobileMetricsModel(

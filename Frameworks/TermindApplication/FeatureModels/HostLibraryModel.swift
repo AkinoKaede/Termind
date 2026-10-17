@@ -20,21 +20,21 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
     @ObservationIgnored public var requestHostUpgrade: (() -> Void)?
     @ObservationIgnored public var resolveInitialHostEntitlement: (() async -> Void)?
-    public var lastHostAccessError: HostAccessError?
-
     public func isLocked(_ host: Host) -> Bool { hostAccess.isLocked(host.id, in: hosts) }
 
-    public func requireHostAccess(_ host: Host) throws {
-        for node in route(for: host) {
+    public func requireHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) throws {
+        for node in connectionProtocol == .telnet ? [host] : route(for: host) {
             try hostAccess.requireAccess(to: node.id, in: hosts)
         }
     }
 
-    public func resolveHostAccess(_ host: Host) async throws {
-        do { try requireHostAccess(host) } catch HostAccessError.verifyingEntitlement {
+    public func resolveHostAccess(
+        _ host: Host, protocol connectionProtocol: HostTerminalProtocol
+    ) async throws {
+        do { try requireHostAccess(host, protocol: connectionProtocol) } catch HostAccessError.verifyingEntitlement {
             await resolveInitialHostEntitlement?()
             try Task.checkCancellation()
-            try requireHostAccess(host)
+            try requireHostAccess(host, protocol: connectionProtocol)
         }
     }
 
@@ -55,9 +55,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func requireSavingHosts(_ proposed: [Host]) throws {
         do {
             try hostAccess.requireSaving(proposed, in: hosts)
-            lastHostAccessError = nil
         } catch let error as HostAccessError {
-            lastHostAccessError = error
             if error == .hostLimit { requestHostUpgrade?() }
             throw error
         }
@@ -117,8 +115,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func wakeBeforeConnecting(_ ids: [UUID]) {
         guard
             ids.allSatisfy({ id in
-                guard let host = host(id) else { return true }
-                return (try? requireHostAccess(host)) != nil
+                (try? hostAccess.requireAccess(to: id, in: hosts)) != nil
             })
         else { return }
         for id in ids {
@@ -1014,13 +1011,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func isEligible(_ host: Host, for useCase: HostUseCase) -> Bool {
-        guard (try? requireHostAccess(host)) != nil else { return false }
+        guard (try? requireHostAccess(host, protocol: useCase.accessProtocol(for: host))) != nil else { return false }
         if host.isTailscaleManaged && [.jumpHost, .keyExport, .portForwarding].contains(useCase) { return false }
         return host.supports(useCase.protocolRequirement)
     }
 
     public func require(_ host: Host, for useCase: HostUseCase) throws {
-        try requireHostAccess(host)
+        try requireHostAccess(host, protocol: useCase.accessProtocol(for: host))
         guard isEligible(host, for: useCase) else {
             throw HostProtocolUnavailableError(useCase: useCase)
         }
@@ -1051,6 +1048,29 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     // MARK: - Writes
+
+    @discardableResult
+    public func duplicateHost(_ proposed: Host, name: String) async throws -> Bool {
+        guard let source = host(proposed.id), !source.isTailscaleManaged else { return false }
+        var copy = source
+        if source.identityID.flatMap(identity)?.isHostCustom == true { copy.identityID = nil }
+        if source.telnetIdentityID.flatMap(identity)?.isHostCustom == true { copy.telnetIdentityID = nil }
+        if source.proxy?.identityID.flatMap(identity)?.isHostCustom == true {
+            copy.proxy?.identityID = nil
+            copy.proxy?.username = ""
+        }
+        if source.telnetProxy?.identityID.flatMap(identity)?.isHostCustom == true {
+            copy.telnetProxy?.identityID = nil
+            copy.telnetProxy?.username = ""
+        }
+        copy.id = UUID()
+        copy.name = name
+        copy.createdAt = nil
+        try await resolveSavingHostsAccess([copy])
+        try Task.checkCancellation()
+        guard host(source.id) != nil else { return false }
+        return saveHost(copy)
+    }
 
     public func upsert(_ host: Host) { _ = saveHost(host) }
 

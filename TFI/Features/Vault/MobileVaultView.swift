@@ -855,7 +855,7 @@ struct MobileVaultView: View {
             }
         case .wake:
             Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
-                wakeNotice = app.requestWake(host) { editingHost = host }
+                Task { wakeNotice = await app.requestWake(host) { editingHost = host } }
             }
         case .edit:
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editingHost = host }
@@ -865,7 +865,7 @@ struct MobileVaultView: View {
             }
         case .duplicate:
             Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") {
-                app.duplicateHost(host)
+                Task { await app.duplicateHost(host) }
             }.disabled(host.isTailscaleManaged)
         case .delete:
             Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {

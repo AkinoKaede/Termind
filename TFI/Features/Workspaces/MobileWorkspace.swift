@@ -485,14 +485,18 @@ final class MobileWorkspace: Identifiable {
 
     func insertTerminalText(_ text: String) {
         guard connected else { return }
-        if let host = connectionHost(descriptor.hostID) {
-            do { try hosts.requireHostAccess(host) } catch {
-                operationError = error.localizedDescription
-                return
-            }
+        do { try requireTerminalInputAccess() } catch {
+            operationError = error.localizedDescription
+            return
         }
         _ = terminal.paste(text: text)
         terminal.requestFocus()
+    }
+
+    func requireTerminalInputAccess() throws {
+        if let host = connectionHost(descriptor.hostID) {
+            try hosts.requireHostAccess(host, protocol: descriptor.kind.terminalProtocol ?? .ssh)
+        }
     }
 
     func generateCommand(
@@ -1438,7 +1442,7 @@ final class MobileWorkspace: Identifiable {
         attempt = Task { [weak self, weak hosts] in
             guard let self, let hosts else { return }
             do {
-                try await hosts.resolveHostAccess(host)
+                try await hosts.resolveHostAccess(host, protocol: .telnet)
                 var configuration = try hosts.telnetConnectionConfiguration(for: host)
                 if let usernameHint { configuration.username = usernameHint }
                 if let password = self.advisoryTelnetPassword {

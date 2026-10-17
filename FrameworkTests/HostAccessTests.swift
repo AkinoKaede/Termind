@@ -17,6 +17,165 @@ struct HostAccessTests {
         }
     }
 
+    @Test(arguments: [EntitlementStatus.free, .loading, .verificationFailed])
+    func existentialSSHAdmissionUsesThePolicyForBothTargetsAndJumps(status: EntitlementStatus) throws {
+        var hosts = fixtures(4)
+        hosts[0].telnetEnabled = true
+        hosts[0].jumpHostID = hosts[3].id
+        let library = HostLibraryModel(hosts: hosts)
+        library.hostAccess.entitlement = status
+        let store: any RemoteSessionHostStore = library
+        let expected: HostAccessError =
+            status == .free
+            ? .lockedHost(hosts[3].id)
+            : (status == .loading ? .verifyingEntitlement : .entitlementVerificationFailed)
+        for host in [hosts[0], hosts[3]] {
+            #expect(throws: expected) { try store.requireHostAccess(host) }
+            #expect(throws: expected) { try store.requireHostAccess(host, protocol: .ssh) }
+        }
+        try store.requireHostAccess(hosts[0], protocol: .telnet)
+    }
+
+    @Test(arguments: [false, true])
+    func existentialSSHResolutionWaitsForTheConcreteEntitlementResolver(lockedJump: Bool) async throws {
+        var hosts = fixtures(4)
+        hosts[0].jumpHostID = hosts[3].id
+        let library = HostLibraryModel(hosts: hosts)
+        library.hostAccess.entitlement = .loading
+        let store: any RemoteSessionHostStore = library
+        var continuation: CheckedContinuation<Void, Never>?
+        var resolutions = 0
+        library.resolveInitialHostEntitlement = {
+            resolutions += 1
+            await withCheckedContinuation { continuation = $0 }
+            library.hostAccess.entitlement = .purchased(.purchased)
+        }
+        defer { library.resolveInitialHostEntitlement = nil }
+        let target = hosts[lockedJump ? 0 : 3]
+        let operation = Task { try await store.resolveHostAccess(target) }
+        for _ in 0..<200 where continuation == nil { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(continuation != nil)
+        #expect(resolutions == 1)
+        #expect(throws: HostAccessError.verifyingEntitlement) { try store.requireHostAccess(target) }
+        continuation?.resume()
+        try await operation.value
+        try store.requireHostAccess(target)
+        #expect(resolutions == 1)
+    }
+
+    @Test(arguments: [EntitlementStatus.free, .loading], [false, true])
+    func telnetAdmissionIgnoresTheIndependentSSHJump(status: EntitlementStatus, sshEnabled: Bool) async throws {
+        var hosts = fixtures(4)
+        hosts[0].sshEnabled = sshEnabled
+        hosts[0].telnetEnabled = true
+        hosts[0].jumpHostID = hosts[3].id
+        let library = HostLibraryModel(hosts: hosts)
+        library.hostAccess.entitlement = status
+        var refreshes = 0
+        library.resolveInitialHostEntitlement = { refreshes += 1 }
+        defer { library.resolveInitialHostEntitlement = nil }
+
+        try await library.resolveHostAccess(hosts[0], protocol: .telnet)
+        try library.require(hosts[0], for: .telnetTerminal)
+        #expect(library.isEligible(hosts[0], for: .telnetTerminal))
+        #expect(library.isEligible(hosts[0], for: .preferredTerminal) == !sshEnabled)
+        #expect(library.hosts(matching: "", for: .telnetTerminal).map(\.id) == [hosts[0].id])
+        #expect(refreshes == 0)
+        for useCase in [HostUseCase.sshTerminal, .sftp, .metrics] {
+            if sshEnabled {
+                #expect(throws: HostAccessError.self) { try library.require(hosts[0], for: useCase) }
+            } else {
+                #expect(throws: HostProtocolUnavailableError(useCase: useCase)) {
+                    try library.require(hosts[0], for: useCase)
+                }
+            }
+        }
+        #expect(throws: HostAccessError.self) { try library.requireHostAccess(hosts[3], protocol: .telnet) }
+    }
+
+    @Test(arguments: [EntitlementStatus.purchased(.purchased), .free, .verificationFailed])
+    func duplicateWaitsForAdmissionWithoutWritingHostsOrCredentials(status: EntitlementStatus) async throws {
+        var hosts = fixtures(3)
+        let sourceID = hosts[0].id
+        let custom = Identity(
+            name: "Custom", username: "deploy", credentialRef: "source-secret",
+            ownerHostID: sourceID, customPurpose: .ssh)
+        hosts[0].identityID = custom.id
+        let library = HostLibraryModel(hosts: hosts, identities: [custom])
+        library.hostAccess.entitlement = .loading
+        var upgrades = 0
+        library.requestHostUpgrade = { upgrades += 1 }
+        var continuation: CheckedContinuation<Void, Never>?
+        library.resolveInitialHostEntitlement = {
+            await withCheckedContinuation { continuation = $0 }
+            library.hostAccess.entitlement = status
+        }
+        defer { library.resolveInitialHostEntitlement = nil }
+        let original = hosts[0]
+        let operation = Task { try await library.duplicateHost(original, name: "Copy") }
+        for _ in 0..<200 where continuation == nil { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(continuation != nil)
+        #expect(library.hosts == hosts)
+        #expect(library.identities == [custom])
+        continuation?.resume()
+        do {
+            let saved = try await operation.value
+            #expect(saved)
+            #expect(status.hasProAccess)
+            let copy = try #require(library.hosts.first { !hosts.map(\.id).contains($0.id) })
+            #expect(library.hosts.count == 4)
+            #expect(copy.identityID == nil)
+            #expect(copy.createdAt != nil && copy.createdAt != original.createdAt)
+            #expect(library.host(sourceID) == original)
+        } catch {
+            #expect(!status.hasProAccess)
+            #expect((error as? HostAccessError) == (status == .free ? .hostLimit : .entitlementVerificationFailed))
+            #expect(library.hosts == hosts)
+        }
+        #expect(library.identities == [custom])
+        #expect(upgrades == (status == .free ? 1 : 0))
+    }
+
+    @Test func underLimitDuplicationDoesNotWaitForEntitlement() async throws {
+        let host = fixtures(1)[0]
+        let library = HostLibraryModel(hosts: [host])
+        library.hostAccess.entitlement = .loading
+        library.resolveInitialHostEntitlement = { Issue.record("An under-limit duplicate must not wait") }
+        let saved = try await library.duplicateHost(host, name: "Copy")
+        #expect(saved)
+        #expect(library.hosts.count == 2)
+    }
+
+    @Test(arguments: [false, true])
+    func duplicateDetachesOnlyHostOwnedIdentities(custom: Bool) async throws {
+        var host = fixtures(1)[0]
+        let purposes: [HostCustomIdentityPurpose] = [.ssh, .telnet, .proxy, .telnetProxy]
+        let identities = purposes.map {
+            Identity(
+                name: $0.rawValue, username: "deploy",
+                ownerHostID: custom ? host.id : nil, customPurpose: custom ? $0 : nil)
+        }
+        host.identityID = identities[0].id
+        host.telnetEnabled = true
+        host.telnetIdentityID = identities[1].id
+        host.proxy = HostProxy(hostname: "proxy.invalid", username: "ssh-proxy", identityID: identities[2].id)
+        host.telnetProxy = HostProxy(hostname: "proxy.invalid", username: "telnet-proxy", identityID: identities[3].id)
+        let library = HostLibraryModel(hosts: [host], identities: identities)
+        library.hostAccess.entitlement = .free
+        let saved = try await library.duplicateHost(host, name: "Copy")
+        #expect(saved)
+        let copy = try #require(library.hosts.first { $0.id != host.id })
+        #expect(copy.identityID == (custom ? nil : host.identityID))
+        #expect(copy.telnetIdentityID == (custom ? nil : host.telnetIdentityID))
+        #expect(copy.proxy?.identityID == (custom ? nil : host.proxy?.identityID))
+        #expect(copy.telnetProxy?.identityID == (custom ? nil : host.telnetProxy?.identityID))
+        #expect(copy.proxy?.username == (custom ? "" : "ssh-proxy"))
+        #expect(copy.telnetProxy?.username == (custom ? "" : "telnet-proxy"))
+        #expect(library.host(host.id) == host)
+        #expect(library.identities.count == identities.count)
+        for identity in identities { #expect(library.identity(identity.id) == identity) }
+    }
+
     @Test func initialEntitlementResolutionFinishesBeforeNewHostMutation() async throws {
         let library = HostLibraryModel(hosts: fixtures(3))
         library.hostAccess.entitlement = .loading

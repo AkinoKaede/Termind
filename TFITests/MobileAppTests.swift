@@ -293,20 +293,21 @@ struct MobileWorkspaceTests {
         #expect(try store.load().hosts.first?.id == host.id)
     }
 
-    @Test func freeMetricsLimitCountsAllSelectionsAndDeduplicates() {
+    @Test func metricsHasNoIndependentSelectionLimitAndDeduplicates() {
         let library = HostLibraryModel()
         let hosts = (0..<5).map { TermindDomain.Host(name: "Host \($0)", host: "example.invalid") }
         for host in hosts { library.upsert(host) }
         let metrics = MobileMetricsModel(
             preferences: MetricsPreferences(), hosts: library, services: .testing)
         metrics.pause()
-        #expect(metrics.add(hosts[0].id))
-        #expect(metrics.add(hosts[0].id))
-        #expect(metrics.add(hosts[1].id))
-        #expect(metrics.add(hosts[2].id))
-        #expect(!metrics.add(hosts[3].id))
-        #expect(metrics.add(hosts[4].id))
-        #expect(metrics.selections.count == 4)
+        defer { metrics.core.shutdown() }
+        for host in hosts {
+            let added = metrics.add(host.id)
+            #expect(added)
+        }
+        let repeated = metrics.add(hosts[0].id)
+        #expect(repeated)
+        #expect(metrics.selections.map(\.id) == hosts.map(\.id))
     }
 }
 

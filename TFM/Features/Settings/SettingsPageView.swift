@@ -386,27 +386,6 @@ enum SettingsDraftPolicy {
     }
 }
 
-private struct ProLockedSettingsPage: View {
-    @Environment(AppModel.self) private var app
-    let title: LocalizedStringResource
-
-    var body: some View {
-        VStack(spacing: Metrics.Space.l) {
-            Spacer()
-            Image(systemName: "lock.fill")
-                .font(.system(size: 34))
-                .foregroundStyle(.tint)
-            Text(title).font(.title2.bold())
-            Text(AppStrings.Settings.thisConfigurationIsAvailableWithTermindPro)
-                .foregroundStyle(.secondary)
-            Button(AppStrings.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall() }
-                .buttonStyle(.borderedProminent)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 struct SettingsFormPage<Content: View>: View {
     @ViewBuilder let content: Content
 
