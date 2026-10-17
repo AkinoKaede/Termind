@@ -3,9 +3,6 @@ type: engineering-contract
 title: Engineering Invariants
 description: High-risk cross-system change checklist for operation admission, terminal context and teardown, native state lifetimes, persistence compatibility, and enforcing tests.
 tags: [architecture, invariants, lifecycle, security, persistence, testing]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-8c4bdfb086f2eff661e05807
     resource: repo://.github/workflows/localization.yml
@@ -231,7 +228,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Engineering Invariants
@@ -398,7 +398,7 @@ Keep the full runtime contract in [Assistant Runtime](../concepts/agent-runtime-
 - Preparing cancellation invalidates identity synchronously, joins tracked edit/history/preparation work, then attempts interrupted persistence before projection. `stop()` alone does not wait; drain callers await `stopAndWait()` or cancellation task. Failed save reports error. In `savingFailure`, cancellation joins the existing failed-snapshot save rather than replacing it with interruption. Archive/delete wait; manual compaction refuses preparation; selection alone does not cancel.
 - History edits commit truncation before live replacement at the selected canonical user-message boundary. Preserve same-run prefix/tool ownership, neutral completed summary, title and relevant compacted display history; remove suffix/later runs and prune compactions by removed message IDs. Executed suffix tool invocation/result/review rows can be removed; legacy unowned cards belong to the suffix. Agent-provenance user messages remain uneditable. Editing history does not undo remote effects.
 - Edited replacement initially owns a same-message-ID staging run. The first real saved snapshot adopts only that staged row and removes staging while preserving chronology and historical replay ownership. Missing-model/credential preparation failures project only after save; failed saves do not adopt staging. Repository-instance retired IDs reject late writes.
-- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail can use injected built-in presenters, while MCP keeps remote JSON. Failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay. Batch summaries preserve mixed tool/state/action outcomes; head/tail previews cap at 8,192 characters/120 lines while Copy retains the full transformed output. Tests: [AssistantTranscriptPresentationTests](../../FrameworkTests/AssistantTranscriptPresentationTests.swift).
+- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail uses a dedicated SSH execution projection before generic fallbacks, and can use injected built-in presenters for other tools; MCP keeps remote JSON. Failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay. Batch summaries preserve mixed tool/state/action outcomes; head/tail previews cap at 8,192 characters/120 lines while Copy retains the full transformed output. Tests: [AssistantTranscriptPresentationTests](../../FrameworkTests/AssistantTranscriptPresentationTests.swift).
 
 ## Notifications, preferences and copy
 

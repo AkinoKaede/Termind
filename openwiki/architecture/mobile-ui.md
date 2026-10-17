@@ -6,6 +6,8 @@ tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-b4a7c3f7e2b9f4c6c65ef6e4
     resource: repo://Frameworks/TermindApplication/FeatureModels/LibraryExpansionState.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
@@ -158,10 +160,10 @@ sources:
     resource: repo://TFITests/RemoteSessionSelectionLayoutTests.swift
   - id: openwiki-source-cc27a76170a8c672a70e388a
     resource: repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Mobile UI and Scene Ownership
@@ -419,7 +421,7 @@ The mobile content priority matters: logs (when toggled) replace the form, then 
 
 The workspace supplies its `sessionPersistence` coordinator to the inline journey. `RemoteSessionPromptView` offers existing-session attachment, New, Skip to a plain shell, Retry on discovery failure and Cancel, all tied to the current prompt ID. Session names can wrap, the list scrolls, and `ViewThatFits` stacks actions when horizontal space is insufficient. `RemoteSessionSelectionLayoutTests` checks long headers and expanding accessibility forms in English, German and Simplified Chinese; this is layout coverage, not a transport test.
 
-Explicit close of a managed attachment can defer workspace removal through `app.persistentClose`. Authorization checks that workspace ownership and the owning sessions' item snapshots remain valid before executing removal. The current mobile root does **not** mount a presenter for this coordinator's prompt; do not assume that requesting a managed close immediately removes the workspace or displays a root overlay. Navigating away is not this authorization path. Host deletion requests closure too; do not interpret a requested close as immediate successful remote termination. Transport discovery, attachment and termination policy are described in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
+Explicit close of a managed attachment can defer workspace removal through `app.persistentClose`. Authorization checks that workspace ownership and the owning sessions' item snapshots remain valid before executing removal. The current mobile root does **not** mount a presenter for this coordinator's prompt; do not assume that requesting a managed close immediately removes the workspace or displays a root overlay. Navigating away is not this authorization path. Native window dismissal also bypasses remote termination authorization: UIKit discard cancels any pending close prompt and detaches clients, while explicit workspace closure remains the path for ending owned remote work. Host deletion requests closure too; do not interpret a requested close as immediate successful remote termination. Transport discovery, attachment and termination policy are described in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
 
 ### Forwarding: local presentation over a shared runtime
 

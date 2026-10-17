@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:b99c201cf8439708f0edf17a1a15c8a53bbb498222142564e3af8292282153d2",
+  "claims": [
+    {
+      "id": "claim_087530130d624a98880e87a0958576ae",
+      "statement": "Mosh bootstraps mosh-server over SSH, connects directly to the returned UDP endpoint and waits up to twenty seconds for server operations before announcing connection.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L20-L90",
+          "version": "repo-lines-v1:sha256:ab9a5eb44d1b53598afaecf390bd79d6ff475677790b972d5566e27b3f718466:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyOTYwMWM0ZTc3NGRmMDBhOGJhYjFhYjlhMjAxODI2N2I1M2RhNjk5ZmI5MDE2OTNmMGZjMWNlZWU0YzE1ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxY2VhYmJlZWZjMzEyNTExZWRhMjNhMWE1NjE3ZmIxMjgxMWY0ZjQ2MTZhODUyMjQ4NDdmNDJjNjU1NzFkZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZjg0M2RkNWFlOTVjMDk0NWYxMGNlNjI4MmNhZjg0MzlmNmRjYWY0MDFkNTEzYzc0MGJmNzJjNGY2MGNhN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwMzRhMzNkMzY3OGRlZDM3MjRkNDQ5MTY0ZjdlMzliMzM5NDkwN2Y0NmIwYWI3NTllM2U2NGU3MTZhNGE4MTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6e59fb9952af44c2ba6b290d68ae93d2",
+      "statement": "ET obtains credentials through SSH bootstrap and connects the vendor session through a local TCP bridge whose socket factory preserves Termind routing; checkpoints restore credentials and protocol state.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L37-L72",
+          "version": "repo-lines-v1:sha256:54c1055f90a3bb27d1e6a1e90e82695ea4f09b6608de8eb0504547010ad3ab58:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyOTYwMWM0ZTc3NGRmMDBhOGJhYjFhYjlhMjAxODI2N2I1M2RhNjk5ZmI5MDE2OTNmMGZjMWNlZWU0YzE1ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZjg0M2RkNWFlOTVjMDk0NWYxMGNlNjI4MmNhZjg0MzlmNmRjYWY0MDFkNTEzYzc0MGJmNzJjNGY2MGNhN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjM2NjNTVjNWRiNjA5ZTEyYTk1ZmZlOWQxMjVhZjcxMWZjZjM5MDBhZGNjNDYzYTBjODc1MDc1YmEyNGI5ZjAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift",
+          "version": "repo-file-v1:sha256:360cd41f6a5044dfde6df80714486f374080429cbb22be49c47ab448e2adc8cc"
+        }
+      ]
+    },
+    {
+      "id": "claim_be3bba6c81674601ae75d740bfa38742",
+      "statement": "The resumable client rejects unavailable engines before connection side effects, skips startup preparation for checkpoint restoration and rolls back engine preparation on failure.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L94-L167",
+          "version": "repo-lines-v1:sha256:932f76b19ea8a28e356ba6e63dc17c3250713a64bf6606de3681d17e1dac5105:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhOWYwNmJjYWEyYmNhZGZkN2FjMWZkZjk1ZjMzNDdkZTE2NzY1MmI2MDU1ODEwMmIyZWI1ZmFjZDFkN2JiZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZWNkMDQ0NWJmNGEzYTg5NTcwNTczNGE0YmEyYjFjYzQxMjRiNzM1NzYyYWY0ZWYxYzQyODcyNTkyMThlNzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyYmU0Mjg2NjJiNGYzMTMwZjk3YmI2ZDUwMjc1OTA5NjE5MGU0ZWUyNGNiNmNmN2Y5NThhZWUzNzczMWJjYjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
+          "version": "repo-file-v1:sha256:f1751ac54b299416a75ad75315adbbde205e506292076d02399c6d6571c78a81"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
+  }
+}

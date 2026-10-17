@@ -3,9 +3,6 @@ type: release operations
 title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-8c4bdfb086f2eff661e05807
     resource: repo://.github/workflows/localization.yml
@@ -77,7 +74,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Build, Test, and Release
@@ -273,7 +273,7 @@ This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, an
 
 ### Focused language and presentation regression tests
 
-Use the resolved-package `AppLanguageTests` command above for language-selection or catalog behavior changes. The suite verifies canonical `en`, `ja`, `zh-Hans` and `zh-Hant` overrides; migration of legacy Simplified Chinese preferences; unknown/Traditional Chinese regional preferences continuing to follow the system without rewriting the preference; and removal of `AppleLanguages` when returning to Follow System. It also checks Traditional Chinese system-locale resolution without cross-fallback, the region/flag-dependent Traditional Chinese display name, selected-language relaunch notices, Japanese regional locales and reordered interpolation, Chinese model-token terminology, forwarding-template argument order, and English `one`/`other` versus CJK other-only counted resources. The suite now also verifies German, French and Korean persistence and Follow System restoration, regional locale resolution and reordered arguments, localized bundle metadata and compiled plural behavior. It checks language-code ordering in the picker and localized demo conversation prose while preserving technical references. These are routine tests, not visible-window or mobile key-window tests.
+Use the resolved-package `AppLanguageTests` command for language-selection behavior: preferences and migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations and Host-access error presentation.
 
 For resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging:
 
@@ -281,7 +281,7 @@ For resource/formatting behavior also target `PresentationCopyTests`, which exer
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/PresentationCopyTests
 ```
 
-The Python gates prove catalog structure and translation invariants; these native tests additionally exercise bundle resolution and presentation-resource use. Recent `AppLanguageTests` regressions also distinguish connection cancellation from authentication cancellation in all seven languages, require one localized authentication-failure prefix and separator, and check title-cased session-persistence labels with translations. For wording changes in these flows, run this quiet suite rather than substituting a screenshot preview. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the ownership context.
+The Python gates validate catalog structure and translation invariants; native tests exercise the narrower presentation behaviors described above.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 
@@ -302,7 +302,7 @@ The parent repository's `AGENTS.md` supports locked `npm ci`, `npm run dev` for 
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `0.19.2`; the workspace `Package.resolved` selects AgentKit `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `1.20.0`; the workspace `Package.resolved` selects AgentKit `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -330,7 +330,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 
 ### Ghostty direct upstream dependency
 
-Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026101301` at `d403978c66870baa422709d1dde385730a4bdaef`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
+Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026101502` at `42bacd1339f323a693ddbca779295f4f77e5a697`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
 
 Update the upstream requirement and `Package.resolved` together, then use resolved-only TFM and TFI builds and the affected adapter tests. Grouping, localization and upload policy remain Termind-owned around the package's separate touch/selection hooks. Package internals need their own source/test review; a host test or pin inspection is not a binary-release or live interaction result. See [Ghostty Dependency Updates](ghostty-fork-maintenance.md).
 
@@ -354,7 +354,7 @@ A maintenance gitlink and a released remote pin are different state. Initializin
 
 | Dependency | Maintenance checkout | Current Xcode requirement and resolved release |
 | --- | --- | --- |
-| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `0.19.2`, resolved `0.19.2` |
+| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `1.20.0`, resolved `1.20.0` |
 | libssh2 | `libssh2-spm/`, branch `termind` | `upToNextMinorVersion` from `2.0.3-termind-4`, resolved `2.0.3-termind-4` |
 | Tailscale | `libtailscale-spm/`, branch `main` | `upToNextMinorVersion` from `1.0.3`, resolved `1.0.3` at `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
 | Ghostty | No local maintenance submodule | Direct upstream remote package described above |

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d93c15f413bf75f752584380c468256ed7b1122be689aba512eb0315994e97d5",
+  "pageVersion": "sha256:cda678feb47ddf163ed31d1624511f51197afc0cdfb687120941e9bee3fd3e5e",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -62,11 +62,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:60ec6904fb8c067bf6b1e9b876968dd53b499a39ee6467a13822562137d2ec5a"
+          "version": "repo-file-v1:sha256:9a4ff603cf8726d3e8c928de04efbf3dffa075f1a262fb49360b020d027c79bb"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -88,7 +88,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -107,11 +107,11 @@
       "statement": "MobileAppModel pauses background services when all scenes background. Background expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant work; active scenes resume eligible monitoring, memory, workspaces, sync and metrics.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L606-L651",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L599-L644",
           "version": "repo-lines-v1:sha256:18ded5dd1a9720403e8b38c52e6b16e58f26ee413eac874779a9800eaf3f4c1b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2N2FkNGFmZWZlYTVhZWJjMzMyNGM5ZTVkOTNkMDMxZDAxNjk5MGI0ZWNlYmFlYjI2MjNjYjNmZjFiNWY3YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiNDUwODY5MDY5MjI5ODFhMmRlMDMzM2UzMDI2NDVjYzU4OWQ1NGRhYjM2YzdiMDI5ZTMxZDI4ZGQzMDMwNjgifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L710-L729",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L703-L722",
           "version": "repo-lines-v1:sha256:a8053a7b6a8ce607d8de19d5e85c19ab5949b5ae2739ccba43b9963e0198926a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0MTE2Mjc1OTJiMTg1NjNiZTEzZjliODBjYWFiNjZmMTQ1MjM2MjhkMDgwNmM5YjJiOGQ2MDQxOWExNDZiNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5ZTQxYTg5MmI5ZWQwNjljZmRhZTkwOTI3MjRmN2RjMzM1ODk2NmZlOTNkMDY4ODVkYjc1ZDU5MDFiOWViMWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0Yjc0YmRmNzgxODA1OTJlM2YyOTM1YzcxMzhlZmU1MDA0NzZhNjFjOTllMGZiZTcxNDVjYmRlMDBkYTU5MmEifQ"
         }
       ]
@@ -143,7 +143,7 @@
       "statement": "Mac app termination fences new Assistant work, cancels and drains conversations and pending preparations before agent resource closure, while stopping MCP and transfers; AppKit receives one termination reply on cleanup completion or after a three-second fallback.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L988-L1048",
+          "resource": "repo://TFM/App/AppModel.swift#L996-L1056",
           "version": "repo-lines-v1:sha256:c1845e5daf0de17cb8b8094ddc297fe42938b3e7cd958c43a8c78e4ce98300ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
         },
         {
@@ -284,21 +284,21 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:7e657ec41fa6de984f44d1f513b344fb6da10806a5a48f7310ce9acc87fd4f01"
+          "version": "repo-file-v1:sha256:106b68a97b73ea0bdbb1bb10845d4a41a95c4901676d8f78b1d054d789e39ff1"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
-          "version": "repo-file-v1:sha256:89b90802d00d2e2d5de430cf18a5fcfaf989bc5f0b8b60b55c67c7f51e25bbe9"
+          "version": "repo-file-v1:sha256:9f32cc04cd93c3d40105b29f68d77ae02d3af39695806826abb586a4ae9ca465"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:17cedc313a3e45ef13995bb8d93548f5ca5a37b35efd0193352fc9eead937024"
+          "version": "repo-file-v1:sha256:33cf51491b2a191d04c2ba7a92aea7193995f8e5e6db089ed4a2c494bdd10410"
         }
       ]
     },
     {
       "id": "claim_6061c7945229481e8ad1c8c5427b6fdb",
-      "statement": "Xcode requires remote AgentKit through upToNextMinorVersion from 0.19.2; pinned app builds consume Package.resolved rather than sibling or in-repository maintenance working-tree edits.",
+      "statement": "Xcode requires remote AgentKit through upToNextMinorVersion from 1.20.0; pinned app builds consume Package.resolved rather than sibling or in-repository maintenance working-tree edits.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
@@ -310,7 +310,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -319,7 +319,7 @@
       "statement": "Legacy mobile.workspaces.v1 and mobile.recentlyClosed.v2 defaults are retired without migration, but mobile.restorableWorkspaces.v1 stores eligible scene-keyed descriptors. Cold launch restores Mosh/Eternal Terminal and eligible SSH persistence descriptors without creating live connections; recently closed records remain process-local.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L118-L127",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L115-L124",
           "version": "repo-lines-v1:sha256:ec6fdcfef1d1b66760ea6e478696f0218c58b3778a7fb547edcd0ebd124e7e5f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhODNlOWI3MWZkNDNkZmZmNzMzOWIyZWY1YzhmNmRkMWFmMDNhNzkxZTI0MDNiNTY5NGQ1ZWMzNDYwODcyY2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2OWRiZjlhYmM2Y2VhODVhMTFkOWUxNTBiY2VlYjY1ZWI2MDNiYWYzNWYyMzUwODVjZGEzNTk3ZmUyNjdmYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmZmJhMWI1NjExNzZkNTk5ZjQ2YjViZDZkMTUwODg0YmFiZmU1ZDc5YWExOTExNTY4MmU4ZTM0YzUyNjBiMzYifQ"
         },
         {
@@ -327,7 +327,7 @@
           "version": "repo-file-v1:sha256:4b696229d477c534e549e61b07df5ed2a27374d7d3c993f9915e004f83deffe1"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L180-L215",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L231-L266",
           "version": "repo-lines-v1:sha256:38be5b30835873b5228a7abc012ecf45f6249f2245d670877b857627fae7af06:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjOGM2MWRhMGQzNTMzODVmMGFhOWNiYjkxNDc5ZmM1ZWI5YTM3Y2NjODBiNTUzNjEzNWE2ZTI3ZWVlYjdmNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmYTgwNjI2YmI1NTgyYjM2NzRlODI4ZGI1ZDczMzI1NGQ2YTRmMzk1ZjI0MDdlNTE1MGFlOTczZTNlMTliNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyMDU4Y2FmNDQyYjVjZjQ0ZmU3NTg5OWQzMWZmMTZkMDMyZDJkNjc5NThkMzNhODk1NTBjYTI0OGQ1MzRmZmQifQ"
         }
       ]
@@ -338,11 +338,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:a53a28ce11cb2a9fe8fe2b3a3ab238f4b91a6a35f9190034df09aa9cadca46e7"
+          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
-          "version": "repo-file-v1:sha256:b5f118427da0ee1b17899f6aa294745d3ffa660a99112baa42570dc13e0239b2"
+          "version": "repo-file-v1:sha256:a160a989f8ba7e6cbf182db5e7ddc11de251255d2414b84ac365f80b2d36035b"
         }
       ]
     },
@@ -351,15 +351,15 @@
       "statement": "Mobile one-shot commands and initial paths are carried by live workspace construction rather than restoration descriptors; restoring eligible descriptors must not replay those startup inputs.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L263-L277",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L260-L274",
           "version": "repo-lines-v1:sha256:0aeda0ee9b75417dc23aa4035d512f2b14af67ec742a243878fb72896f15b19d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwMDMyYzBmZjU0YzE2YzI3NzFkZDk5NzFhYTdiOTNmYjZkNzYzNzg2NDdmNmE4MWJlNWU2YzE4NzI5ZTE4ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxYTI4Mzg3MjI5NGU5MThjODE2MDc1ZTgzZjRlM2NiYmYwZTQ5MDE3MjE1NmYwNmFjZTkzY2EyNmY4NTY3MzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZGE2OTVlM2E1ZTAzMTg4MzIzMGVjNzZjMThmODM2NTgyNjJmZGQ2M2ZiNzU5YTRhNmI1Y2MwM2VjYTVkMmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L424-L482",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L422-L480",
           "version": "repo-lines-v1:sha256:1e4e79d0ac11d80b108f3eef34b0732fbb4c3ac53e6a819ed24d35398e348cab:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZTZjZDRmM2UxZDUwNmViYjcyOGNjZDk1OGNjNGE2ZjUyOTIwZGJkNWQxZGVkNTFkMTQ2NGQ5NzQxMTY4YjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkMDQ3YzYxYTYzZGI4NTdjYjE1Y2E2M2E4ZGNhZmI0NTc4ZmJkNTgzNDIyZjUyM2FlMDE2NTk4ZTUwMzI5ZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmMGU0ZjY1MjczMDI0ZmVhOGQwYTVlNzg4ZWFhYzEwYTQ5YzNlZDkxOTBhMmVjNjFhOGQwOWRlNjRkNjk2NGIifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L252-L295",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L303-L346",
           "version": "repo-lines-v1:sha256:fff6555e33df32e3d36d6752cde632421d558222ca69849bab885d068fda93f8:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ODFiM2JkNzlmMzNlM2IyMzJmZTNhZTJmYjc1ZGNkN2Q0N2VkMmE0ZjYyYjU4MWY2M2Q5YzU0YzY1Yjg0YjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjViOGM2OWQ3NmY5ZjlkZDExZTY5ZGVhNjAzN2ViMDUzMTdjZWM5ZjliYmUwMmQ1OTA1YzgzYjRlMTY2ODcxNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyN2NlZDlmZTg5NTg3ZmE1ZDg2YjdmZjVkYmEyOTY1MDY1N2U2NTBmNTQwNDMxYzI5NDE4MmUyNGU4Njk0NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0OWJlNjQ1MWNlYzhjYjFlYWQ4NTUwODNkMDU2OWY2M2M4ZjdiODAwNTIxYWY2ZjUyMmYwYjI5MzY4ZDhkMjMifQ"
         }
       ]
@@ -435,7 +435,7 @@
       "statement": "The desktop delegate's three-second fallback begins after quit confirmations, when shutdown is started, and bounds the once-only AppKit quit reply rather than completion of the asynchronous shutdown task.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L988-L1048",
+          "resource": "repo://TFM/App/AppModel.swift#L996-L1056",
           "version": "repo-lines-v1:sha256:c1845e5daf0de17cb8b8094ddc297fe42938b3e7cd958c43a8c78e4ce98300ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
         },
         {
@@ -454,7 +454,7 @@
     },
     {
       "id": "claim_63d3a72aecc44720b9e32f34031abeef",
-      "statement": "Ghostty comes directly from Lakr233/libghostty-spm without a local Ghostty maintenance submodule or Termind fork binary/override-workspace prerequisite. The current upToNextMinorVersion requirement starts at 2.2.2026101301; host adapter checks do not establish upstream pointer/gesture internals.",
+      "statement": "Ghostty comes directly from Lakr233/libghostty-spm without a local Ghostty maintenance submodule or Termind fork binary/override-workspace prerequisite. The current upToNextMinorVersion requirement starts at 2.2.2026101502; host adapter checks do not establish upstream pointer/gesture internals.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
@@ -466,7 +466,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -524,7 +524,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:24:30.305Z"
   }
 }

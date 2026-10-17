@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:856b5c74a041c5d00c28e9235363bc6e8bac09aa465cecb2561d3576e5927a3d",
+  "pageVersion": "sha256:dcfedd24f9c094f4feebe3b18afbc45f9dce460f99f22169959baf2cec425ba6",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -90,15 +90,11 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests covers seven-language preferences and notices, Follow System, legacy Chinese migration, unchanged unknown preferences, Traditional Chinese resolution/naming, regional interpolation, metadata, plurals, forwarding arguments, contextual terminology, picker ordering and localized demo prose preserving technical references. It additionally verifies connection-cancellation wording, localized authentication-failure prefixes/separators, and translated title-cased session-persistence labels.",
+      "statement": "AppLanguageTests covers preferences, Chinese migration and resolution, picker ordering, Korean dynamic labels, localized demo prose and Host-access errors.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AppLanguageTests.swift#L49-L82",
-          "version": "repo-lines-v1:sha256:be35d0989b7ac4657566db536af01b4c366e4ea221f2d13c5c70d1e2c30e6f11:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NjlmMTMyNDk2MmJkOWU1ZGYxNjRiZjdiZDA4Zjg4YmRhNzBkYTE1ZDFhODg2OGM2ODJjNDUyOTQyYjA0M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2NTBjM2JmODk1NDg0NzIzMzhlNWZhNjA3MjlkNjQwODY3OGY2NDE5NzhmZjllMzFiOTFlODQwOGVlOTUzOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhYjA3NThmZDgzN2M0OWU3MzA4YjE3ODk0NjBhZTZlNDYyZDY2MzliZWZjN2I0OTdhODIzNjk5N2M0MWUzYTgifQ"
-        },
-        {
-          "resource": "repo://TFMTests/AppLanguageTests.swift#L107-L123",
-          "version": "repo-lines-v1:sha256:871c15a0a935d19593c6ac008f2110adbcd5f10f7be4592799e5b728e8f621ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NjlmMTMyNDk2MmJkOWU1ZGYxNjRiZjdiZDA4Zjg4YmRhNzBkYTE1ZDFhODg2OGM2ODJjNDUyOTQyYjA0M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q4MzAwYWRhZDAzN2FlMGRmNjI4YTc4NjMyOTM0OTk4NzkwZjI4YzIxZjA5YTRlYTlmMTkxNDJjNjlhMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliZGUxMjQ4OTU5N2NmMTQ4ZWJiMzJhM2MzNTk0ZjZhZDZjZjRkMmJmM2VmNmI0NDYxOGZmYTUxNDcxMjMxOGEifQ"
+          "resource": "repo://TFMTests/AppLanguageTests.swift",
+          "version": "repo-file-v1:sha256:46d2e039222576c5467272047fd25618673f29468e604b853f6ca4b52b65d8e3"
         }
       ]
     },
@@ -154,11 +150,11 @@
     },
     {
       "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
-      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 0.19.2; resolved builds use the lockfile selection.",
+      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 1.20.0; resolved builds use the lockfile selection.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3025",
-          "version": "repo-lines-v1:sha256:83daeaf733154f89e154572c52903501a42aeb574b8dd7ea88b9286ec322c62c:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -271,12 +267,12 @@
       "statement": "Shared TermindPresentation/Strings LocalizedStringResource entries and the manual app catalogs own both platforms' UI copy. Generated catalog Swift symbols stay disabled because AppStrings owns the API.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L90-L110",
-          "version": "repo-lines-v1:sha256:88c9d9eb00a2b43859f8ae469cd00b7f9bfd8758b117cf17697db2009f16389a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzYjdjYzMzYTY2OWMzNmZiNDkxNjI5ZjAxY2VkZDBlYmM5YjRhNDljYTIyMjU0N2JjNzNjMTM5ZDljZmFmNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiODAzMGMyY2E2ODRmYWUzMGYyNDJjNGQ3OWNjNDcxMDY5NDc4NzcwNTc4ZWYzNzg0MmRjMWJhNWQ0Nzg5MzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiZTgyMGIzZmE3Mzk1ZTUxM2Y5NDA5MzJhZjJjNjk0NzJkMDdjNTMyM2NjYjY1NTEyNGNkMzI2OGZjODMyMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5MzdmM2M1NWY3OTAyZjY0YTdlOTliODdiNTZhZjYyMjJiMmY5ODJiNTJmNTE4Njc2NDg4ODBmMzM2MjAwMzUifQ"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -327,16 +323,12 @@
       "statement": "Resolved-package Termind Xcode builds consume the remote AgentKit release pinned by Package.resolved, not uncommitted changes in the sibling ../AgentKit checkout; unreleased package changes must be tested in that sibling repository before tagging and bumping the app dependency.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L23-L25",
-          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
-          "resource": "repo://AGENTS.md#L54-L57",
-          "version": "repo-lines-v1:sha256:7df2a15061119f5b6ac71c42b6eee8936d92b9f81dceb9739fffad66c148d8ae:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3026",
-          "version": "repo-lines-v1:sha256:17ccc8d2dee8fb1761608d603273b0253916730f8a67cf1d0d1081b23b95fc95:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -363,16 +355,16 @@
       "statement": "The repository also has an `AgentKit/` submodule, but Xcode's declared AgentKit dependency is a remote Swift package; ordinary resolved builds do not consume local edits in that submodule or in the separately developed sibling checkout.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules#L1-L3",
-          "version": "repo-lines-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0MjljMjJjMWYxZWM0YzE3YTg2ZjkzYWI3ZjcyNDdlODQxMDAwNjlkNWUxZTM4N2VlNjczOWMxN2Y1ZjFjMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY3Njg4YWQ1NzBiZjg1NTkxZGIzZjg1MTI2ODJhZjlmMjViYjY2MWQ1NDM0YzMyMWEyYjA2NzA0YzExYjQ2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
         },
         {
-          "resource": "repo://AGENTS.md#L23-L25",
-          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3026",
-          "version": "repo-lines-v1:sha256:17ccc8d2dee8fb1761608d603273b0253916730f8a67cf1d0d1081b23b95fc95:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         }
       ]
     },
@@ -412,11 +404,11 @@
     },
     {
       "id": "claim_348ab37b5d7b44e98dd3ce5abde91d18",
-      "statement": "Package.resolved selects AgentKit 0.19.2 at ca325632bc91886702673a79522e3b862ac940ff; the minimum requirement is not itself the selected revision.",
+      "statement": "Package.resolved selects AgentKit 1.20.0 at a4fd480cdff40ee793b0ca3b239beba4d18d858d; the minimum requirement is not itself the selected revision.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:24767388f37910578734c8f83d023b3f67528592c7e8e8b3a753036bfc40da51"
+          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
         }
       ]
     },
@@ -470,7 +462,7 @@
     },
     {
       "id": "claim_d92f32286efd4912b881d6a843754254",
-      "statement": "Ghostty is a direct Lakr233/libghostty-spm remote dependency with upToNextMinorVersion minimum and resolved version 2.2.2026101301 at d403978c66870baa422709d1dde385730a4bdaef, not a local maintenance submodule. Updates align requirement/resolution and validate both native adapters.",
+      "statement": "Ghostty is a direct Lakr233/libghostty-spm remote dependency with upToNextMinorVersion minimum and resolved version 2.2.2026101502 at 42bacd1339f323a693ddbca779295f4f77e5a697, not a local maintenance submodule. Updates align requirement/resolution and validate both native adapters.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
@@ -478,11 +470,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:32f00da36ce31d5f969212acda35f11b137080acab0422ca076a3bb531f3c231"
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:24767388f37910578734c8f83d023b3f67528592c7e8e8b3a753036bfc40da51"
+          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
         }
       ]
     },
@@ -572,7 +564,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

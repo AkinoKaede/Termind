@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3d9614f22577a582307c6e43087c8beeee29707e6a0b6a57484a090cffc64ec5",
+  "pageVersion": "sha256:86c026b7ff131001e5d56fd777a7ba5e8617758cf7722f42e59bd43f1f7fa3dd",
   "claims": [
     {
       "id": "claim_c56b98e3167443d9a8aa8d3405b35eca",
@@ -11,15 +11,15 @@
           "version": "repo-lines-v1:sha256:0aa7fd8c05f8307efae02d58a5b32a144f538b088448b8e4772a3c31733d9289:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMmVkZThjM2M0Y2M5YWNkNDA5OWQzOGI2NWI5ZWEzZGM0MGI1YzNlMmYzOGJjZTI5NDUzYzQ2NDg1OTBiMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4ZjNhZDJhYmQyNzJhYTk0NGZkMmNiNzIzYWYyYzgyZGQxZjA4YzJjYjlmMDRiZTQwM2QzYmU0NmZkZWYwYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwNGJiMzcxZjcxZGMwZDVlZjJiMGY4NjM3MTUyZTBlMmVmOTVmZDBjMTY3ZGI4MGEzYTBlYzI2MmIxZTZjNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2YjM0MzY1Yzk2OTBlODQ4MmE4NDY2NWU1MWRkM2QwY2RjOTBjZmQ2MTU4ZDllNDdkMDgxNTFiNzM3ZTA5MzQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2069-L2098",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2116-L2145",
           "version": "repo-lines-v1:sha256:135b06450754355cb9d32590844a88bef03728d3721ddf836e4446424419088a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNGYzOWQ5NWIwMDNmZTBlN2JmNWFhYzUzMTFhNDkzZGM5YWMwOWNiNzhmNmYzZjIxZmYwMjczZWUyZjliYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmZmMzZTllYmFiMzc1MTMxNDkyZWI2NzEzMTJiMjYyNGQ1ZDg4YWMyNTk2ODBiZTMyOGZmNGEwZDE3ZDk2ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ODQ3YmFkMWRhM2M2OGViNjAzZTY5Mjc3ODU3MjExYTM1ZjY1Nzg3NGVlNTIyZDZmZjk1NjRhMGNlYzE0NGEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2441-L2515",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2489-L2563",
           "version": "repo-lines-v1:sha256:d36b5094cd16db51ace785efbd7e01a4fe9c10d33665bf7f7df7038e0ce6601b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2NjNmEzMDAwMmRhNWFmNDk0Y2Q2MDNlMGNkYTY4Mzk4NTNkYWE2ZmE3Y2M2Mzk4Nzg3NDI4NDlmOWUyOWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1010-L1059",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1018-L1067",
           "version": "repo-lines-v1:sha256:8e1832669c027c6d31e53d6639399a03d8328b6f7fec9fa316c712bef3cdb199:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMWI5YjJlYzFmZWIwMGZkYWE5MzRiZTgxMTE4ZDg4Y2I2OTBiNTUwYzg3OGU3NGMwY2JmMTY2MjY5YjRhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMzJiNDYyMjMxZDk4ZGU0NTZlZWVmN2ViM2NkNWZhOThmYmJjOWE4YmFkZTNkMDBlMThlYTQyMTAzMjA1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2NDcxYThiNDA0OWYxMTlkMmU0Yjc5N2E0M2MzOGYzM2VmZGZmMGMzZTIwZTA4YjY3ODc5YzM5ODk2ZDg4NzcifQ"
         },
         {
@@ -40,11 +40,11 @@
     },
     {
       "id": "claim_41393c68e500479bb8a34abce9cb38a1",
-      "statement": "Exec acquires and revalidates its connection budget before creating command state; each command has isolated cwd/stdin/output and a 1–900 second deadline created after admission. Ordinary exec uses a login shell, while session-control/runtime commands select a non-login shell.",
+      "statement": "Exec acquires and revalidates channel capacity before creating isolated command state. Legacy one-shot execution has a 1–900 second post-admission deadline; session-backed execution has no runtime deadline. Ordinary exec uses a login shell while runtime/control uses a non-login shell.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L142-L244",
-          "version": "repo-lines-v1:sha256:0525b71d637964e2a1f770133d0ad35aa661162613b5794f1a06aa603dc36456:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NWJhM2VjYWQwMDczODBlOGRiNjY3MDQ4ZDZhYzkwOWI0YjE3MTYyMjcwZmE1NWY0NTAxMzU1YjJjMDA4YmUxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwYzY0NzljYzIzMDQ0MGZkNDFlODIyNDIxODY3OTY5ODU1OWQyODkzYmQ2N2I0MzgwYWZhYjgxMWIzOGE1NWFhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NzQ0YThkNGRmZjE3NWViNGNhY2M1YjJkODgwYzY3ZjgyOGRhYzJhYmU3MzQ4ZWQ5NGE5MTI3MjQxNDUzZGJjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YzdlY2ZmYTk5YmMxN2I0YWQ5OTM4MGE1YmM0NTk2OGM2MDRkMWNiZDcyNmY0NzE3YjcwNDRjYWJlZjc2OTJhIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
+          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
         }
       ]
     },
@@ -53,12 +53,12 @@
       "statement": "Exec serializes pending opens and advances optional Agent forwarding, startup, running, closing, waitingForClose and freeing in bounded ready-queue turns. Exit status is captured after waiting for close; socket events and a 100 ms worker timer wake work, and output limits count remote bytes separately per stream.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L176-L263",
-          "version": "repo-lines-v1:sha256:5e3fcc95ab120ab4f45108978c8fd8e95a352a744fcde40446629874f5fdd307:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZjIyZmNiMjA4MjEzNDM3ODYyZTNmNDlhMzM4YTgzY2I2NzY1NTkyNWY4NjRlYWY3ZTAzZGJmODBmODcxMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyYTIxOWI3MDk0ODZmOTNmMjE3NTdjZmQ5YzU3MTk3M2Y4ZTZlYjk0NGQ4Y2M5MWI4MzRiYzg4YzlhNTliYzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMjkzNmRhYmY3OWY0YzZiMmUyNjY0ZDg4NGY4OGM4NDcxZDc2NjQyMjBiYWRmYTYyNWNjNzMxZDkwY2MzM2EifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
+          "version": "repo-file-v1:sha256:f79ba0c69059f20e6bcee5a1f91434a289c81fa30eea07d3369faaa2c07faf2e"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L258-L421",
-          "version": "repo-lines-v1:sha256:c901516b50802ace85a4274b0803c21a6697314d3c3d767ed6b3b3f72eb25d80:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyODJkMGI1OTQxMmI2MWM2ODQ2NTMwOGI0NmYzZGNiNGQwNDYwZmZjYjQyZDZiMTQ3MThmMzI3NmE3N2EzMjkxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3OTNmZmQyMTY3NzhlMmY5MWU4NjRmNDJmYmE1MjZkYThhODhlMTBiOGRmNTIyMDQwZDlhMWMwOTZiYzg2ZGQxIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
+          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
         }
       ]
     },
@@ -119,16 +119,16 @@
       "statement": "Socket cancellation waits for both source handlers before descriptor closure, and worker cleanup changes generation, fails commands and closes SFTP/budget to reject stale work. Exec cancellation/timeout can return before native close finishes: the command retains its lease through close/free or teardown, so caller completion does not imply free capacity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L40-L54",
-          "version": "repo-lines-v1:sha256:6e08ce321bd40133d4e891f2be5fed8917f5c524a198e7eda41272478f148144:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZjc0MjM0NWYyYzRlYTJhZTBiYjk2Mjg1MjZkYjc2N2NjYzNkMTljMGNlZTlhYmMwNDJjMzM4OWZiYTNlOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5M2ZlOTBjN2RhNDY2YmRjNDI4NjljY2YxZWJmYWM0NzdiMjlmOTBkZWE1NzEyNjk4NGM2MGU2OGUyMzcwMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1ZjI5ZTE1MTMyMzM0MDA1ZDE4MTBlM2VkZDY5MDZiZmRlZTY0N2EzZTZkYzEyMmI4MjI3ZWFlMWMyMGFjNTgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift",
+          "version": "repo-file-v1:sha256:ba859ead380c52c8568d3bda809b7f92c4d63b45e3cae76442a296ba875565f6"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L306-L420",
-          "version": "repo-lines-v1:sha256:cfec29ce777a0609c4df70570e9c790b73331a103237e416946006920c52fe9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxZmJlM2Q3MDc1ZWQ1M2YzOGVhMzU0YWRiZGM0N2I5ZjlmYmRlNjYyODE1MWJjNzM1NTE3ZWM5NDA2ZTVjYzQ3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlZmZhMDc3NTllODIwMjM5OGM0NTNkZGE4ZmUzMmQ3ZWQ1NmI4N2E0MjUzOTQyOGNiMDlkNGEyM2Q5ZjIzYzQyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjODA1NTUyMjdiMTRjNWZhMGE0NDUwNTY4ZjNlNDdkZjcwMTA4NTYxZWQ1ODYzN2U2Yjg5ZGQ3OWZlYThhNzc4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
+          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2441-L2515",
-          "version": "repo-lines-v1:sha256:d36b5094cd16db51ace785efbd7e01a4fe9c10d33665bf7f7df7038e0ce6601b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2NjNmEzMDAwMmRhNWFmNDk0Y2Q2MDNlMGNkYTY4Mzk4NTNkYWE2ZmE3Y2M2Mzk4Nzg3NDI4NDlmOWUyOWUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -299,26 +299,22 @@
       "statement": "SSHConnectionWorker and PTY delegate non-PTY exec to the shared owner on existing queues/budgets. PTY runtime commands reuse authenticated transport without hidden authentication, require immediate capacity and a two-second outer deadline, while ordinary control waits with a 15-second deadline. Generation/input validation cancels stale work. Runtime channelUnavailable errors disable runtime control capabilities; configured ceiling one also restricts capabilities, and observation errors publish unavailable state and back off. Ordinary control alone retries pre-exec channel-open failure at 50 ms intervals within its deadline.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L44-L73",
-          "version": "repo-lines-v1:sha256:c89c249b72a1f9b85d7a9107d99f20abfeb9312158d5d9ab85498c72939cd76e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyZTEyMDI5YmFhNjIyMzAyMTJmZDM5ZmRiNWIwOThkNzI3MDY2NGQ3NTZhMzhjNTIxYzE2NzMxZDg1YmIzNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxZTg1ODc4NDZlZTU5ZWE4Njk0NTMyYTkxZjRkMWVkNTY3ODJiYjVlMTRiYjQ1MTE1MDZhYWNjNWU3NjAyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMmM0NDA0ZWY5YjA0MWRiOTc1MDVhNDVlYjFkODFiNTVhZTJmMzBiYjNjZTcyMDY2OTZlNzkwZGU2YjZiM2MifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
+          "version": "repo-file-v1:sha256:f79ba0c69059f20e6bcee5a1f91434a289c81fa30eea07d3369faaa2c07faf2e"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L179-L298",
-          "version": "repo-lines-v1:sha256:8bcac8c6a7823c62d670b5cdcfb6457cd27469857201a1c7cc3a5026f4777033:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ODRmNzgwMjFjOGZiNWJlYzIxNzA5OWFlNWM5OTE0YmFhM2ExOGE3NzdlZTdiNWFhYmY0ODUyNDMzNmJiMjkyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhODJmYzY2NmJmN2E3NTE3YTQ4NDNjNjc2ODJlMmY5NWI2NGI4MjNjYzYxMWZlNjY4ZWEwNWVjODFiY2U1ZTI4In0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
+          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1431-L1487",
-          "version": "repo-lines-v1:sha256:4d9a4ad0f4ee11e2388f08ab74a1e27123918294aa44a43a78c87bdab03a4b29:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNzZlNTA2Yjc2MWNjYjBjNWEyNzIyYmI3Y2FhMzljZGJhNmYwZWVmNjE0MWVmODU2NTI0NmQzZDRmZWM3ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5MjQwODMxZDkxMjNlYjc2ZGQ3M2UwMjQ4M2Y4OWM1MDc2N2JmOTZmNjJmOTE4NWZkNDg2OWYzNzc0Yzk5OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxNWQwMWVkNDE0MDMyOWMxZTg2M2JkNjY3NDNjMTQwZDAxMDg5NzU1ODcxYjc1YjFmM2MzNDM0YzU3ODM0MzkifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2228-L2296",
-          "version": "repo-lines-v1:sha256:42f048935afbe2ef152ddbc1dfd82b1b4f3694a14c9716d0902d7e36f54b09a0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzZTk2NmEyNDZiOTM1N2ExODk3YThhMWUwNDEwZjkzYTFkMTgxODkxY2Y2OTMzMGQwZWUxMzQyNTg3NWQyZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4MmU2ZTJlOTljMjc2NGRmMjhmMDMxZGU2Y2M0ODcxNzlmZTYwY2ZiYjJkZTIyMTUyZmM3NDhiMTczNzY0NTAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

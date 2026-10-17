@@ -3,9 +3,6 @@ type: engineering quickstart
 title: Repository Quickstart
 description: Route Termind changes to architecture owners, connection and data workflows, focused regressions, and safe build and release checks. Source and tests remain authoritative.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -85,7 +82,10 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:24:30.305Z
 ---
 
 # Repository Quickstart
@@ -114,7 +114,8 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 <!-- openwiki: broken internal link [workflows/local-network-discovery-and-wake.md] file "workflows/local-network-discovery-and-wake.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 | LAN discovery, permission handling, MAC lookup, manual/automatic wake | [Local Network Discovery and Wake-on-LAN](workflows/local-network-discovery-and-wake.md) | `LocalNetworkTests`, `LocalNetworkActionTests`, `LocalNetworkLifecycleTests` |
 | SSH/Telnet, routes, credentials, trust, activation and cleanup | [Terminal Connection and Session Lifecycle](workflows/ssh-session-lifecycle.md) | Connection, authentication, host-key and PTY activation suites; `ConnectionJourneyTests` |
-| SSH tmux persistence versus Mosh/Eternal Terminal recovery | [Terminal Connection and Session Lifecycle](workflows/ssh-session-lifecycle.md) → [Platform Runtime](architecture/platform-runtime.md) | `SessionPersistenceTests`, `ResumableTerminalEngineTests`, `TransportRecoveryJourneyTests`, `MobileTerminalRestorationTests` |
+| Mosh and Eternal Terminal routing, startup and transport recovery | [Mosh + Eternal Terminal](integrations/mosh-and-eternal-terminal.md) | `ResumableTerminalEngineTests`, `TerminalTransportTests` |
+| Remote multiplexer persistence, managed ownership and teardown | [Session Persistence](concepts/session-persistence.md) | `SessionPersistenceTests`, `MobileTerminalRestorationTests` |
 | SSH admission/backpressure and multiplexed I/O | [SSH Multiplexing and Scheduling](concepts/ssh-multiplexing-and-scheduling.md) | Multiplexer and worker-lifecycle tests |
 | Security Key registration, signing, Vault metadata, silent-connection restrictions | [SSH Security-Key Authentication](concepts/ssh-security-key-authentication.md) | `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, `SSHInteractionPolicyTests` |
 | Terminal Find, mobile search dismissal, SFTP filtering, retained surfaces | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Mobile UI](architecture/mobile-ui.md) | `TerminalFindControllerTests`, `MobileTerminalSearchIntegrationTests` in `TFITests/MobileTerminalSearchTests.swift` |
@@ -150,7 +151,7 @@ These are routing reminders, not substitute specifications.
 - **Desktop close and quit:** live connections alone no longer trigger a window-close or application-wide quit confirmation. Native window vetoes and unsaved terminal-theme protection remain; quit saves theme edits, asks before discarding any still-unsaved theme, then rechecks pending SFTP edits with cancellation before shutdown. Termination fences new Assistant work and drains conversations/preparations before agent resource closure while stopping MCP/transfers. Its three-second fallback bounds the once-only AppKit reply, not asynchronous cleanup completion. Debug tests do not terminate on last-window close; otherwise menu-bar metrics settings and running metrics decide. See [Desktop UI](architecture/desktop-ui.md) and [Platform Runtime](architecture/platform-runtime.md).
 - **Connection presentation:** shared `ConnectionJourney` owns route progress and authentication/host-key checkpoints; `ConnectionJourneyRouteView` draws the shared route while apps supply native controls. State tests and opt-in native rendering fixtures are not live SSH validation. Mobile terminal search stays on stable chrome, and terminal surfaces remain mounted beneath journey gates. SSH, Mosh, Eternal Terminal and Telnet use workspace-owned `TerminalFindController`; SFTP filters bind to `sftpChannel.query`.
 - **Local and wire compatibility are independent:** the live local schema is **V58**. Use migration/reopen tests rather than hard-coding the latest schema into unrelated tests. `SyncRecordFormats` independently defines per-kind wire readers/writers: Host writes V8, HostGroup V7, SSHKey V3, Snippet V2, WorkspaceTemplate V2 and Metrics V2. Follow the persistence/sync guides before changing compatibility; a successful build does not prove migration or CloudKit readiness.
-- **Released dependencies, not maintenance trees:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Test and release cross-repository package changes before updating the Xcode requirement and `Package.resolved` together. App builds consume remote pins, not sibling or optional maintenance working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `0.19.2`; libssh2 starts at `2.0.3-termind-4` under the same rule despite older exact-version guidance. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026101301`, with no local Ghostty maintenance submodule. For resolved-build behavior, inspect the project and pin rather than relying on conflicting generic dependency guidance.
+- **Released dependencies, not maintenance trees:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Test and release cross-repository package changes before updating the Xcode requirement and `Package.resolved` together. App builds consume remote pins, not sibling or optional maintenance working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `1.20.0`; libssh2 starts at `2.0.3-termind-4` under the same rule despite older exact-version guidance. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026101502`, with no local Ghostty maintenance submodule. For resolved-build behavior, inspect the project and pin rather than relying on conflicting generic dependency guidance.
 
 ## Validate narrowly, then validate the product
 

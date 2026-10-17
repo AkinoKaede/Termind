@@ -52,17 +52,17 @@ sources:
     resource: repo://TFMTests/TerminalContextMenuTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Ghostty Terminal Integration
 
 Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH-backed terminals (SSH, Mosh and Eternal Terminal), Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
 
-The package is consumed directly from `https://github.com/Lakr233/libghostty-spm.git`, with no local Ghostty maintenance submodule. Xcode's package reference uses `upToNextMinorVersion` with `minimumVersion = 2.2.2026101301`; this is a compatible-version requirement, not an exact-version requirement. `Package.resolved` currently pins version `2.2.2026101301` at revision `d403978c66870baa422709d1dde385730a4bdaef`. Treat the requirement and resolved pin as separate parts of the embedding contract. See [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) for dependency-update procedures and requirement/resolution alignment.
+The package is consumed directly from `https://github.com/Lakr233/libghostty-spm.git`, with no local Ghostty maintenance submodule. Xcode's package reference uses `upToNextMinorVersion` with `minimumVersion = 2.2.2026101502`; this is a compatible-version requirement, not an exact-version requirement. `Package.resolved` currently pins version `2.2.2026101502` at revision `42bacd1339f323a693ddbca779295f4f77e5a697`. Treat the requirement and resolved pin as separate parts of the embedding contract. See [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) for dependency-update procedures and requirement/resolution alignment.
 
 ## Shared Find lifecycle and native dismissal
 

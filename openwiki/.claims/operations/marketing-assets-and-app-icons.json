@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cd602d33d7137a424c247281037de366bfc1f2c2c8dffb0a0415a85913e1bec1",
+  "pageVersion": "sha256:869be20d1671be02553f0b9ff5d1d4ed80eed18436e14c6d9b09b82422d8e5e8",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -218,7 +218,7 @@
         },
         {
           "resource": "repo://Frameworks/Resources/HostIcons.json",
-          "version": "repo-file-v1:sha256:4ef69aa957b820d15993809cb6a4b1eb576b58ab8d92f985281b4d722b01c778"
+          "version": "repo-file-v1:sha256:1bbe256f41c4554f8eac8e403c23c29f7ef2ce5036486a07e3aa291bf47d392c"
         },
         {
           "resource": "repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md",
@@ -229,7 +229,7 @@
           "version": "repo-file-v1:sha256:b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1159-L1185",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1183-L1209",
           "version": "repo-lines-v1:sha256:c554d54f89eeeb5714824fec2f538cb4020bb062593c81bc818842deb9ad6388:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjNjQ3OTg3MDYyZGI2YWQ3MzQxMDUxNzVjZDJhMWM3NTAxN2I1MzQzZWY4YjMyMWQzZmRlYTI3OWFmY2MyOWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmODUzZTY4YTFjMmNkNGJkZmY1MDJmMTI2MWQ4M2E2NTYyODhkNDVmZDZkODU2YjQxZDg0YWNiMGI1YTZiYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZDQxMzZhOGMyMTBlNTFkNTZlMTFjMDZkNmY0ZTdmZmRlZjNhYWQ5YmY3YmVlMDI5MGZjM2FiNDNkOTk1ZGUifQ"
         },
         {
@@ -270,7 +270,7 @@
         },
         {
           "resource": "repo://Scripts/update-host-icons.py",
-          "version": "repo-file-v1:sha256:afba15b02d033e787c8d0e453645d80ac1f326602e2ec9240d78602745da5d49"
+          "version": "repo-file-v1:sha256:0da4f604e368258c368ed9e67d21474d488e95dccc83efd6bef7797a53ecc4eb"
         },
         {
           "resource": "repo://Scripts/update-linux-distribution-icons.sh",
@@ -278,7 +278,7 @@
         },
         {
           "resource": "repo://TFMTests/HostIconPresentationTests.swift",
-          "version": "repo-file-v1:sha256:b1135e50c92c523f6faeb5ec53ad970e882bbe3652785dd2b80269ac8ed2cb2e"
+          "version": "repo-file-v1:sha256:71f1275e97b0cf5eb173dc95743ee06c45de4e41b987a5127b2e584f3cdbeb51"
         }
       ]
     },
@@ -598,7 +598,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

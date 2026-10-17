@@ -4,8 +4,8 @@ title: Desktop UI and Window Ownership
 description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -85,7 +85,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 ---
 
 # Desktop UI and Window Ownership
@@ -395,7 +395,7 @@ Escape handling is also scoped. In the compact Assistant, an approval or user-in
 
 Desktop connection history is shared app data with two deliberately different projections. Welcome shows recent Hosts derived only from events whose stable `sourceDeviceID` matches this installation, so synchronized activity from another Mac does not reorder the local launch surface. Its row timestamp is likewise the newest local event. Welcome constructs a native context menu per click rather than tracking a live SwiftUI menu, so greeting updates cannot resize the popup; the row outlines itself while the menu is presented. Deleting a Welcome recent clears every connection-history event for that Host, across protocols and synchronized devices, without deleting the Host. The contextual History sidebar instead shows the newest 100 matching events from the complete synchronized timeline. Each row keeps the protocol in its leading symbol and resolves the source device's current display name through the app-wide `DeviceDirectoryModel`; the event does not capture a hostname. Device synchronization invalidates the directory cache, and a successful local rename also invalidates it, so subsequent lookups use updated names. Directory reads and writes expose `storageError` instead of throwing into the sidebar: a failed load produces no cached devices, a failed rename leaves the old local name unchanged, and a missing device name renders as “—” in the row (the current device can fall back to its local name). Removing a row deletes only that event, while **Clear History** clears the complete timeline.
 
-An event follows the pane's usage lifetime rather than every physical reconnect. `WindowModel` assigns history tracking only to saved-host SSH, Telnet and SFTP panes; local Serial panes and unsaved external targets never enter this timeline. Closing a pane or workspace records `endedAt` before disconnecting its transport. Moving a live pane between workspaces preserves the same event, and reopening a closed workspace creates a new event. A process crash can leave `endedAt` absent rather than inventing an inaccurate end time.
+An event follows the pane's usage lifetime rather than every physical reconnect. `WindowModel` assigns history tracking only to saved-host SSH-family terminal panes (SSH, Mosh and Eternal Terminal), Telnet and SFTP panes; local Serial panes and unsaved external targets never enter this timeline. Closing a pane or workspace records `endedAt` before disconnecting its transport. Moving a live pane between workspaces preserves the same event, and reopening a closed workspace creates a new event. A process crash can leave `endedAt` absent rather than inventing an inaccurate end time.
 
 ## Desktop design principles and change checklist
 

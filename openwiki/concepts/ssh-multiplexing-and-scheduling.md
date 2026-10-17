@@ -40,10 +40,10 @@ sources:
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # SSH Multiplexing and Scheduling
@@ -116,7 +116,7 @@ Each command owns:
 
 - A stable, charset-encoded C command string. Ordinary exec executes `/bin/sh -lc '<command>'`; session-control/runtime exec selects `/bin/sh -c '<command>'`. Either can be preceded by a shell-quoted `cd -- '<cwd>' &&`; there is no shared interactive shell cwd between exec channels.
 - Its own stdin byte queue with consumed-byte zeroization, stdout/stderr decoders and buffers, truncation counters, deadline, cancellation token, and completion continuation.
-- A deadline clamped to 1–900 seconds and created **after** channel-budget admission. Time waiting for admission is therefore not included in that command deadline.
+- For legacy one-shot execution, a deadline clamped to 1–900 seconds and created **after** channel-budget admission. Session-backed Agent execution has no command runtime deadline; its explicit session controls stdin and cancellation.
 
 Only one `opening` command is advanced through `libssh2_channel_open_ex` at a time; an EAGAIN leaves that pending open in place. Ordinary session-control commands can retry server channel-open failure after 50 ms, within their deadline, but only **before** sending exec; runtime observation disables that retry. Once opened, a command optionally requests Agent forwarding, advances to exec startup, and then runs. A running turn writes queued stdin, sends EOF when appropriate, drains stdout/stderr within the quantum/deadline, and moves to closing when remote EOF arrives. Close is followed by `waitingForClose` and freeing; exit status/signal are captured after waiting for close, and freeing retries native channel release. Stream output limits count accepted **remote bytes per stream**, not a single combined decoded-character limit; excess is drained but marked truncated. The output callback runs on the serial owner and must return promptly.
 

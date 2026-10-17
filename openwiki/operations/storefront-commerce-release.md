@@ -58,10 +58,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Storefront and Commerce Release
@@ -75,11 +75,11 @@ verified:
 | Product ID | `com.akinokaede.termind.pro.annual` | `com.akinokaede.termind.pro` |
 | Reference / English name | Termind Pro Annual | Termind Pro Lifetime |
 | US fixture price and type | 3.99, yearly auto-renewable | 9.99, non-consumable |
-| Simplified Chinese name | Termind Pro 年度订阅 | Termind Pro 永久版 |
-| Traditional Chinese name | Termind Pro 年度訂閱 | Termind Pro 永久版 |
-| English description | Annual AI, MCP & iCloud sync access. | Lifetime AI, MCP & iCloud sync access. |
-| Simplified Chinese description | 按年使用AI、MCP与iCloud同步功能。 | 永久使用AI、MCP与iCloud同步功能。 |
-| Traditional Chinese description | 按年使用AI、MCP與iCloud同步功能。 | 永久使用AI、MCP與iCloud同步功能。 |
+| Simplified Chinese name | Termind Pro 年度订阅 | Pro终身版 |
+| Traditional Chinese name | Termind Pro 年度訂閱 | Pro終身版 |
+| English description | Annual access to unlimited hosts & iCloud sync. | Lifetime access to unlimited hosts & iCloud sync. |
+| Simplified Chinese description | 年度订阅，畅享无限主机与iCloud同步。 | 终身畅享无限主机与iCloud同步。 |
+| Traditional Chinese description | 年度訂閱，享有無限主機與iCloud同步。 | 終身享有無限主機與iCloud同步。 |
 
 The fixture marks both products Family Shareable and puts annual in the `Termind Pro` subscription group with one two-week free introductory period. The former local commerce catalog/trial test files are removed; the fixture is for manual development. Local unit tests do not prove live offerings, eligibility or purchases. Validate prices by territory, group, offer eligibility (fresh versus previously used account), Family Sharing and the intended billing grace policy in App Store Connect and Sandbox separately. The local file does not specify a production grace-period length.
 
@@ -107,7 +107,7 @@ Use the Mac plist path for the first command when inspecting the Mac app. Record
 
 ## Access and refresh lifecycle
 
-`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. The current `ProFeature` set is Vault sync, unlimited Hosts, Tailscale and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. Do not reuse the fixture's AI/MCP descriptions as the current paid-feature contract: `.assistant`, `.remoteMCP`, `.mcpServer` and `.unlimitedMetrics` are not current Pro feature cases.
+`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. The current `ProFeature` set is Vault sync, unlimited Hosts, Tailscale and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. Do not treat product descriptions as the complete paid-feature contract: `.assistant`, `.remoteMCP`, `.mcpServer` and `.unlimitedMetrics` are not current Pro feature cases.
 
 Host access is a separate admission check: free access permits three ordinary Hosts, selected deterministically by creation date then UUID; Pro unlocks all ordinary Hosts. Additional saved Hosts are locked rather than deleted. Over-limit operations during `.loading` or `.verificationFailed` report unresolved/failed verification rather than treating that state as a resolved free account. Check purchase, expiry and verification failure with more than three Hosts, not just with an empty library. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the detailed Host policy.
 
@@ -184,5 +184,3 @@ Normal invitation eligibility requires an enabled controller, no prior response,
 2. Run the default shared/macOS tests as described in [Build, Test, and Release](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
 3. Check final localized **storefront imagery** separately from the paywall. The parent screenshot runner supports and defaults to all seven locale keys: `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr`; `locales` options or `TERMIND_MAC_SCREENSHOT_LOCALES` / `TERMIND_SCREENSHOT_LOCALES` can narrow the selection. It sets test language, region and Apple locale for each capture. This is capture-tool coverage, not proof of localized remote paywalls or final exported boards. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout available for this repair is empty, so no current board count, filenames, final canvas dimensions or image profiles are verified here. Establish the release inventory from the inspected checkout; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.
-s or entitlement mapping.
-or entitlement mapping.

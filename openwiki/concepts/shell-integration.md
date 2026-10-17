@@ -50,10 +50,10 @@ sources:
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Shell Integration and Terminal Context
@@ -177,7 +177,7 @@ SSH PTY receive flow: event frames are removed before charset conversion, while 
 
 ## Legacy probe and install state machine
 
-The following deadlines describe `RemoteShellIntegrationBootstrap` when driven interactively. The prepared connection path uses its probe over exec for optional system information and reuses its installer in startup files; these interactive timeout and late-input transitions do not govern ordinary runtime startup.
+The following deadlines describe the retained `RemoteShellIntegrationBootstrap` component when driven interactively, not the normal connection path. Ordinary shell startup no longer queues its legacy probe into terminal input. The prepared connection path uses its probe over exec for optional system information and reuses its installer in startup files; these interactive timeout and late-input transitions do not govern ordinary runtime startup.
 
 The bootstrap creates a per-instance UUID-derived token. The first command starts with an inert `__TRMD_<token>_PROBE__` argument to `command true`; that early marker survives common line-editor redraws better than matching the full command. A POSIX `sh` helper reads `/etc/os-release` or `/usr/lib/os-release` as **assignment text**, not by sourcing it, and reports selected fields plus `uname` values. A separate marker reports `$SHELL`; its basename selects Bash, Zsh, or Fish. This is detection from the environment's shell path, not an executable/process identity attestation.
 

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:b4b773b92af1a43763b1a2b04e2c889a9528c5083d027f27fef732a968191edb",
+  "claims": [
+    {
+      "id": "claim_76238c3763424dc2adc461f7b47120b3",
+      "statement": "Persistence preferences select tmux, zellij, zmx or herdr and an ask/createManaged/plainShell policy; remote references bind backend, Host, endpoint, username and optional ownership token, excluding presentation metadata from identity.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift",
+          "version": "repo-file-v1:sha256:06902bea97b04726a031f8ba1c2217fbd5fc4954e580a4b3d885e312e0830d25"
+        }
+      ]
+    },
+    {
+      "id": "claim_ecbadb5753b6498a984b9c107e3571d7",
+      "statement": "Only explicit close ends managed sessions; the close coordinator deduplicates identities, fences stale attempts and treats termination failure as best-effort disconnect rather than confirmed remote termination.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift",
+          "version": "repo-file-v1:sha256:4c7db347cdeb4da47a9a3cb9223f6339a6d9989e5d73adb155c9619a20cf2404"
+        }
+      ]
+    },
+    {
+      "id": "claim_4139adcb89684a1fadb1e277e827f72c",
+      "statement": "Restored resumable transports skip startup preparation; fresh Mosh and ET startup encode the same PTY command through protocol-specific argument or input forms.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
+          "version": "repo-file-v1:sha256:f1751ac54b299416a75ad75315adbbde205e506292076d02399c6d6571c78a81"
+        }
+      ]
+    },
+    {
+      "id": "claim_c7499b02d64c402ea158d50265acebed",
+      "statement": "Mobile restoration snapshots are versioned and keyed by native session ID; invalid loaded data fences future writes, while legacy workspace/recently-closed keys are retired.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
+          "version": "repo-file-v1:sha256:4b696229d477c534e549e61b07df5ed2a27374d7d3c993f9915e004f83deffe1"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
+  }
+}

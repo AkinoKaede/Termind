@@ -3,9 +3,6 @@ type: implementation workflow
 title: Port Forwarding Pool and Dispatch
 description: "Trace explicit forwarding Start through Host access checks, primary authentication, pooled TCP flow dispatch, auxiliary connection recovery, and teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
@@ -32,6 +29,9 @@ sources:
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
 generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Port Forwarding Pool and Dispatch

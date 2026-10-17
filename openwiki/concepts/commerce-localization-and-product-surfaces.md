@@ -132,10 +132,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 ## Commerce ownership and configuration
@@ -296,7 +296,7 @@ flowchart TD
 ```
 The desktop picker persists the next launch's choice while rendering only the notice in the newly selected language.
 
-Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests preference migration, regional catalog lookup, selected-language relaunch notices in all seven languages, regional German/French/Korean/Japanese lookup and reordered interpolation, contextual terminology, forwarding placeholder order, bundle metadata and compiled plural behavior. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
+Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests preference migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations, and Host-access error presentation. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
 
 ### Library cards and compact mobile surfaces
 

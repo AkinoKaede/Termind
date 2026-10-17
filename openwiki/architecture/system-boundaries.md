@@ -4,8 +4,6 @@ title: System Boundaries
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
-  - id: openwiki-source-ed77bc20b48d193bace3dde6
-    resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-3118dfa7dfade14baaccd202
@@ -28,6 +26,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-cd4e1048d6e972f3f86d27e3
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-0198125ac2a5c63e2b200fb9
@@ -58,8 +58,6 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
-  - id: openwiki-source-a154b5d36ec59496392d45e4
-    resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-a7d4f0957a52ddd59cd45344
     resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-c52cd56852d12b2dee153082
@@ -76,10 +74,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # System Boundaries
@@ -222,7 +220,7 @@ Native confirmation is not shared execution policy. Desktop `AssistantView` pres
 
 Persistence owns the actual conversation graph deletion: `SwiftDataAgentRunRepository` removes runs, messages and their backing, tool results/invocations/reviews, conversation order, model selection, and compactions. Its in-memory deleted-conversation/run fences reject late snapshots and run events in that repository instance, preventing asynchronous writes from resurrecting deleted history. These are storage safeguards, not UI confirmation policy.
 
-Desktop quit likewise belongs to the native app. `AppDelegate.applicationShouldTerminate` returns `.terminateLater`, asks for workspace-close confirmation, rechecks edited SFTP files, and offers a separate cancel/quit-anyway alert for pending uploads. Only after acceptance does it save window size and begin `AppModel.shutdownForTermination()`. The model reuses one cleanup task, cancels pending assistant preparations and all stored conversations before awaiting their drains, and starts MCP shutdown and SFTP cancellation waiting concurrently. After preparation and conversation drains and those service waits finish, it closes agent background commands, then agent connections, then Tailscale. It also stops native notifications, window sessions, forwarding, metrics and other app services. Shared owners still implement cancellation, durable terminal saves, and resource closure; the app selects their ordering.
+Desktop quit likewise belongs to the native app. `AppDelegate.applicationShouldTerminate` returns `.terminateLater`, saves terminal-theme changes and asks to discard only remaining unsaved drafts, rechecks edited SFTP files, and offers a separate cancel/quit-anyway alert for pending uploads. Only after acceptance does it save window size and begin `AppModel.shutdownForTermination()`. The model reuses one cleanup task, cancels pending assistant preparations and all stored conversations before awaiting their drains, and starts MCP shutdown and SFTP cancellation waiting concurrently. After preparation and conversation drains and those service waits finish, it closes agent background commands, then agent connections, then Tailscale. It also stops native notifications, window sessions, forwarding, metrics and other app services. Shared owners still implement cancellation, durable terminal saves, and resource closure; the app selects their ordering.
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +230,7 @@ sequenceDiagram
     participant Services as MCP and SFTP services
     participant Resources as Agent resources and Tailscale
     participant Reply as AppTerminationReplyCoordinator
-    Native->>Native: Confirm workspaces and pending edits
+    Native->>Native: Handle unsaved themes and pending edits
     Native->>App: shutdownForTermination
     App->>Agent: Cancel preparation and stop all conversations
     App->>Services: Start stop and cancellation waits
@@ -281,11 +279,11 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `0.19.2`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `1.20.0`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 
-Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfrastructure` defines `TermindAgentToolEnvironment` with injected host resolution, connection pools, authentication, metrics, background commands, optional pane access, and optional scratch workspace. `AssistantToolRegistry` returns an empty registry when a model lacks tool-call ability. Otherwise it creates a conversation-scoped scratch workspace shared by AgentKit's scratch tools and Termind's host-facing pull/push tools, records plans through the run's ordered event channel, passes usable MCP servers with credentials resolved from their references plus the MCP authorization client to AgentKit's built-in catalog, and registers `TermindAgentTools` as additional tools. Task management is supplied by the built-in catalog rather than a separate task callback in this registry. The registry marks `ssh_exec` as a secret consumer; host login is handled through injected authentication, not by asking the user-secret tool for SSH credentials. The Termind catalog constructs host listing, SSH/SFTP, metrics, pane and host-facing scratch tools from narrowly injected services; its presenter registry also combines built-in and Termind tool presenters for historical transcript rendering. The local registry resolves built-ins before additional tools and discovered MCP definitions, preventing host or MCP names from shadowing built-ins. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for run-level behavior.
+Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfrastructure` defines `TermindAgentToolEnvironment` with injected host resolution, connection pools, authentication, metrics, background commands, optional pane access, and optional scratch workspace. `AssistantToolRegistry` returns an empty registry when a model lacks tool-call ability. Otherwise it creates a conversation-scoped scratch workspace shared by AgentKit's scratch tools and Termind's host-facing pull/push tools, records plans through the run's ordered event channel, passes usable MCP servers with credentials resolved from their references plus the MCP authorization client to AgentKit's built-in catalog, and registers `TermindAgentTools` as additional tools. Task management is supplied by the built-in catalog rather than a separate task callback in this registry. `ssh_exec_run` receives the injected authentication registry; Termind handles host login rather than asking the user-secret tool for SSH credentials. The Termind catalog constructs host listing, SSH/SFTP, metrics, pane and host-facing scratch tools from narrowly injected services; its presenter registry also combines built-in and Termind tool presenters for historical transcript rendering. The local registry resolves built-ins before additional tools and discovered MCP definitions, preventing host or MCP names from shadowing built-ins. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for run-level behavior.
 
 ### Remote packages versus maintenance checkouts
 

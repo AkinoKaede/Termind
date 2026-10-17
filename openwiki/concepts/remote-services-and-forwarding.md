@@ -20,8 +20,6 @@ sources:
     resource: repo://Frameworks/TermindDomain/Metrics/ServerMetrics.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
-  - id: openwiki-source-1fc00d0407016efa5a0378eb
-    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
@@ -30,6 +28,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-6d31fde4399bc6391f30aaf0
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/GetMetricsTool.swift
+  - id: openwiki-source-f976589f19e3ab05e6ea5a44
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
+  - id: openwiki-source-cd4e1048d6e972f3f86d27e3
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-de03b453e9349cc11ea90e3c
@@ -88,10 +90,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 
@@ -195,7 +197,7 @@ This diagram shows admission of SSH session channels; forwarding traffic bypasse
 
 Host environment variables are encoded using the connection charset and sent as SSH environment requests **after** the PTY request and **before** shell or exec-based PTY startup. A server denial of an individual variable is non-fatal and reports only its name through the rejection handler; another environment-request error fails the connection. These SSH environment requests belong to the PTY channel, not its preparation exec channels or other services such as Metrics, Agent, SFTP, and forwarding.
 
-Shell integration is likewise a terminal concern. With integration enabled, the prepared startup path probes and installs helpers through exec on the terminal's transport **before** PTY startup; an ordinary shell then launches through the helper. Optional helper-install failure disables that runtime integration rather than falling back to typing a bootstrap into the terminal. A supplied prepared launch can choose its own command. The simple shell-start path still contains the older queued-bootstrap machinery, but integration-enabled `connect` selects prepared startup. Do not treat integration as a generic SSH bootstrap for metrics, forwarding, Agent, or SFTP routes; follow [Shell Integration](shell-integration.md) for context frames and terminal state.
+Shell integration is likewise a terminal concern. With integration enabled, the prepared startup path probes and installs helpers through exec on the terminal's transport **before** PTY startup; an ordinary shell then launches through the helper. Optional helper-install failure disables that runtime integration rather than falling back to typing a bootstrap into the terminal. A supplied prepared launch can choose its own command. The ordinary shell-start path no longer queues the legacy bootstrap command into terminal input; integration-enabled connections use prepared startup. Do not treat integration as a generic SSH bootstrap for metrics, forwarding, Agent, or SFTP routes; follow [Shell Integration](shell-integration.md) for context frames and terminal state.
 
 Focused regression coverage: `TFMTests/SSHMaxSessionsPolicyTests.swift` checks default admission, FIFO order, cancellation, independent transport budgets, and live limit changes without revocation. `TFMTests/TerminalContextWireTests.swift` checks non-queueing runtime admission at a one-slot ceiling. The fixture-gated `TFMTests/SSHPTYChannelLifecycleWireTests.swift` checks that stalled native exec close cannot keep an unowned transport alive and that SFTP siblings survive PTY release until their final close.
 
@@ -213,7 +215,7 @@ Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that frami
 
 ## Agent tools: host services, not terminal or forwarding sessions
 
-The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH exec/wait, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Plans are emitted through the ordered Agent event channel; `ssh_exec` alone is configured as a secret consumer, and its one-shot handles supply command standard input, **not** SSH login.
+The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH execution/control tools, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Plans are emitted through the ordered Agent event channel; `ssh_exec_stdin` consumes one-shot secret handles for an existing background command, **not** SSH login.
 
 ```mermaid
 sequenceDiagram
@@ -228,7 +230,7 @@ sequenceDiagram
     alt get_metrics
         Tool->>Reader: snapshot for Host ID
         Reader-->>Tool: cached snapshot or monitoring state
-    else ssh_exec or SFTP
+    else ssh_exec_run or SFTP
         Tool->>Auth: request Host connection or SFTP lease
         Auth->>Pool: reuse or open authenticated Host transport
         Pool-->>Tool: exec connection or SFTP channel
@@ -237,7 +239,7 @@ sequenceDiagram
 
 This shows why an Agent metrics read does not start a sampler and why Agent SSH/SFTP tools do not borrow terminal or forwarding transports.
 
-`get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. Concurrent cold opens for the same Host and route join one pending open; if the route changes, a cached transport is retired. A lost connection may be retried once **only before an exec channel opens**; a rejected channel or a command that already started is not replayed. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. Do not confuse TCP port forwarding with the Host's **SSH agent forwarding** switch: when that switch is enabled, Agent exec opens an isolated connection per call instead of reusing the Host pool and closes it after its exec lease, so the forwarded agent capability cannot persist across commands. The authentication registry also avoids sharing the temporary context in this mode. The ordinary pooled Agent exec path explicitly disables agent forwarding, as does the Metrics sampler. The per-connection `VaultSSHAgent` capability checks that the Host still permits forwarding, resolves keys only when used, and refuses signing that needs interaction when the connection policy forbids it. See [Agent runtime and assistant](agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](ssh-multiplexing-and-scheduling.md) for worker internals.
+`get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec_run` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. Concurrent cold opens for the same Host and route join one pending open; if the route changes, a cached transport is retired. A lost connection may be retried once **only before an exec channel opens**; a rejected channel or a command that already started is not replayed. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. Do not confuse TCP port forwarding with the Host's **SSH agent forwarding** switch: when that switch is enabled, Agent exec opens an isolated connection per call instead of reusing the Host pool and closes it after its exec lease, so the forwarded agent capability cannot persist across commands. The authentication registry also avoids sharing the temporary context in this mode. The ordinary pooled Agent exec path explicitly disables agent forwarding, as does the Metrics sampler. The per-connection `VaultSSHAgent` capability checks that the Host still permits forwarding, resolves keys only when used, and refuses signing that needs interaction when the connection policy forbids it. See [Agent runtime and assistant](agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](ssh-multiplexing-and-scheduling.md) for worker internals.
 
 When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics. `TFMTests/AgentConnectionPoolTests.swift` covers reuse, concurrent opens, and agent-forwarded connection isolation; `TFMTests/SSHAgentForwardingWireTests.swift` exercises the shared host-services exec path and capability revocation on a live SSH connection.
 

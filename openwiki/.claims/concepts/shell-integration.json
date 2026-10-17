@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:379949746d720c22114c3c993d204d4fea2ab8d24eaea722dc96a18f63ccc31b",
+  "pageVersion": "sha256:68b0771e933bead59e698e93aa101d2b6407365b33645bba0fd7679014c86bda",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellStartup.swift",
-          "version": "repo-file-v1:sha256:10771d9df71bff7068f250cb9380334686565fc69825a5f610ea7d512f024b04"
+          "version": "repo-file-v1:sha256:7eabdce8c74ccfd8e2f636862282ce1d2eaa5930dd5cf69999095e1bb077103c"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -26,11 +26,11 @@
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:897a846fe46729e0d33168b7baff3816f90a5e1edfb981e0f57da57fbebcb60c"
+          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
         },
         {
           "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift",
-          "version": "repo-file-v1:sha256:16284936b92f178228c9217f895f8639ab6dcd6e77fabd7d9e69e0a825457266"
+          "version": "repo-file-v1:sha256:48e82575d11b8fe95017112ced25b1ca9daa80b7415819343152d78ec1419585"
         }
       ]
     },
@@ -40,7 +40,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -50,7 +50,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -60,11 +60,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellStartup.swift",
-          "version": "repo-file-v1:sha256:10771d9df71bff7068f250cb9380334686565fc69825a5f610ea7d512f024b04"
+          "version": "repo-file-v1:sha256:7eabdce8c74ccfd8e2f636862282ce1d2eaa5930dd5cf69999095e1bb077103c"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -78,7 +78,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -106,11 +106,11 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:5056241b8d2ce884dc4a036e41f61d4aaa23c80f4feac419dfa2c0b986f9a1c4"
+          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:897a846fe46729e0d33168b7baff3816f90a5e1edfb981e0f57da57fbebcb60c"
+          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
         }
       ]
     },
@@ -124,19 +124,19 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerRuntimeAdapter.swift",
-          "version": "repo-file-v1:sha256:58cf3b4d09c47cf6db604e6e427a13017255b4333388d4d65efe742a0d756175"
+          "version": "repo-file-v1:sha256:e926c9cb52f143a067b72e5dde0afeaf1876567a1b5c449b54074e10235ec001"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift",
-          "version": "repo-file-v1:sha256:5072251eb1e70dfa685847453b1488d0b42dd322cf2bbb68300e3cea879713b9"
+          "version": "repo-file-v1:sha256:1b7adcb6777f33cac99d4fdd9bd730f9bc4b8fc62ec2afdd496612b70f9c7062"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift",
-          "version": "repo-file-v1:sha256:2e7bf550e7914673978868b29e8a22be25bbfa3e9ed9c2b0873ff4583416de76"
+          "version": "repo-file-v1:sha256:19881963d3f27ed05370366c36b15a2ed09357660868b68f9a174150c593224f"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -146,15 +146,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:5056241b8d2ce884dc4a036e41f61d4aaa23c80f4feac419dfa2c0b986f9a1c4"
+          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:897a846fe46729e0d33168b7baff3816f90a5e1edfb981e0f57da57fbebcb60c"
+          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
         }
       ]
     },
@@ -168,7 +168,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -206,7 +206,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:61bf4b66c900ecd1447697ea286ddc16cfc673737eaaf661e026eef70a825533"
+          "version": "repo-file-v1:sha256:550f2c9e9daabfa11dd34c09ad805eb86f76dfca8346920389da5a27c86f0068"
         }
       ]
     },
@@ -320,7 +320,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

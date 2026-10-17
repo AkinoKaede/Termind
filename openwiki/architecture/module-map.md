@@ -94,10 +94,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Module and Dependency Map
@@ -172,14 +172,14 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `0.19.2`, and `Package.resolved` pins version `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `1.20.0`, and `Package.resolved` pins version `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
 **Maintenance versus remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate from maintenance checkout HEADs:
 
 | Remote input | Current Xcode requirement | Selected version and revision |
 | --- | --- | --- |
 | `AkinoKaede/libssh2-spm` | `upToNextMinorVersion` from `2.0.3-termind-4` | `2.0.3-termind-4`, `7ca39b8bcaf408351e8b6e4f449d2a39959bab49` |
-| `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026101301` | `2.2.2026101301`, `d403978c66870baa422709d1dde385730a4bdaef` |
+| `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026101502` | `2.2.2026101502`, `42bacd1339f323a693ddbca779295f4f77e5a697` |
 | `AkinoKaede/libtailscale-spm` | `upToNextMinorVersion` from `1.0.3` | `1.0.3`, `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
 
 `.gitmodules` lists libssh2 and libtailscale maintenance checkouts, but no Ghostty checkout. Their gitlinks are not Xcode package inputs. `TailscaleKit` links directly into Remote Infrastructure and is not a shared framework target. For any package, `project.pbxproj` defines the allowed remote input and `Package.resolved` records the selected revision. Resolved-only verification uses `-onlyUsePackageVersionsFromResolvedFile`; update and release procedures are in [Build, Test, and Release](../operations/build-test-and-release.md).

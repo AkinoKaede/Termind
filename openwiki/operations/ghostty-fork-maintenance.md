@@ -22,10 +22,10 @@ sources:
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Ghostty Dependency Maintenance
@@ -37,9 +37,9 @@ The canonical page path is retained for existing links, but **Termind no longer 
 | Input | Current value / responsibility |
 | --- | --- |
 | Remote repository | `Lakr233/libghostty-spm`. |
-| Xcode requirement | `upToNextMinorVersion` starting at `2.2.2026101301` (below `2.3.0`). |
-| Resolved version | `2.2.2026101301`. |
-| Resolved revision | `d403978c66870baa422709d1dde385730a4bdaef`. |
+| Xcode requirement | `upToNextMinorVersion` starting at `2.2.2026101502` (below `2.3.0`). |
+| Resolved version | `2.2.2026101502`. |
+| Resolved revision | `42bacd1339f323a693ddbca779295f4f77e5a697`. |
 | Local maintenance submodule | None; `.gitmodules` does not declare Ghostty. |
 | App-owned adapters | macOS `TermindTerminalView` / retained view owner, iOS `MobileTerminalView` / retained `MobileTerminalSurface`. |
 

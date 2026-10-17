@@ -26,12 +26,14 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
-  - id: openwiki-source-1fc00d0407016efa5a0378eb
-    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
+  - id: openwiki-source-f976589f19e3ab05e6ea5a44
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
+  - id: openwiki-source-cd4e1048d6e972f3f86d27e3
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift
   - id: openwiki-source-f009a1e2645a074589550c44
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
   - id: openwiki-source-30e2d23210ae2fee41669d43
@@ -134,10 +136,10 @@ sources:
     resource: repo://TFMTests/RemoteSessionWireTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Terminal Connection and Session Lifecycle
@@ -285,7 +287,7 @@ Authentication answers whether a transport may be installed. The next layer deci
 
 ## Agent SSH connections are not workspace sessions
 
-`list_hosts` exposes public Vault host metadata and live temporary targets from desktop panes; it does not return credentials. Agent SSH and SFTP tools require an SSH-enabled target, and a closed temporary pane fails target resolution rather than legitimizing a lingering pooled connection. The desktop resolver obtains temporary SSH configuration from the pane when needed. Merely listing a connected pane does not give a tool its PTY: `ssh_exec` opens a dedicated non-PTY exec channel over an **Agent-owned** connection.
+`list_hosts` exposes public Vault host metadata and live temporary targets from desktop panes; it does not return credentials. Agent SSH and SFTP tools require an SSH-enabled target, and a closed temporary pane fails target resolution rather than legitimizing a lingering pooled connection. The desktop resolver obtains temporary SSH configuration from the pane when needed. Merely listing a connected pane does not give a tool its PTY: `ssh_exec_run` opens a dedicated non-PTY exec channel over an **Agent-owned** connection.
 
 For an unpooled host, `AgentSSHAuthenticationRegistry` leases a per-host `AgentSSHAuthenticationContext` only while overlapping operations connect. The resolver requests missing proxy credentials, identity and protected-key passphrase in route order **before** opening the socket, then uses the attempt's callback to ask for host-key approval at handshake and literal keyboard-interactive answers during authentication. Saved Hosts can persist an explicitly saved identity or trust decision; Continue Once remains attempt-scoped, and temporary targets cannot persist trust from an Agent card. Concurrent exec and primary SFTP openings join one authentication prompt and one pending connection. Cancellation removes an individual waiter and cancels its prompt when no waiters remain; generation checks prevent old failures or late answers from overwriting newer attempts. A rejected credential can prompt again for the failing hop or proxy, but successful authentication consumes the submitted secrets. For a proxy with an unavailable saved password, the prompt keeps `proxy.username` even if its selected password identity is missing; an unsaved answer overrides the proxy only for this attempt, while Save updates the Vault proxy identity and username. Identity and protected-key passphrase are separate prompts: entering a passphrase merges into the staged identity submission, retaining its password fallback. The registry drops the context after its last connecting lease: a later physical connection must resolve saved credentials or ask again, not reuse a previous Custom password.
 
@@ -325,7 +327,7 @@ sequenceDiagram
 
 *The Agent shares its own transport across tools, not a workspace's interactive session; prompts and one-use secrets belong to the connection attempt.*
 
-`ssh_exec` preflight classifies safe commands for parallel execution and asks approval for unproven commands, which run sequentially. Optional secret stdin is consumed from a handle bound to the run, host, tool and purpose; it is not an SSH login credential. Its reporting deadline includes connection setup. If setup is still pending, it returns `connecting` and starts **no** command; if an already-started command exceeds the deadline, `AgentBackgroundCommands` adopts its session and output under a handle for `ssh_wait`, while the shared connection stays available. A dead pooled connection can be retried once only if no command channel opened; never replay an operation that might have had effects.
+`ssh_exec_run` preflight classifies safe commands for parallel execution and asks approval for unproven commands. Foreground execution closes stdin and waits without a runtime timeout. Explicit background execution returns a conversation-scoped handle only after confirmed startup and leaves stdin open. `ssh_exec_output`, `ssh_exec_stdin`, `ssh_exec_cancel` and `ssh_exec_list` operate on those handles; secret stdin uses a one-shot broker handle, not an SSH login credential. Only connection failure before session startup is retryable. Cancellation retires the local handle without claiming remote process termination.
 
 ## Managed remote sessions: selection, ownership, and PTY startup
 
@@ -561,6 +563,9 @@ When changing connection code, preserve these boundaries:
 `SSHInteractionPolicyTests` checks silent Security Key blocking on both target and jumps, rejection of trust and prompted keyboard-interactive UI, current-identity additional-connection resolution and one-use secret invalidation. `WebAuthnVaultMetadataTests` proves hardware credentials for both target and jump resolve with a secret store that throws on Keychain access, and checks Vault metadata persistence and sync. `SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent scene ownership, retirement of old snapshots, in-process live handoff without new history, late discard, and native-session-aware reconciliation. `MobileTerminalRestorationTests` checks descriptor-only cold launch, missing-checkpoint failure, protocol recovery without SSH reconnect and command replay, and managed-reference fallback. `ResumableTerminalExitTests` verifies final-output drain and once-only end versus recoverable silence/disconnect. `SSHPTYActivationTests` verifies focus/client/resize gating and stale-request invalidation. `MobileWorkspaceStoreTests` checks deletion of even malformed legacy data and exclusion of recovery capabilities from URLs. `MobileAppTests` also checks explicit retry, plain SSH exit and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
 
 ## Related pages
+
+- [Mosh + Eternal Terminal](../integrations/mosh-and-eternal-terminal.md)
+- [Session Persistence](../concepts/session-persistence.md)
 
 - [Platform runtime and lifetime ownership](../architecture/platform-runtime.md)
 - [Agent runtime and Assistant](../concepts/agent-runtime-and-assistant.md)

@@ -182,8 +182,8 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
 generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # UI Design and Presentation Contracts

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ef708ab03c0ccc3e7e8ab46e8a2cc0fe96595e6abd377d42fc39ddcef52f375b",
+  "pageVersion": "sha256:a8e8ca1b8b302ba0d35ba6b4882241df99c900ba5728e8ab3df165ca7bac7502",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:a53a28ce11cb2a9fe8fe2b3a3ab238f4b91a6a35f9190034df09aa9cadca46e7"
+          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
         },
         {
           "resource": "repo://TFM/App/DesktopSettingsKey.swift",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:036a6f6207d047b39c047ce5f3c5a6c6f6742ad2ada36ee49d02e11ce54209af"
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
           "resource": "repo://TFM/Features/Settings/MCPServerSettings.swift",
@@ -52,7 +52,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:036a6f6207d047b39c047ce5f3c5a6c6f6742ad2ada36ee49d02e11ce54209af"
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
           "resource": "repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift",
@@ -70,7 +70,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:036a6f6207d047b39c047ce5f3c5a6c6f6742ad2ada36ee49d02e11ce54209af"
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
@@ -87,20 +87,8 @@
       "statement": "Initialized streamable MCP negotiates one of four supported versions, requires a session ID and matching version on subsequent requests except the March 2025 missing-header compatibility case, and retains transfer-active sessions past the normal 30-minute idle sweep; modern 2026-07-28 calls instead use operation handles without initialize.",
       "evidence": [
         {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L175-L263",
-          "version": "repo-lines-v1:sha256:694d80d012427485d6c4bea976f93d8ebade690c141c94c1a22b3591338ddeb0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkYWJmNTdmMzNhZDg0YzZkNDk3NzBkODcyNmU1NGY0OGQwZDAwMTY3OGJkNTM4NTc2NzE5MmZlZjg3ZDdkMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViOTJhZDczNzVhZGIxNWE5ZWFjOTA4OWE5ODMyOTBiOWFmOTlkYzIyYzkzYjJhZTUyNjMwMDlkYWRmNDkyZTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0NjgwMzk0Mjc4ZGI4MjhhMGVlNzE5OGE5N2JiM2NiZmViNmMzODRhZmRiNzg5MTA2NjU2NzA2ZmQxYzE3NWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2MTQ1YzJhNmM0YjhiMzg4OTM1ZjBmNTg3MjM5OWMwNDY0ZjdjM2IzZmJmN2U0ODBlNDk1OTI2MzQyYWE2ODcifQ"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L4-L10",
-          "version": "repo-lines-v1:sha256:079421303061d4ec81b39b8b8d062b6179a2136b56c81e44740664854160320a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYzNDkxMWU2MWY1MmYxMDIzYjI2MDYwNjBmNWViNWY5MTM0ZmU0NzQ0NDc4OGFjZTVkNjcxZWIyYjQ2OGRiYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTYzMTM2NWU3YTIzODA5YmYyZjhjMzk0NDMyNzY5ZThjODE5Yjk2NGI3NGI5ZWEzN2U4ZTE2NzM1ZWZjMDU4MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzQ1YTE4YjY2NWM5NGU3MWM5ZDljZWY5ZDdhNTk2ZmYzNDZmZjRjYWQzYTY4NTZiM2NkY2RkY2JmNjQxMjdjNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMzMDU3Zjc2MGYxZDU2Yzk2MmIxZTllNjcwY2EwNGJiOTQ1ZTA1ZDMxYjlhN2MxZDY3Y2Q1Y2Y3MzhmMDM4NyJ9"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L526-L534",
-          "version": "repo-lines-v1:sha256:0ef917a0bf40877660880efe369ab048b84dd591837d73739e240b9f96640a9c:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGFjYjFkZDFjNzE4YjZkYTE2MjY3MDdiOTRkMTQ5ODg4ZGJiYWNkYmM1Y2E3YzE3OWQ0MmVjODU3NDFhNTBkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWRiMGJjYTk1YzJiMWQ1NzkxMzdhNzNkZmU0MmM1N2E3ZDgyODI3NzJlOWM1M2ZhNWQ1Zjg0MTI4ZTI5NWRlNiJ9"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L72-L105",
-          "version": "repo-lines-v1:sha256:5ea03f6a5fd14a5c7719520f8bbcd02799aedd6b062dab5912857176100ba92a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MTY0YjE3NzM4NzBmMzU3YTUxMmJiOTIyMWE1MDllYjVkMTEwMTE5OTJlMjk5OGQyMTM1NGJmZjlmNzI5MjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MmNiMDk4MDQwNjczOTBiNDhhZTU2OTFjMTdkOTBmNjczZGNmYjI5NmY5YWQ3ZDZhZWY3ODg5YWMxYjdiNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxYWFmZmZmYmRhNmY0MzFkYzg1NjBlOWQ4MzNjN2ZmOWU4ZDcxNWM3NWYxOTBlZTEzZDcwNWYwMGRhMjA3YWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2Zjg0OWU0YzFlZGZkMzg0NWQxYjI4MmI2OGMzMDI5ZTcxNjFhMTBmZTU0MjEwMDg4ZTQ5NTdkNWM3MDcwM2EifQ"
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
         }
       ]
     },
@@ -109,20 +97,12 @@
       "statement": "Stopping, deleting, or expiring an MCP context cancels its copies, transfer capabilities, external authentication requests, and brokered secrets.",
       "evidence": [
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L149-L159",
-          "version": "repo-lines-v1:sha256:1156ed1fe22cca48173a15aa3a869523251eb86fd25a38ecd96d68867e9c03c1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzMDI2MmM1NzZiNjU3Yjc3ZDMyM2YwYzhmNjRlMjIwY2UzYmE0MDZlODYwZWU5ODMxYzYyMzk5YjA5NDcxMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYjMyYjM3ZWFiZWQ1MDQyNjE1ZGU0ZDI5OTk3OGI4M2FmMWEwODM5ZTMzMDU1MGJjNDQ1YTBkOTBiZTdlY2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4ODY4YzQ4OWQzMzhmYmFlOWYyZjViNTY5OWM3YzdkMTRlNDQ1MzYzNTAwNTg1YzA5YjQ5NzlkN2QyNzMxYTkifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         },
         {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L282-L291",
-          "version": "repo-lines-v1:sha256:02018655bc9cd6cf6af6d728856555a247a3983b8dfaa4772d9b000fbba94f3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0MjI1YTBjZTNhYzU1OGM4ZjNjNTIyNjllMjc0YmRjYjk2Y2E0ZmFhMDNmNmFmZmQzMmZjYWZkY2FmNjkxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MzllZjkyZjlkZTYzMTA4NTZmOWI2ZDc5ZDAwYmMyZjE3YTcxYjliMmI4NGFmNDhjZTRlOWNiZTE5NTk2MDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlYTM2NTYyOWJmMzRjMjk3NzMwYmVjNjUxM2IwMjVhYjI4YjJjNTQxYzk1MWE1ZWFjMDAxZjM5YzdlZWFkNzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzMGQxODk2Yjg2YzEwMDRiODcwYWRlZjQ5NTA4ZjMyODBkMzY3ZjFkZDRmZmEwYTNjYWI0ODAzZGZlZjkwYjIifQ"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L44-L58",
-          "version": "repo-lines-v1:sha256:2ec80aeb3742fd7c6e5080e62b460ed628d32118737a8ebbc087de1da5247fb5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NWMwMDJlZmM4NzhlMjhjZDI4OGJjN2JmNzg4NGI1NWEyOTJmYjU5NGQ2OTUzOThiYWYxMDZmZDM1MGY3Y2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmMGZhYWRiNjUyZmJjZWY4OTkwZmQ1ZGJjMTcyOWMzZDZkYTI4MTE5ZDEwODFkODk5ZmYyMzVhZjZjZTRhMjIifQ"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L509-L534",
-          "version": "repo-lines-v1:sha256:63124b293198144b60edc81cc6d1d8daa192e0d1437ea7391ab7dfce6eeb7222:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyNmUxYzY5NDVmNzA5MTQ3MDkwZDdhNTk5Y2U5ZDExNzk3NzE4NzYwOTU4OTNhZmIxMTFkZTk1YTMwZDY4NTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkYjBiY2E5NWMyYjFkNTc5MTM3YTczZGZlNDJjNTdhN2Q4MjgyNzcyZTljNTNmYTVkNWY4NDEyOGUyOTVkZTYifQ"
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
         }
       ]
     },
@@ -131,16 +111,16 @@
       "statement": "The external registry allowlists Termind host tools, request_user_secret and transfer tools; disabled tools cannot be discovered or invoked, and disabling upload or download revokes that direction's coordinator. Disabling any export also asynchronously revokes all modern operation contexts and their run-bound secrets, transfers and prompts without sweeping initialized sessions.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L101-L113",
-          "version": "repo-lines-v1:sha256:c19f52ca0f2a219553def09110378987d6cf74f858f0322bca0f1910106084c3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5ZGFjMDgxM2UyNDM0NWRjMDdiYTRmNTg1M2VlNWJkNzdiMWY0ZmI1NDA1YzU2YjIyZDc5M2RjZDg2ODRlMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNTUyYTQxNDMzNmEyMDM3ZmY0NTFlMmU0NTk0Yzk4ZGUyZjQxNjhjNTEzN2FkNjNmNmUzM2E0OGRlZGZlNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5MDU5NjJkOWQ2NzZkMjYwY2IwODJmZGMwYTY2ZmUzMDEzZmQ5MzVkZjA1YTliMjRhYmYxZmI5MTg3MjBmZWEifQ"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         },
         {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L55-L58",
-          "version": "repo-lines-v1:sha256:6afe71ea17107e55ecef5e1371dcc72425369a273de9fddf8b98668d5245b05b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjY3YjQxZTZjZjdkNjQzMDJhNTcxOWU2OTEzYmZjYTY0ZjQxZDVkN2Q4YzU3NTRjNTE4ZWJlMjQ5MmJkNzMxYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzk5YTJhNzI0MzIwOTY4YTZmY2EzZGJlNjk5N2FiNmNlNmZjZGY2ZjhjNzExYWYwYzRmMGQ0ZmM2ZjliNjRlYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmYwZmFhZGI2NTJmYmNlZjg5OTBmZDVkYmMxNzI5YzNkNmRhMjgxMTlkMTA4MWQ4OTlmZjIzNWFmNmNlNGEyMiJ9"
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
         }
       ]
     },
@@ -153,7 +133,7 @@
           "version": "repo-lines-v1:sha256:a8295d5e8afb783b7eec46a70804f67a18db9f0bee1bc0f40c95d4964a7a87ea:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTU1YzAwMmVmYzg3OGUyOGNkMjg4YmM3YmY3ODg0YjU1YTI5MmZiNTk0ZDY5NTM5OGJhZjEwNmZkMzUwZjdjZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBhOTJjMzljNzhiNmU4ZmUzOGI0ZGQyOTExZTA1ODAzN2ExYWVhMzllNzYxNjllNzBhM2UwYmEwNDc5MzkxNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmI2NDY3NmU5OGYwYzUxNTQ2Mzg4ZTc1ZmQ0MmQ5NjBhNTI2YTYzNjZmNTEwNWYzMzI5ZDQ2YmVkZTkxODBhMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTI4ZjcwYjQ3ZWYyODg2OGM3MjIzNWM0MjM2ZDZlYWQ2NjkxMDRkY2UxNmUzYzUzN2JlYmQ2NGEwYjNkNmE3OCJ9"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L123-L131",
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L141-L149",
           "version": "repo-lines-v1:sha256:3c60dee9829d7c3e4e12366ce209e6f75677a778ca73c1a48846adbadc56de6f:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0ZDcwNDA3ZTNkNzRkMGZiNzA0ZTI4NGJkMjBiYjlmMmRmMmUyNDhmNGJlOTc3NjM3MTI2ZWFiNzYwMjRkMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWY3NWQ5MjQ1ZWM4MjU5YTA0MWJhZTM1YjUzYTgwYjU0NjdmMWM1MmFmM2E5Mzc3M2IzYjViMWI3ZTM0NTlkNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTdmZmNmMDQxZDYwZGY4OWI2MWJhNDgwMWZkZTEyYTRkMjQxMGJmMmJmYmJmNGJmNzdhNzE5ZDgxM2FjODg1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2JkNzQwNjllNTUxZDNlZjViZWM2ODRmMDY1OWVlNzAxMjczMTJlNDkyMzY4YzgzMTI4NzVjNGQ5ZmQ4ZjdmYSJ9"
         },
         {
@@ -172,19 +152,15 @@
     },
     {
       "id": "claim_6c0fa0b6b31441d99c95ef7caed28eaf",
-      "statement": "request_user_secret returns a one-shot secret handle rather than plaintext; ssh_exec consumes it only when its session run, host, tool, and purpose binding match.",
+      "statement": "request_user_secret returns a broker-owned one-shot handle rather than plaintext; ssh_exec_stdin consumes it with type=secret for a context-scoped background command. The current request schema does not include host/tool binding fields.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift#L363-L393",
-          "version": "repo-lines-v1:sha256:cb9d274af2cf8597e6f1f980c89a727c1918d02e74f6823041b01be3deb3a1ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NDExYmI4MTU0ZDk3MjI1YTkzY2I1N2RiYzBjMWQyNWJiNTFjMDY0OTI1YjExNTJmOWNhMjE1OTYyMzRlNmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmMjk0ZjkzNDI3Mzk0YWEyOTE5MjRlZTljNzcwNGU5M2FkYzNmYWVkZmY5ZGVjYzljZDQ4OTQwZmJjMmQ5ZGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyZWE4NDk3MjE5MmRjZDM4NmQzOWEwMTg5MTc5MDA2YzVlZjk0MWFhYWM4MDMxNTgyNzYyODdlNDZjMjcxNDAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift#L62-L155",
+          "version": "repo-lines-v1:sha256:cdf68a0f8b289bf54127360507c75a30f4bef258aa1bcf4e871a07bad01a5c88:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiNDgxYzliNjFiZWFhNmFlYjhjYTI0NGNhYTBiMTczZTAwMjg5YjA1NzNlZTAyMzZiNDc1OThlZDQ5ZjM1MjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwMGI5MTIxYmNhZDczOTUzODhjZDcxNjIwNmQyMDFlZDkxNDQwOWFmZDFmMDM2NjQ1ZTExMTQwNWIyNzg1ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlZmRjYjcxMmNiZjk2NmM0ZTM4NjBlMjAyMDkwMTllZTUzNTBiNGE4NWZhZDMxZjFlYmIyYzBhZWYyZTY2YmUifQ"
         },
         {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L385-L397",
-          "version": "repo-lines-v1:sha256:25766f6e2406b151006120962301eb408397aa5d1f831ae50372c5089b966bc8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0OWE5NzMxOTQ4MzRkNTUzMGQzYTQ0ZWI0ODE2MWVhYTc1Y2RmODU2ODNhZDNkMzg0OTUwMWM2NTE1ZWQ5NTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyMjU5ODI0N2IxZjM4NjljNTgyNDMwZGIyY2E4NDcxMGM5NjY2NjRiODg0OGI1YjVkOWQxMTg5NzEzMWFhY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiYmJiMjA4YWJiMTY3MGJlODQyZTJmY2VhMGRkYzZlZGZhNjM4MTNjOTc2OGJkZDNlZWNjZTkwMjc4Y2VlZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3NGY0ZThmYzg0YTRlZGJmZjlkMWY4OGJiYzRlOTMwMWRiZTUwYWQ5MWJiODdhZWE3MmQ5MjAyZWYzYWZjZjEifQ"
-        },
-        {
-          "resource": "repo://TFMTests/MCPServerToolsTests.swift#L193-L250",
-          "version": "repo-lines-v1:sha256:8f55eddb350b48ec03a92dc56e1188a661f025bc60a8e98de8a95b9105539a9b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyYzhlMmNiZTdiN2JiODBiOWJlYWI5NWViOTcwODljNmIyNDVlZDg4OWNkZjhhNDk4ODhjNGEzNzEwOTM5MTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+          "resource": "repo://TFMTests/MCPServerToolsTests.swift",
+          "version": "repo-file-v1:sha256:21eaabb10771e3ca264046e63d5d1b78e5eb6eacd134874c79887667a603cc6c"
         }
       ]
     },
@@ -237,7 +213,7 @@
       "statement": "A download ticket does no remote I/O until GET; downloads stream regular files without staging, support only a validated continuation Range, and do not mark success until source validation, send completion, checked close, and lease release succeed.",
       "evidence": [
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L64-L80",
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L67-L83",
           "version": "repo-lines-v1:sha256:6d2d2c94a832b6099ceebc2e310be31584972e05e53521424e0a83989596d335:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMGY1MDQzYWYwMmFlOTFhMmVkYzNmYWNmNjk4ZThmZGFiMDljMWI0YTk0ZmIxODE4YTUyNzY4MzAzZDM3MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwZjc0YTk2NWQ3YjBjOGMyZWJhYWE2ZDliOGRjYzc2OGQ2NjM3MzU3MmUyYWMwODY3ODgwMDZmZjcyZjIzMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMTFiYTMwZGM1OGFkNDczY2Y4M2E1ODcyZDU0YjZkZjk3YjE2YWQ3NDVlYmVlOWVhOWY0NTg5ZTZiNzVlYmMifQ"
         },
         {
@@ -284,19 +260,19 @@
     },
     {
       "id": "claim_42f9ef4c43524e90b670a096c7be1b1c",
-      "statement": "The MCP registry composes shared Termind tool definitions without a scratch workspace, AgentKit's user-interaction group, and four transfer tools; it selects acting mode before exported-name and disabled-tool filtering, so its 18 exports use acting ssh_exec and exclude terminal_suggest and scratch tools. Tests compare shared descriptors with the acting host subset.",
+      "statement": "The MCP registry composes shared Termind tool definitions without a scratch workspace, AgentKit's user-interaction group, and four transfer tools; it selects acting mode before exported-name and disabled-tool filtering, so its 21 exports use acting ssh_exec_run and exclude terminal_suggest and scratch tools. Tests compare shared descriptors with the acting host subset.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:60ec6904fb8c067bf6b1e9b876968dd53b499a39ee6467a13822562137d2ec5a"
+          "version": "repo-file-v1:sha256:9a4ff603cf8726d3e8c928de04efbf3dffa075f1a262fb49360b020d027c79bb"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         },
         {
           "resource": "repo://TFMTests/MCPServerToolsTests.swift",
-          "version": "repo-file-v1:sha256:4d0bedee9aab62d8fe3659bed5b131c2d934eda4a68b107245b56626e8e25fbc"
+          "version": "repo-file-v1:sha256:21eaabb10771e3ca264046e63d5d1b78e5eb6eacd134874c79887667a603cc6c"
         }
       ]
     },
@@ -313,11 +289,11 @@
           "version": "repo-lines-v1:sha256:7430f773081d8241c5b3a8fa3461531cb771967ae89866bd13f3493c0d9f0539:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYjcyYmE0ZDk2NDBkOTI2M2JlMzcwZWJiNzJlMzVlZDA4MGY2ZTM1NjU1MjAxOGRhZWJiMmFmZmI3YWY3NWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4N2FlNDIzYzRkMDk3ZjBiZDU4ZDVkMjMwMDI5ODRiZTMzMDhhMzQxMDExMjc4MWFmYTA3YWZkYTIxNjk1ZGEifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L297-L351",
+          "resource": "repo://TFM/App/AppModel.swift#L305-L359",
           "version": "repo-lines-v1:sha256:64d2cd7039231305130f7779d7f3ec34112fe4e72e108b476528a4c87bcf9aa7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0ZTE0MTY4NjY3OGFjYWM5MjJiZjk3YzBmNjY0MDIxNjIwZTU2MDEzNzFmZTIyNzA5MTViZThkMDhhZmY1MWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L48-L80",
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L51-L83",
           "version": "repo-lines-v1:sha256:83d1bf58dc3be42ec3ce4cbcb6f819e87dc291f71b93618a1a61bcd6ea7bbf26:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0ZThmZTliMDc2ZmU1Y2M3OThjOTVmNDQxMGVjOTUzMzY2Y2QzNjRjMjg4OGM2NDg5Y2I1MzU5ZDhjNWEzZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1NDU1ZDNjMTg3NWI3ZTJhYzhmMzZjZTVmZWYwNzVkMGE2ZDBlNzdiYmE4NDY1MTA3OGY3M2U4Zjg1YzM5ZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMTFiYTMwZGM1OGFkNDczY2Y4M2E1ODcyZDU0YjZkZjk3YjE2YWQ3NDVlYmVlOWVhOWY0NTg5ZTZiNzVlYmMifQ"
         }
       ]
@@ -331,7 +307,7 @@
           "version": "repo-lines-v1:sha256:c3433e38f2b31aa5d84e8752723b10775b6a64e8303a3f0b2d7e97d66978c0d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NDhhMmM0NmViMzA3MWJlZGJkYmNjY2VhNmMwMGYzNzk2YjkwOTBhMjZlMjc0MTRkYTBhYjI5MTk0M2I0MTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwNzA5YjAxNWIyZjcyNTQxMzVhZGI1MDQ3OTExMGE0MDBiYjMxNGZiZWNiOTJmZThiNDJiMGViYzdhNmE3ZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiMmIxMTc3ZGMzZjUyNDJhZGJlY2IxMWI2MGI5ZjY2NDEyMWRhZWIxMTQxMmM3ZmRmNjkxN2Q5YTNmNDQxODIifQ"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L38-L81",
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L41-L84",
           "version": "repo-lines-v1:sha256:e9fca4d423496dccbac76c863f3c0e5b5160ecea10e354b1d3303a0b40f421a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MjYyY2I4OTdmZGU1NjJkZTUzYzg1NzhhYmY3YmNhYWY3ZDUyYjkxZjM2ZmFjZjY2OTc3MzdhMTM0MjY5MzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmMjBmOGQxYjQzMTkzYmQ1ZDE1NDIzMDkyODRlYTc5MmM4ODVhZmEwODI3MDUwNDkyOGE5NTU0MDQ2ZjkzNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjZmOTBjMWRkOTRmMGJlNDRlN2QyNjZhZGJhNmIzMGNkYmYwNTg0NzVhMGI0MWZkMDU2OGJlZTcwNmQ1ZTUifQ"
         },
         {
@@ -343,7 +319,7 @@
           "version": "repo-lines-v1:sha256:247193706f98b629f5f10d2c41bded0e359f00c7d23791fb6ea175dc61a510e8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhMjczMjdhYTBhZWQxZjcyNmEzMmNjNjM0OGRkNjYzNjkxNjM4OGU3OTZiM2M3YmNmNDdkNWZhNTE2OTBjZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1MTEyNGM0ZTYwZWVkMjRiODk4YmNlNjk4NjMyOTRlNjJjZTliYTg0NDMxYmJhYTIzMTYzZjY4NWJjMzgzNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmY2IzZGJlMDQ2NjZkNGFjNmNkOTEwODMzZGJhZmZmNGU0NThhZGYyYjlmNWQ4Njg1MmNmOTc3MTM3NDNkNDIifQ"
         },
         {
-          "resource": "repo://TFMTests/MCPServerToolsTests.swift#L314-L336",
+          "resource": "repo://TFMTests/MCPServerToolsTests.swift#L288-L310",
           "version": "repo-lines-v1:sha256:24a629d87f57f464fa7415a8e251e55045fce548eda82519d75629465d3c7e58:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2YTNlYjNjMDM4NzBjZjE0OTI5OTc4YTE3YTRjMWQ5MmU0YWZmOWUwM2ZiYmEwMmU2MTI2ZTg0OThhZTRjMDQifQ"
         }
       ]
@@ -397,16 +373,12 @@
       "statement": "Desktop byte-transfer closures route SSH authentication and host-key interaction through the session-labeled external UI handler, then open SFTP via the injected authentication registry and pool; upload cleanup separately retries remote temporary-file removal after failed or cancelled attempts.",
       "evidence": [
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L149-L159",
-          "version": "repo-lines-v1:sha256:1156ed1fe22cca48173a15aa3a869523251eb86fd25a38ecd96d68867e9c03c1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzMDI2MmM1NzZiNjU3Yjc3ZDMyM2YwYzhmNjRlMjIwY2UzYmE0MDZlODYwZWU5ODMxYzYyMzk5YjA5NDcxMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYjMyYjM3ZWFiZWQ1MDQyNjE1ZGU0ZDI5OTk3OGI4M2FmMWEwODM5ZTMzMDU1MGJjNDQ1YTBkOTBiZTdlY2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4ODY4YzQ4OWQzMzhmYmFlOWYyZjViNTY5OWM3YzdkMTRlNDQ1MzYzNTAwNTg1YzA5YjQ5NzlkN2QyNzMxYTkifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L38-L81",
-          "version": "repo-lines-v1:sha256:e9fca4d423496dccbac76c863f3c0e5b5160ecea10e354b1d3303a0b40f421a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MjYyY2I4OTdmZGU1NjJkZTUzYzg1NzhhYmY3YmNhYWY3ZDUyYjkxZjM2ZmFjZjY2OTc3MzdhMTM0MjY5MzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmMjBmOGQxYjQzMTkzYmQ1ZDE1NDIzMDkyODRlYTc5MmM4ODVhZmEwODI3MDUwNDkyOGE5NTU0MDQ2ZjkzNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjZmOTBjMWRkOTRmMGJlNDRlN2QyNjZhZGJhNmIzMGNkYmYwNTg0NzVhMGI0MWZkMDU2OGJlZTcwNmQ1ZTUifQ"
-        },
-        {
-          "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift#L329-L343",
-          "version": "repo-lines-v1:sha256:fe8fbe2fbd6f50d5df17ad08023f6a63446d26f009ea4c9b6d4e85723bce4673:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2ZTgxMjdjZTdhMmE1OTIzZjEyMmE4Mzg5ZDFiOWNiYWEyOGNhZDQxNGUxNWJlOWQ1MzUxZjc0YWQzMWM4YmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxZTg4Zjc0OGFiNDM5ZjdhNzI1MTM2NDQ2ODViNjA0OTc5ZDJmOTM5YzI3ZjY5YTlmODVmNWI2ZGIwMzI4NDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjMzZlYTI3ZmMwY2RmYmM5N2IxN2I4N2FkODJjMmZlNDYzNmE0M2U4OTEyYjQxMmVhYjc0OGM5NmJkMmY2MWIifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift",
+          "version": "repo-file-v1:sha256:ea52c7d8251960ac6e8e8d881c049b0b33ff120ac324deaa5e64ccd3c5149c8b"
         }
       ]
     },
@@ -433,7 +405,7 @@
       "statement": "macOS AppModel separates ordinary SFTP transfers from MCP tickets and revokes MCP host tickets on local/outbox or remote host removal. Termination fences Assistant admission, cancels pending preparations (joining captured failure saves even for unstored conversations), and stops all stored conversations before awaiting their drains. MCP stop and ordinary SFTP cancellation waiting run concurrently; preparation persistence, conversation drains and both stops finish before shared background commands, then connections, then Tailscale close. Repeated termination reuses the cleanup task; AppTerminationTests guard these admission, persistence and ordering boundaries. MCPServerController.stop drains transfers, stops protocol and HTTP, and cancels external MCP prompts without closing the app-owned connection pool. The app delegate hands cleanup to a bounded termination reply coordinator.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L811-L849",
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L813-L851",
           "version": "repo-lines-v1:sha256:89bb691c6db21c8701b079243ffe0b84e409027a6e6b858009e87416431b7620:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MDJkNjgzYmY5M2Q2MzYxODAyZTY3ODljZTM4NzViNzgwMmFjOTcxZTZiZGM3OGQ0YmM2YmJkNGI3YWY3ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOGYyMDc4MzdmY2FhYWQyNTUzZmRkYWJjNGM5MWI5MTdhZTE4MzEwMjA1ZmUzMWE4ZjAyYWM3N2NiMDMxMjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiMGQzZjE0ZTM2MzJiYTlmMGUzYjlhMmFhMzgzZTA2NWFhMGFjZTE5YzUxNTg1MDZhOWIxYmM3NDUyMTFhZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNDE2NjE0M2NiNTMyNGZkMmNhMmM4NTE3MjQxZTYwZTJlZTEyNzI1N2RmM2JmYzI1ZTE0NGNhMmQ3NDRmMjQifQ"
         },
         {
@@ -441,23 +413,23 @@
           "version": "repo-lines-v1:sha256:67bedae5915d7f6a4ba3a785219f82320187368632bd179ce1d31a2c45ade07e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxOTY1OWM4ZDM4MWNhY2NmMDg0NjZiNzc4NTk4M2E4Zjc2OWE1MjU0MjA5ODYyODA4ZWRhNTkzNDQ2ZTIzYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmNWY2ZGIwODM0YjM4NzEyNGRlZWVmZGZhMjFhOGIwN2UwN2FiYTM0OWFiMWRkZTNlMDg3Yzg0ZGE5NmEyYTIifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L301-L351",
+          "resource": "repo://TFM/App/AppModel.swift#L309-L359",
           "version": "repo-lines-v1:sha256:ad2008fc89ccaaea043cebd1aae563ce3dba573fc48b7c21b391721436a69321:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwMWNlMzA3NzIyZTVhMzE0MjRmZGIzOGUzOTkxYjI3M2EzNGNjMDQxMjFjMzgzNzdmNGQzOTU1NmMzMGUwZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhYjMyNmFmMzE3MTllYWI0N2UyNDYyNmNhYjAwYjNiNzk4ZTEzN2E3NjQyNzcyZjc3MDRlYjQ3OWQyMTI0ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L358-L367",
+          "resource": "repo://TFM/App/AppModel.swift#L366-L375",
           "version": "repo-lines-v1:sha256:06da4067f794c25f9a85af51c7012e9d36e5aaf94e1cad0c064da4a1a4ce6e2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4M2E2MjQ1ZDczOTAzYzVmOWVlNzdjNjFlMjllMGIzYmZiMzNmM2Y3MmVlZTIwNDVlMWI4MWE5MjZhMGYxYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNzYzYmQ2YTJkM2UwMjQ0YzBmMDMwZTI0YzFlMjQzOTA1MTM5MTkzMWE1ODBlNWNiY2YwN2Q2YjBiOWYxZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5YTVjNDU4ZWJhZGU4ODY2N2VlMTE3OTczZTEyMWViMmM1YmExOGMxNTFlYWIyZGUzOTRmMzhhOGMzOWZkMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwY2MwZGE1YmRiNmYxYmUyYTFiYmIwMzNlOWE4YWY1ZTJjMWE2NGM3Y2UwZTQ0MzU4MjM0Mjc4YTlmOTdlN2MifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L405-L421",
+          "resource": "repo://TFM/App/AppModel.swift#L413-L429",
           "version": "repo-lines-v1:sha256:2ff10708aaad6d89300562e49efe6ccf1616388f82fc934e1cff9a7956404e89:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyOTZiMzVhOTYwOTBjNDBhMjQxNjljODI1NTBkN2M4NWY1ZDI4N2I0ODJmYWExOTlkZDA1NDRjYjk3N2FiNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxOWI3MGIyZmViMTE5YTZkZmIwYTAwYzdjNWM1Y2QzNmNkZWU4NGVmZjdhNjAyYWIzMjBlOGVjM2RiYmYzN2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZjdhYWQzY2U0ZWRlZTg1ZDJiOGYwYzA4Y2MwNTQ0M2VjM2YwN2IyMDA2YWQ3OTRkMGFlOGQwNWViNjQ0NzYifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L543-L554",
+          "resource": "repo://TFM/App/AppModel.swift#L551-L562",
           "version": "repo-lines-v1:sha256:f931d190fe71956803ae65ce36d34596d6b9efe6ca8c8b8b85491a050bc0eaa4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0ZTBmOGRkODVmMjNhMDhiOTc2N2I5YzBiMGQxODQ4N2FmY2I3MWQ5OWNmNjEyMTc2ZDZiMDExMDEyMTdmNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzMDEyZTgzYTcxZjI0ZTVlZjRhZGM5ZTY1YzcyYTViYjgxZTY0MTkzZjI0OTViMThlOGY4MDEyMjUwZGI2YjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5OTllNjE2OThkZTE2ODU1ZDc5MDViNTk2MzNhMmFmODZiODI4N2MxZTg4OGQxYjBkNmMyYzBmODg5MjJhNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjZDgxNTUwNzlmZTA2NTc5ZmViNmVjZTVhMTdmNWM0Zjk5Y2U0ZWYyZmNiZmE4ZGJlODVlOWNlZGI4MWVjYjcifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L988-L1048",
+          "resource": "repo://TFM/App/AppModel.swift#L996-L1056",
           "version": "repo-lines-v1:sha256:c1845e5daf0de17cb8b8094ddc297fe42938b3e7cd958c43a8c78e4ce98300ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
         },
         {
@@ -548,19 +520,19 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:0452c2c35a05d85dff2e2c9e06638e8320ad75fda91a9dcfa409ce3c2f596259"
+          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:a53a28ce11cb2a9fe8fe2b3a3ab238f4b91a6a35f9190034df09aa9cadca46e7"
+          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:2c2dfb867febe06bea19fe1c686bce85936e815136eb1709ae5d45d55ffb2b09"
+          "version": "repo-file-v1:sha256:c8cb123df7e8dcf86ce766516eac3ff6e512decf38f57e160f6439cc503ab20a"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         }
       ]
     },
@@ -569,20 +541,8 @@
       "statement": "The MCP protocol limits initialized sessions and modern operation contexts together to 64; initialized tools require the initialized notification and matching session/version, while modern calls require matching version metadata and method/name headers and use an operation handle for related calls.",
       "evidence": [
         {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L138-L263",
-          "version": "repo-lines-v1:sha256:1f4098c3b43b858b79488370f1c44d8975f1dcb45ec1fc750793277bf2f96f51:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlYjkyYWQ3Mzc1YWRiMTVhOWVhYzkwODlhOTgzMjkwYjlhZjk5ZGMyMmM5M2IyYWU1MjYzMDA5ZGFkZjQ5MmU3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkZDMzMzg4ZjM3ZGNkMzYwYjEzNmZhYmM1MDliNjE4NGYwOTliMjgzNjIzZGFhZTM5MWUxZDFlYzY1NDNhODE3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNjE0NWMyYTZjNGI4YjM4ODkzNWYwZjU4NzIzOTljMDQ2NGY3YzNiM2ZiZjdlNDgwZTQ5NTkyNjM0MmFhNjg3In0"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L4-L13",
-          "version": "repo-lines-v1:sha256:37c95a1102c4f9b4f78219cd49b16082a1698087af1d1d43dd67b8edc7c99cac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMzQ5MTFlNjFmNTJmMTAyM2IyNjA2MDYwZjVlYjVmOTEzNGZlNDc0NDQ3ODhhY2U1ZDY3MWViMmI0NjhkYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyNTVmNmEyYWI4NjNmMWJjMzdhMDZhMjMyMTc1ZjI2NTQ2ZTUxMzA0NGUwYThhOWM5OTVkOWViNWI2YTNjZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0NWExOGI2NjVjOTRlNzFjOWQ5Y2VmOWQ3YTU5NmZmMzQ2ZmY0Y2FkM2E2ODU2YjNjZGNkZGNiZjY0MTI3YzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2NzM2OTM2OWQ1NTcyZWNlNDJmZGNlNjE1MjE5MDQyOTI5MmY0NGJhMjJiOWY1MzI5OGZlMjY0YTMxM2Y0YzkifQ"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L400-L430",
-          "version": "repo-lines-v1:sha256:65b9c00c90d4e2241ddd9b23ed72a104db1437fa8f222e91a0d642fcfd05a758:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhNDgwMzNjNjY0Njc4ZmUwYzA1ZTNjZThjNTg3ZGYyODRkN2VjNjczNDk3MmJjMWE3ZGQxZTlkYWZmYTI3NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwMDEwNWUwYTY4NTIxYzNkMzMyNjE1MzkwZTg1OWUzOWNmMjQxMjc0YTdkNzgxZDE5NmEzYWRhMDdiMTBmZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjZjI2ZWRhZmU2YzRhZTVjN2JmZDZiNTBmMzhiZjJlMDVmNWE2ZDczNzQ2NGM2OGI4Y2I1Nzg1NTZlOWE4NDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0MmZhMGQ3ZTU4NzM3NzIxZmIwMmQyMzBjNWI3MzMxY2UxOTk5Y2I4ZDIzMjI4YjgxMTdjNGI2MzllODdkZmIifQ"
-        },
-        {
-          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift#L72-L105",
-          "version": "repo-lines-v1:sha256:5ea03f6a5fd14a5c7719520f8bbcd02799aedd6b062dab5912857176100ba92a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MTY0YjE3NzM4NzBmMzU3YTUxMmJiOTIyMWE1MDllYjVkMTEwMTE5OTJlMjk5OGQyMTM1NGJmZjlmNzI5MjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MmNiMDk4MDQwNjczOTBiNDhhZTU2OTFjMTdkOTBmNjczZGNmYjI5NmY5YWQ3ZDZhZWY3ODg5YWMxYjdiNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxYWFmZmZmYmRhNmY0MzFkYzg1NjBlOWQ4MzNjN2ZmOWU4ZDcxNWM3NWYxOTBlZTEzZDcwNWYwMGRhMjA3YWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2Zjg0OWU0YzFlZGZkMzg0NWQxYjI4MmI2OGMzMDI5ZTcxNjFhMTBmZTU0MjEwMDg4ZTQ5NTdkNWM3MDcwM2EifQ"
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
         }
       ]
     },
@@ -592,11 +552,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:0452c2c35a05d85dff2e2c9e06638e8320ad75fda91a9dcfa409ce3c2f596259"
+          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
+          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
         }
       ]
     },
@@ -606,7 +566,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:036a6f6207d047b39c047ce5f3c5a6c6f6742ad2ada36ee49d02e11ce54209af"
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
@@ -623,16 +583,16 @@
       "statement": "AssistantToolRegistry builds the Assistant catalog only for tool-call-capable models, admitting enabled remote MCP servers with nonconflicting namespaces and supplying each server's manual Bearer credential and OAuth-capable MCPClient; its conversation-keyed scratch workspace persists across runs without being shared across conversations.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift#L336-L350",
-          "version": "repo-lines-v1:sha256:377d66b8a94482c787253823819a2b6e6d1de6ec2927a4a3d99610d364aa9418:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjA0MmU3MjY1NTJkODdjZGQ5NjI3ODFlN2Q0ZDgxMTU1NTY5YzFhNTc2ZmM0OWExYjNjYmRlNTQ4N2VjMzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzZDZlYjBhZjBlMzI2MTU1OTg3ZDk5MjkzY2I2ZGI1NjYyYjc5YTY1MzQ3NzMzY2M3MzUzOGJhMTZhZGY3M2QifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift",
+          "version": "repo-file-v1:sha256:753668e7464caccd3d4f17a81a65fbe1e02f9a69013335772ccc8096b3da937d"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L101-L106",
-          "version": "repo-lines-v1:sha256:e2b42d42d1e86be02f8a86c702f51a84379407f81632469d825bad08a1127602:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGJlMTRkY2QwMGIwMjA4MzNkNzQ1YzkxYmQzMmRkNzM0YjA1MzlhMmUxYTM0Mzc4ZmI1OWE0MzRlMWJkNzRmNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWIzN2U1MjVjNmIxMDJlNzY3MWMyNDQ2MzUyY2EzM2ZmMDE4YWZkNGFhMGFlZjJlZGExZWI3YWI0MjZiZDk1MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDdiM2RiMTQxMTI4YmFhMjdhOGIwY2UyNzRjMDVjZGIzZWMxM2MwZjlhNTAwNDcxOTdjNmVmY2YzMjQxY2QzMSJ9"
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift",
+          "version": "repo-file-v1:sha256:7b263d917defcac8eab095bb1f6c8e1487cce8661eec14550396d3da8f6cd617"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L20-L69",
-          "version": "repo-lines-v1:sha256:ddfb338e098c968f210e5fdc81a414de0be3bcad41a62f54af4172ee8f2c4988:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZjA3MmQwY2RhNGQ5MzE0YzEwMjk2MmQ5YjU2ZDg3YzBkM2I2MThmZTU2MzIyZjE4OTJkY2M2NGEyMDE3NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyZjE2MmRjYjdkOWY1ODVkMzFlYmJiYTljOGJmMTYyM2RjMTQ2Yzk3YzY3ZjAxNmJhYzA1ODczYjRjODhjZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYyNjg3ZWVjNDdjMDhjYTllNWRhZmJiNGE3ZTEwNGMyZmJiMGU1MmYzNmMxY2ZkOGJjMzhlZjE4OTE5OWQzMWEifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
         }
       ]
     },
@@ -641,8 +601,8 @@
       "statement": "The Assistant catalog registers AgentKit built-ins before Termind host definitions and discovered remote MCP definitions join afterward, preventing a Termind or remote tool name from shadowing a built-in.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L45-L68",
-          "version": "repo-lines-v1:sha256:aa28af12a7acfe686c968a4e0fd15260f17716da952fa3ff775e7f834e9d7dfa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YjBhZGQ3NDg1ZGY0OTA5MTkwNzI5ZGEzYTVkZWY5MjVkZmFkMTQ2YTJkMTA1MDk5YmFjZTJiYmJhM2ViMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzQ4ZTU4YzVlMTBhZWJkMDdkOGQ5OTljOWJhYjg0MDBlNWRlMDA3NzE4YWQwNzA5OTkxOGRjOGMxMDg3ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3ZDBiNzVhMTA5MTU2ZGZmZjE3NTljNTBiMTY4M2Y5NDBiNzQ2Y2QxZWE2NjA0MWRhMTAzYjUxNzAzMTI4NDAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
         }
       ]
     },
@@ -734,7 +694,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

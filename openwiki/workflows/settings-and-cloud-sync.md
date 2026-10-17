@@ -152,10 +152,10 @@ sources:
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # Settings and Cloud Sync
@@ -322,7 +322,7 @@ sequenceDiagram
 ```
 Settings' committed local mutation survives an unavailable engine; the fetch and quarantine fence prevents that mutation from being handed to CloudKit until safe. Received supported records update the live model only after the transactional merge. [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L73-L89), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L188-L301), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L254-L268), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L464-L588).
 
-Bootstrap writes baseline envelopes from local projections; subsequent real edits get ordered `VaultVersion` values and durable pending intent, including logical tombstones. Merge chooses the newer version, breaking equal-version payload ties deterministically; a local winner is requeued. Fetched values do not echo merely because they were read. Journal-held system fields preserve CloudKit optimistic-concurrency metadata; successful acknowledgements clear pending only for the **sent version**, never a later edit or a quarantined ID. Outgoing eligibility derives from journal and scoped replica sidecars, not a restored CloudKit queue alone. [CloudSyncJournal](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift#L41-L96), [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L222-L320), [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L112-L148).
+Bootstrap writes baseline envelopes from local projections; subsequent real edits get ordered `VaultVersion` values and durable pending intent, including logical tombstones. Merge chooses the newer version, breaking equal-version payload ties deterministically; a local winner is requeued. Fetched values do not echo merely because they were read. Journal-held system fields preserve CloudKit optimistic-concurrency metadata; successful acknowledgements clear pending only for the **matching sent envelope**, including payload equality when migration seeds retain a baseline version, never a later edit or a quarantined ID. Outgoing eligibility derives from journal and scoped replica sidecars, not a restored CloudKit queue alone. [CloudSyncJournal](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift#L41-L96), [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L222-L320), [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L112-L148).
 
 Vault, Metrics and ordinary Settings records carry version/kind/entity/clock/deletion envelope metadata and validated payload hashes, storing small payloads inline and larger ones in `CKAsset`. Settings uses separate active SSH, SFTP, workspace and notification preference record types inside its existing zone so old clients filtering on type can skip them before decoding. Its record-type check also validates that the decoded preference kind agrees with the type. Vault normalizes device-local group/package expansion rather than syncing it; the V33 Identity shape has no `lastUsedAt`. Debug/logging, review history and terminal font family/size/follow-theme settings likewise stay device-local. [CloudSyncRecordCoding](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordCoding.swift), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift).
 

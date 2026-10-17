@@ -1,26 +1,26 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d8196e67d72905d03d644794446e481047c797a3d75ddb241f5f432bf4684097",
+  "pageVersion": "sha256:9c2763cb0598934969f71ccd5822d815b925abbb7c10a6d881c8417d1d2911c1",
   "claims": [
     {
       "id": "claim_178354d1d71f460e9b920a02dd44754f",
-      "statement": "Ghostty is a direct remote dependency from Lakr233/libghostty-spm with an upToNextMinorVersion requirement starting at 2.2.2026101301 and resolved version 2.2.2026101301 at d403978c66870baa422709d1dde385730a4bdaef. There is no local Ghostty maintenance submodule or staging override; keep the project requirement and resolved pin aligned. AGENTS.md still describes up-to-next-major, unlike the current project declaration.",
+      "statement": "Ghostty is a direct remote dependency from Lakr233/libghostty-spm with an upToNextMinorVersion requirement starting at 2.2.2026101502 and resolved version 2.2.2026101502 at 42bacd1339f323a693ddbca779295f4f77e5a697. There is no local Ghostty maintenance submodule or staging override; keep the project requirement and resolved pin aligned. AGENTS.md still describes up-to-next-major, unlike the current project declaration.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
           "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
         },
         {
-          "resource": "repo://AGENTS.md#L27-L32",
-          "version": "repo-lines-v1:sha256:408a8b9d1e2522b899d0b549249117ef030b9fbbe39e5c602e2f20fa32d5e462:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTM4YTMyMGI0ZWU1MWRkNTY4NDExNmM3YWU3ZDhhNTQzZWE3M2MzZThhNmQ1ZjZmYWNhNTIyNTI2ODA5MmRiMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzBkNzY1NjVkNmUyNmQ0MTFiNDEyYTVlNzI4MzgyMDRjZjU3MTZlZDRhMjIzZGYwZWIxMjYxNGIzNzVhYWRkYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDYwM2U5M2I5MjBkY2MyNWM0YWY4MmNlMTc0YjczZDE4NzI5NTEwYzZkYTE1MTBmNTgwYTQwMTc3NmQ3YzY1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzc1ZDJmNGRjMWZiNDc4MzllMTc0YzU0Mzk2OWI2N2IwY2UwN2M4ZjZhYTcyNzNiYzYyOGRkNTU1NWQ1NDczNCJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2953-L2960",
-          "version": "repo-lines-v1:sha256:788b60e8ce2e3df7ea67bf83d057ce39ba60e9069796007f101020c10f88e687:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmZlOGIyNTIxNjIzZWZjMWJiYmIyMTcyNDIyZWQyNGI4NzM4ODdiMDM1ZGUyNDBlZDZiZjcxNDc3YjRjZGExNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjkxMTMwZGU5ZDJiY2MxZDVhMDA4ZmE5OGM1YWE0YmU4ZjU2OThmYjRjZGY3NGY0OGM2YTBmNzI5YTI4NDM1NyJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L157-L165",
-          "version": "repo-lines-v1:sha256:dae84e0f5db1ab45b83d9555058e0597d8bc47321f15db82bf33c711089e9231:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhhNWI3NGY4MGQ0OTdmZWQzMjJiYmVlYWJjNmYwMDdiMGY0NWRiMGVlNDdlNDU2MjEyMzk2NzZmMGE4ZmY5ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTZkZTA5NmFmZTlkMzgwMDk3NWQwMjA4NmQyMjhlYzA3Y2M2M2E1NWI5NDVmMWI1ZjM2ODhiZTY1NmI4ZGMzMiJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
         }
       ]
     },
@@ -92,7 +92,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-15T22:50:00.588Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T05:01:23.054Z"
   }
 }

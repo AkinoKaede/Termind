@@ -10,12 +10,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
   - id: openwiki-source-130fa30d2edc07154f39ee38
     resource: repo://Frameworks/TermindApplication/MCPAuthorization.swift
-  - id: openwiki-source-1fc00d0407016efa5a0378eb
-    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-f976589f19e3ab05e6ea5a44
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-bc74a29e9a2eb4499ea67a50
@@ -72,10 +72,10 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T05:01:23.054Z
 ---
 
 # MCP Server and Bridge
@@ -216,15 +216,15 @@ Each initialized session or modern operation owns a UUID run ID and a `SecretBro
 
 ## Tools, policy, and external authentication
 
-The exposed registry is an allowlist—not the complete AgentKit catalog. To extend it, add the host or transfer implementation and dependencies, explicitly opt the name into `exportedNames`, verify its acting-mode descriptor and MCP schema, and decide whether disabling it must revoke a capability. Adding a tool to the Assistant catalog or configuring a remote MCP server alone does not export it through the desktop listener. It includes host discovery and cached metrics; `request_user_secret`; `ssh_exec` and `ssh_wait`; ordinary SFTP inspection/mutation/copy operations; and four upload/download ticket/status tools, for 18 exported names. `terminal_suggest` is not exported. Scratch workspaces and generic fetch tools are intentionally excluded because an external MCP client has no Termind conversation backing them.
+The exposed registry is an allowlist—not the complete AgentKit catalog. To extend it, add the host or transfer implementation and dependencies, explicitly opt the name into `exportedNames`, verify its acting-mode descriptor and MCP schema, and decide whether disabling it must revoke a capability. Adding a tool to the Assistant catalog or configuring a remote MCP server alone does not export it through the desktop listener. It includes host discovery and cached metrics; `request_user_secret`; `ssh_exec_run`, `ssh_exec_output`, `ssh_exec_stdin`, `ssh_exec_cancel` and `ssh_exec_list`; ordinary SFTP inspection/mutation/copy operations; and four upload/download ticket/status tools, for 21 exported names. `terminal_suggest` is not exported. Scratch workspaces and generic fetch tools are intentionally excluded because an external MCP client has no Termind conversation backing them.
 
-`MCPServerTools.makeRegistry` composes AgentKit's user-interaction group, the same `TermindAgentTools` definitions used by Assistant, and the four MCP transfer tools. It supplies no scratch workspace, so the dependency-based factories cannot construct `scratch_pull` or `scratch_push`. It then explicitly selects `.available(in: .acting)` **before** applying the exported-name allowlist and disabled-tool filter. Thus MCP uses the acting `ssh_exec` implementation, not Assistant's planning wrapper; mode selection, dependency injection, and export policy are distinct boundaries. The stdio bridge forwards requests to this registry rather than building another catalog.
+`MCPServerTools.makeRegistry` composes AgentKit's user-interaction group, the same `TermindAgentTools` definitions used by Assistant, and the four MCP transfer tools. It supplies no scratch workspace, so the dependency-based factories cannot construct `scratch_pull` or `scratch_push`. It then explicitly selects `.available(in: .acting)` **before** applying the exported-name allowlist and disabled-tool filter. Thus MCP uses the acting `ssh_exec_run` implementation, not Assistant's planning wrapper; mode selection, dependency injection, and export policy are distinct boundaries. The stdio bridge forwards requests to this registry rather than building another catalog.
 
 Disabled tools are removed from discovery **and** invocation, not merely hidden. Changing a tool switch rebuilds the registry immediately; `sftp_upload` and `sftp_download` also enable or revoke their directional transfer coordinators. This makes disabling a transfer direction revoke existing tickets rather than allowing old URLs to revive after re-enablement. Disabling any exported tool also asynchronously revokes all modern operation contexts, invalidating their handles and ending their run-bound secrets, transfers, and prompts; this additional sweep does not remove initialized sessions.
 
-Calls execute with `permissionMode: .fullAccess`, but this is not a bypass of system safety boundaries: tool schemas, path validation, host key checks, SSH/SFTP authentication, secret bindings, and capability rules still apply. The MCP executor uses an approval broker whose manual fallback denies external calls; individual tool preflight policy still classifies safe/read-only versus changing operations.
+Calls execute with `permissionMode: .fullAccess`, but this is not a bypass of system safety boundaries: tool schemas, path validation, host key checks, SSH/SFTP authentication, one-shot secret handling, and capability rules still apply. The MCP executor uses an approval broker whose manual fallback denies external calls; individual tool preflight policy still classifies safe/read-only versus changing operations.
 
-When SSH credentials, keyboard-interactive answers, host-key trust, or a command’s secret stdin are needed, the tool creates a request in `ExternalAuthCoordinator`. Its handler is labeled with the MCP client name and session run ID and presents through the desktop UI. External requests are queued and independently cancelable by session; stopping MCP cancels external requests while preserving app-origin authentication requests. This is a critical boundary: `request_user_secret` is for secret standard input to `ssh_exec`, not SSH login. It returns only a one-shot handle bound to the session, host, tool, and stated purpose—never plaintext to the MCP client.
+When SSH credentials, keyboard-interactive answers, host-key trust, or a command’s secret stdin are needed, the tool creates a request in `ExternalAuthCoordinator`. Its handler is labeled with the MCP client name and session run ID and presents through the desktop UI. External requests are queued and independently cancelable by session; stopping MCP cancels external requests while preserving app-origin authentication requests. This is a critical boundary: `request_user_secret` is for secret standard input through `ssh_exec_stdin` with `type=secret`, not SSH login. It returns a one-shot handle from the context’s secret broker, never plaintext to the MCP client. The current request schema contains prompt, purpose and timeout, not host/tool binding fields.
 
 Tool audit records are registered per MCP session. The UI can show client, tool, host, summarized arguments, duration and byte counts, but deliberately excludes file bodies, stdin, stdout, and stderr.
 
@@ -346,7 +346,7 @@ Missing token disables all generated commands; a missing bundled bridge disables
 * Enable the server in macOS settings, generate or rotate a token, then copy a client registration command. Treat that token like a local credential and update every client after rotation, port change, or moving the app when using the bridge.
 * Use the server status to distinguish stopped, starting, ready, and failed listener state. A thrown HTTP startup error drains transfers; asynchronous listener failure updates the failed status and cancels listeners. Invalid port/token storage disables activation rather than exposing a partially configured server.
 * To immediately cut off an external client, disable the server or rotate its token. To reduce surface area, disable individual tools; disabling either transfer tool revokes its tickets.
-* Test changes at the correct seam: `MCPAuthorizationTests` checks device-local grant separation, draft rollback and saved-token refresh, endpoint rebinding and retirement, and cancellation of browser authorization callbacks without adding a transcript message. `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
+* Test changes at the correct seam: `MCPAuthorizationTests` checks device-local grant separation, draft rollback and saved-token refresh, endpoint rebinding and retirement, and cancellation of browser authorization callbacks without adding a transcript message. `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 21 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
 
 * For a built bridge executable, run `python3 Scripts/check-mcp-bridge.py /path/to/termind-mcp`. Its deterministic loopback server checks non-2xx JSON-RPC error passthrough in both modes, modern version/method headers and encoded non-ASCII tool names without a session header or EOF DELETE, and initialized session/version forwarding followed by EOF DELETE. This tests the adapter, not the real desktop listener or SSH authorization.
 * `AppTerminationTests` guards the shared-resource shutdown boundary: all stored conversations are cancelled even without a live window, terminal saves finish before background commands/connections close, repeated shutdown does not duplicate cleanup, post-fence Assistant admissions and prepared edits cannot start, and an unstored captured failure is joined before resource closure.
