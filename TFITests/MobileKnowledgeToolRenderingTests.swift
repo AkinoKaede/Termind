@@ -72,7 +72,7 @@ struct MobileKnowledgeToolRenderingTests {
                 let compact = UIHostingController(
                     rootView:
                         AssistantCompactToolDetails(
-                            detail: detail, isError: false, expanded: .constant(false), copy: { _ in }
+                            detail: detail, isError: false, expanded: .constant(false)
                         )
                         .environment(\.locale, language.locale))
                 let proposal = CGSize(width: 334, height: 30_000)
@@ -92,11 +92,27 @@ struct MobileKnowledgeToolRenderingTests {
         ])
         let controller = UIHostingController(
             rootView:
-                AssistantCompactToolDetails(detail: detail, isError: false, expanded: .constant(false), copy: { _ in })
+                AssistantCompactToolDetails(detail: detail, isError: false, expanded: .constant(false))
                 .environment(\.dynamicTypeSize, .accessibility2))
         let size = controller.sizeThatFits(in: CGSize(width: 390, height: 30_000))
         #expect(size.height > 180)
         #expect(size.height < 800)
+    }
+
+    @Test func expandedDetailsShowTheEntireOutputWithoutLegacyTruncation() {
+        let detail = AgentToolDetail(items: [
+            .text(.init(text: String(repeating: "Full output line\n", count: 240), style: .monospaced))
+        ])
+        let full = UIHostingController(
+            rootView: AssistantToolDetails(items: detail.items, shortensText: false))
+        let expanded = UIHostingController(
+            rootView: AssistantCompactToolDetails(
+                detail: detail, isError: false, expanded: .constant(true)))
+        let proposal = CGSize(width: 390, height: 30_000)
+        let fullHeight = full.sizeThatFits(in: proposal).height
+        let expandedHeight = expanded.sizeThatFits(in: proposal).height
+        #expect(expandedHeight > fullHeight)
+        #expect(expandedHeight < fullHeight + 100)
     }
 
     private func detail(for card: AgentToolCard, language: AppLanguage) throws -> AgentToolDetail {

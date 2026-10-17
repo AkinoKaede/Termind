@@ -245,3 +245,7 @@ private nonisolated struct SecurityKeySigningFailure: LocalizedError {
     let message: String
     var errorDescription: String? { message }
 }
+
+nonisolated extension AgentToolServiceKey where Service == Bool {
+    public static let sshInterjectionEnabled = AgentToolServiceKey<Bool>("termind.ssh-interjection-enabled")
+}

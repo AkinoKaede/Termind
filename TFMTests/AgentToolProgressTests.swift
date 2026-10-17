@@ -157,11 +157,27 @@ struct AgentCommandOutputStreamTests {
     }
 
     @Test
-    func captureStopsAtTheLimitTheSessionItselfUses() {
-        let stream = AgentCommandOutputStream(interval: .zero, limit: 4) { _, _ in }
-        stream.handler(Data("abc".utf8), false)
-        stream.handler(Data("def".utf8), false)
-        #expect(stream.captured.standardOut == "abcd")
+    func captureRetainsLatestOutputAndCountsDiscardedCharactersInsideTheBudget() {
+        let stream = AgentCommandOutputStream(interval: .zero, limit: 64) { _, _ in }
+        stream.handler(Data(String(repeating: "a", count: 100).utf8), false)
+        stream.handler(Data("latest".utf8), false)
+        let output = stream.captured.standardOut
+        #expect(output == "[68 chars were truncated]\n" + String(repeating: "a", count: 32) + "latest")
+        #expect(output.utf8.count <= 64)
+        #expect(stream.captured.standardError.isEmpty)
+    }
+
+    @Test
+    func truncationPreservesUTF8AndCountsScalarsRatherThanBytes() {
+        let stream = AgentCommandOutputStream(interval: .zero, limit: 64) { _, _ in }
+        let scalar = "\u{1F642}"
+        let data = Data(String(repeating: scalar, count: 30).utf8)
+        stream.handler(Data(data.prefix(13)), true)
+        stream.handler(Data(data.dropFirst(13)), true)
+        let output = stream.captured.standardError
+        #expect(output == "[21 chars were truncated]\n" + String(repeating: scalar, count: 9))
+        #expect(output.utf8.count <= 64)
+        #expect(stream.captured.standardOut.isEmpty)
     }
 
     /// Locked rather than an actor: the callback under test may not await, so

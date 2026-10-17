@@ -20,19 +20,16 @@ struct AgentToolPresentationTests {
                 runID: UUID(),
                 call: AgentToolCall(
                     id: "approval",
-                    name: "ssh_exec",
+                    name: "ssh_exec_run",
                     arguments: .object([
                         "host_id": .string(hostID.uuidString),
                         "command": .string(command),
-                        "stdin": .string("password=hunter2"),
-                        "secret_handle": .string("one-shot-handle"),
-                        "stdin_purpose": .string("sudo password"),
                     ])
                 ),
                 targetHostID: hostID
             ),
             descriptor: AgentToolDescriptor(
-                name: "ssh_exec", summary: "Execute over SSH",
+                name: "ssh_exec_run", summary: "Execute over SSH",
                 inputSchema: .object([:]), target: .host,
                 approvalPolicy: .ask,
                 presentation: .init(
@@ -46,7 +43,7 @@ struct AgentToolPresentationTests {
 
         let presentation = AgentToolPresentation.approval(
             for: request,
-            presenter: SSHExecTool.presenter,
+            presenter: SSHExecRunTool.presenter,
             hostName: "Production",
             locale: Locale(identifier: "en")
         )
@@ -55,10 +52,7 @@ struct AgentToolPresentationTests {
         #expect(!presentation.title.contains(hostID.uuidString))
         #expect(
             presentation.detail.items == [
-                .text(.init(title: "Command", text: command, style: .monospaced)),
-                .text(.init(title: "Input", text: "password=hunter2", style: .monospaced)),
-                .field(.init(label: "Secret handle", value: "one-shot-handle", isMonospaced: true)),
-                .field(.init(label: "Purpose", value: "sudo password")),
+                .text(.init(title: "Command", text: command, style: .monospaced))
             ]
         )
     }
@@ -452,6 +446,36 @@ struct AgentToolPresentationTests {
                 ])
             ),
             (
+                "ssh_exec_run", .host, ["command": .string("pwd")],
+                .object([
+                    "handle": .string(UUID().uuidString), "status": .string("exited"),
+                    "stdout": .string("/tmp"), "stderr": .string(""), "exit_code": .number(0),
+                    "stdin_closed": .bool(true),
+                ])
+            ),
+            (
+                "ssh_exec_output", .host, [:],
+                .object([
+                    "handle": .string(UUID().uuidString), "status": .string("running"),
+                    "stdout": .string(""), "stderr": .string(""),
+                ])
+            ),
+            (
+                "ssh_exec_stdin", .host, ["type": .string("secret"), "secret_handle": .string("hidden")],
+                .object([
+                    "handle": .string(UUID().uuidString), "status": .string("written"),
+                    "bytes_written": .number(4), "stdin_closed": .bool(false),
+                ])
+            ),
+            (
+                "ssh_exec_cancel", .host, [:],
+                .object([
+                    "handle": .string(UUID().uuidString), "status": .string("cancelled"),
+                    "was_running": .bool(true), "remote_termination_confirmed": .bool(false),
+                ])
+            ),
+            ("ssh_exec_list", .host, [:], .object(["commands": .array([])])),
+            (
                 "terminal_suggest", .user, ["command": .string("pwd")],
                 .object([
                     "command": .string("pwd"), "requires_user_action": .bool(true),
@@ -530,7 +554,6 @@ struct AgentToolPresentationTests {
                 "request_user_secret", .user,
                 [
                     "prompt": .string("Password"), "purpose": .string("Login"),
-                    "consumer_tool": .string("ssh_exec"),
                 ], .object(["secret_handle": .string("hidden"), "single_use": .bool(true)])
             ),
             (

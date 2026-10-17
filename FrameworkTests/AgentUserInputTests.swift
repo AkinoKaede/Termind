@@ -825,8 +825,7 @@ struct AgentUserInputTests {
     private func argumentsFor(_ toolName: String, timeout: Int) -> AgentJSONValue {
         if toolName == "request_user_secret" {
             return .object([
-                "prompt": .string("Password"), "host_id": .string(UUID().uuidString),
-                "consumer_tool": .string("ssh_exec"), "purpose": .string("sudo"),
+                "prompt": .string("Password"), "purpose": .string("sudo"),
                 "timeout_seconds": .number(Double(timeout)),
             ])
         }

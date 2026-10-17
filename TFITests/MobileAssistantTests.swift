@@ -460,15 +460,16 @@ struct MobileAssistantTests {
         let mobileDescriptors = registry(model).descriptors
         let names = Set(mobileDescriptors.map(\.name))
         for name in [
-            "ssh_exec", "ssh_wait", "sftp_read", "sftp_write", "list_hosts", "get_metrics",
+            "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel", "ssh_exec_list", "sftp_read",
+            "sftp_write", "list_hosts", "get_metrics",
             "scratch_pull", "scratch_push", "present_plan", "request_user_input", "request_user_secret",
             "terminal_suggest",
         ] {
             #expect(names.contains(name), "Missing tool: \(name)")
         }
-        let exec = try #require(mobileDescriptors.first { $0.name == "ssh_exec" })
-        #expect(exec.summary.contains("discover host_id with list_hosts"))
-        #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
+        let exec = try #require(mobileDescriptors.first { $0.name == "ssh_exec_run" })
+        #expect(exec.summary.contains("Discover host_id with list_hosts"))
+        #expect(exec.summary.contains("Termind handles login"))
         try AgentJSONSchemaValidator.validate(
             .object(["host_id": .string(UUID().uuidString), "command": .string("uname -a")]),
             against: exec.inputSchema

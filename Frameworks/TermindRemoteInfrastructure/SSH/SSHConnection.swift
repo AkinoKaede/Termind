@@ -35,15 +35,15 @@ public nonisolated enum SSHCommandInput: Sendable {
     /// without materializing a Swift String.
     case secret(AgentSecret)
 
-    func append(to queue: SSHByteQueue, charset: RemoteCharset = .utf8) throws {
+    func append(to queue: SSHByteQueue, charset: RemoteCharset = .utf8, appendsNewline: Bool = true) throws {
         switch self {
         case .plain(var bytes):
-            if !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
+            if appendsNewline, !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
             queue.append(bytes)
         case .text(let value):
             var bytes = try RemoteCharsetStreamConverter.encode(value, charset: charset)
             defer { bytes.resetBytes(in: bytes.indices) }
-            if !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
+            if appendsNewline, !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
             queue.append(bytes)
         case .secret(let secret):
             defer { secret.clear() }
@@ -55,7 +55,7 @@ public nonisolated enum SSHCommandInput: Sendable {
                 defer { converted.resetBytes(in: converted.indices) }
                 converted.append(try converter.finish().data)
                 queue.append(converted)
-                if !converted.isEmpty, converted.last != 0x0A {
+                if appendsNewline, !converted.isEmpty, converted.last != 0x0A {
                     queue.append(contentsOf: [0x0A])
                 }
             }
@@ -88,10 +88,19 @@ public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
     func openSFTPChannel() async throws -> any SFTPChannelProtocol
+    func executeSession(
+        _ command: String, session: SSHExecSession, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult
     func disconnect() async
 }
 
 nonisolated extension SSHConnectionProtocol {
+    public func executeSession(
+        _ command: String, session: SSHExecSession, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult {
+        throw TermindSSHError.library("This connection does not support exec sessions.")
+    }
+
     public func connect(using request: SSHConnectionRequest) async throws {
         defer { request.configuration.clearSecrets() }
         try await connect(using: request.configuration)
@@ -156,6 +165,16 @@ public actor SSHConnection: SSHConnectionProtocol {
 
     public func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         try await worker.openSFTPChannel()
+    }
+
+    public func executeSession(
+        _ command: String, session: SSHExecSession, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult {
+        try await withTaskCancellationHandler {
+            try await worker.executeSession(command, session: session, onOutput: onOutput)
+        } onCancel: {
+            session.cancellation.cancel()
+        }
     }
 
     public func disconnect() async { await worker.disconnect() }

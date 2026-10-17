@@ -4,28 +4,43 @@ import TermindApplication
 import Testing
 
 @Suite @MainActor struct BuiltInSkillLibraryTests {
+    @Test func builtInIDsStartAtOneAndIncreaseInLibraryOrder() {
+        for (index, skill) in AgentSkillLibrary.builtIns.enumerated() {
+            let expected = String(format: "00000000-0000-0000-0000-%012llX", UInt64(index + 1))
+            #expect(skill.id.uuidString == expected)
+        }
+    }
+
     @Test func protectedSkillsAreReadableAndNeverWritten() async throws {
         let persistence = TestSkillPersistence()
         let library = SkillLibraryModel(persistence: persistence)
         let snapshot = try await library.skillSnapshot()
-        #expect(snapshot.skills.map(\.name) == ["skill-creator", "skill-installer"])
+        #expect(snapshot.skills.map(\.name) == ["skill-creator", "skill-installer", "ssh-exec"])
         #expect(library.skills.isEmpty)
         let registry = AgentToolCatalog.registry(
             builtIn: .init(
                 groups: [.skills], skills: library.catalog, skillInventory: library.inventory,
                 readOnlySkillNames: AgentSkillLibrary.reservedNames, skillLibrary: library))
         let reader = try #require(registry["skill_read_file"])
-        let invocation = AgentToolInvocation(
-            runID: UUID(),
-            call: .init(
-                id: "read", name: "skill_read_file", arguments: .object(["name": .string("skill-creator")])))
+        let runID = UUID()
         let context = AgentToolExecutionContext(
-            runID: invocation.runID, userIntent: "Read", secretBroker: SecretBroker(),
+            runID: runID, userIntent: "Read", secretBroker: SecretBroker(),
             userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:], authorize: { _ in .allow })
-        let result = try await reader.execute(invocation, context: context)
-        #expect(result.content.contains("Skill Creator"))
-        for name in AgentSkillLibrary.reservedNames {
-            let operations = [AgentSkillOperation(action: .delete, name: name)]
+        for skill in AgentSkillLibrary.builtIns {
+            let invocation = AgentToolInvocation(
+                runID: runID,
+                call: .init(
+                    id: skill.name, name: "skill_read_file", arguments: .object(["name": .string(skill.name)])))
+            let result = try await reader.execute(invocation, context: context)
+            let fields = try #require(try AgentJSONValue.decode(Data(result.content.utf8)).objectValue)
+            let content = try #require(fields["content"]?.stringValue)
+            let document = try AgentSkillDocument.parse(content)
+            #expect(document.name == skill.name)
+            #expect(document.description == skill.summary)
+            #expect(document.body == skill.body)
+            #expect(result.metadata["skill_instructions"] == .bool(true))
+            #expect(!result.isError)
+            let operations = [AgentSkillOperation(action: .delete, name: skill.name)]
             await #expect(throws: (any Error).self) {
                 try await library.applySkillOperations(operations, expectedRevision: snapshot.revision)
             }
@@ -63,7 +78,7 @@ import Testing
         let imported = library.install(
             .init(name: "skill-installer", description: "Custom", body: "Custom"), importedFrom: "SKILL.md")
         #expect(imported.name == "skill-installer-2")
-        #expect(old.names == ["skill-creator", "skill-installer"])
+        #expect(old.names == ["skill-creator", "skill-installer", "ssh-exec"])
         #expect(library.catalog.names.contains(imported.name))
     }
 

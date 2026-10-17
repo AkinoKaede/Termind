@@ -17,7 +17,7 @@ public nonisolated struct SessionContext: Hashable, Sendable {
     /// The focused terminal's `read_pane` target, distinct from its host ID.
     /// Capturing it keeps the submitted turn bound to that pane if focus moves.
     public var paneID: UUID?
-    /// What `ssh_exec` and every SFTP tool actually take.
+    /// What `ssh_exec_run` and every SFTP tool actually take.
     ///
     /// Without it the model's only route to a host is `list_hosts`, which costs
     /// a round trip and then makes it match "here" against `display_name` — and

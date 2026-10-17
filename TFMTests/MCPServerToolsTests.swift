@@ -126,7 +126,7 @@ struct MCPServerToolsTests {
             "skill_read_file", "skill_install", "skill_manage", "present_plan", "manage_tasks",
         ]
 
-        #expect(descriptors.count == 18)
+        #expect(descriptors.count == 21)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         #expect(excludedNames.isDisjoint(with: MCPServerTools.exportedNames))
         #expect(sharedNames.isSubset(of: Set(acting.descriptors.map(\.name))))
@@ -139,24 +139,19 @@ struct MCPServerToolsTests {
     }
 
     @Test
-    func externalSSHExecSchemaOffersBoundSecretBrokerFields() throws {
+    func externalSecretSchemaRequestsPromptAndPurpose() throws {
         let descriptor = try #require(
-            makeMCPServerTools().descriptors.first { $0.name == "ssh_exec" }
+            makeMCPServerTools().descriptors.first { $0.name == "request_user_secret" }
         )
         let properties = try #require(
             descriptor.inputSchema.objectValue?["properties"]?.objectValue
         )
 
-        #expect(properties["secret_handle"] != nil)
-        #expect(properties["stdin_purpose"] != nil)
-        #expect(properties["command"] != nil)
+        #expect(Set(properties.keys) == ["prompt", "purpose", "timeout_seconds"])
         try AgentJSONSchemaValidator.validate(
-            .object(["host_id": .string(UUID().uuidString), "command": .string("uname -a")]),
+            .object(["prompt": .string("Password"), "purpose": .string("Command input")]),
             against: descriptor.inputSchema
         )
-        #expect(descriptor.summary.contains("do not call request_user_secret for SSH login"))
-        #expect(properties["secret_handle"]?.objectValue?["description"]?.stringValue?.contains("Omit when") == true)
-        #expect(makeMCPServerTools().contains("request_user_secret"))
     }
 
     @Test
@@ -190,19 +185,16 @@ struct MCPServerToolsTests {
     }
 
     @Test(.requiresVisibleWindow)
-    func secretPromptReturnsOnlyASessionBoundOneShotHandle() async throws {
+    func secretPromptReturnsOnlyAOneShotHandle() async throws {
         let authentication = ExternalAuthCoordinator()
         let server = makeMCPServerTools(externalAuthentication: authentication)
         let broker = SecretBroker()
         let runID = UUID()
-        let hostID = UUID()
         let call = Task {
             try await server.call(
                 name: "request_user_secret",
                 arguments: .object([
                     "prompt": .string("Password for sudo"),
-                    "host_id": .string(hostID.uuidString),
-                    "consumer_tool": .string("ssh_exec"),
                     "purpose": .string("sudo password"),
                 ]),
                 runID: runID, clientName: "Claude Code", callID: "secret",
@@ -231,22 +223,11 @@ struct MCPServerToolsTests {
         #expect(!payload.contains("TOP-SECRET"))
         #expect(await broker.count == 1)
 
-        let consumed = try await broker.consume(
-            handle,
-            matching: SecretBinding(
-                runID: runID, toolName: "ssh_exec", hostID: hostID,
-                purpose: "sudo password"
-            )
-        )
+        let consumed = try await broker.consume(handle)
+        defer { consumed.clear() }
         #expect(try consumed.withUnsafeBytes { Array($0) } == Array("TOP-SECRET".utf8))
         await #expect(throws: SecretBrokerError.notFound) {
-            _ = try await broker.consume(
-                handle,
-                matching: SecretBinding(
-                    runID: runID, toolName: "ssh_exec", hostID: hostID,
-                    purpose: "sudo password"
-                )
-            )
+            _ = try await broker.consume(handle)
         }
     }
 
@@ -260,8 +241,6 @@ struct MCPServerToolsTests {
                 name: "request_user_secret",
                 arguments: .object([
                     "prompt": .string("Password for sudo"),
-                    "host_id": .string(UUID().uuidString),
-                    "consumer_tool": .string("ssh_exec"),
                     "purpose": .string("sudo password"),
                     "timeout_seconds": .number(17),
                 ]),
@@ -291,12 +270,7 @@ struct MCPServerToolsTests {
         let server = makeMCPServerTools(externalAuthentication: authentication)
         let broker = SecretBroker()
         let runID = UUID()
-        _ = try await broker.issue(
-            agentSecret("secret"),
-            binding: SecretBinding(
-                runID: runID, toolName: "ssh_exec", hostID: UUID(), purpose: "test"
-            )
-        )
+        _ = try await broker.issue(agentSecret("secret"))
         let prompt = Task {
             await authentication.enqueue(
                 secretRequest(), clientName: "Client", runID: runID
@@ -339,7 +313,7 @@ func makeMCPServerTools(
 private func secretRequest() -> AgentUserInputRequest {
     AgentUserInputRequest(
         questions: [AgentUserQuestion(id: "secret", prompt: "Secret", kind: .secret)],
-        purpose: "test", hostID: UUID()
+        purpose: "test"
     )
 }
 

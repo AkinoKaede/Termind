@@ -25,8 +25,13 @@ nonisolated public enum AgentToolPresentation {
 
     public static func usesCompactDetails(for descriptor: AgentToolDescriptor) -> Bool {
         if isChatCollaborationTool(descriptor) { return true }
-        guard let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) else { return false }
-        return kind != .legacySkill
+        if let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) {
+            return kind != .legacySkill
+        }
+        guard descriptor.target == .host,
+            ["ssh_exec_run", "ssh_exec_output", "sftp_read"].contains(descriptor.name)
+        else { return false }
+        return descriptor.presentation?.presenterID.map { $0 == "builtin.\(descriptor.name)" } ?? true
     }
 
     public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
@@ -330,6 +335,7 @@ nonisolated public enum AgentToolPresentation {
     public static func detail(
         for card: AgentToolCard, presenter: AgentToolDetailPresenter? = nil, locale: Locale = .current
     ) -> AgentToolDetail? {
+        if let ssh = SSHExecToolPresentation.detail(for: card, locale: locale) { return ssh }
         guard let result = card.result else { return nil }
 
         // Terminal output belongs to the model result, never the visible card.
@@ -439,7 +445,7 @@ nonisolated public enum AgentToolPresentation {
 
         // A failed/denied historical result may still contain success-shaped fields.
         // Only successful execution is allowed to select a knowledge success presenter.
-        if usesCompactDetails(for: card.descriptor),
+        if let kind = AgentKnowledgeToolPresentation.kind(for: card.descriptor), kind != .legacySkill,
             result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted
         {
             if detailOutput(from: result, presentation: card.descriptor.presentation, review: card.review) == nil {
@@ -1048,7 +1054,7 @@ nonisolated public enum AgentToolPresentation {
         for card: AgentToolCard, phase: String
     ) -> AgentToolDescriptor.Presentation.PhaseKind? {
         if let kind = card.descriptor.presentation?.phaseKinds[phase] { return kind }
-        guard card.descriptor.name == "ssh_exec" else { return nil }
+        guard ["ssh_exec", "ssh_exec_run"].contains(card.descriptor.name) else { return nil }
         return switch phase {
         case "proposed": .sshPreparingCommand
         case "waitingForApproval": .sshWaitingForCommand
@@ -1224,6 +1230,7 @@ nonisolated public enum AgentToolPresentation {
         if usesLocalizedActionTemplates(locale) { return localizedActionVerb(kind, locale: locale) }
         let forms: ActionForms =
             switch kind {
+            case .cancel: .init(infinitive: "cancel", progressive: "Cancelling", past: "Cancelled")
             case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
             case .copy: .init(infinitive: "copy", progressive: "Copying", past: "Copied")
@@ -1270,6 +1277,7 @@ nonisolated public enum AgentToolPresentation {
         _ kind: AgentToolDescriptor.Presentation.ActionKind, locale: Locale
     ) -> String {
         switch kind {
+        case .cancel: localized(AppStrings.Common.cancel, locale: locale)
         case .ask: localized("ask", locale: locale)
         case .compare: localized("compare", locale: locale)
         case .copy: localized("copy", locale: locale)
@@ -1318,6 +1326,7 @@ nonisolated public enum AgentToolPresentation {
     ) -> String {
         switch kind {
         case .command: localized("a command", locale: locale)
+        case .commandOutput: localized(AppStrings.SSHExec.commandOutput, locale: locale)
         case .hosts: localized("hosts", locale: locale)
         case .metrics: localized("host metrics", locale: locale)
         case .plan: localized("a plan", locale: locale)
@@ -1365,6 +1374,9 @@ nonisolated public enum AgentToolPresentation {
     private static func resolvedActivityKind(
         _ kind: AgentToolDescriptor.Presentation.ActivityKind, for card: AgentToolCard
     ) -> AgentToolDescriptor.Presentation.ActivityKind {
+        if kind == .remoteCommand, card.descriptor.target == .host, card.descriptor.name == "ssh_exec_output" {
+            return .commandOutput
+        }
         if kind == .remoteFile, card.descriptor.target == .host,
             ["sftp_list", "sftp_mkdir"].contains(card.descriptor.name)
         {

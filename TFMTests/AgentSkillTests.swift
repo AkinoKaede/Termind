@@ -505,7 +505,7 @@ struct SkillLibraryModelTests {
         let persistence = FailingSkillPersistence()
         let library = SkillLibraryModel(persistence: persistence)
         #expect(library.skills.isEmpty)
-        #expect(library.catalog.names == ["skill-creator", "skill-installer"])
+        #expect(library.catalog.names == ["skill-creator", "skill-installer", "ssh-exec"])
         for skill in AgentSkillLibrary.builtIns { try skill.validateForInstallation() }
         #expect(library.snapshot.readOnlyNames == AgentSkillLibrary.reservedNames)
     }

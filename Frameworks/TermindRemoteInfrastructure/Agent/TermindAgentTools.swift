@@ -14,6 +14,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
     public var hosts: AgentHostResolver
     public var connections: AgentConnectionPool
     public var authentication: AgentSSHAuthenticationRegistry
+    public var scope: UUID
     public var background: AgentBackgroundCommands
     /// Shared with the runtime's scratch group. `scratch_pull` and
     /// `scratch_push` are ours rather than the runtime's precisely because they
@@ -28,6 +29,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         connections: AgentConnectionPool,
         authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
+        scope: UUID = UUID(),
         workspace: AgentScratchWorkspace? = nil,
         panes: AgentPaneAccess? = nil
     ) {
@@ -37,6 +39,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         authentication =
             suppliedAuthentication ?? AgentSSHAuthenticationRegistry(resolver: hosts)
         self.background = background
+        self.scope = scope
         self.workspace = workspace
         self.panes = panes
     }
@@ -58,7 +61,14 @@ nonisolated public enum TermindAgentTools {
     /// runtime's. Built once: the map is immutable and the lookup happens on
     /// every historical card the transcript draws.
     public static let presenterRegistry = AgentToolPresenterRegistry(
-        AgentToolCatalog.builtInPresenters + definitions.map(\.presenter)
+        AgentToolCatalog.builtInPresenters + definitions.map(\.presenter) + [
+            .init(
+                id: "builtin.ssh_exec", present: SSHCommandPresentation.present,
+                presentArguments: SSHExecRunTool.presentArguments),
+            .init(
+                id: "builtin.ssh_wait", present: SSHCommandPresentation.present,
+                presentArguments: SSHExecResults.handleArguments),
+        ]
     )
 
     public static func presenter(id: String) -> AgentToolDetailPresenter? {
@@ -90,19 +100,27 @@ nonisolated public enum TermindAgentTools {
         },
         .init(ListPanesTool.self) { $0.panes.map(ListPanesTool.init) },
         .init(ReadPaneTool.self) { $0.panes.map(ReadPaneTool.init) },
-        .init(SSHExecTool.self, availableIn: [.acting]) {
-            SSHExecTool(
+        .init(SSHExecRunTool.self, availableIn: [.acting]) {
+            SSHExecRunTool(
                 authentication: $0.authentication, pool: $0.connections,
-                background: $0.background
+                background: $0.background, scope: $0.scope
             )
         },
-        .init(PlanningSSHExecTool.self, availableIn: [.planning]) {
-            PlanningSSHExecTool(
+        .init(PlanningSSHExecRunTool.self, availableIn: [.planning]) {
+            PlanningSSHExecRunTool(
                 authentication: $0.authentication, pool: $0.connections,
-                background: $0.background
+                background: $0.background, scope: $0.scope
             )
         },
-        .init(SSHWaitTool.self) { SSHWaitTool(background: $0.background) },
+        .init(SSHExecOutputTool.self) { SSHExecOutputTool(background: $0.background, scope: $0.scope) },
+        .init(SSHExecStdinTool.self, availableIn: [.acting]) {
+            SSHExecStdinTool(background: $0.background, scope: $0.scope)
+        },
+        .init(PlanningSSHExecStdinTool.self, availableIn: [.planning]) {
+            PlanningSSHExecStdinTool(background: $0.background, scope: $0.scope)
+        },
+        .init(SSHExecCancelTool.self) { SSHExecCancelTool(background: $0.background, scope: $0.scope) },
+        .init(SSHExecListTool.self) { SSHExecListTool(background: $0.background, scope: $0.scope) },
         .init(TerminalSuggestTool.self) { _ in
             TerminalSuggestTool()
         },

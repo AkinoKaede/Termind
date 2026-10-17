@@ -1,7 +1,7 @@
 import AgentKit
 import Foundation
 
-/// A whole-card budget, not one budget per block. Full values remain untouched for expansion and Copy.
+/// A whole-card budget, not one budget per block. Full values remain untouched for expansion.
 nonisolated public struct AgentToolDetailPreview: Equatable, Sendable {
     public static let characterLimit = 600
     public static let rowLimit = 5

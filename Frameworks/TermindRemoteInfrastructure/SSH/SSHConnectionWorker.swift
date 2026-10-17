@@ -157,6 +157,16 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         try await sftpChannelOwner.openChannel()
     }
 
+    func executeSession(
+        _ command: String, session: SSHExecSession, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult {
+        try await queue.perform { [self] in try accessCheck?() }
+        return try await execChannelOwner.execute(
+            command, workingDirectory: nil, stdin: nil, timeout: 0,
+            outputLimit: 256 * 1_024, cancellation: session.cancellation,
+            onOutput: onOutput, session: session)
+    }
+
     private func updateSharedConnectionEvents(session: OpaquePointer, buffer: SSHConnectionBuffer) {
         let directions = libssh2_session_block_directions(session)
         socketEvents?.update(

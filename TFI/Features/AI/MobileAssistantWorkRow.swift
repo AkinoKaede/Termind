@@ -136,7 +136,7 @@ struct MobileAssistantToolRow: View {
                                     }
                                 }
                             )
-                        ) { UIPasteboard.general.string = $0 }
+                        )
                     } else {
                         AssistantToolDetails(items: detail.items, isError: card.result?.isError == true) {
                             UIPasteboard.general.string = $0

@@ -1,0 +1,158 @@
+import AgentKit
+import Foundation
+import TermindApplication
+import TermindDomain
+
+nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBuilding {
+    public static let presenter = AgentToolDetailPresenter(
+        id: "builtin.ssh_exec_run", present: SSHCommandPresentation.present,
+        presentArguments: presentArguments)
+    public let authentication: AgentSSHAuthenticationRegistry
+    public let pool: AgentConnectionPool
+    public let background: AgentBackgroundCommands
+    public let scope: UUID
+
+    public init(
+        authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
+        background: AgentBackgroundCommands, scope: UUID = UUID()
+    ) {
+        self.authentication = authentication
+        self.pool = pool
+        self.background = background
+        self.scope = scope
+    }
+
+    public var descriptor: AgentToolDescriptor {
+        Self.descriptor(
+            "ssh_exec_run",
+            """
+            Run a non-PTY SSH command. Discover host_id with list_hosts when needed; Termind handles login. \
+            run_in_background defaults to false: wait for completion without a runtime timeout and close stdin. \
+            Set true for long-lived commands or commands needing ssh_exec_stdin; return after confirmed startup. \
+            Returns handle, host_id, status (running/exited/failed), stdout, stderr, exit_code, signal, \
+            stdin_closed and error. Output keeps the latest 256 KiB per stream with an in-band truncation count. \
+            Handles belong to this conversation/session; finished results remain for ten minutes. \
+            Use ssh_exec_output for snapshots and ssh_exec_cancel for local cleanup. Never include plaintext secrets.
+            """,
+            properties: [
+                "host_id": Self.string(max: 64), "command": Self.string(max: 32_768),
+                "run_in_background": Self.boolean(),
+            ], required: ["host_id", "command"], target: .host, approvalPolicy: .ask,
+            presentation: .init(
+                symbol: "terminal",
+                activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                output: .streams,
+                actionKind: .run,
+                phaseKinds: [
+                    "proposed": .sshPreparingCommand,
+                    "waitingForApproval": .sshWaitingForCommand,
+                    "waitingForUser": .sshWaitingForAuthentication,
+                    "running": .sshConnecting,
+                    "command": .sshRunningCommand,
+                    "completed": .sshCompletedCommand,
+                    "denied": .sshDeniedCommand,
+                    "failed": .sshFailedCommand,
+                    "interrupted": .sshInterruptedCommand,
+                ],
+                messages: [
+                    "proposed": "Preparing to run {activity} on {target}",
+                    "waitingForApproval": "Waiting to run {activity} on {target}",
+                    "waitingForUser": "Waiting to authenticate with {target}",
+                    "running": "Connecting to {target}",
+                    "command": "Running {activity} on {target}",
+                    "completed": "Ran {activity} on {target}",
+                    "denied": "Did not run {activity} on {target}",
+                    "failed": "Failed to run {activity} on {target}",
+                    "interrupted": "Stopped waiting for {activity} on {target}",
+                ]
+            )
+        )
+    }
+
+    public func preflight(_ invocation: AgentToolInvocation) async throws -> AgentToolPreflight {
+        let arguments = try Arguments(invocation)
+        var checked = invocation
+        checked.targetHostID = try arguments.uuid("host_id")
+        let command = try arguments.string("command")
+        guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AgentToolError.invalidArguments("command must not be empty.")
+        }
+        let assessment = CommandRiskClassifier.assess(command)
+        let safe = assessment.risk == .safe
+        return .init(
+            invocation: checked, approvalPolicy: safe ? .approve : .ask,
+            reasons: assessment.reasons, concurrency: safe ? .parallel : .sequential)
+    }
+
+    public func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws
+        -> AgentToolResult
+    {
+        let arguments = try Arguments(invocation)
+        let hostID = try arguments.uuid("host_id")
+        let command = try arguments.string("command")
+        let isBackground = arguments.optionalBool("run_in_background") ?? false
+        let stream = AgentCommandOutputStream { out, error in
+            var result = Self.result(
+                invocation,
+                .object([
+                    "status": .string("running"), "stdout": .string(out), "stderr": .string(error),
+                ]))
+            result.metadata["presentation_phase"] = .string("command")
+            context.report(result)
+        }
+        let handle = try await background.start(
+            scope: scope, hostID: hostID, command: command, keepsStdinOpen: isBackground, stream: stream
+        ) { session in
+            var connection = try await authentication.connectionContext(
+                hostID: hostID, invocationID: invocation.id, interaction: context.sshInteraction, pool: pool)
+            var retried = false
+            while true {
+                try Task.checkCancellation()
+                let ssh = connection.connection
+                do {
+                    return try await pool.withExecLease(hostID: hostID, connection: ssh) {
+                        try await ssh.executeSession(command, session: session, onOutput: stream.handler)
+                    }
+                } catch SSHCommandExecutionError.connectionUnavailable where !retried && !session.started {
+                    retried = true
+                    await pool.disconnect(hostID: hostID)
+                    connection.connection = try await authentication.openConnection(
+                        hostID: hostID, authentication: connection.authentication, pool: pool)
+                }
+            }
+        }
+        if !isBackground {
+            let interjection: (@Sendable () async -> Void)?
+            if context.services[.sshInterjectionEnabled] == true {
+                interjection = { await context.whenUserInterjects() }
+            } else {
+                interjection = nil
+            }
+            do {
+                try await background.waitForCompletion(
+                    handle, scope: scope, interjection: interjection)
+            } catch {
+                _ = try? await background.cancel(handle, scope: scope)
+                throw error
+            }
+        }
+        return SSHExecResults.snapshot(invocation, try await background.output(handle, scope: scope))
+    }
+
+    public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
+        SSHCommandPresentation.present(input)
+    }
+
+    public static func presentArguments(_ input: AgentToolArgumentDetailInput) -> [AgentToolDetail.Item] {
+        typealias F = AgentToolDetailFormatting
+        var items: [AgentToolDetail.Item] = []
+        if let command = input.arguments["command"]?.stringValue {
+            items.append(F.text("Command", command, locale: input.locale))
+        }
+        // Retained only for historical cards, not accepted by the executable schema.
+        F.appendField(
+            &items, "Working directory", input.arguments["cwd"]?.stringValue,
+            locale: input.locale, monospaced: true)
+        return items
+    }
+}

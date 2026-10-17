@@ -2,18 +2,18 @@ import AgentKit
 import Foundation
 import TermindDomain
 
-/// Planning registration for the ordinary `ssh_exec` identity. Destructive
+/// Planning registration for the ordinary `ssh_exec_run` identity. Destructive
 /// commands never reach approval or execution in this posture.
-public nonisolated struct PlanningSSHExecTool: AgentToolDefinition {
-    public static let presenter = SSHExecTool.presenter
-    private let base: SSHExecTool
+public nonisolated struct PlanningSSHExecRunTool: AgentToolDefinition {
+    public static let presenter = SSHExecRunTool.presenter
+    private let base: SSHExecRunTool
 
     public init(
         authentication: AgentSSHAuthenticationRegistry,
         pool: AgentConnectionPool,
-        background: AgentBackgroundCommands
+        background: AgentBackgroundCommands, scope: UUID = UUID()
     ) {
-        base = SSHExecTool(authentication: authentication, pool: pool, background: background)
+        base = SSHExecRunTool(authentication: authentication, pool: pool, background: background, scope: scope)
     }
 
     public var descriptor: AgentToolDescriptor { base.descriptor }

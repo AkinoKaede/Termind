@@ -1366,7 +1366,7 @@ private enum NativeTranscriptFactory {
         let body = NativeStack.vertical()
         for item in expanded ? preview.fullItems : preview.items {
             body.addArrangedSubview(
-                toolDetail(item, isError: card.result?.isError == true, context: context))
+                toolDetail(item, isError: card.result?.isError == true, context: context, shortensText: false))
         }
         let scale = max(1, NSFont.preferredFont(forTextStyle: .caption1).pointSize / NSFont.smallSystemFontSize)
         let height = 180 * scale
@@ -1384,23 +1384,20 @@ private enum NativeTranscriptFactory {
         let stack = NativeStack.vertical()
         stack.addArrangedSubview(clipped)
         if expanded || needsMore {
-            let actions = NativeStack.horizontal()
             let more = NativeButton(
                 title: AppLocalization.resolve(
                     expanded ? AppStrings.Assistant.showLess : AppStrings.Assistant.showMore,
                     locale: context.configuration.locale))
             more.identifier = NSUserInterfaceItemIdentifier("AssistantTool.More")
             more.handler = toggle
-            actions.addArrangedSubview(more)
-            actions.addArrangedSubview(NativeCopyButton(text: preview.fullText))
-            stack.addArrangedSubview(actions)
+            stack.addArrangedSubview(more)
         }
         stack.identifier = NSUserInterfaceItemIdentifier("AssistantTool.CompactDetails")
         return stack
     }
 
     private static func toolDetail(
-        _ item: AgentToolDetail.Item, isError: Bool, context: NativeTranscriptContext
+        _ item: AgentToolDetail.Item, isError: Bool, context: NativeTranscriptContext, shortensText: Bool = true
     ) -> NSView {
         switch item {
         case .field(let field):
@@ -1458,10 +1455,10 @@ private enum NativeTranscriptFactory {
                         color: .secondaryLabelColor
                     ))
             }
-            let preview = AgentToolPresentation.preview(block.text)
+            let preview = shortensText ? AgentToolPresentation.preview(block.text) : nil
             stack.addArrangedSubview(
                 NativeLabel(
-                    preview.displayed,
+                    preview?.displayed ?? block.text,
                     font: block.style == .monospaced
                         ? .monospacedSystemFont(
                             ofSize: NSFont.smallSystemFontSize,
@@ -1470,7 +1467,7 @@ private enum NativeTranscriptFactory {
                     color: isError ? .systemRed : .secondaryLabelColor,
                     selectable: true
                 ))
-            if preview.isShortened {
+            if let preview, preview.isShortened {
                 let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
                 actions.addArrangedSubview(
                     NativeLabel(

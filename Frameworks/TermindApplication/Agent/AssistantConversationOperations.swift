@@ -78,6 +78,7 @@ public final class AssistantConversationOperations {
             conversation.isHistoryChanging = false
         }
         try await repository.deleteConversation(conversation.id)
+        await conversation.secretBroker.discardAll()
         do {
             try await AgentScratchWorkspace(
                 conversationID: conversation.id,

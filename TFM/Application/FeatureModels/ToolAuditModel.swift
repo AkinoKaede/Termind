@@ -149,7 +149,7 @@ final class ToolAuditModel {
     private func begin(_ invocation: AgentToolInvocation, descriptor: AgentToolDescriptor) {
         guard rowsByInvocation[invocation.id] == nil else { return }
         var hostID = invocation.targetHostID
-        if descriptor.name == "ssh_wait",
+        if ["ssh_wait", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel"].contains(descriptor.name),
             let raw = invocation.call.arguments.objectValue?["handle"]?.stringValue,
             let handle = UUID(uuidString: raw), let mapped = handleHosts[handle]
         {
@@ -184,14 +184,13 @@ final class ToolAuditModel {
             row.exitCode = object["exit_code"]?.integerValue
             row.bytesRead = object["bytes"]?.integerValue
             if invocation.call.name == "sftp_copy" { row.bytesWritten = object["bytes"]?.integerValue }
-            if invocation.call.name == "ssh_exec",
+            if ["ssh_exec", "ssh_exec_run"].contains(invocation.call.name),
                 let raw = object["handle"]?.stringValue, let handle = UUID(uuidString: raw),
                 let hostID = row.hostID
             {
                 handleHosts[handle] = (hostID, row.hostDisplayName)
             }
-            if invocation.call.name == "ssh_wait",
-                object["status"]?.stringValue == "exited",
+            if invocation.call.name == "ssh_exec_cancel",
                 let raw = invocation.call.arguments.objectValue?["handle"]?.stringValue,
                 let handle = UUID(uuidString: raw)
             {
@@ -247,8 +246,9 @@ final class ToolAuditModel {
                 + "[bytes=\(arguments["byte_count"]?.integerValue ?? 0), "
                 + "overwrite=\(arguments["overwrite"]?.boolValue ?? false)]"
         case "sftp_upload_status": return "Upload \(arguments["upload_id"]?.stringValue ?? "")"
-        case "ssh_exec": return oneLine(arguments["command"]?.stringValue ?? "")
-        case "ssh_wait": return "Handle \(arguments["handle"]?.stringValue ?? "")"
+        case "ssh_exec", "ssh_exec_run": return oneLine(arguments["command"]?.stringValue ?? "")
+        case "ssh_wait", "ssh_exec_output", "ssh_exec_cancel", "ssh_exec_stdin":
+            return "Handle \(arguments["handle"]?.stringValue ?? "")"
         case "sftp_move":
             return "\(oneLine(arguments["path"]?.stringValue ?? "")) → "
                 + oneLine(arguments["destination"]?.stringValue ?? "")
@@ -276,7 +276,7 @@ final class ToolAuditModel {
     }
 
     private static func risk(for call: AgentToolCall) -> ExternalToolCall.Risk {
-        if call.name == "ssh_exec",
+        if ["ssh_exec", "ssh_exec_run"].contains(call.name),
             let command = call.arguments.objectValue?["command"]?.stringValue
         {
             switch CommandRiskClassifier.assess(command).risk {
@@ -286,7 +286,8 @@ final class ToolAuditModel {
             }
         }
         if [
-            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
+            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait", "ssh_exec_output", "ssh_exec_list",
+            "ssh_exec_cancel",
             "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
         ].contains(call.name) {
             return .readOnly

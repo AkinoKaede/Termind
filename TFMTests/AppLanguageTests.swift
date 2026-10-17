@@ -41,7 +41,7 @@ struct AppLanguageTests {
         }
         #expect(localized.messages.last?.text.contains("`127.0.0.1:8080`") == true)
         #expect(localized.messages.last?.text.contains("`/health`") == true)
-        #expect(localized.toolCards.map(\.invocation.call.name) == ["ssh_exec", "ssh_exec"])
+        #expect(localized.toolCards.map(\.invocation.call.name) == ["ssh_exec_run", "ssh_exec_run"])
     }
 
     @Test

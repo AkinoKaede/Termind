@@ -228,7 +228,7 @@ struct ExternalAuthCoordinatorTests {
         let runID = UUID()
         let request = AgentUserInputRequest(
             questions: [AgentUserQuestion(id: "secret", prompt: "Password", kind: .secret)],
-            purpose: "sudo", hostID: UUID()
+            purpose: "sudo"
         )
         let task = Task {
             await coordinator.enqueue(request, clientName: "Claude", runID: runID)
@@ -500,7 +500,7 @@ private func authenticationRequest(name: String) -> AgentSSHAuthenticationReques
 private func secretRequest(timeout: Duration) -> AgentUserInputRequest {
     AgentUserInputRequest(
         questions: [AgentUserQuestion(id: "secret", prompt: "Secret", kind: .secret)],
-        purpose: "test", hostID: UUID(), timeout: timeout
+        purpose: "test", timeout: timeout
     )
 }
 

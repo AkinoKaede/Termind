@@ -7,7 +7,8 @@ import TermindRemoteInfrastructure
 @MainActor
 final class MCPServerTools {
     static let exportedNames: Set<String> = [
-        "list_hosts", "get_metrics", "request_user_secret", "ssh_exec", "ssh_wait",
+        "list_hosts", "get_metrics", "request_user_secret", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin",
+        "ssh_exec_cancel", "ssh_exec_list",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
         "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload", "sftp_upload_status",
         "sftp_download", "sftp_download_status",
@@ -18,6 +19,8 @@ final class MCPServerTools {
     private let externalAuthentication: ExternalAuthCoordinator
     private let approval: AgentApprovalBroker
     private var registry: AgentToolRegistry
+    private var registryForScope: (UUID) -> AgentToolRegistry
+    private var background: AgentBackgroundCommands
     private var copies: [UUID: [UUID: Task<AgentToolResult, Never>]] = [:]
     let uploads: MCPUploadCoordinator
     let downloads: MCPDownloadCoordinator
@@ -92,6 +95,13 @@ final class MCPServerTools {
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
         )
+        self.background = background
+        registryForScope = { [uploads, downloads] scope in
+            Self.makeRegistry(
+                hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
+                background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+                scope: scope)
+        }
         history.consume(channel)
     }
 
@@ -110,6 +120,13 @@ final class MCPServerTools {
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
         )
+        self.background = background
+        registryForScope = { [uploads, downloads] scope in
+            Self.makeRegistry(
+                hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
+                background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+                scope: scope)
+        }
     }
 
     func call(
@@ -117,6 +134,7 @@ final class MCPServerTools {
         callID: String, secretBroker: SecretBroker
     ) async throws -> AgentToolResult {
         guard registry[name] != nil else { throw MCPServerToolsError.unknownTool(name) }
+        let registry = registryForScope(runID)
         history.register(runID: runID, clientName: clientName)
         uploads.register(runID: runID, clientName: clientName)
         downloads.register(runID: runID, clientName: clientName)
@@ -131,7 +149,6 @@ final class MCPServerTools {
             userIntent: "MCP client: \(clientName)"
         )
         let call = AgentToolCall(id: callID, name: name, arguments: arguments)
-        guard name == "sftp_copy" else { return await executor.execute(executor.plan(call)) }
         let id = UUID()
         let task = Task { await executor.execute(executor.plan(call)) }
         copies[runID, default: [:]][id] = task
@@ -151,10 +168,12 @@ final class MCPServerTools {
         for task in tasks { task.cancel() }
         uploads.revokeSession(runID: runID)
         downloads.revokeSession(runID: runID)
+        await background.close(scope: runID)
         await uploads.endSession(runID: runID)
         await downloads.endSession(runID: runID)
         externalAuthentication.cancel(runID: runID)
         for task in tasks { _ = await task.value }
+        await background.close(scope: runID)
         history.unregister(runID: runID)
         await secretBroker.discardAll()
     }
@@ -177,15 +196,20 @@ final class MCPServerTools {
         await uploads.cancelHost(hostID)
         await downloads.cancelHost(hostID)
     }
-    func hasTransferActivity(runID: UUID) -> Bool {
-        uploads.hasUploadActivity(runID: runID) || downloads.hasDownloadActivity(runID: runID)
+    func hasTransferActivity(runID: UUID) async -> Bool {
+        if copies[runID]?.isEmpty == false || uploads.hasUploadActivity(runID: runID)
+            || downloads.hasDownloadActivity(runID: runID)
+        {
+            return true
+        }
+        return await background.hasActivity(scope: runID)
     }
 
     private static func makeRegistry(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands, disabledTools: Set<String>, uploads: MCPUploadCoordinator,
-        downloads: MCPDownloadCoordinator
+        downloads: MCPDownloadCoordinator, scope: UUID = UUID()
     ) -> AgentToolRegistry {
         AgentToolCatalog.registry(
             // `request_user_secret` is the only exported tool the runtime owns;
@@ -195,13 +219,12 @@ final class MCPServerTools {
             // cannot reach a scratch workspace or a web fetch that no Termind
             // conversation is backing.
             builtIn: AgentBuiltInToolConfiguration(
-                groups: [.userInteraction],
-                secretConsumerTools: [TermindAgentPolicy.sshExecToolName]
+                groups: [.userInteraction]
             ),
             additional: TermindAgentTools.tools(
                 in: TermindAgentToolEnvironment(
                     hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-                    background: background
+                    background: background, scope: scope
                 )) + [
                     AnyAgentTool(MCPUploadTool(uploads: uploads)), AnyAgentTool(MCPUploadStatusTool(uploads: uploads)),
                     AnyAgentTool(MCPDownloadTool(downloads: downloads)),

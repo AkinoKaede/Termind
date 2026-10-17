@@ -248,8 +248,11 @@ actor MCPServerProtocol {
         let successful = response.value.objectValue?["result"]?.objectValue?["isError"] == .bool(false)
         let retainsState =
             suppliedHandle != nil
+            || (message.params?["name"]?.stringValue == "ssh_exec_run"
+                && response.value.objectValue?["result"]?.objectValue?["structuredContent"]?.objectValue?["handle"]
+                    != nil)
             || (successful
-                && ["request_user_secret", "sftp_upload", "sftp_download"].contains(
+                && ["request_user_secret", "sftp_upload", "sftp_download", "ssh_exec_run"].contains(
                     message.params?["name"]?.stringValue ?? ""))
         if !retainsState { await removeSession(operationID) }
         var envelope = response.value.objectValue ?? [:]
@@ -384,16 +387,18 @@ actor MCPServerProtocol {
                         ]),
                         "instructions": .string(
                             """
-                            Use list_hosts to discover host_id values. Use ssh_exec to execute remote commands \
-                            and SFTP tools for remote files; no open interactive terminal is required. Termind \
-                            handles SSH and SFTP login using the host configuration and may show an authentication \
-                            window on this Mac. request_user_secret is not required for SSH login or ordinary \
-                            commands: call ssh_exec with host_id and command, omitting secret_handle and \
-                            stdin_purpose. Only when a command actually needs secret standard input, call \
-                            request_user_secret, then pass its secret_handle to ssh_exec with stdin_purpose \
-                            exactly matching the original purpose. The presence of sudo alone does not mean a \
-                            password is needed. Never put plaintext secrets in commands or ordinary chat. \
-                            The handle is bound to this session, host, tool, and purpose, and can be used only once.
+                            Use list_hosts to discover host_id. ssh_exec_run executes non-PTY commands without \
+                            a runtime timeout; run_in_background defaults to false and closes stdin. For input or \
+                            long-lived commands use true, then ssh_exec_output for immediate cumulative snapshots, \
+                            ssh_exec_stdin (type=text/secret/eof), ssh_exec_list, and ssh_exec_cancel for local cleanup. \
+                            Cancellation does not confirm remote termination. Output retains the latest 256 KiB per \
+                            stream with an in-band truncation count. Completed results expire after ten minutes. \
+                            Handles are session-scoped. Preserve operation_handle for related calls on modern MCP; \
+                            it is distinct from the command handle. Termind handles SSH/SFTP authentication. \
+                            request_user_secret is only for command secrets and returns a one-shot handle. \
+                            Pass its secret_handle with type=secret. \
+                            Stdin never adds a newline: send an explicit text newline and then eof when needed. \
+                            Never include plaintext secrets in commands or ordinary chat.
                             """
                         ),
                     ]))
@@ -547,15 +552,17 @@ actor MCPServerProtocol {
 
     private static func toolJSON(_ descriptor: AgentToolDescriptor) -> AgentJSONValue {
         let readOnly = [
-            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
+            "list_hosts", "get_metrics", "request_user_secret", "ssh_exec_output", "ssh_exec_list",
             "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
         ].contains(descriptor.name)
         let destructive = [
-            "ssh_exec", "sftp_write", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload",
+            "ssh_exec_run", "ssh_exec_stdin", "sftp_write", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete",
+            "sftp_upload",
         ]
         .contains(descriptor.name)
         let openWorld = ![
-            "list_hosts", "ssh_wait", "request_user_secret", "sftp_upload_status", "sftp_download_status",
+            "list_hosts", "ssh_exec_output", "ssh_exec_list", "ssh_exec_cancel", "request_user_secret",
+            "sftp_upload_status", "sftp_download_status",
         ]
         .contains(descriptor.name)
         return .object([

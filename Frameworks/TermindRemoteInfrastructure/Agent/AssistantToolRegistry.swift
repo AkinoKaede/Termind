@@ -51,7 +51,6 @@ public enum AssistantToolRegistry {
                     workspace: scratch,
                     web: web,
                     search: localSearch,
-                    secretConsumerTools: [TermindAgentPolicy.sshExecToolName],
                     plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
                     skills: skillCatalog,
                     chatModels: chatModels, chats: chats, chatSource: chatSource,
@@ -62,7 +61,7 @@ public enum AssistantToolRegistry {
                     in: TermindAgentToolEnvironment(
                         hosts: hosts, metrics: metrics, connections: connections,
                         authentication: authentication,
-                        background: background,
+                        background: background, scope: conversation.id,
                         workspace: scratch, panes: panes
                     ))
             )

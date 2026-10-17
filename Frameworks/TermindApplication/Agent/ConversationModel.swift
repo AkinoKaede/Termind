@@ -678,6 +678,8 @@ nonisolated public struct AgentPlanCard: Identifiable, Hashable, Sendable {
 @Observable
 public final class ConversationModel: Identifiable {
     public let id: UUID
+    /// In-memory capabilities survive turns but are never restored or copied to a fork.
+    public let secretBroker = SecretBroker()
     public var createdAt: Date
     public var updatedAt: Date
     public var customTitle: String?
@@ -3466,7 +3468,7 @@ extension ConversationModel {
         )
         let runID = UUID()
         let descriptor = AgentToolDescriptor(
-            name: "ssh_exec",
+            name: "ssh_exec_run",
             summary: text(
                 "Run a command on a remote host.", "在远程主机上运行命令。", "在遠端主機上執行指令。", "リモートホストでコマンドを実行します。",
                 "원격 호스트에서 명령을 실행해요.", "Einen Befehl auf einem Remote-Host ausführen.",
@@ -3487,7 +3489,7 @@ extension ConversationModel {
                 invocation: AgentToolInvocation(
                     runID: runID,
                     call: AgentToolCall(
-                        id: "demo-\(index)", name: "ssh_exec",
+                        id: "demo-\(index)", name: "ssh_exec_run",
                         arguments: .object(["command": .string(command)])
                     ),
                     targetHostID: nil,

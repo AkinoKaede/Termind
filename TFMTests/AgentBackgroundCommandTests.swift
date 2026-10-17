@@ -4,290 +4,343 @@ import TermindApplication
 import TermindRemoteInfrastructure
 import Testing
 
-@testable import TermindRemoteInfrastructure
-
-private func exited(_ code: Int32, stdout: String = "") -> SSHExecResult {
+private nonisolated func exited(_ code: Int32 = 0) -> SSHExecResult {
     SSHExecResult(
-        stdout: stdout, stderr: "", exitCode: code, signal: nil,
-        stdoutTruncated: false, stderrTruncated: false
-    )
+        stdout: "", stderr: "", exitCode: code, signal: nil,
+        stdoutTruncated: false, stderrTruncated: false)
 }
 
-/// A command that outlives the turn that started it.
 @Suite
 struct AgentBackgroundCommandTests {
-
-    // MARK: - Racing a deadline
-
     @Test
-    func aCommandThatBeatsItsDeadlineIsReportedSettled() async {
-        let task = Task<SSHExecResult, any Error> { exited(0) }
-        #expect(await AgentBackgroundCommands.settled(task, within: .seconds(30)))
-    }
-
-    /// The property the whole design rests on: the deadline is when this *call*
-    /// reports back, not when the command is given up on.
-    @Test
-    func aCommandThatMissesItsDeadlineKeepsRunning() async {
-        let released = AsyncRelease()
-        let task = Task<SSHExecResult, any Error> {
-            await released.wait()
-            return exited(0, stdout: "finished anyway")
-        }
-
-        #expect(await AgentBackgroundCommands.settled(task, within: .milliseconds(20)) == false)
-        #expect(!task.isCancelled, "losing the race must not cancel the command")
-
-        await released.release()
-        #expect(try! await task.value.stdout == "finished anyway")
-    }
-
-    // MARK: - Still connecting when the deadline lands
-
-    /// Connecting is inside the deadline, so a host that never answers ends the
-    /// turn like anything else. What comes back is not a handle, though: there
-    /// is no session and no output, and a handle to nothing is worse than
-    /// saying nothing ran.
-    @Test
-    func givingUpDuringTheConnectHandsOverNothing() {
-        let handover = AgentCommandHandover()
-        #expect(!handover.giveUp())
-    }
-
-    /// The half that keeps a command from being orphaned. If the call gave up
-    /// while the connection was still being made, the command must not start
-    /// once it completes — it would run, print and finish with nobody holding a
-    /// handle to it.
-    @Test
-    func aCommandAbandonedWhileConnectingIsNotStartedAfterwards() {
-        let handover = AgentCommandHandover()
-        #expect(!handover.giveUp())
-        #expect(handover.beginRunning() == false)
-    }
-
-    @Test
-    func aCommandThatStartedInTimeIsHandedOverWithItsChannel() {
-        let handover = AgentCommandHandover()
-        #expect(handover.beginRunning())
-        #expect(handover.giveUp())
-    }
-
-    // MARK: - The registry
-
-    @Test
-    func waitingOnAFinishedCommandReportsItAndReleasesTheHandle() async throws {
+    func outputIsImmediateCumulativeAndRepeatableAfterCompletion() async throws {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let handle = await commands.adopt(
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task { exited(0, stdout: "built") }
-        )
-
-        let outcome = try await commands.wait(handle, timeout: .seconds(30))
-
-        #expect(!outcome.isRunning)
-        #expect(outcome.exitCode == 0)
-        #expect(outcome.standardOut == "built")
-        // An authenticated connection nobody will read from again has no reason
-        // to stay open on someone's server.
-        #expect(await commands.count == 0)
-        await #expect(throws: AgentBackgroundCommandError.self) {
-            try await commands.wait(handle, timeout: .seconds(1))
+        let scope = UUID()
+        let release = AsyncRelease()
+        let stream = AgentCommandOutputStream { _, _ in }
+        let handle = try await commands.start(
+            scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: false, stream: stream
+        ) { session in
+            session.start { _ in 0 }
+            await release.wait()
+            return exited(7)
         }
-    }
+        stream.handler(Data("step one\n".utf8), false)
+        let running = try await commands.output(handle, scope: scope)
+        #expect(running.objectValue?["status"] == .string("running"))
+        #expect(running.objectValue?["stdout"] == .string("step one\n"))
+        #expect(running.objectValue?["stdin_closed"] == .bool(true))
+        #expect(try await commands.output(handle, scope: scope) == running)
 
-    @Test
-    func waitingOnARunningCommandReturnsWhatItHasAndKeepsTheHandle() async throws {
-        let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let released = AsyncRelease()
-        let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
-        let handle = await commands.adopt(
-            stream: stream,
-            task: Task {
-                await released.wait()
-                return exited(0)
-            }
-        )
-        stream.handler(Data("step 1 of 9\n".utf8), false)
-
-        let outcome = try await commands.wait(handle, timeout: .milliseconds(20))
-
-        #expect(outcome.isRunning)
-        #expect(outcome.standardOut == "step 1 of 9\n")
-        // An expired wait is not a failure and not the end of the command, so
-        // the handle has to still be good for another ask.
+        stream.handler(Data("step two\n".utf8), false)
+        stream.handler(Data("failure\n".utf8), true)
+        await release.release()
+        try await commands.waitForCompletion(handle, scope: scope)
+        let finished = try await commands.output(handle, scope: scope)
+        #expect(finished.objectValue?["status"] == .string("exited"))
+        #expect(finished.objectValue?["exit_code"] == .number(7))
+        #expect(finished.objectValue?["stdout"] == .string("step one\nstep two\n"))
+        #expect(finished.objectValue?["stderr"] == .string("failure\n"))
+        #expect(try await commands.output(handle, scope: scope) == finished)
         #expect(await commands.count == 1)
-        await released.release()
+        await commands.closeAll()
     }
 
     @Test
-    func anUnknownHandleSaysSoRatherThanHanging() async {
+    func failedStartupLeavesNoHandle() async {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
-        await #expect(throws: AgentBackgroundCommandError.self) {
-            try await commands.wait(UUID(), timeout: .seconds(1))
+        await #expect(throws: CocoaError.self) {
+            try await commands.start(
+                scope: UUID(), hostID: UUID(), command: "build", keepsStdinOpen: true,
+                stream: AgentCommandOutputStream { _, _ in }
+            ) { _ in throw CocoaError(.fileReadNoPermission) }
         }
-    }
-
-    /// Output belongs under whichever call is currently answering for it. The
-    /// `ssh_exec` that started this one has returned and stopped listening.
-    @Test
-    func waitingRedirectsTheCommandsOutputToTheCaller() async throws {
-        let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let released = AsyncRelease()
-        let stream = AgentCommandOutputStream(interval: .zero) { _, _ in }
-        let handle = await commands.adopt(
-            stream: stream,
-            task: Task {
-                await released.wait()
-                return exited(0)
-            }
-        )
-
-        let seen = Sink()
-        _ = try await commands.wait(
-            handle, timeout: .milliseconds(20), reporting: { out, _ in seen.append(out) }
-        )
-        stream.handler(Data("step 2\n".utf8), false)
-
-        #expect(seen.values == ["step 2\n"])
-        await released.release()
-    }
-
-    @Test
-    func theSweepReleasesWhatNobodyAskedAboutAndLeavesTheRest() async {
-        let commands = AgentBackgroundCommands(idleTimeout: .seconds(600), sweepInterval: nil)
-        let released = AsyncRelease()
-        let start = ContinuousClock.now
-        let stale = await commands.adopt(
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task {
-                await released.wait()
-                return exited(0)
-            },
-            now: start
-        )
-        _ = await commands.adopt(
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task {
-                await released.wait()
-                return exited(0)
-            },
-            now: start.advanced(by: .seconds(590))
-        )
-
-        let remaining = await commands.sweepIdle(now: start.advanced(by: .seconds(601)))
-
-        #expect(remaining == 1, "only the one past its window is let go")
-        await #expect(throws: AgentBackgroundCommandError.self) {
-            try await commands.wait(stale, timeout: .seconds(1))
-        }
-        await released.release()
-    }
-
-    /// The window is a promise, and until this landed nothing kept it: the
-    /// sweep existed but nothing ever called it, so a released handle stayed
-    /// held until the app quit.
-    @Test
-    func theTimerReleasesAHandleOnceItsWindowHasPassed() async throws {
-        let commands = AgentBackgroundCommands(
-            idleTimeout: .zero, sweepInterval: .milliseconds(20)
-        )
-        let released = AsyncRelease()
-        _ = await commands.adopt(
-            stream: AgentCommandOutputStream { _, _ in },
-            task: Task {
-                await released.wait()
-                return exited(0)
-            }
-        )
-
-        for _ in 0..<50 where await commands.count > 0 {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-
         #expect(await commands.count == 0)
-        await released.release()
     }
 
-    // MARK: - Stopping a wait because someone spoke
-
-    /// The point of the whole seam: a model that decided to wait five minutes
-    /// does not make the user wait five minutes to be heard. Nothing is
-    /// cancelled by stopping — the command runs on — which is the only reason
-    /// this is safe to do to `ssh_wait` and not to `ssh_exec`.
     @Test
-    func aWaitEndsEarlyWhenTheUserInterjects() async throws {
+    func cancellationDuringStartupDoesNotWaitForAuthenticationOrAllowLateStartup() async throws {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let released = AsyncRelease()
-        let signal = AgentInterjectionSignal()
-        let task = Task<SSHExecResult, any Error> {
-            await released.wait()
-            return exited(0)
+        let scope = UUID()
+        let connecting = AsyncRelease()
+        let release = AsyncRelease()
+        let finished = AsyncRelease()
+        let task = Task {
+            try await commands.start(
+                scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: true,
+                stream: AgentCommandOutputStream { _, _ in }
+            ) { session in
+                await connecting.release()
+                await release.wait()
+                session.start { _ in 0 }
+                #expect(!session.started)
+                await finished.release()
+                return exited()
+            }
         }
-        let handle = await commands.adopt(
-            stream: AgentCommandOutputStream { _, _ in },
-            task: task
-        )
-
-        async let outcome = commands.wait(
-            handle, timeout: .seconds(900), orWhen: { await signal.wait() }
-        )
-        try await Task.sleep(for: .milliseconds(20))
-        signal.arm()
-
-        // Reported exactly as a deadline would be — not finished, ask again.
-        #expect(try await outcome.isRunning)
-        #expect(!task.isCancelled, "the command is not what was interrupted")
-        #expect(await commands.count == 1, "and the handle is still good")
-        await released.release()
-    }
-
-    /// Stateful rather than a pure broadcast. A wait that begins a moment after
-    /// the user typed would otherwise sit out its whole deadline with a message
-    /// already queued behind it.
-    @Test
-    func aWaitStartedAfterTheInterjectionDoesNotMissIt() async throws {
-        let signal = AgentInterjectionSignal()
-        signal.arm()
-        await signal.wait()
+        await connecting.wait()
+        #expect(await commands.list(scope: scope).objectValue?["commands"] == .array([]))
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(await commands.count == 0)
+        await release.release()
+        await finished.wait()
     }
 
     @Test
-    func drainingTheQueueDisarmsIt() async throws {
-        let signal = AgentInterjectionSignal()
-        signal.arm()
-        signal.disarm()
-
-        let finished = Sink()
-        let waiter = Task {
-            await signal.wait()
-            finished.append("released")
+    func runningCommandsNeverExpireAndFinishedReadsDoNotExtendRetention() async throws {
+        let commands = AgentBackgroundCommands(idleTimeout: .seconds(600), sweepInterval: nil)
+        let scope = UUID()
+        let release = AsyncRelease()
+        let handle = try await commands.start(
+            scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: true,
+            stream: AgentCommandOutputStream { _, _ in }
+        ) { session in
+            session.start { _ in 0 }
+            await release.wait()
+            return exited()
         }
-        try await Task.sleep(for: .milliseconds(30))
-
-        #expect(finished.values.isEmpty, "nothing is queued, so nothing to hurry for")
-        signal.arm()
-        await waiter.value
-        #expect(finished.values == ["released"])
+        #expect(await commands.sweepIdle(now: .now.advanced(by: .seconds(86_400))) == 1)
+        await release.release()
+        try await commands.waitForCompletion(handle, scope: scope)
+        _ = try await commands.output(handle, scope: scope)
+        #expect(await commands.list(scope: scope).objectValue?["commands"] == .array([]))
+        #expect(
+            await commands.list(scope: scope, includeFinished: true).objectValue?["commands"]?.arrayValue?.count == 1)
+        #expect(await commands.sweepIdle(now: .now.advanced(by: .seconds(601))) == 0)
+        await #expect(throws: AgentBackgroundCommandError.self) {
+            try await commands.output(handle, scope: scope)
+        }
     }
 
-    // MARK: - Shape
+    @Test
+    func scopeIsolationAndCancellationRetireOnlyTheLocalHandle() async throws {
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let scope = UUID()
+        let otherScope = UUID()
+        let host = UUID()
+        let release = AsyncRelease()
+        let handle = try await commands.start(
+            scope: scope, hostID: host, command: "build", keepsStdinOpen: true,
+            stream: AgentCommandOutputStream { _, _ in }
+        ) { session in
+            session.start { _ in 0 }
+            await release.wait()
+            return exited()
+        }
+        #expect(await commands.list(scope: otherScope).objectValue?["commands"] == .array([]))
+        #expect(await commands.list(scope: scope, hostID: UUID()).objectValue?["commands"] == .array([]))
+        let rows = await commands.list(scope: scope, hostID: host).objectValue?["commands"]?.arrayValue
+        #expect(rows?.count == 1)
+        #expect(rows?.first?.objectValue?["stdout"] == nil)
+        await #expect(throws: AgentBackgroundCommandError.self) {
+            try await commands.cancel(handle, scope: otherScope)
+        }
+        let result = try await commands.cancel(handle, scope: scope)
+        #expect(result.objectValue?["status"] == .string("cancelled"))
+        #expect(result.objectValue?["was_running"] == .bool(true))
+        #expect(result.objectValue?["remote_termination_confirmed"] == .bool(false))
+        await #expect(throws: AgentBackgroundCommandError.self) {
+            try await commands.cancel(handle, scope: scope)
+        }
+        await release.release()
+        #expect(await commands.count == 0)
+    }
 
-    @Test @MainActor
-    func waitIsRegisteredAndReadOnly() {
-        let tools = [AnyAgentTool(SSHWaitTool(background: AgentBackgroundCommands()))]
-        let wait = tools.first { $0.descriptor.name == "ssh_wait" }
-        #expect(wait != nil)
-        // It reads a buffer and a task. Nothing it does reaches the host, so
-        // stopping to ask permission for it would be asking about nothing.
-        #expect(wait?.descriptor.approvalPolicy == .approve)
-        #expect(wait?.descriptor.concurrency == .parallel)
-        // No kill: closing a channel does not stop a remote process, so a tool
-        // by that name would promise what it cannot do.
-        #expect(!tools.contains { $0.descriptor.name.hasPrefix("ssh_kill") })
+    @Test
+    func stdinPreservesExactBytesAndEOFIsIdempotent() async throws {
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let scope = UUID()
+        let release = AsyncRelease()
+        let writes = InputLog()
+        let handle = try await commands.start(
+            scope: scope, hostID: UUID(), command: "cat", keepsStdinOpen: true,
+            stream: AgentCommandOutputStream { _, _ in }
+        ) { session in
+            session.start { try await writes.write($0) }
+            await release.wait()
+            return exited()
+        }
+        let result = try await commands.write(handle, scope: scope, input: .text("abc"))
+        #expect(result.objectValue?["bytes_written"] == .number(3))
+        _ = try await commands.write(handle, scope: scope, input: .text(""))
+        _ = try await commands.write(handle, scope: scope, input: nil)
+        let repeated = try await commands.write(handle, scope: scope, input: nil)
+        #expect(repeated.objectValue?["stdin_closed"] == .bool(true))
+        #expect(await writes.values == ["abc", "", nil])
+        await #expect(throws: (any Error).self) {
+            try await commands.write(handle, scope: scope, input: .text("too late"))
+        }
+        await release.release()
+        try await commands.waitForCompletion(handle, scope: scope)
+        #expect(try await commands.cancel(handle, scope: scope).objectValue?["status"] == .string("released"))
+    }
+
+    @Test
+    func interjectionReturnsRunningSnapshotWithoutCancellingCommand() async throws {
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let scope = UUID()
+        let release = AsyncRelease()
+        let signal = AgentInterjectionSignal()
+        let handle = try await commands.start(
+            scope: scope, hostID: UUID(), command: "build", keepsStdinOpen: false,
+            stream: AgentCommandOutputStream { _, _ in }
+        ) { session in
+            session.start { _ in 0 }
+            await release.wait()
+            #expect(!Task.isCancelled)
+            return exited()
+        }
+        signal.arm()
+        try await commands.waitForCompletion(handle, scope: scope, interjection: { await signal.wait() })
+        #expect(try await commands.output(handle, scope: scope).objectValue?["status"] == .string("running"))
+        await release.release()
+        try await commands.waitForCompletion(handle, scope: scope)
+        await commands.closeAll()
+    }
+
+    @Test
+    func outputAndListAreReadOnlyParallelToolsWithoutTimeouts() {
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let scope = UUID()
+        let tools = [
+            AnyAgentTool(SSHExecOutputTool(background: commands, scope: scope)),
+            AnyAgentTool(SSHExecListTool(background: commands, scope: scope)),
+        ]
+        for tool in tools {
+            #expect(tool.descriptor.approvalPolicy == .approve)
+            #expect(tool.descriptor.concurrency == .parallel)
+            #expect(tool.descriptor.inputSchema.objectValue?["properties"]?.objectValue?["timeout_seconds"] == nil)
+        }
+    }
+
+    @Test(arguments: ["text", "empty", "secret", "eof"], [false, true])
+    func stdinToolAcceptsOmittedOrNullUnusedPayloads(mode: String, explicitNulls: Bool) async throws {
+        let secretText = "stdin-regression-secret"
+        let commands = AgentBackgroundCommands(sweepInterval: nil)
+        let scope = UUID()
+        let hostID = UUID()
+        let release = AsyncRelease()
+        let writes = InputLog()
+        let handle = try await commands.start(
+            scope: scope, hostID: hostID, command: "cat", keepsStdinOpen: true,
+            stream: AgentCommandOutputStream { _, _ in }
+        ) { session in
+            session.start { try await writes.write($0) }
+            await release.wait()
+            return exited()
+        }
+        let broker = SecretBroker()
+        do {
+            let tool = SSHExecStdinTool(background: commands, scope: scope)
+            var arguments: [String: AgentJSONValue] = [
+                "handle": .string(handle.uuidString), "type": .string(mode == "empty" ? "text" : mode),
+            ]
+            if explicitNulls {
+                arguments["stdin"] = .null
+                arguments["secret_handle"] = .null
+            }
+            switch mode {
+            case "text", "empty": arguments["stdin"] = .string(mode == "empty" ? "" : "input")
+            case "secret":
+                var bytes = Data(secretText.utf8)
+                let secret = try await broker.issue(AgentSecret(consumingUTF8: &bytes))
+                arguments["secret_handle"] = .string(secret.id.uuidString)
+            default: break
+            }
+            let invocation = AgentToolInvocation(
+                runID: UUID(), call: .init(id: "stdin", name: "ssh_exec_stdin", arguments: .object(arguments)),
+                targetHostID: UUID())
+            try AgentJSONSchemaValidator.validate(invocation.call.arguments, against: tool.descriptor.inputSchema)
+            let checked = try await tool.preflight(invocation)
+            #expect(checked.invocation.targetHostID == hostID)
+            #expect(checked.approvalPolicy == .ask)
+            let review = GuardianPolicy.reviewPrompt(
+                .init(
+                    invocation: checked.invocation, descriptor: tool.descriptor, userIntent: "Provide command input",
+                    localReasons: checked.reasons),
+                evidence: [])
+            #expect(review.contains(hostID.uuidString))
+            #expect(review.contains("Write input to: cat"))
+            #expect(review.contains("The plaintext is intentionally hidden from review") == (mode == "secret"))
+            #expect(!review.contains(secretText))
+            if mode == "secret" {
+                #expect(await broker.count == 1)
+                #expect(await writes.secretWrites == 0)
+            }
+            let result = try await tool.execute(
+                checked.invocation,
+                context: .init(
+                    runID: invocation.runID, userIntent: "Provide command input", secretBroker: broker,
+                    userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:],
+                    authorize: { _ in .allow }))
+            let payload = try AgentJSONValue.decode(Data(try #require(result.untrustedPayload).utf8))
+            #expect(!result.isError)
+            #expect(payload.objectValue?["status"] == .string(mode == "eof" ? "closed" : "written"))
+            #expect(payload.objectValue?["stdin_closed"] == .bool(mode == "eof"))
+            switch mode {
+            case "text": #expect(await writes.values == ["input"])
+            case "empty": #expect(await writes.values == [""])
+            case "secret":
+                #expect(await writes.secretWrites == 1)
+                #expect(await broker.count == 0)
+                #expect(payload.objectValue?["bytes_written"] == .number(Double(secretText.utf8.count)))
+            default: #expect(await writes.values == [nil])
+            }
+        } catch {
+            await release.release()
+            await commands.closeAll()
+            await broker.discardAll()
+            throw error
+        }
+        await release.release()
+        await commands.closeAll()
+    }
+
+    @Test(arguments: [false, true])
+    func listToolAcceptsOmittedOrNullFilters(explicitNulls: Bool) async throws {
+        let tool = SSHExecListTool(background: AgentBackgroundCommands(sweepInterval: nil), scope: UUID())
+        let invocation = AgentToolInvocation(
+            runID: UUID(),
+            call: .init(
+                id: "list", name: "ssh_exec_list",
+                arguments: .object(explicitNulls ? ["host_id": .null, "include_finished": .null] : [:])))
+        try AgentJSONSchemaValidator.validate(invocation.call.arguments, against: tool.descriptor.inputSchema)
+        let result = try await tool.execute(
+            invocation,
+            context: .init(
+                runID: invocation.runID, userIntent: "List commands", secretBroker: SecretBroker(),
+                userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:], authorize: { _ in .allow }))
+        let payload = try AgentJSONValue.decode(Data(try #require(result.untrustedPayload).utf8))
+        #expect(payload == .object(["commands": .array([])]))
+    }
+
+    @Test(arguments: [
+        ["type": AgentJSONValue.string("text"), "stdin": .null, "secret_handle": .null],
+        ["type": .string("secret"), "stdin": .null, "secret_handle": .null],
+        ["type": .string("secret"), "stdin": .null, "secret_handle": .string("invalid")],
+        ["type": .string("text"), "stdin": .string("input"), "secret_handle": .string(UUID().uuidString)],
+        ["type": .string("secret"), "stdin": .string(""), "secret_handle": .string(UUID().uuidString)],
+        ["type": .string("eof"), "stdin": .string(""), "secret_handle": .null],
+        ["type": .string("eof"), "stdin": .null, "secret_handle": .string(UUID().uuidString)],
+        ["type": .string("eof"), "stdin": .bool(false), "secret_handle": .null],
+    ])
+    func stdinToolStillRejectsMissingRequiredOrConflictingPayloads(arguments: [String: AgentJSONValue]) async {
+        let tool = SSHExecStdinTool(background: AgentBackgroundCommands(sweepInterval: nil), scope: UUID())
+        var arguments = arguments
+        arguments["handle"] = .string(UUID().uuidString)
+        let invocation = AgentToolInvocation(
+            runID: UUID(), call: .init(id: "stdin", name: "ssh_exec_stdin", arguments: .object(arguments)))
+        do {
+            _ = try await tool.preflight(invocation)
+            Issue.record("Invalid input must be rejected before command lookup")
+        } catch AgentToolError.invalidArguments {
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
     }
 }
 
-/// One-shot gate for a task that must not finish until the test says so.
 private actor AsyncRelease {
     private var isReleased = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -305,10 +358,23 @@ private actor AsyncRelease {
     }
 }
 
-/// Locked rather than an actor, because the callback under test may not await.
-private nonisolated final class Sink: @unchecked Sendable {
-    private let lock = NSLock()
-    private var stored: [String] = []
-    var values: [String] { lock.withLock { stored } }
-    func append(_ value: String) { lock.withLock { stored.append(value) } }
+private actor InputLog {
+    var values: [String?] = []
+    var secretWrites = 0
+    func write(_ input: SSHCommandInput?) throws -> Int {
+        switch input {
+        case .text(let text):
+            values.append(text)
+            return text.utf8.count
+        case .plain(let data):
+            values.append(String(decoding: data, as: UTF8.self))
+            return data.count
+        case nil:
+            values.append(nil)
+            return 0
+        case .secret(let secret):
+            secretWrites += 1
+            return try secret.withUnsafeBytes { $0.count }
+        }
+    }
 }

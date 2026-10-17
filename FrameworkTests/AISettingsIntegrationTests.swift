@@ -117,7 +117,7 @@ struct AISettingsIntegrationTests {
         try persistence.prepare()
         let library = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(persistence))
         #expect(library.skills.isEmpty)
-        #expect(library.catalog.names == ["skill-creator", "skill-installer"])
+        #expect(library.catalog.names == ["skill-creator", "skill-installer", "ssh-exec"])
         try persistence.prepare()
         #expect(try persistence.load().skills.isEmpty)
         let ai = AIConfigurationModel(persistence: SyncedAIConfigurationPersistence(persistence))

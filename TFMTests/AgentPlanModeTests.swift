@@ -61,7 +61,7 @@ private func spyTool(
     )
 }
 
-/// An `ssh_exec` stand-in whose preflight is the real one: the classifier
+/// An `ssh_exec_run` stand-in whose preflight is the real one: the classifier
 /// decides its approval policy, exactly as `AgentBuiltInSSHTools` does.
 private func execTool(ran: RanFlag) -> AnyAgentTool {
     let schema = AgentJSONValue.object([
@@ -72,7 +72,7 @@ private func execTool(ran: RanFlag) -> AnyAgentTool {
     ])
     return AnyAgentTool(
         descriptor: AgentToolDescriptor(
-            name: TermindAgentPolicy.sshExecToolName, summary: "exec",
+            name: TermindAgentPolicy.sshExecRunToolName, summary: "exec",
             inputSchema: schema, target: .host, approvalPolicy: .ask
         ),
         preflight: { invocation in
@@ -96,7 +96,7 @@ private func execTurns(_ command: String) -> [[AgentModelStreamEvent]] {
         [
             .toolCallSnapshot(
                 id: "call-0", providerItemID: nil,
-                name: TermindAgentPolicy.sshExecToolName, arguments: arguments
+                name: TermindAgentPolicy.sshExecRunToolName, arguments: arguments
             ),
             .finished(.toolCalls),
         ],
@@ -197,7 +197,7 @@ struct AgentPlanModeTests {
     // MARK: - Reading a server
 
     /// Reading state is most of planning, and the classifier fails closed — so
-    /// gating `ssh_exec` on "provably safe" refused most of the ways of asking
+    /// gating `ssh_exec_run` on "provably safe" refused most of the ways of asking
     /// what a machine is doing. The bar is destructiveness instead; anything
     /// unproven still meets the ordinary approval gate.
     @Test(arguments: [("vendorctl inspect", true), ("rm -rf /var/log/nginx", false), ("df -h", true)])
@@ -248,7 +248,7 @@ struct AgentPlanModeTests {
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
-        let tool = SSHExecTool(
+        let tool = SSHExecRunTool(
             authentication: AgentSSHAuthenticationRegistry(resolver: hosts),
             pool: pool,
             background: AgentBackgroundCommands(sweepInterval: nil)
@@ -259,7 +259,7 @@ struct AgentPlanModeTests {
                 runID: UUID(),
                 call: AgentToolCall(
                     id: UUID().uuidString,
-                    name: TermindAgentPolicy.sshExecToolName,
+                    name: TermindAgentPolicy.sshExecRunToolName,
                     arguments: .object([
                         "host_id": .string(host.id.uuidString),
                         "command": .string(command),
@@ -413,7 +413,7 @@ struct AgentPlanModeTests {
     }
 
     /// The runtime ships a contract that describes only the built-in tools.
-    /// Termind's names hosts, `ssh_exec` and the pull/push route, and that is the
+    /// Termind's names hosts, `ssh_exec_run` and the pull/push route, and that is the
     /// one a Termind run must actually be given — a plan drafted against the
     /// neutral text would not know commands were available.
     @Test
@@ -431,6 +431,6 @@ struct AgentPlanModeTests {
         #expect(planned.messages.count == 4)
         #expect(planned.messages[2].text == TermindAgentPolicy.planContract)
         #expect(planned.messages[2].text != AgentPlanContractInjection.contract)
-        #expect(planned.messages[2].text.contains("ssh_exec"))
+        #expect(planned.messages[2].text.contains("ssh_exec_run"))
     }
 }

@@ -114,7 +114,7 @@ extension AppStrings {
         }
 
         public static var secretHandleExplanation: LocalizedStringResource {
-            "Termind returns only a one-shot handle to the MCP client. The value is bound to this session, destination, ssh_exec, and purpose."
+            "Termind returns only a one-shot handle to the MCP client, never the secret itself."
         }
 
         public static var theUploadIsUnknownOrExpired: LocalizedStringResource {

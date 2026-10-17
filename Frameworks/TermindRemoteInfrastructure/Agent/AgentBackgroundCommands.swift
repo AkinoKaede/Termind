@@ -1,28 +1,6 @@
+import AgentKit
 import Foundation
 import TermindApplication
-
-/// What a command looks like to whoever asked about it.
-///
-/// One shape for both answers, because a caller that has to branch on which
-/// kind of reply it got is a caller that will forget to. `exitCode` is `nil`
-/// exactly when the command is still running.
-nonisolated public struct AgentCommandOutcome: Sendable {
-    public var handle: UUID
-    public var standardOut: String
-    public var standardError: String
-    public var exitCode: Int32?
-    public var signal: String?
-    public var isRunning: Bool { exitCode == nil }
-
-    public init(handle: UUID, standardOut: String, standardError: String, exitCode: Int32? = nil, signal: String? = nil)
-    {
-        self.handle = handle
-        self.standardOut = standardOut
-        self.standardError = standardError
-        self.exitCode = exitCode
-        self.signal = signal
-    }
-}
 
 /// Owns the identical timer lifecycle shared by idle registries. Each owning
 /// actor still decides what is idle and when an empty registry should stop it.
@@ -50,235 +28,222 @@ nonisolated public final class AgentIdleSweeper: @unchecked Sendable {
     deinit { task?.cancel() }
 }
 
-/// Commands that outlived the turn that started them.
-///
-/// A tool returns when it decides to, which for `ssh_exec` means reporting what
-/// it has rather than blocking a whole turn on a fifteen-minute deploy. The
-/// command keeps running on its own session lease, its output keeps arriving on
-/// the card, and this is where the model comes back for the rest of it. The
-/// authenticated connection remains in the Agent pool and can carry peers.
-///
-/// Owned by `AppModel` rather than by a run, because the point is to outlive
-/// one: a handle taken in one turn is answered in a later one, and a run that
-/// ends is not a reason to stop a deploy.
-///
-/// There is deliberately no "kill". Closing a session does not prove that the
-/// process on the far side stopped, so a tool by that name would promise what
-/// it cannot do. `sweepIdle` cancels the local task and retires only its session.
+/// Conversation/session-scoped commands, including starts that are still authenticating.
+/// Running commands never expire. Finished results expire from completion, not from last read.
 public actor AgentBackgroundCommands {
-    /// Long enough that a model which meant to come back gets the chance, short
-    /// enough that a forgotten `tail -f` does not hold a session open all day.
-    public static let defaultIdleTimeout = Duration.seconds(600)
-
     private struct Entry {
+        let scope: UUID
+        let hostID: UUID
+        let command: String
+        let startedAt: Date
+        let session: SSHExecSession
         let stream: AgentCommandOutputStream
-        let task: Task<SSHExecResult, any Error>
-        var lastAskedAt: ContinuousClock.Instant
+        let task: Task<Void, Never>
+        let completion: AgentCompletionSignal
+        var result: Result<SSHExecResult, any Error>?
+        var finishedAt: Date?
+        var completedAt: ContinuousClock.Instant?
     }
 
     private var entries: [UUID: Entry] = [:]
-    private let idleTimeout: Duration
-    /// `nil` disables the timer, for tests that drive `sweepIdle` themselves
-    /// with a synthetic instant. Same seam, and same reason, as the connection
-    /// pool's.
+    private let retention: Duration
     private let sweeper: AgentIdleSweeper
 
-    public init(
-        idleTimeout: Duration = AgentBackgroundCommands.defaultIdleTimeout,
-        sweepInterval: Duration? = .seconds(60)
-    ) {
-        self.idleTimeout = idleTimeout
+    public init(idleTimeout: Duration = .seconds(600), sweepInterval: Duration? = .seconds(60)) {
+        retention = idleTimeout
         sweeper = AgentIdleSweeper(interval: sweepInterval)
     }
 
     public var count: Int { entries.count }
 
-    /// Takes ownership of a command still in flight. Its task retains exactly
-    /// one session lease; the connection pool retains the shared connection.
-    public func adopt(
+    public func start(
+        scope: UUID, hostID: UUID, command: String, keepsStdinOpen: Bool,
         stream: AgentCommandOutputStream,
-        task: Task<SSHExecResult, any Error>,
-        now: ContinuousClock.Instant = .now
-    ) -> UUID {
+        operation: @escaping @Sendable (SSHExecSession) async throws -> SSHExecResult
+    ) async throws -> UUID {
+        try Task.checkCancellation()
         let handle = UUID()
-        entries[handle] = Entry(stream: stream, task: task, lastAskedAt: now)
-        startSweeping()
-        return handle
-    }
-
-    /// Waits up to `timeout` for the command behind `handle` to finish.
-    ///
-    /// Returns what it has either way. A wait that expires is not an error and
-    /// not a failure of the command — it is the same answer `ssh_exec` gave in
-    /// the first place, and the handle stays valid for another ask.
-    public func wait(
-        _ handle: UUID, timeout: Duration,
-        reporting: (@Sendable (String, String) -> Void)? = nil,
-        orWhen interjection: (@Sendable () async -> Void)? = nil,
-        now: ContinuousClock.Instant = .now
-    ) async throws -> AgentCommandOutcome {
-        guard var entry = entries[handle] else { throw AgentBackgroundCommandError.unknownHandle }
-        entry.lastAskedAt = now
-        entries[handle] = entry
-        // The output belongs under whichever call is answering for it, and from
-        // here that is this one: the `ssh_exec` that started the command has
-        // returned, and its progress gate is shut.
-        if let reporting { entry.stream.redirect(to: reporting) }
-
-        guard await Self.settled(entry.task, within: timeout, orWhen: interjection) else {
-            let captured = entry.stream.captured
-            return AgentCommandOutcome(
-                handle: handle, standardOut: captured.standardOut,
-                standardError: captured.standardError, exitCode: nil
-            )
+        let session = SSHExecSession(keepsStdinOpen: keepsStdinOpen)
+        let task = Task {
+            let result: Result<SSHExecResult, any Error>
+            do { result = .success(try await operation(session)) } catch { result = .failure(error) }
+            self.complete(handle, result: result)
+            switch result {
+            case .success: session.finish()
+            case .failure(let error): session.finish(error: error)
+            }
         }
-
-        // Finished, so the handle is done. The task already released its
-        // session; the shared connection returns to the Agent pool's idle clock.
-        entries.removeValue(forKey: handle)
-        stopSweepingIfEmpty()
-        let result = try await entry.task.value
-        return AgentCommandOutcome(
-            handle: handle, standardOut: result.stdout, standardError: result.stderr,
-            exitCode: result.exitCode, signal: result.signal
-        )
+        entries[handle] = Entry(
+            scope: scope, hostID: hostID, command: command, startedAt: .now,
+            session: session, stream: stream, task: task, completion: AgentCompletionSignal())
+        sweeper.start { [weak self] in await self?.sweepIdle() ?? 0 }
+        do {
+            try await withTaskCancellationHandler {
+                try await session.waitUntilStarted()
+                try Task.checkCancellation()
+            } onCancel: {
+                task.cancel()
+                session.cancellation.cancel()
+                session.finish(error: CancellationError())
+            }
+            _ = try entry(handle, scope: scope)
+            return handle
+        } catch {
+            entries.removeValue(forKey: handle)
+            stopSweepingIfEmpty()
+            throw error
+        }
     }
 
-    /// Lets go of anything nobody has asked about within the idle window, and
-    /// reports how many are left. Driven by the app, and called directly with a
-    /// synthetic instant by tests — the same shape as `AgentConnectionPool`.
-    @discardableResult
-    public func sweepIdle(now: ContinuousClock.Instant = .now) async -> Int {
-        let expired = entries.filter { now - $0.value.lastAskedAt >= idleTimeout }
-        for (handle, entry) in expired {
-            entries.removeValue(forKey: handle)
+    private func complete(_ handle: UUID, result: Result<SSHExecResult, any Error>) {
+        guard var entry = entries[handle] else { return }
+        entry.result = result
+        entry.finishedAt = .now
+        entry.completedAt = .now
+        entries[handle] = entry
+        entry.completion.signal()
+    }
+
+    public func waitForCompletion(
+        _ handle: UUID, scope: UUID, interjection: (@Sendable () async -> Void)? = nil
+    ) async throws {
+        let completion = try entry(handle, scope: scope).completion
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await completion.wait() }
+            if let interjection { group.addTask { await interjection() } }
+            _ = await group.next()
+            group.cancelAll()
+        }
+        try Task.checkCancellation()
+    }
+
+    public func command(_ handle: UUID, scope: UUID) throws -> (hostID: UUID, command: String) {
+        let entry = try entry(handle, scope: scope)
+        return (entry.hostID, entry.command)
+    }
+
+    public func output(_ handle: UUID, scope: UUID) throws -> AgentJSONValue {
+        let entry = try entry(handle, scope: scope)
+        var fields = metadata(handle, entry)
+        fields.removeValue(forKey: "command")
+        fields.removeValue(forKey: "started_at")
+        fields.removeValue(forKey: "finished_at")
+        let output = entry.stream.captured
+        fields["stdout"] = .string(output.standardOut)
+        fields["stderr"] = .string(output.standardError)
+        return .object(fields)
+    }
+
+    public func write(_ handle: UUID, scope: UUID, input: SSHCommandInput?) async throws -> AgentJSONValue {
+        let session = try entry(handle, scope: scope).session
+        let count = try await session.write(input)
+        return .object([
+            "handle": .string(handle.uuidString), "status": .string(input == nil ? "closed" : "written"),
+            "bytes_written": .number(Double(count)), "stdin_closed": .bool(session.stdinClosed),
+        ])
+    }
+
+    public func cancel(_ handle: UUID, scope: UUID) throws -> AgentJSONValue {
+        let entry = try entry(handle, scope: scope)
+        entries[handle] = nil
+        let running = entry.result == nil
+        entry.completion.signal()
+        entry.task.cancel()
+        entry.session.cancellation.cancel()
+        entry.session.finish(error: CancellationError())
+        stopSweepingIfEmpty()
+        return .object([
+            "handle": .string(handle.uuidString), "status": .string(running ? "cancelled" : "released"),
+            "was_running": .bool(running), "remote_termination_confirmed": .bool(false),
+        ])
+    }
+
+    public func list(scope: UUID, hostID: UUID? = nil, includeFinished: Bool = false) -> AgentJSONValue {
+        sweepIdle()
+        let commands = entries.filter {
+            $0.value.scope == scope && $0.value.session.started
+                && (hostID == nil || $0.value.hostID == hostID)
+                && (includeFinished || $0.value.result == nil)
+        }.sorted {
+            $0.value.startedAt == $1.value.startedAt
+                ? $0.key.uuidString < $1.key.uuidString : $0.value.startedAt > $1.value.startedAt
+        }.map { AgentJSONValue.object(metadata($0.key, $0.value)) }
+        return .object(["commands": .array(commands)])
+    }
+
+    public func hasActivity(scope: UUID) -> Bool {
+        entries.values.contains { $0.scope == scope && $0.result == nil }
+    }
+
+    public func close(scope: UUID) {
+        for (id, entry) in entries where entry.scope == scope {
+            entry.completion.signal()
             entry.task.cancel()
+            entry.session.cancellation.cancel()
+            entry.session.finish(error: CancellationError())
+            entries[id] = nil
+        }
+        stopSweepingIfEmpty()
+    }
+
+    public func closeAll() {
+        for entry in entries.values {
+            entry.completion.signal()
+            entry.task.cancel()
+            entry.session.cancellation.cancel()
+            entry.session.finish(error: CancellationError())
+        }
+        entries.removeAll()
+        stopSweepingIfEmpty()
+    }
+
+    @discardableResult
+    public func sweepIdle(now: ContinuousClock.Instant = .now) -> Int {
+        entries = entries.filter { _, entry in
+            guard let completed = entry.completedAt else { return true }
+            return now - completed < retention
         }
         stopSweepingIfEmpty()
         return entries.count
     }
 
-    public func closeAll() async {
-        let closing = entries.values
-        entries.removeAll()
-        stopSweepingIfEmpty()
-        for entry in closing {
-            entry.task.cancel()
+    private func entry(_ handle: UUID, scope: UUID) throws -> Entry {
+        sweepIdle()
+        guard let entry = entries[handle], entry.scope == scope, entry.session.started else {
+            throw AgentBackgroundCommandError.unknownHandle
         }
+        return entry
     }
 
-    /// Runs only while something is held. A timer ticking against an empty
-    /// registry is a wakeup a laptop pays for and nobody reads.
-    private func startSweeping() {
-        sweeper.start { [weak self] in
-            guard let self else { return 0 }
-            return await self.sweepIdle(now: .now)
+    private func metadata(_ handle: UUID, _ entry: Entry) -> [String: AgentJSONValue] {
+        var status = "running"
+        var code: AgentJSONValue = .null
+        var signal: AgentJSONValue = .null
+        var error: AgentJSONValue = .null
+        switch entry.result {
+        case .success(let result):
+            status = "exited"
+            code = .number(Double(result.exitCode))
+            signal = result.signal.map(AgentJSONValue.string) ?? .null
+        case .failure(let failure):
+            status = "failed"
+            error = .string(failure.localizedDescription)
+        case nil: break
         }
+        return [
+            "handle": .string(handle.uuidString), "host_id": .string(entry.hostID.uuidString),
+            "command": .string(entry.command), "status": .string(status),
+            "started_at": .string(entry.startedAt.ISO8601Format()),
+            "finished_at": entry.finishedAt.map { .string($0.ISO8601Format()) } ?? .null,
+            "exit_code": code, "signal": signal, "error": error,
+            "stdin_closed": .bool(entry.result != nil || entry.session.stdinClosed),
+        ]
     }
 
     private func stopSweepingIfEmpty() {
-        guard entries.isEmpty else { return }
-        sweeper.stop()
-    }
-
-    /// Whether the task settled inside the window, without cancelling it when
-    /// it did not — the command is meant to outlive the wait.
-    ///
-    /// Shared with `ssh_exec`, whose first wait is the same question asked with
-    /// a shorter deadline.
-    ///
-    /// The watcher is unstructured for a reason worth stating, because the
-    /// obvious version deadlocks: a task group awaits every child before it
-    /// returns, and `await task.result` ignores cancellation, so a child
-    /// watching a command that outlives the deadline pins the group open until
-    /// the command ends — which is precisely the case this exists to escape.
-    /// Nothing may await the watcher. It outlives this call by design, ends
-    /// when the command does, and signals into a gate that by then has no
-    /// listener.
-    public static func settled<T>(
-        _ task: Task<T, any Error>, within timeout: Duration,
-        orWhen interjection: (@Sendable () async -> Void)? = nil
-    ) async -> Bool {
-        let arrival = AgentCompletionSignal()
-        Task {
-            _ = await task.result
-            arrival.signal()
-        }
-        return await withTaskGroup(of: Bool.self) { group in
-            group.addTask {
-                await arrival.wait()
-                return true
-            }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return false
-            }
-            if let interjection {
-                // Reported the same way a deadline is, because to the caller it
-                // is the same answer: not finished yet, ask again. Nothing is
-                // cancelled and nothing is lost by stopping here.
-                group.addTask {
-                    await interjection()
-                    return false
-                }
-            }
-            let first = await group.next() ?? false
-            // Both children answer to cancellation — the sleeper by throwing,
-            // the waiter through its cancellation handler — so the group drains
-            // rather than waiting on the command.
-            group.cancelAll()
-            return first
-        }
+        if entries.isEmpty { sweeper.stop() }
     }
 }
-
-/// Decides once, for one command, whether it got far enough to be handed on.
-///
-/// Connecting is inside the deadline, because a hang is a hang whether it is
-/// DNS, a jump host or a handshake, and a turn that ends on time is the whole
-/// point. But a command that never started is not something there is anything
-/// to hand over — no session, no output, no handle worth giving — so the two
-/// outcomes have to be told apart, and told apart *once*: the call giving up
-/// and the command starting can happen at the same instant, and exactly one of
-/// them must win.
-nonisolated public final class AgentCommandHandover: @unchecked Sendable {
-    private enum State {
-        case connecting
-        case running
-        case abandoned
-    }
-
-    private let lock = NSLock()
-    private var state = State.connecting
-
-    /// The command is about to start. `false` means the call already gave up
-    /// while the connection was still being made, so it must not start at all —
-    /// a command nobody holds a handle to would run, print, and finish unseen.
-    public func beginRunning() -> Bool {
-        lock.withLock {
-            guard case .connecting = state else { return false }
-            state = .running
-            return true
-        }
-    }
-
-    /// Stop waiting. `true` means the command already owns a session and needs
-    /// a background handle; `false` means it never started.
-    public func giveUp() -> Bool {
-        lock.withLock {
-            switch state {
-            case .running: return true
-            case .connecting, .abandoned:
-                state = .abandoned
-                return false
-            }
-        }
-    }
-}
-
-/// Thrown by a command that was abandoned before it started, so the connection
-/// it was waiting on is kept while the command itself is not.
-nonisolated public struct AgentCommandNotStarted: Error {}
 
 /// A one-shot arrival bell whose wait can be abandoned.
 ///
@@ -287,23 +252,24 @@ nonisolated public struct AgentCommandNotStarted: Error {}
 nonisolated public final class AgentCompletionSignal: @unchecked Sendable {
     private let lock = NSLock()
     private var hasArrived = false
-    private var waiter: CheckedContinuation<Void, Never>?
+    private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
     public func signal() {
-        let resume: CheckedContinuation<Void, Never>? = lock.withLock {
+        let pending = lock.withLock {
             hasArrived = true
-            defer { waiter = nil }
-            return waiter
+            defer { waiters.removeAll() }
+            return Array(waiters.values)
         }
-        resume?.resume()
+        for waiter in pending { waiter.resume() }
     }
 
     public func wait() async {
+        let id = UUID()
         await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 let arrived: Bool = lock.withLock {
-                    if hasArrived { return true }
-                    waiter = continuation
+                    if hasArrived || Task.isCancelled { return true }
+                    waiters[id] = continuation
                     return false
                 }
                 if arrived { continuation.resume() }
@@ -312,8 +278,7 @@ nonisolated public final class AgentCompletionSignal: @unchecked Sendable {
             // Releases the waiter without claiming the thing arrived: giving up
             // on a wait is not the same event as the command finishing.
             let resume: CheckedContinuation<Void, Never>? = lock.withLock {
-                defer { waiter = nil }
-                return waiter
+                waiters.removeValue(forKey: id)
             }
             resume?.resume()
         }
@@ -322,16 +287,5 @@ nonisolated public final class AgentCompletionSignal: @unchecked Sendable {
 
 nonisolated public enum AgentBackgroundCommandError: LocalizedError, Sendable {
     case unknownHandle
-
-    public var errorDescription: String? {
-        switch self {
-        case .unknownHandle:
-            String(
-                localized: """
-                    No command is running under that handle. It finished and was already reported, \
-                    or it was released after going unasked-about for too long.
-                    """
-            )
-        }
-    }
+    public var errorDescription: String? { "Unknown or expired command handle in this session." }
 }

@@ -102,7 +102,7 @@ struct MCPServerSessionTests {
         let (listed, response) = try await post("tools/list", id: 2, sessionID: sessionID)
         #expect(response.statusCode == 200)
         let envelope = try AgentJSONValue.decode(listed).objectValue
-        #expect(envelope?["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+        #expect(envelope?["result"]?.objectValue?["tools"]?.arrayValue?.count == 21)
         if version == "2026-07-28" {
             #expect(envelope?["result"]?.objectValue?["ttlMs"] == .number(0))
             #expect(envelope?["result"]?.objectValue?["cacheScope"] == .string("private"))
@@ -236,7 +236,7 @@ struct MCPServerSessionTests {
         #expect(result["resultType"] == .string("complete"))
         #expect(result["supportedVersions"]?.arrayValue?.count == 5)
         let listed = await server.handle(request("tools/list"))
-        #expect(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+        #expect(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue?.count == 21)
         let mismatch = await server.handle(request("tools/list", mirrored: "tools/call"))
         #expect(mismatch.status == 400)
         #expect(try responseObject(mismatch)["error"]?.objectValue?["code"] == .number(-32020))
@@ -281,7 +281,7 @@ struct MCPServerSessionTests {
             let responses = try #require(try AgentJSONValue.decode(data).arrayValue)
             #expect(responses.count == 3)
             #expect(responses[0].objectValue?["id"] == .string("list"))
-            #expect(responses[0].objectValue?["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+            #expect(responses[0].objectValue?["result"]?.objectValue?["tools"]?.arrayValue?.count == 21)
             #expect(responses[1].objectValue?["id"] == .number(7))
             #expect(responses[2].objectValue?["error"]?.objectValue?["code"] == .number(-32600))
             let notifications = await server.handle(jsonRequest("[" + notification + "]", sessionID: id))
@@ -329,10 +329,10 @@ struct MCPServerSessionTests {
             initialized["result"]?.objectValue?["instructions"]?.stringValue
         )
         #expect(instructions.contains("request_user_secret"))
-        #expect(instructions.contains("stdin_purpose"))
-        #expect(instructions.contains("only once"))
-        #expect(instructions.contains("not required for SSH login or ordinary commands"))
-        #expect(instructions.contains("no open interactive terminal is required"))
+        #expect(instructions.contains("ssh_exec_stdin (type=text/secret/eof)"))
+        #expect(instructions.contains("one-shot handle"))
+        #expect(instructions.contains("Termind handles SSH/SFTP authentication"))
+        #expect(instructions.contains("non-PTY commands"))
 
         let notification = await protocolServer.handle(
             jsonRequest(
@@ -349,9 +349,9 @@ struct MCPServerSessionTests {
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
         )
-        #expect(tools.count == 18)
+        #expect(tools.count == 21)
         let readOnly = Set([
-            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
+            "list_hosts", "get_metrics", "request_user_secret", "ssh_exec_output", "ssh_exec_list",
             "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
         ])
         for tool in tools {
@@ -520,15 +520,13 @@ struct MCPServerSessionTests {
                 #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
                 sessionID: sessionID, version: "2025-06-18"
             ))
-        let hostID = UUID()
         let call = Task {
             await protocolServer.handle(
                 jsonRequest(
                     """
                     {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
                       "name":"request_user_secret","arguments":{
-                        "prompt":"Password for sudo","host_id":"\(hostID.uuidString)",
-                        "consumer_tool":"ssh_exec","purpose":"sudo password"
+                        "prompt":"Password for sudo","purpose":"sudo password"
                       }
                     }}
                     """, sessionID: sessionID, version: "2025-06-18"))

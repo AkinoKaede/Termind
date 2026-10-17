@@ -13,6 +13,7 @@ import Foundation
 /// cases, so cards written by earlier releases still decode and still render.
 nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
     public static let command = Self("command")
+    public static let commandOutput = Self("commandOutput")
     public static let hosts = Self("hosts")
     public static let metrics = Self("metrics")
     public static let remoteCommand = Self("remoteCommand")
@@ -24,6 +25,7 @@ nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
 
 nonisolated extension AgentToolDescriptor.Presentation.ActionKind {
     public static let provide = Self("provide")
+    public static let cancel = Self("cancel")
 }
 
 nonisolated extension AgentToolDescriptor.Presentation.PhaseKind {

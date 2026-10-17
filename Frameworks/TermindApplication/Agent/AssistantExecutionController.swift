@@ -502,6 +502,7 @@ public final class AssistantExecutionController {
         let interaction = WeakAgentUserInteraction(conversation)
         let services = AgentToolServices()
             .setting(interaction.sshInteraction, for: .sshInteraction)
+            .setting(true, for: .sshInterjectionEnabled)
             .setting(interaction.mcpAuthorization, for: .mcpAuthorization)
         let guardianServices = AgentToolServices()
             .setting(AgentSSHInteraction.unavailable, for: .sshInteraction)
@@ -573,6 +574,7 @@ public final class AssistantExecutionController {
             model: model, registry: registry,
             approval: approval,
             repository: agentRunRepository,
+            secretBroker: conversation.secretBroker,
             userInteraction: interaction,
             services: services,
             hooks: [TermindAgentPolicy.planModeHook(isPlanning: isPlanning)],

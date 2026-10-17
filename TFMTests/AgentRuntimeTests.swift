@@ -894,29 +894,6 @@ struct AgentRuntimeTests {
         #expect(descriptors.first { $0.name == "destructive" }?.concurrency == .sequential)
     }
 
-    @Test
-    func secretHandlesAreSingleUseAndBindingScoped() async throws {
-        let broker = SecretBroker()
-        let binding = SecretBinding(
-            runID: UUID(), toolName: "ssh_exec", hostID: UUID(), purpose: "sudo"
-        )
-        let handle = try await broker.issue(agentSecret("password"), binding: binding)
-
-        await #expect(throws: SecretBrokerError.bindingMismatch) {
-            try await broker.consume(
-                handle,
-                matching: SecretBinding(
-                    runID: binding.runID, toolName: "fetch",
-                    hostID: binding.hostID, purpose: binding.purpose
-                )
-            )
-        }
-        let consumed = try await broker.consume(handle, matching: binding)
-        #expect(try consumed.withUnsafeBytes { Array($0) } == Array("password".utf8))
-        await #expect(throws: SecretBrokerError.notFound) {
-            try await broker.consume(handle, matching: binding)
-        }
-    }
 }
 
 private actor Recorder {

@@ -123,7 +123,7 @@ import Testing
         #expect(value.invocation.call.arguments.objectValue?["query"]?.stringValue == query)
     }
 
-    @Test func wholeCardPreviewSharesItsBudgetAndPreservesFullCopy() {
+    @Test func wholeCardPreviewSharesItsBudgetAndPreservesFullContent() {
         let text = String(repeating: "中🧭", count: 900)
         let detail = AgentToolDetail(
             items: (0..<32).map { .text(.init(title: "Block \($0)", text: text, style: .plain)) })

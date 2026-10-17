@@ -139,7 +139,6 @@ struct ExternalAuthWindow: View {
         case .secret(let request):
             ExternalSecretRequestForm(
                 request: request,
-                hostName: request.hostID.flatMap { app.hostLibrary.host($0)?.name },
                 submit: { response in
                     app.externalAuthentication.respondSecret(response)
                 }
@@ -257,7 +256,6 @@ private final class ExternalAuthWindowChromeBridgeView: NSView {
 /// Secret-only checkpoint used by the external `request_user_secret` tool.
 private struct ExternalSecretRequestForm: View {
     let request: AgentUserInputRequest
-    let hostName: String?
     let submit: (AgentUserInputResponse) -> Void
 
     @State private var secret = ""
@@ -273,9 +271,6 @@ private struct ExternalSecretRequestForm: View {
                 Text(question.prompt)
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            if let hostName {
-                LabeledContent(AppStrings.MCP.destination.swiftUIKey, value: hostName)
             }
             if !request.purpose.isEmpty {
                 LabeledContent(AppStrings.MCP.purpose.swiftUIKey, value: request.purpose)

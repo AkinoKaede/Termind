@@ -30,7 +30,7 @@ private actor SurfaceAvailabilityModel: AgentModelStreaming {
         AsyncThrowingStream { continuation in
             Task {
                 if await nextTurn() == 0 {
-                    for (index, name) in ["terminal_suggest", "ssh_exec", "sftp_read"].enumerated() {
+                    for (index, name) in ["terminal_suggest", "ssh_exec_run", "sftp_read"].enumerated() {
                         continuation.yield(
                             .toolCallSnapshot(
                                 id: "call-\(index)", providerItemID: nil,
@@ -106,32 +106,34 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(registry.available(in: .reviewing).descriptors.isEmpty)
         #expect(
             planning == [
-                "get_metrics", "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
+                "get_metrics", "list_hosts", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel",
+                "ssh_exec_list", "terminal_suggest",
                 "sftp_list", "sftp_stat", "sftp_read", "scratch_pull",
             ])
         #expect(
             acting == [
-                "get_metrics", "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
+                "get_metrics", "list_hosts", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel",
+                "ssh_exec_list", "terminal_suggest",
                 "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
                 "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "scratch_pull",
                 "scratch_push",
             ])
-        let exec = try #require(catalog.first { $0.name == "ssh_exec" })
-        #expect(registry.available(in: .planning).descriptors.first { $0.name == "ssh_exec" } == exec)
-        #expect(exec.summary.contains("discover host_id with list_hosts"))
-        #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
+        let exec = try #require(catalog.first { $0.name == "ssh_exec_run" })
+        #expect(registry.available(in: .planning).descriptors.first { $0.name == "ssh_exec_run" } == exec)
+        #expect(exec.summary.contains("Discover host_id with list_hosts"))
+        #expect(exec.summary.contains("Termind handles login"))
         #expect(
             catalog.first { $0.name == "list_hosts" }?.summary.contains("no session context") == true
         )
 
-        let planningExec = try #require(planningRegistry["ssh_exec"])
-        let actingExec = try #require(actingRegistry["ssh_exec"])
+        let planningExec = try #require(planningRegistry["ssh_exec_run"])
+        let actingExec = try #require(actingRegistry["ssh_exec_run"])
         let hostID = UUID()
         func invocation(_ command: String) -> AgentToolInvocation {
             AgentToolInvocation(
                 runID: UUID(),
                 call: AgentToolCall(
-                    id: UUID().uuidString, name: "ssh_exec",
+                    id: UUID().uuidString, name: "ssh_exec_run",
                     arguments: .object([
                         "host_id": .string(hostID.uuidString), "command": .string(command),
                     ])))
@@ -157,7 +159,7 @@ struct AgentBuiltInToolAvailabilityTests {
             model: SurfaceAvailabilityModel(),
             tools: [
                 surfaceTool("terminal_suggest", log: log),
-                surfaceTool("ssh_exec", log: log),
+                surfaceTool("ssh_exec_run", log: log),
                 surfaceTool("sftp_read", log: log),
             ],
             approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
@@ -175,9 +177,9 @@ struct AgentBuiltInToolAvailabilityTests {
         }
 
         let executed = await log.snapshot()
-        #expect(executed.contains("ssh_exec"))
+        #expect(executed.contains("ssh_exec_run"))
         #expect(executed.contains("sftp_read"))
-        #expect(results["ssh_exec"]?.isError == false)
+        #expect(results["ssh_exec_run"]?.isError == false)
         #expect(results["sftp_read"]?.isError == false)
         #expect(executed.contains("terminal_suggest") == terminalSuggestionsAvailable)
         #expect(results["terminal_suggest"]?.isError == !terminalSuggestionsAvailable)
@@ -193,7 +195,7 @@ struct AgentBuiltInToolAvailabilityTests {
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
-        let tool = SSHExecTool(
+        let tool = SSHExecRunTool(
             authentication: AgentSSHAuthenticationRegistry(resolver: hosts), pool: pool,
             background: AgentBackgroundCommands(sweepInterval: nil)
         )
@@ -205,12 +207,9 @@ struct AgentBuiltInToolAvailabilityTests {
         try AgentJSONSchemaValidator.validate(arguments, against: schema)
         #expect(schema.objectValue?["required"]?.arrayValue == [.string("host_id"), .string("command")])
         let properties = try #require(schema.objectValue?["properties"]?.objectValue)
-        #expect(properties["secret_handle"]?.objectValue?["description"]?.stringValue?.contains("Omit when") == true)
-        #expect(
-            properties["stdin_purpose"]?.objectValue?["description"]?.stringValue?.contains("Omit otherwise") == true
-        )
+        #expect(Set(properties.keys) == ["host_id", "command", "run_in_background"])
         let checked = try await tool.preflight(
-            .init(runID: UUID(), call: .init(id: "inspect", name: "ssh_exec", arguments: arguments))
+            .init(runID: UUID(), call: .init(id: "inspect", name: "ssh_exec_run", arguments: arguments))
         )
         #expect(checked.invocation.targetHostID == hostID)
         #expect(checked.approvalPolicy == .approve)
