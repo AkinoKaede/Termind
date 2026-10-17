@@ -46,6 +46,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-ead8e57ca19639dd536b792d
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
   - id: openwiki-source-59a6dc91233502e57398e06a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentPaneTools.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
@@ -118,10 +120,10 @@ sources:
     resource: repo://TFMTests/MCPServerToolsTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Agent Runtime and Assistant
@@ -133,6 +135,8 @@ This split is a security boundary as well as a modularity boundary. A model prop
 ## Responsibilities and assembly
 
 The two native apps provide different surface adapters, not separate agent engines: desktop `AppModel` injects host services, pane access and a shared chat coordinator into `AssistantExecutionController`; mobile `MobileAppModel` creates `MobileAssistantModel`, which injects the same registry builder, repository and coordinator. Both paths eventually construct `AgentProviderClient` and `AgentRuntime` in the shared controller, handing its events to `ConversationModel`. The macOS MCP server is a separate external tool-execution surface, not the Assistant's provider loop.
+
+`AgentHostServices.live` is the common host-stack composition boundary: it creates the resolver, connection pool, authentication registry and background-command service using the app's `RemoteConnectionCoordinator` and SFTP concurrency scheduler. Desktop passes those same instances to Assistant and the MCP server; mobile injects the bundle into `MobileAssistantModel`. Connection configuration and route fingerprints resolve through the host library, and the pool consults the host's agent-forwarding setting. This reuses the app's remote-connection infrastructure rather than constructing an Assistant-only transport backend. See [Platform Runtime](../architecture/platform-runtime.md) and [Remote Services and Forwarding](remote-services-and-forwarding.md).
 
 ```mermaid
 flowchart TD
@@ -347,7 +351,7 @@ Approval is evaluated after schema validation and tool preflight, before executi
 
 `fullAccess` does not bypass schema validation, host-key trust, SSH authentication, secret binding, scratch containment, network/fetch restrictions, or tool-specific capability checks. Guardian review is only configured in `approveForMe`; it has a bounded timeout and failures, malformed output, inconsistent decisions, and critical-risk approvals fail closed. If the conversation disappears before a manual decision, the approval broker denies the request.
 
-SSH authentication and host-key prompts are Termind interactions, not model-visible tool data. `AgentHostResolver` exposes public host metadata to `list_hosts`, but resolves Keychain-backed credentials into connection configuration without serializing them into tool results. Authentication context is shared only across overlapping attempts for the same destination; after successful authentication it clears staged submissions and cached secret-bearing configuration. Stale generations reject late callbacks and host-key decisions.
+SSH authentication and host-key prompts are Termind interactions, not model-visible tool data. `AgentHostResolver` exposes public host metadata to `list_hosts`, but resolves Keychain-backed credentials into connection configuration without serializing them into tool results. Authentication context is normally shared only across overlapping attempts for the same destination (forwarding-enabled operations use isolated contexts); after successful authentication it clears staged submissions and cached secret-bearing configuration. Stale generations reject late callbacks and host-key decisions.
 
 `request_user_secret` is only for command standard input, not SSH login. Its handle is scoped to run, tool, host, and stated purpose, single-use, and is removed from replay and durable history. Plaintext secrets must not enter model requests, Guardian review, events, logs, SwiftData, or Hermes memory.
 
@@ -379,7 +383,7 @@ This interaction sequence describes the queue's per-head deadline, not the lifet
 
 ## Host tools and plan mode
 
-Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` accepts only a command and creates a user-operated card without executing it. The schema rejects an `explanation` argument, the result contains command/risk/requires-user-action, and legacy explanation fields are not displayed. Suggested commands use the shared `SuggestedCommandCodeBlock`; permission and captured surface availability remain separate from rendering. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. Separately, `list_panes` and `read_pane` inspect *already open* local terminal viewports through the captured app adapter, including connected SSH, Telnet, and (on desktop) serial panes; they do not create a PTY or run a command. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
+Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` normally shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. With agent forwarding enabled, each operation instead gets its own authentication context; it does not join the host-shared context. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` accepts only a command and creates a user-operated card without executing it. The schema rejects an `explanation` argument, the result contains command/risk/requires-user-action, and legacy explanation fields are not displayed. Suggested commands use the shared `SuggestedCommandCodeBlock`; permission and captured surface availability remain separate from rendering. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. Separately, `list_panes` and `read_pane` inspect *already open* local terminal viewports through the captured app adapter, including connected SSH, Telnet, and (on desktop) serial panes; they do not create a PTY or run a command. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
 
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 

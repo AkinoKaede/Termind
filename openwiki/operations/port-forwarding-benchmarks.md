@@ -1,6 +1,6 @@
 ---
 type: benchmark-operations
-title: Port Forwarding Benchmark Design, Results, and Reproduction
+title: Port Forwarding Benchmarks
 description: Historical forwarding measurements, workload semantics, retained transport decisions, comparison limits, and reproducible loopback commands.
 tags: [ssh, port-forwarding, benchmark, performance, openssh]
 sources:
@@ -16,13 +16,15 @@ sources:
     resource: repo://Scripts/ssh-forwarding-openssh-fixture.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+  - id: openwiki-source-c70098228d301514a5a44981
+    resource: repo://TFMTests/SSHForwardingWireTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
-# Port Forwarding Benchmark Design, Results, and Reproduction
+# Port Forwarding Benchmarks
 
 This page preserves measurements taken on 2026-09-19 and 2026-09-20. They are historical engineering evidence, not current capacity claims, WAN predictions, or CI thresholds. The recorded machine was an M3 Pro with 36 GiB running macOS 26.6.2; the final OpenSSH comparison used Xcode 27.1 (27A9269).
 
@@ -40,19 +42,42 @@ This page preserves measurements taken on 2026-09-19 and 2026-09-20. They are hi
 
 `Benchmarks/PortForwarding/main.swift` is a standalone Release command-line target. It validates every payload and EOF before emitting metrics; dedicated client threads avoid Dispatch worker starvation. TFMTests and TFITests retain functional wire coverage, but neither a test bundle nor Termind.app hosts the benchmark.
 
-The complete workload matrix is:
+The timed workload matrix is:
 
 - request/response: 1, 16, or 64 streams, nine 64 KiB exchanges each;
 - duplex: 1, 16, or 64 streams, 129 × 64 KiB in each direction per stream, with independent producers and consumers;
 - jumps: each forwarding kind, 16 streams, through one or two bridges;
 - mixed: eight bulk streams plus sixteen 64-byte request streams, direct or through one/two jumps; and
-- lifecycle: slow consumer, backpressured disconnect, independent/cancelled listeners, reuse, fragmented SOCKS, and a five-second idle two-jump connection.
+- idle: a five-second idle two-jump connection (reported separately from the JSON workload records).
 
-Throughput is useful payload per direction. Elapsed time includes setup. Ready p95 includes connect, channel, target, first probe, and SOCKS negotiation where applicable; request latency starts afterward, so a low request p95 can hide slow admission. CPU is whole benchmark host plus clients but excludes the server. RSS is process-lifetime peak, not transport-only or per-flow allocation. Runs were sequential Release hosts without competing builds/suites, though ordinary desktop apps remained active. Encrypted loopback does not establish WAN, physical-iOS, or proportional multi-connection behavior.
+Slow-consumer, backpressured-disconnect, independent/cancelled-listener, reuse, and fragmented-SOCKS cases belong to functional wire/lifecycle coverage, not the standalone timed workload matrix.
+
+Throughput is useful payload per direction. In the current standalone runner, SSH connection setup, rule start, and pool warm-up finish before elapsed-time and CPU sampling begin; elapsed time still includes client stream setup and admission. Ready p95 includes connect, channel, target, first probe, and SOCKS negotiation where applicable; request latency starts afterward, so a low request p95 can hide slow admission. CPU is whole benchmark host plus clients but excludes the server. RSS is process-lifetime peak, not transport-only or per-flow allocation. Runs were sequential Release hosts without competing builds/suites, though ordinary desktop apps remained active. Encrypted loopback does not establish WAN, physical-iOS, or proportional multi-connection behavior.
 
 ## Multi-connection and system-SSH modes
 
 `Scripts/benchmark-port-forwarding.py` builds the standalone Release runner once and accepts an ordered, deduplicated list of Termind maximum-connection values from 1 through 64; the default is one. Local and dynamic rules may use the pool. Remote forwarding remains on the primary worker regardless of that maximum.
+
+### Rule start, admission, and warm-up
+
+For Local and Dynamic, pool start registers the shared rule on every existing slot, including draining slots that could later be retained again, **before** starting the stable local listener. It then requests pool growth. A start failure removes the registration, stops it on slots that installed it, and stops the listener. Remote start instead installs its listener on the primary connection only.
+
+Accepted Local/Dynamic sockets are assigned only to slots that have the rule and are not draining. Selection uses the lowest reported per-rule flow count, with round-robin tie-breaking. Registering a rule on a draining slot does not make that slot eligible for new flows.
+
+```mermaid
+flowchart TD
+    Rule["Start forwarding rule"] --> Kind{"Remote?"}
+    Kind -->|Yes| Primary["Start on primary connection"]
+    Kind -->|No| Register["Register shared rule on existing slots"]
+    Register --> Listener["Start stable local listener"]
+    Listener --> Grow["Request auxiliary connections"]
+    Listener --> Accept["Accept client socket"]
+    Accept --> Eligible["Choose registered non-draining slot"]
+    Eligible --> Worker["Hand socket to worker"]
+```
+The pool separates shared-listener ownership from per-connection flow admission.
+
+The runner starts the rule and then waits up to 120 seconds for the connected pool count to equal the effective maximum before sampling workload time and CPU. Remote uses an effective maximum of one. Auxiliary opening/installation is limited to four concurrent slots, and new slots install shared rules before joining the connected set. Thus current multi-connection records measure a warmed pool, not cold expansion latency; `ssh_connections` records the connected count at the end of the workload. Historical medians below should not be reinterpreted as measurements of this current start ordering. See [Port Forwarding Pool and Dispatch](../workflows/port-forwarding-pool-and-dispatch.md) for the runtime lifecycle.
 
 `Scripts/benchmark-external-port-forwarding.py system-ssh` measures one macOS `/usr/bin/ssh` process and one direct connection for Local, Dynamic, and Remote using `ssh -N -L`, `-D`, and `-R`. Its `external` mode measures an already-running third-party listener as a direct single-connection black box. Manual mode reports network metrics only because it cannot attribute startup, CPU, or RSS to a process it does not own. Both scripts use the same record and median JSON shape.
 

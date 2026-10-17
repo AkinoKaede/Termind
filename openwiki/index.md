@@ -4,7 +4,7 @@ okf_version: "0.2"
 
 # Files
 
-- [Quickstart and Task Routing](quickstart.md) - Route Termind coding tasks to system owners, focused workflows, and safe validation commands. Start with the changed boundary, then follow its guide to authoritative source and behavioral tests.
+- [Repository Quickstart](quickstart.md) - Route Termind changes to architecture owners, connection and data workflows, focused regressions, and safe build and release checks. Source and tests remain authoritative.
 
 # Directories
 

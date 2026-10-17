@@ -1,7 +1,7 @@
 ---
 type: asset-production-operations
-title: Screenshots, Marketing Assets and App Icons
-description: Capture localized native screenshots and generate staged device frames with parent-owned tooling. Separate locally verified safety guarantees from external artwork, website and publication checks.
+title: Marketing Assets and App Icons
+description: Ownership and safe updates for localized marketing captures, layered app icons, and runtime host artwork. Covers asset gitlinks, reproducible generation, licensing boundaries, and focused validation.
 tags: [marketing, screenshots, fastlane, frameit, figma, app-store, app-icons, localization, submodules]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -22,10 +22,16 @@ sources:
     resource: repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md
   - id: openwiki-source-ac4b9ccbbbd2382cffc03d61
     resource: repo://Frameworks/Resources/HostIcons/Tabler.LICENSE
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-866341f196647650530299c9
+    resource: repo://Frameworks/TermindDomain/Hosts/DetectedDistribution.swift
   - id: openwiki-source-18713c72c4812e786f8b4a30
     resource: repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift
   - id: openwiki-source-a6809548e658973d3caeb87b
     resource: repo://Frameworks/TermindPresentation/HostDistributionIcon.swift
+  - id: openwiki-source-28be9e896480b5fed2906a16
+    resource: repo://Frameworks/TermindPresentation/HostGeneralIcon.swift
   - id: openwiki-source-46c1c5043fd4f996167d68c1
     resource: repo://Frameworks/TermindPresentation/HostIconBrandColor.swift
   - id: openwiki-source-6c30416f939593ee31f56380
@@ -36,6 +42,10 @@ sources:
     resource: repo://Frameworks/TermindPresentation/HostSystemIcon.swift
   - id: openwiki-source-b41ffbd407a598b50512e10b
     resource: repo://FrameworkTests/HostIconTests.swift
+  - id: openwiki-source-eefd85c14b9b6cec85a25f0e
+    resource: repo://FrameworkTests/RemoteSystemInfoTests.swift
+  - id: openwiki-source-594e862c8015f1a9436bd748
+    resource: repo://Scripts/linux-distribution-icons.json
   - id: openwiki-source-88fc7ecb318dc280f6715036
     resource: repo://Scripts/render-pro-paywall-icon.swift
   - id: openwiki-source-60d4159ef162d09de4f4b469
@@ -72,10 +82,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Marketing Assets and App Icons
@@ -347,26 +357,32 @@ The renderer checks the initialized asset checkout and writes `design/paywall/pr
 
 ## Runtime host artwork
 
-Host artwork describes a host, not the Termind application brand or connection status. [HostIconCatalog](../../Frameworks/TermindPresentation/HostIconCatalog.swift) loads `HostIcons.json` from `Bundle.main`; missing or undecodable data produces an empty catalog. The current catalog replaces the missing `LinuxDistributionIconCatalog` reference in this guide. The generated asset directory is still named `Assets.xcassets/LinuxDistributions`, but now also contains `HostOS-macos` and `HostOS-windows`.
+Host artwork describes a host, not the Termind application brand or connection status. [HostIconCatalog](../../Frameworks/TermindPresentation/HostIconCatalog.swift) loads `HostIcons.json` from `Bundle.main`; missing or undecodable data produces an empty catalog. `HostIcons.json` is the current runtime catalog, not the former `LinuxDistributionIcons.json`. The generated asset directory is still named `Assets.xcassets/LinuxDistributions`, but contains OS-family artwork as well as Linux distribution artwork, including generic Linux and BSD resources.
 
 ### Automatic detection versus saved choice
 
-`HostIconPicker` in host organization fields offers **Automatic** (`nil`), **Server** (`"server"`), then macOS, Windows and the remaining entries sorted by localized title. An unknown saved ID remains visible as an unknown choice rather than being silently discarded.
+`HostIconPicker` in host organization fields has three separated groups: **Automatic** (`nil`), general-purpose `HostGeneralIcon` choices in their declared order (Server first, followed by choices such as Cloud and Terminal), and all catalog OS/distribution entries. Catalog titles sort case-insensitively using `en_US`, with stable IDs breaking ties; macOS and Windows are not pinned ahead of the other systems. General-purpose labels are localized; catalog titles are displayed verbatim. An unknown saved ID remains visible as an unknown choice rather than being silently discarded.
 
-- Automatic resolves the detected distribution's exact ID, then its ordered `likeIDs`. Darwin detection maps to `macos` without pretending that Linux `/etc/os-release` metadata was returned. Other non-Linux kernels, including `Windows_NT`, resolve to no detected artwork; the Windows catalog entry is an explicit artwork choice, not proof of Windows auto-detection. Unavailable probe data leaves the prior detection unchanged.
-- A non-nil `iconOverrideID` wins outright. `"server"` and unknown IDs resolve to no catalog entry and therefore the generic `server.rack`, **not** the detected Linux icon. Clearing the override uses the latest recorded detection.
+- Automatic resolves the detected distribution's exact ID, then its ordered `likeIDs`, then the catalog's generic Linux entry. With no detected distribution, it uses `server.rack`. Darwin detection maps to `macos`; FreeBSD, OpenBSD, NetBSD and DragonFly map to their lowercased kernel IDs without inventing Linux `/etc/os-release` fields. DragonFly matches the generic BSD artwork through its catalog alias. Linux without a distribution ID records `linux`, so unknown or metadata-free Linux hosts receive Linux artwork rather than the server fallback.
+- Missing kernel/probe data is **unavailable** and leaves prior detection unchanged. Unsupported kernels, including `Windows_NT` and SunOS, are **resolved with no distribution** and clear prior detection. Windows artwork remains a manual choice, not Windows auto-detection. `DetectedDistribution` retains normalized family IDs and ordered related IDs, not OS versions, avoiding artwork mutations for point upgrades.
+- A non-nil `iconOverrideID` wins outright. A recognized `HostGeneralIcon` uses its SF Symbol; a catalog ID uses its template asset. Unknown IDs use generic `server.rack`, **not** the detected Linux icon. `"server"` explicitly selects `server.rack`. General-purpose IDs are manual choices, not distribution aliases. Clearing the override uses the latest recorded detection.
 - The override changes presentation only: probes continue updating `detectedDistribution`, and saving artwork does not reconnect sessions. It is saved/synced, including Tailscale host preferences; failed saves must not publish draft artwork. Legacy host data defaults to Automatic, and unknown IDs survive round trips.
 
 ```mermaid
 flowchart TD
     Host[Host artwork request] --> Override{Saved override present?}
-    Override -->|Yes| Lookup[Look up override ID]
+    Override -->|Yes| General{Known general-purpose ID?}
+    General -->|Yes| Symbol[Render selected SF Symbol]
+    General -->|No| Lookup[Look up override ID]
     Lookup --> Entry{Catalog entry found?}
-    Override -->|No| Detect[Match detected ID then ordered like IDs]
+    Override -->|No| Detected{Detection recorded?}
+    Detected -->|Yes| Detect[Match ID then like IDs then generic Linux]
+    Detected -->|No| Generic[Render server.rack]
     Detect --> Entry
     Entry -->|Yes| Asset[Render template asset]
-    Entry -->|No| Generic[Render server.rack]
-    Asset --> Tint[Host color then adapted brand color then accent]
+    Entry -->|No| Generic
+    Symbol --> Tint[Host color then adapted brand color then accent]
+    Asset --> Tint
     Generic --> Tint
 ```
 The override is authoritative even when unknown; detection is only consulted in Automatic mode.
@@ -383,13 +399,13 @@ python3 Scripts/update-host-icons.py --simple-icons-version 16.29.0 --tabler-ver
 Scripts/update-linux-distribution-icons.sh 16.29.0
 ```
 
-The shell compatibility wrapper **still exists** and delegates to the host updater; do not describe it as removed. The Python updater requires explicit release-shaped versions rather than moving tags, checks npm metadata version and SHA-512 tarball integrity, and uses `Scripts/linux-distribution-icons.json` as the Linux selection/alias input. It adds Apple/macOS from Simple Icons and Windows from Tabler's filled `brand-windows.svg`.
+The shell compatibility wrapper **still exists** and delegates to the host updater; do not describe it as removed. The Python updater requires explicit release-shaped versions rather than moving tags, checks npm metadata version and SHA-512 tarball integrity, and uses `Scripts/linux-distribution-icons.json` as the Linux selection/alias input. It adds macOS, generic Linux and BSD-family artwork from Simple Icons (including the DragonFly-to-BSD alias), and Windows from Tabler's filled `brand-windows.svg`. Extend Linux distribution selections/aliases in the JSON input; extend these OS-family additions in the Python updater. General-purpose choices instead belong to `HostGeneralIcon` and use system symbols, so they do not require downloading or generating SVGs.
 
 Generation parses SVGs, rejects scripts, foreign objects, embedded images and links, and substitutes black for `currentColor` so Xcode can rasterize them. It emits universal vector-preserving template imagesets, `Frameworks/Resources/HostIcons.json` with source/version/integrity and per-entry provenance/color metadata, and `Frameworks/Resources/HostIcons/` license files. All inputs are staged and validated before generated outputs are replaced; replacement deletes/copies directories and is **not** a crash-atomic transaction. Review all three outputs together and keep stable IDs when extending the selection input.
 
 Retain `SimpleIcons.LICENSE.md`, `SimpleIcons.DISCLAIMER.md` and `Tabler.LICENSE` with generated artwork. Simple Icons' package CC0 dedication does not establish that every brand icon is CC0: check individual licenses, source URLs, trademarks and current brand guidelines; null license metadata is not permission. Tabler's MIT notice requires its copyright and permission notice in copies or substantial portions. These host-artwork obligations are separate from the local Apple device-template licenses and external brand-master review.
 
-Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: override precedence, Darwin and Linux fallback detection, returning to Automatic without reconnects, persistence/sync and Tailscale round trips, migration and failed-save isolation. `TFMTests/HostIconPresentationTests.swift` checks every bundled asset loads and black/Windows brand colors meet 3:1 in light/dark appearance; its separate visible-window rendering suite is opt-in. Inspect these tests when changing catalog IDs, generation, tint or persistence. No generator network run or visual approval was performed for this update.
+Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: general-purpose overrides and stable ordering, exact/related/generic Linux matching, unknown-choice fallback, returning to Automatic without reconnects, persistence/sync and Tailscale round trips, migration and failed-save isolation. `FrameworkTests/RemoteSystemInfoTests.swift` checks BSD kernel detection regardless of misleading Linux metadata, missing-kernel versus unsupported-kernel behavior, and metadata-free Linux detection. `TFMTests/HostIconPresentationTests.swift` checks bundled assets and general-purpose SF Symbols load, expanded distro/BSD aliases and generic Linux match, and black/Windows brand colors meet 3:1 in light/dark appearance; its separate visible-window rendering suite is opt-in and verifies the three menu groups. Inspect these tests when changing catalog IDs, generation, tint or persistence. No generator network run or visual approval was performed for this update.
 
 ## Validation and release checklist
 

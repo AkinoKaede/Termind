@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
+  - id: openwiki-source-44f3b562f3c7b739d591cf92
+    resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-247755d873c5d94b0a364217
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-ffc9054d578eba7be684b885
@@ -20,6 +22,8 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-564c1a0cc523e70840b9fc66
     resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -58,10 +62,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Desktop Workspace and Pane Drag-and-Drop
@@ -229,9 +233,11 @@ Registration consumes the request once. A whole Workspace moves as the same obje
 
 The extraction paths deliberately bypass `WindowModel.close` and `closePane` teardown. `takeWorkspaceForMove` uses `removeWorkspaceForMove` and clears the transferred workspace's `lifecycleRouter`; destination `open` assigns the target window as router. For a split-pane extraction, `Workspace.closePane` only rewrites the source layout: the source workspace keeps its router, and the new wrapper receives the destination router on `open`. The wrapper uses `automaticallyNamedWorkspace`, so its workspace name is allocated from the saved host name or SSH/Telnet session title when available, subject to workspace naming preferences and occupied source-window names. It does not inherit the split group's name or template identity; the moved pane's own custom title survives.
 
-Both extraction entrypoints call `persistentClose.cancel()` after validating the live source and before removing ownership. This invalidates an outstanding persistent-session close attempt and dismisses any pending failure prompt as cancellation, rather than allowing a stale close authorization to remove the moved layout. `authorizePersistentClose` also checks workspace/pane ID snapshots and verifies session ownership before remote termination. Cancellation is not rollback of an already completed remote termination; the close coordinator checks its generation between operations and before granting authorization. See [SSH Session Lifecycle](ssh-session-lifecycle.md) for transport and persistent-session teardown semantics.
+Both extraction entrypoints call `persistentClose.cancel()` after validating the live source and before removing ownership. Cancellation changes the close coordinator's generation: an outstanding batch stops before its next termination and cannot grant close authorization afterward. `authorizePersistentClose` also checks workspace/pane ID snapshots and verifies live session ownership; `SSHSessionModel.terminatePersistentSession` rechecks ownership, channel and attachment after listing remote sessions and before termination. Cancellation is **not rollback**: it cannot undo a completed termination or guarantee that an already-running termination has not affected the moved session.
 
-Evidence: [live extraction and close authorization](../../TFM/Features/Workspaces/WindowModel.swift#L1375-L1455), [move-only removal](../../TFM/Features/Workspaces/WindowModel.swift#L1262-L1282), [close cancellation](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift#L22-L82).
+Explicit pane/workspace close is different from moving or dismissing a window. `RemoteSessionCloseCoordinator.close` defaults to `.explicitClose`, attempts each distinct managed session identity once, and treats ordinary termination failures as best-effort: it continues the batch and permits local close/disconnection without marking the failed session ended or discarding its recovery identity. It does not display a termination-failure prompt. `CancellationError`, task cancellation or a changed generation instead deny authorization. Intents whose `endsManagedSession` is false (`.applicationTermination`, `.suspension`, `.remoteExit`, `.detach`) skip remote termination. `closeForWindow` likewise cancels outstanding close authorization and disconnects only still-owned panes while preserving remote sessions and recovery references. See [SSH Session Lifecycle](ssh-session-lifecycle.md) for transport and persistent-session teardown semantics.
+
+Evidence: [live extraction and close authorization](../../TFM/Features/Workspaces/WindowModel.swift#L1490-L1569), [move-only removal](../../TFM/Features/Workspaces/WindowModel.swift#L1350-L1369), [best-effort close and generation cancellation](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift#L13-L42), [teardown intents](../../Frameworks/TermindDomain/Sessions/SessionPersistence.swift#L74-L77), [ownership recheck before termination](../../TFM/Features/Terminal/SSHSessionModel.swift#L1124-L1144).
 
 These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate app-owned recently-closed history. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
 
@@ -264,7 +270,7 @@ Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift
 | Return animation or data-source forwarding/replacement | `WorkspaceNavigatorDragAnimationTests`; native split-workspace tear-off also asserts the animation flag at session start. |
 | Whole split Workspace fails to tear off | `WorkspaceNavigatorDropTests.draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout()`: release over another window, one request, original Workspace and pane IDs. |
 | Ownership loss, reconnect, changed history or late request | `WorkspaceWindowMoveTests`: destination delay, duplicate requests, lone-pane identity, closed sources, reversed arrival order and window placement. |
-| Persistent close races with transfer | Inspect both extraction entrypoints' `persistentClose.cancel()` and ownership/snapshot checks; `SessionPersistenceTests.cancellationDuringBatchCloseDoesNotEndAdditionalSessions()` covers coordinator cancellation, not an end-to-end drag during remote termination. |
+| Persistent close races with transfer | Inspect both extraction entrypoints' `persistentClose.cancel()` and ownership/snapshot checks; `SessionPersistenceTests.cancellationDuringBatchCloseDoesNotEndAdditionalSessions()` covers coordinator cancellation, not an end-to-end drag during remote termination. The same suite covers passive teardown, best-effort failure, identity deduplication and `CancellationError` denial of authorization. |
 | Native close veto or lost delegate callbacks after registration | `WorkspaceCloseConfirmationTests`: veto preserves the same workspace, retry, forwarded veto/callbacks, delegate restoration and empty-window dismissal. These tests exercise the proxy directly; the move tests register through the coordinator, not the registration view's edited-state observation. |
 | Assistant hidden receiver or active-row eligibility | `AssistantConversationListDropTests`; `AssistantConversationOperationsTests` covers persistence failure and preserved activity; `WindowStateTests` covers stable manual order. |
 

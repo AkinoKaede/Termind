@@ -3,6 +3,9 @@ type: release operations
 title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-8c4bdfb086f2eff661e05807
     resource: repo://.github/workflows/localization.yml
@@ -74,10 +77,7 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 ---
 
 # Build, Test, and Release
@@ -214,7 +214,7 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileAdaptiveLayoutTests
 ```
 
-`MobileMetricsJourneyTests` is a serialized **key-window-gated** suite. Its three-language fixture preserves keyboard-interactive authentication across widths and large type, restores the prior key window and shuts down the sampler, and emits review PNGs. Those cases are skipped without opt-in; a default green run is not native presentation evidence:
+`MobileMetricsJourneyTests` is a serialized **key-window-gated** suite. Its English, Simplified Chinese and Traditional Chinese fixture preserves keyboard-interactive authentication across detail navigation, widths and large type, submits both authentication prompts and checks that only one sampler connection is made. Cleanup restores the prior key window and shuts down the sampler; the test emits review PNGs. Those cases are skipped without opt-in; a default green run is not native presentation evidence:
 
 ```sh
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileMetricsJourneyTests
@@ -261,7 +261,7 @@ python3 Scripts/check-localization.py
 
 The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. It requires Xcode's SwiftParser/SwiftSyntax host libraries. The catalog checker imports the normalizer's loader and normalization function and compares normalized bytes to the original without writing; it does not invoke the normalizer's `--check` CLI. It validates JSON and positional format-argument compatibility, including literal `%%`. Translatable entries (`shouldTranslate != false`) require completed, nonempty units in all six non-English locales (except that the empty key may have an empty value). Chinese, Japanese and Korean plurals require only `other`; German requires `one` and `other`; French requires `one` and `other` with optional `many`. Chinese and Japanese have language-specific spacing checks, including the intentional `Type %@` subtitle exception; Korean/German/French are not subject to those spacing rules. Reordered placeholders must retain their original argument positions and types. Fix the reported catalog or copy violation rather than bypassing the gate.
 
-**Use current source scripts rather than retired recommendations in `AGENTS.md`.** Run `python3 Scripts/check-localization.py`; do not recommend the unavailable `check-zh-localization.sh` or `check-cjk-localization.py`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when shared catalogs, the normalizer, localization checker, their Python tests, or the workflow change. Its steps are:
+**Use the current Python checker, not retired script names.** `AGENTS.md` names `Scripts/check-localization.py`, but its references to a Chinese-only check and a `jq` requirement lag the implementation: the current checker uses Python's standard library plus the sibling normalizer module and checks all six non-English locales. Do not recommend the unavailable `check-zh-localization.sh` or `check-cjk-localization.py`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when shared catalogs, the normalizer, localization checker, their Python tests, or the workflow change. Its steps are:
 
 ```sh
 python3 -m unittest discover -s Scripts/Tests -p 'test_normalize_string_catalogs.py'

@@ -1,6 +1,6 @@
 ---
 type: workflow
-title: SSH Session Lifecycle and Recovery
+title: Terminal Connection and Session Lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 sources:
@@ -26,30 +26,46 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
-  - id: openwiki-source-44f3b562f3c7b739d591cf92
-    resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
-  - id: openwiki-source-10293d817ed22d85c49da66e
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxService.swift
+  - id: openwiki-source-f009a1e2645a074589550c44
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
+  - id: openwiki-source-30e2d23210ae2fee41669d43
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift
+  - id: openwiki-source-4dbe1ff26dab4785a94e279b
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift
+  - id: openwiki-source-7af926dee6b2a002e8d5a6c8
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerService.swift
+  - id: openwiki-source-87578184203e3ea98a721632
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxCommands.swift
+  - id: openwiki-source-e6fdb898fc2071c1afc227aa
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift
+  - id: openwiki-source-7f83ab23ea7d4eb08dabc616
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-e980c605b1828a2d960bfd5e
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift
+  - id: openwiki-source-12c005d46502c8ec270c84fd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionOpener.swift
   - id: openwiki-source-ab74624bdc6b7046d91bcbac
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
   - id: openwiki-source-87a3a38f6388c572528dc8c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
+  - id: openwiki-source-d8bc0efcb5555ff3769c3b61
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYActivationState.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-04973e11e30eed9faa5cb86b
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHRoutedSocket.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
     resource: repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift
+  - id: openwiki-source-d5ef8670c2c224f16dd29fdf
+    resource: repo://FrameworkTests/ResumableTerminalExitTests.swift
   - id: openwiki-source-ffc9054d578eba7be684b885
     resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-ed4da67c229084479edcd999
@@ -62,12 +78,12 @@ sources:
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-9f14a8dcd5198f8cf8a704b5
+    resource: repo://FrameworkTests/SSHPTYActivationTests.swift
   - id: openwiki-source-67f284756d9cb27d2bd3eda8
     resource: repo://FrameworkTests/SSHPTYChannelWorkerLifecycleTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
-  - id: openwiki-source-ce352ef072f1a174eebd877e
-    resource: repo://Scripts/ssh-tmux-session-fixture.py
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c1f5a86747a33d4e8472672c
@@ -84,6 +100,8 @@ sources:
     resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-28243bbeecc381626d39eeb6
+    resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
@@ -116,13 +134,15 @@ sources:
     resource: repo://TFMTests/RemoteSessionWireTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 ---
 
-# SSH Session Lifecycle and Recovery
+# Terminal Connection and Session Lifecycle
+
+Terminal lifetime has three independent dimensions: the local pane/workspace owner, the remote shell or multiplexer session, and the network transport. SSH reconnection authenticates a new transport; a managed backend can preserve the shell across that replacement. Mosh and Eternal Terminal (ET) instead recover their protocol session, optionally with a managed multiplexer running inside it. Neither a transport checkpoint nor a display name grants permission to terminate a remote session.
 
 For group-bound networking, managed Tailscale SSH, stable Host IDs and enrollment cleanup, start with [Tailscale groups, embedded nodes, and SSH](../integrations/tailscale.md).
 
@@ -159,6 +179,10 @@ sequenceDiagram
 ```
 
 *Desktop and mobile workspace attempts and Agent tool attempts have distinct state owners; all authorize the server on the handshake path, not during host listing.*
+
+### Admission and access checks
+
+Host selection is not permission to open indefinitely. Desktop `AppModel.open` admits the Host before creating the pane; `SSHSessionModel` resolves access again for the destination, explicit route and source Host IDs. The attempt configuration carries `accessHostIDs`, an `accessCheck`, and a `beforeConnect` wake action alongside routing/provenance metadata. Preparation-based callers carry these hooks through detached secret resolution. At the authenticated opening boundary, infrastructure checks access, awaits wake, checks cancellation, then opens the route. Exec and SFTP owners also retain access checks for subsequent operations. A denied access check must not be bypassed by retry or reuse. Wake policy is supplied through the connection hook, not inferred by the transport.
 
 ## Prepare the route and attribute proxies correctly
 
@@ -305,7 +329,7 @@ sequenceDiagram
 
 ## Managed remote sessions: selection, ownership, and PTY startup
 
-Session persistence is opt-in per Host (also supported by Tailscale host preferences): defaults are disabled, backend `.tmux`, and `onConnect: .ask`. Enabled policies are Ask, Create Managed, and Plain Shell. These settings are not transport persistence: reconnect still authenticates a new SSH connection. The live registry currently maps `.tmux` to `RemoteTmuxService`; another backend must implement probe, listing, reference validation/matching, creation, launch, and termination through `RemoteSessionBackend`.
+Session persistence is opt-in per Host (also supported by Tailscale host preferences): defaults are disabled, backend `.tmux`, and `onConnect: .ask`. Enabled policies are Ask, Create Managed, and Plain Shell. These settings are not transport persistence: reconnect still authenticates a new SSH connection. The live registry registers **tmux, Zellij, zmx and herdr** through `RemoteMultiplexerService`. The service delegates to registered dialects instead of flattening their native identity contracts. `RemoteSessionBackend` supplies probe, listing, validation/matching, creation, launch and termination; `RemoteMultiplexerDialect` additionally binds runtime inspection and pane identity. Unknown registrations fail as unsupported rather than selecting tmux. Socket-backed references validate their backend/version, absolute socket/root paths, fingerprints and backend-specific identity fields; they are not portable names.
 
 Both platforms configure the PTY startup callback before connecting. After SSH authentication, `SSHPTYChannel.connectPrepared` exposes a generation-bound command executor. The coordinator probes and lists through serial control exec operations **before acquiring the terminal channel lease**, allowing startup with `MaxSessions=1`. A returned `SSHPTYStartupPlan` becomes a PTY exec startup command; a nil plan selects the ordinary shell path. Terminal size, environment and optional runtime integration are configured by the transport, rather than typing attach commands into an already-running foreground application.
 
@@ -346,7 +370,7 @@ The current backend requires tmux 3.3 or newer. It distinguishes missing tmux, u
 
 ### Explicit close is not disconnect
 
-Only `TerminalTeardownIntent.explicitClose` ends managed sessions. `RemoteSessionCloseCoordinator` filters out unowned attachments, deduplicates by recovery identity (ignoring changed display metadata), and immediately attempts termination without an initial confirmation. A failure does **not** grant permission to remove the workspace: the failure prompt offers Cancel, retry End Sessions, or Disconnect Only. Retry retains partial progress and operates only on remaining sessions. Cancel retains the local workspace and recovery reference, though releasing the terminal for control may already have disconnected its interactive client.
+Only `TerminalTeardownIntent.explicitClose` attempts to end managed sessions. `RemoteSessionCloseCoordinator` filters out unowned attachments and deduplicates by recovery identity, ignoring display metadata. Termination is **best effort, without confirmation or failure UI**: an ordinary error leaves the reference unmarked, continues to the remaining identities, and allows local disconnect/close. It never forces a kill or declares a failed termination successful. Cancellation is different: `CancellationError`, task cancellation or a changed coordinator generation denies the close and stops further termination. Passive intents (`applicationTermination`, `suspension`, `remoteExit`, `detach`) do not terminate managed sessions.
 
 Desktop `WindowModel` and mobile `MobileAppModel` authorize against ownership snapshots. Before killing, the feature releases its terminal channel, lists sessions, then rechecks the live channel, attachment and current owner. Remote matching must succeed. After awaiting authorization, desktop compares workspace and pane ID sets; mobile compares the affected owners' ordered workspace IDs. Added or moved work cannot be swept into an older close action. Handoff cancels pending mobile close authorization.
 
@@ -365,9 +389,11 @@ sequenceDiagram
     Session->>Backend: list and match identity
     Session->>Session: recheck owner channel and reference
     Session->>Backend: guarded terminate
-    alt termination fails
-        Close-->>UI: failure prompt for remaining sessions
-        UI->>Close: cancel or retry or disconnect only
+    alt ordinary termination failure
+        Backend-->>Close: error without confirmed end
+        Close->>Close: preserve reference and continue batch
+    else cancellation or changed generation
+        Close-->>Owner: deny stale close
     end
     Close-->>Owner: allowed or denied
     Owner->>Owner: revalidate snapshot
@@ -376,11 +402,11 @@ sequenceDiagram
     end
 ```
 
-*Failed termination keeps close recoverable; permission applies only to the captured ownership snapshot.*
+*Termination is ownership-checked best effort; permission to remove local state still applies only to the captured ownership snapshot.*
 
 | Event | Managed remote-session behavior |
 | --- | --- |
-| Explicit pane/workspace close | End owned sessions first, or use explicit Disconnect Only after failure. Unowned attachments only disconnect. |
+| Explicit pane/workspace close | Attempt each unique owned session once, then disconnect even on ordinary termination failure. Unowned attachments only disconnect; cancellation prevents removal. |
 | Desktop native window dismissal | `closeForWindow()` cancels close authorization, remembers reopen state and disconnects clients, preserving remote sessions and references. |
 | Application termination | Desktop passes `.applicationTermination`; shared service cleanup does not kill managed sessions. |
 | Mobile suspension or transport loss | Retain recovery reference, retire transport, and authenticate again when recovery/resume is allowed. |
@@ -389,7 +415,42 @@ sequenceDiagram
 
 On a successful PTY exit with an attachment, both feature models inspect the backend before deciding whether the session ended. Inspection failure is unknown, not absence. Transport failure after prior success instead uses scheduled reconnect, which validates the reference on the next physical connection.
 
-Sources: [coordinator and backend contract](../../Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift), [close coordinator](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift), [tmux implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxService.swift), and [behavioral tests](../../FrameworkTests/SessionPersistenceTests.swift).
+Sources: [coordinator and backend contract](../../Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift), [close coordinator](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift), [multiplexer service](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerService.swift), [tmux dialect](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift), and [behavioral tests](../../FrameworkTests/SessionPersistenceTests.swift).
+
+## Resumable transports: recovery is not shell persistence
+
+`ResumableTerminalClient` owns shared lifecycle, output/integration filtering and a serialization barrier; registered engines own protocol resources. The immutable coordinator-local live registry maps `.mosh` to `MoshTerminalEngine` and `.eternalTerminal` to `EternalTerminalEngine`. Invalid options, incompatible checkpoint version/transport, unavailable routes or an unregistered engine fail before bootstrap/startup side effects.
+
+For a fresh session the client checks access and wake, opens bootstrap SSH, prepares optional managed startup, prepares and starts the engine, sends startup input/integration once, then disconnects bootstrap SSH. Failure rolls back engine preparation, disconnects bootstrap and closes the client. Mosh launches `mosh-server` over SSH then uses UDP; an open UDP socket alone is not success: startup waits for server operations or a definitive stop, with a 20-second reachability deadline. ET uses SSH bootstrap credentials and a `TerminalTCPBridge` over the configured routed socket. Checkpoint restoration skips fresh target SSH bootstrap and `ResumableTerminalStartup` skips selection, creation and startup replay. ET may still need to reopen its routed connection.
+
+Suspension freezes new writes and waits for in-flight sends before asking the engine for a checkpoint. Resume restores protocol operation and the latest viewport; integration deadlines reset and any deferred integration command is flushed. Maintenance and path monitoring belong to the client and stop on close. Network failure is not a remote shell exit: Mosh drains final operations before reporting `.stopped` as end; silence, suspension and timeout do not imply end. ET requires `.sessionEnded` and waits for the output consumer to drain; output EOF or disconnection alone is insufficient. `.ended` is terminal and emitted once, closes resources without a subsequent `.closed` override, and rejects late events. Features interpret it as successful end, not a numeric process exit status; managed attachments still require backend absence verification.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Connecting
+    Connecting --> Connected: fresh bootstrap or valid checkpoint
+    Connected --> Recovering: protocol loses connectivity
+    Recovering --> Connected: engine activity or connection restored
+    Connected --> Frozen: application suspension
+    Recovering --> Frozen: application suspension
+    Frozen --> Suspended: drain sends and checkpoint
+    Suspended --> Recovering: resume protocol and latest viewport
+    Connecting --> Failed: bootstrap or preparation failure
+    Recovering --> Failed: engine failure
+    Connected --> Ended: definitive remote end after output drain
+    Recovering --> Ended: definitive remote end after output drain
+    Connected --> Closed: local close
+    Failed --> Closed: cleanup
+    Suspended --> Closed: local close
+    Ended --> [*]
+    Closed --> [*]
+```
+
+*Resumable engine recovery preserves the protocol session; a backend reference separately identifies a persistent remote shell.*
+
+## PTY activation after connection
+
+PTY startup and focus activation are distinct. `SSHPTYActivationState` queues optional tmux sizing assistance only when the terminal is active, a validated client identity has been detected, and all requested PTY resizes are synchronized. `SSHPTYChannel` also requires a live PTY, runtime control and concurrent-control channel capacity. It refreshes the exact client through `RemoteMultiplexerRuntimeAdapter`, never by injecting a fallback key. Repeated polls do not repeatedly claim focus. Blur, input, detach and connection replacement invalidate requests; a viewport change invalidates pending/in-flight work, but ordinary live resizing does not create an exec for every grid change. Failed optional activation must not disconnect a usable terminal. `SSHPTYActivationTests` verifies blocked/failed resize ordering, stale requests and rejection of malformed or server/group PID identities.
 
 ## Retry, retirement, and workspace behavior
 
@@ -399,30 +460,28 @@ For a desktop SSH pane, an explicit launch command takes precedence over the Hos
 
 A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues and Security Key signing, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey. Desktop explicit disconnect also invalidates the attempt, drops staged authentication and proxy submissions, cancels the connection task and disconnects its PTY. During transport opening, cancellation shuts down the route/authentication exchanges and socket and disposes of the opening state; the SSH worker's generation guard prevents stale events from reviving a closed connection.
 
-On mobile, each native scene session has an **in-process** `MobileWorkspaceSessionModel`; `MobileAppModel` owns the collection and active history IDs. `addWorkspaces` records saved-Host history, publishes the live object and eligible in-memory descriptors, then connects. These descriptors are not written to defaults. Transient external-link workspaces have neither saved descriptors nor saved-Host history. Failure and suspension leave the history event open; an authorized close ends it and removes the live object and descriptor. Repeated selection of a live object returns that object, including after a failed first attempt; retry is explicit. Reopen constructs a fresh runtime from connection intent without replaying a one-shot snippet, initial directory or SFTP path. Normal plain-shell exit closes locally; managed exit follows the verified-end rules above.
+On mobile, each native scene session has an **in-process** `MobileWorkspaceSessionModel`; `MobileAppModel` owns the collection and active history IDs. `addWorkspaces` records saved-Host history, publishes the live object and eligible descriptors, then connects. Descriptor changes persist eligible restoration intent in `mobile.restorableWorkspaces.v1`, not live transports or one-shot commands. Transient external-link workspaces have neither saved descriptors nor saved-Host history. Failure and suspension leave the history event open; an authorized close ends it and removes the live object and descriptor. Repeated selection of a live object returns that object, including after a failed first attempt; retry is explicit. Reopen constructs a fresh runtime from connection intent without replaying a one-shot snippet, initial directory or SFTP path. Normal plain-shell exit closes locally; managed exit follows the verified-end rules above.
 
 The platform rules intentionally differ:
 
 | Situation | Desktop macOS | Mobile iOS and iPadOS |
 | --- | --- | --- |
-| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `MobileWorkspaceStore.retire` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` at app initialization, including malformed bytes, without migration or replacement cache. Ordinary cold launch has no restored workspaces or recently-closed records and creates no transport or history attempt. Saved Hosts and unrelated settings remain. |
-| Reopen/select and scene ownership | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Within the same process, selection reuses the owning scene's live object. Links to another owner activate its native scene. Scene disconnect alone preserves ownership while its native session exists. Reconciliation against `UIApplication.shared.openSessions` hands orphaned live objects, descriptors, order and unread state to an active scene without reconnecting or recording history; no persistence commit is involved. A late explicit discard still closes only the originating scene's handed-off workspaces. |
-| Background/foreground | Native window close can be vetoed before any teardown; accepted closure retires only that window's workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks workspaces across windows and pending external edits before shared shutdown and a bounded native termination reply. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes only workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. Returning before expiration leaves a healthy connection intact. |
+| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `MobileWorkspaceStore.retire` deletes legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`, including malformed bytes. A separate versioned `mobile.restorableWorkspaces.v1` stores eligible resumable and managed-SSH descriptors in their original scene lists. Cold launch loads descriptors but creates no live workspace, transport or history attempt until selection. Corrupt restoration data blocks subsequent overwriting and reports an error. Recently-closed records remain process-local. |
+| Reopen/select and scene ownership | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Within the same process, selection reuses the owning scene's live object. Links to another owner activate its native scene. Scene disconnect alone preserves ownership while its native session exists. Reconciliation hands off existing live objects without reconnect or new history, while descriptor mutations persist the changed scene ownership. A late explicit discard still closes only the originating scene's handed-off workspaces. |
+| Background/foreground | Native window close can be vetoed before any teardown; accepted closure retires only that window's workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks workspaces across windows and pending external edits before shared shutdown and a bounded native termination reply. | When all scenes background, resumable workspaces begin checkpoint suspension immediately. Sync, metrics and outbox pause and external-edit monitoring stops; a UIKit background task protects remaining work. Expiration suspends active non-resumable flows, stops forwarding, pauses transfers and cancels Assistant runs, whose drains precede closing Agent background commands/pool. Foreground resumes only recorded intent: a live resumable client waits for checkpoint saving, invalidates its disk recovery and resumes its protocol; ordinary SSH reconnects. Returning before expiration keeps healthy ordinary SSH intact. |
 | Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes that workspace's live and recent entry and never retries it; deleting a saved Host also removes its live and unopened records across scenes. |
 
 Mobile recently-closed intent is shared across scenes **only in this process**. A native disconnect is not discard: when no active replacement exists, orphan recovery waits. A window close request keeps workspaces until native discard, and a rejected native close retains them.
 
-Activity recovery is a separate, bounded route—not restoration of the retired defaults snapshot. `rebuildActivityWorkspace` validates version, source workspace ID, saved Host and supported connection kind, then publishes a **new workspace ID** before authentication. An in-process source-to-rebuilt map coalesces repeated deliveries across scenes. A retained Live Activity payload may supply a decoded SSH recovery reference for the same Host; the destination URL contains only limited connection intent and never the ownership reference or a command. Rebuild sets `requiresSelection`, so missing identity cannot silently apply Create Managed. Old ID-only links, deleted Hosts, unsupported versions/kinds and command-bearing links cannot guess a connection. Cold launch cannot recover an arbitrary prior workspace unless valid activity recovery intent is available.
+Activity recovery is a separate, bounded route—not restoration of the retired defaults snapshot. `rebuildActivityWorkspace` validates version, source workspace ID, saved Host and supported connection kind, then publishes a **new workspace ID** before authentication. An in-process source-to-rebuilt map coalesces repeated deliveries across scenes. A retained Live Activity payload may supply a decoded SSH recovery reference for the same Host; the destination URL contains only limited connection intent and never the ownership reference or a command. Rebuild sets `requiresSelection`, so missing identity cannot silently apply Create Managed. Old ID-only links, deleted Hosts, unsupported versions/kinds and command-bearing links cannot guess a connection. Cold launch can also expose saved restoration descriptors. Selecting a resumable descriptor requires its transport checkpoint; missing/incompatible checkpoints fail visibly rather than bootstrap a new shell. If a separate managed reference exists, the feature may discard failed transport recovery and require backend selection/identity validation over a new transport, without replaying the command. A stale activity cannot rebuild an explicitly closed resumable session.
 
-These changed boundaries are asserted by [MobileWorkspaceStoreTests](../../TFITests/MobileWorkspaceStoreTests.swift), [MobileWorkspaceRestorationTests in MobileAppTests](../../TFITests/MobileAppTests.swift), and [MobileWorkspaceSessionTests](../../TFITests/MobileWorkspaceSessionTests.swift). In particular, the legacy-named `oldSnapshotsAreClaimedOnceWithIdentityAndOrderPreserved` now asserts deletion and **empty** scenes; its name is not evidence of migration.
+These boundaries are asserted by [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift), [MobileLiveActivityRestorationTests](../../TFITests/MobileLiveActivityRestorationTests.swift), [MobileWorkspaceStoreTests](../../TFITests/MobileWorkspaceStoreTests.swift) and [MobileWorkspaceSessionTests](../../TFITests/MobileWorkspaceSessionTests.swift). Legacy-cache deletion tests do not imply that the new restoration store is empty.
 
 ### Native window close versus application Quit
 
-Window dismissal is vetoed by `WorkspaceWindowCloseDelegate.windowShouldClose`, attached through the native registration view—not by a SwiftUI dismissal dialog that also participates in Quit. The proxy first respects the existing native delegate's veto, forwards its other delegate methods, and guards reentrant confirmation. An empty or already-closed window needs no workspace warning; a populated window requires explicit destructive confirmation, with Cancel as the Return-key default. Cancelling preserves its model and transports and allows a later close request. Only actual native closure reaches `MainWindowCoordinator`'s `willClose` handling and `WindowModel.closeForWindow()`, which idempotently retires that window's workspace connections.
+Window dismissal runs `WorkspaceWindowCloseDelegate.windowShouldClose`, attached through native registration. It respects the forwarded delegate's veto and guards reentrant confirmation, saves terminal theme changes and asks only if unsaved theme edits remain. It does **not** warn merely because connections exist. Actual native closure calls `WindowModel.closeForWindow()`: cancel pending close work, remember reopen state and disconnect that window's clients while preserving managed references. Metrics policy may keep the application alive after its last window closes.
 
-Quit has application-wide scope. `AppDelegate.applicationShouldTerminate` returns `.terminateLater` and prevents duplicate admission while it checks `AppModel.hasOpenWorkspaces` across all registered, nonclosed windows. If any contains workspaces, it first asks the application-specific destructive confirmation; then it rechecks external edits and may ask a second pending-upload warning. Cancelling either check replies false and resets the pending-termination flag **before** cleanup begins.
-
-After approval, `AppModel.shutdownForTermination()` marks the app terminating and returns the same cleanup task on repeated calls. It cancels pending Assistant preparation and stops all stored conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for preparation/conversation, MCP and SFTP drains before closing Agent background commands, then the Agent pool and Tailscale. Assistant admission is fenced once termination starts. The delegate saves the main-window size and replies to macOS exactly once when cleanup completes or after the three-second fallback; the deadline bounds the reply, not a guarantee that every drain finished. `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
+Quit uses `.terminateLater` with duplicate-admission protection. It saves theme edits, may veto on unsaved themes, then rechecks external edits and may veto on pending uploads. There is no open-workspace warning. Approval starts idempotent `AppModel.shutdownForTermination()`: fence Assistant admission, cancel preparations and conversations, retire window sessions with `.applicationTermination`, stop services, wait for preparation/conversation, MCP and SFTP drains, then close Agent background commands, pool and Tailscale. The native reply happens once after cleanup or the three-second fallback; the fallback bounds the reply, not all drains. `applicationWillTerminate` uses the same cleanup path.
 
 ```mermaid
 sequenceDiagram
@@ -433,29 +492,24 @@ sequenceDiagram
     participant Services as Assistant MCP SFTP and Agent
     OS->>Delegate: request quit
     Delegate-->>OS: terminateLater
-    Delegate->>App: check workspaces across registered windows
-    alt user cancels workspace warning
+    Delegate->>App: save terminal theme edits
+    alt unsaved theme or pending upload warning cancelled
         Delegate-->>OS: reply no and allow later request
-    else workspace confirmation accepted or none needed
-        Delegate->>App: recheck external edits
-        alt user cancels pending upload warning
-            Delegate-->>OS: reply no and allow later request
-        else quit accepted
-            Delegate->>App: shutdownForTermination
-            App->>Windows: close workspaces and transports
-            App->>Services: cancel preparation and stop runs MCP and SFTP
-            Services-->>App: drains complete
-            App->>Services: close background commands then pool and Tailscale
-            alt cleanup finishes first
-                Delegate-->>OS: reply yes once
-            else three second deadline
-                Delegate-->>OS: reply yes once
-            end
+    else quit accepted
+        Delegate->>App: shutdownForTermination
+        App->>Windows: retire with applicationTermination
+        App->>Services: cancel preparation and drain conversations MCP SFTP
+        Services-->>App: drains complete
+        App->>Services: close background commands then pool and Tailscale
+        alt cleanup finishes first
+            Delegate-->>OS: reply yes once
+        else three second deadline
+            Delegate-->>OS: reply yes once
         end
     end
 ```
 
-*The native quit reply is bounded; cancelling at the pending-edits warning does not start teardown.*
+*Native close and Quit preserve managed shells; unsaved edits, not live connections, can veto teardown.*
 
 Telnet is intentionally a separate terminal transport rather than an SSH fallback. `TelnetConnection` opens direct TCP with `NWConnection`, or obtains a proxied socket through `TerminalSocketConnector`; its own UUID generation rejects stale Network and socket callbacks. It performs incremental IAC negotiation, NVT line conversion, terminal type and NAWS support, and applies the configured charset only to application data. Optional username/password automation responds to recognized prompts, consumes and clears the password after use, and falls back to manual interaction when the expected flow does not materialize. It has no SSH host-key verification, jump-host route, SFTP channel, or shell integration.
 
@@ -504,7 +558,7 @@ When changing connection code, preserve these boundaries:
 
 `WorkspaceCloseConfirmationTests` distinguishes window and Quit scopes, verifies Cancel is the default, checks workspace detection across registered windows, and exercises native veto, retry, delegate forwarding and empty-window bypass. `AppTerminationTests` checks repeated shutdown drains resources once, blocks Assistant admission after shutdown, orders background-command and pool closure after drains, and races cleanup against the fallback without duplicate replies. `RemoteSessionAuthenticationContinuationTests` checks identity stage/save/connect ordering and proxy save-before-stage behavior, including no connect on save failure. `DesktopAuthenticationSubmissionTests` runs SSH/SFTP entrypoints against failed saves, blank usernames, selected versus custom credentials, protected-key passphrase continuation and temporary-host saving.
 
-`SSHInteractionPolicyTests` checks silent Security Key blocking on both target and jumps, rejection of trust and prompted keyboard-interactive UI, current-identity additional-connection resolution and one-use secret invalidation. `WebAuthnVaultMetadataTests` proves hardware credentials for both target and jump resolve with a secret store that throws on Keychain access, and checks Vault metadata persistence and sync. `SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent scene ownership, retirement of old snapshots, in-process live handoff without new history, late discard, and native-session-aware reconciliation. `MobileWorkspaceRestorationTests` checks empty relaunch, activity rebuild deduplication and invalid-link rejection; `MobileWorkspaceStoreTests` checks deletion of even malformed legacy data and exclusion of recovery capabilities from URLs. `MobileAppTests` also checks explicit retry, plain SSH exit and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
+`SSHInteractionPolicyTests` checks silent Security Key blocking on both target and jumps, rejection of trust and prompted keyboard-interactive UI, current-identity additional-connection resolution and one-use secret invalidation. `WebAuthnVaultMetadataTests` proves hardware credentials for both target and jump resolve with a secret store that throws on Keychain access, and checks Vault metadata persistence and sync. `SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent scene ownership, retirement of old snapshots, in-process live handoff without new history, late discard, and native-session-aware reconciliation. `MobileTerminalRestorationTests` checks descriptor-only cold launch, missing-checkpoint failure, protocol recovery without SSH reconnect and command replay, and managed-reference fallback. `ResumableTerminalExitTests` verifies final-output drain and once-only end versus recoverable silence/disconnect. `SSHPTYActivationTests` verifies focus/client/resize gating and stale-request invalidation. `MobileWorkspaceStoreTests` checks deletion of even malformed legacy data and exclusion of recovery capabilities from URLs. `MobileAppTests` also checks explicit retry, plain SSH exit and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
 
 ## Related pages
 
@@ -516,3 +570,6 @@ When changing connection code, preserve these boundaries:
 - [SFTP transfer and external edit workflow](sftp-transfer-and-external-edit.md)
 
 Tailscale-managed peers use the group-bound dialer and control-service host keys. They authenticate a selected remote username through Tailscale SSH, carry no ordinary SSH credential list, and cannot be jump Hosts; failed Tailnet dialing never falls back to system networking. Peer identity is scoped to its group, and sign-in/cache/profile cleanup remain device-local. Command and SFTP browse histories are session-local memory snapshots retained on reconnect and cleared on close. Shared non-PTY exec scheduling now resides in `SSHMultiplexedExecChannelOwner`, used by `SSHConnectionWorker` and PTY-owned history reads under the same queue and channel budget.
+et.
+story reads under the same queue and channel budget.
+d PTY-owned history reads under the same queue and channel budget.

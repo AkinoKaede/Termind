@@ -1,15 +1,17 @@
 ---
 type: Remote service ownership
-title: Remote Services and Forwarding
+title: Remote Services and Forwarding Boundaries
 description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 sources:
+  - id: openwiki-source-0dba6aaa3f80b8ef8e74ebe9
+    resource: repo://Frameworks/TermindApplication/Connections/HostOperationAccess.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
   - id: openwiki-source-1ebc16ba1a0b0955956023b5
     resource: repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift
-  - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
-    resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-21096ca5afd2c8baca7c623c
@@ -30,12 +32,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/GetMetricsTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-de03b453e9349cc11ea90e3c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-ab74624bdc6b7046d91bcbac
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
+  - id: openwiki-source-079b35134aa7d0dc22681651
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift
   - id: openwiki-source-20118197848107cfa8e87aa9
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift
   - id: openwiki-source-d371db64770fd2fcc301086b
@@ -54,12 +60,14 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-c89602a53e897675408a8bb9
+    resource: repo://FrameworkTests/HostOperationAdmissionTests.swift
+  - id: openwiki-source-cfcb4fa2bfe31348f44cc12e
+    resource: repo://FrameworkTests/MetricsHostAccessTests.swift
   - id: openwiki-source-3e30aa6e30a48c32a2351518
     resource: repo://FrameworkTests/MetricsSyncTests.swift
   - id: openwiki-source-52a93fdcfe9295de26f2b72d
     resource: repo://FrameworkTests/SSHMetricsSamplerTests.swift
-  - id: openwiki-source-906678adb91c2fce2d3fcaed
-    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-13f2deff6904678799b19444
@@ -80,16 +88,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-  - id: openwiki-source-ec3ec372dd69a7df3113c6b1
-    resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-  - id: openwiki-source-fc9dd746ee8dc0791104d397
-    resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-  - id: openwiki-source-8acd4116a2931da5a6eb11ef
-    resource: repo://TFMTests/TerminalContextWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 
@@ -124,6 +126,45 @@ These controls compose rather than replace each other. For example, an SFTP file
 | Agent SSH/SFTP | `AgentHostServices` supplies a Host resolver, authentication registry, background command owner and Host-keyed `AgentConnectionPool`; ordinarily exec and primary SFTP share its multiplexed connection. Agent-forwarded exec instead uses isolated per-call connections. | Tool invocations use the Agent's SSH interaction service, not a terminal or forwarding Journey. | It is not a TCP forwarding pool or an interactive PTY session. |
 
 A `PortForwardingRule` is a portable saved description, not a listener. It identifies a Host and has `local`, `remote`, or `dynamic` (SOCKS5) kind, bind address/port, optional target address/port, label, and color. Dynamic rules deliberately erase target fields; a valid rule needs a nonblank bind host and port in `1...65_535`, while local/remote rules also require a nonblank target and valid target port. Rules remain independent of Host renames, but Host deletion removes its rules.
+
+## Operation-time Host access is not transport ownership
+
+A saved configuration or authenticated socket is not a permanent Host-access grant. `HostLibraryModel` supplies `connectionAccessCheck(for:)`, a closure over the lock-protected `HostOperationAccess` snapshot, so background owners can consult current policy without retaining the main-actor library. SSH preparation captures target, jump, and source Host IDs and carries the check into the resolved configuration. Access to a permitted target can therefore still fail because a jump Host is locked. This admission policy is separate from both server authentication and feature-specific multi-connection limits; see [Commerce, localization, and product surfaces](commerce-localization-and-product-surfaces.md).
+
+| Boundary | What is checked | What denial means |
+| --- | --- | --- |
+| Terminal | Connection/start admission checks current Host access. | This is not a per-keystroke entitlement check or a blanket instruction to kill an admitted PTY. |
+| Agent exec | Cached authentication configurations recheck access; `SSHConnectionWorker.execute` checks before delegating a new command. | Reusing an authenticated connection does not bypass admission for new exec work. |
+| SFTP | `AccessControlledSFTPChannel` checks each new operation, including opening a sibling; cross-Host copy checks a wrapped destination too. | Denied work never reaches the underlying channel. An upload already delegated can complete, and disconnect remains available without access. |
+| Forwarding | Rule registration and accepted local/dynamic or remote flows check current access; pool dispatch checks before assignment. | Newly accepted sockets/channels are closed on denial, rather than admitted to a worker. This does not itself replay or cancel existing flows. |
+| Metrics | Launch, reconciliation, and the sampling loop consult current route access. | Metrics retires its ongoing collection worker and hides authentication UI while preserving selection and cached readings. |
+
+Do not turn an **admission check** into **cancellation of already admitted work**. SFTP deliberately checks at the operation boundary, not inside each transfer chunk. Metrics is a continuing producer and has a different lifecycle response: denial cancels its worker and disconnects the sampler. Explicit user cancellation, shutdown, connection loss, and configuration invalidation remain separate teardown mechanisms.
+
+```mermaid
+flowchart TD
+    Library["HostLibraryModel current access policy"] --> Check["HostOperationAccess snapshot check"]
+    Coordinator["RemoteConnectionCoordinator factories"] --> PTY["Terminal PTY and control transport"]
+    Coordinator --> Sampler["Dedicated Metrics sampler"]
+    Coordinator --> AgentPool["Agent Host connection pool"]
+    PTY --> Borrowed["Borrowed SFTP channels"]
+    AgentPool --> Exec["Non-PTY exec"]
+    AgentPool --> AgentSFTP["Agent SFTP channels"]
+    Check -. "new operations" .-> Exec
+    Check -. "new operations" .-> Borrowed
+    Check -. "new operations" .-> AgentSFTP
+    Metrics["ServerMetricsModel"] --> Sampler
+    Metrics --> Cached["Cached MetricsSnapshot"]
+    AgentRead["Agent get_metrics"] --> Cached
+    Forward["PortForwardingController"] --> ForwardPool["Host-scoped forwarding transport or pool"]
+    Check -. "registration and new flows" .-> ForwardPool
+    ForwardPool --> Local["Local and dynamic flow dispatch"]
+    ForwardPool --> Remote["Remote listener on primary"]
+```
+
+Service routing separates transport owners from the shared access policy; `get_metrics` reads cached state rather than opening another SSH connection. Sources: [Host access snapshots](../../Frameworks/TermindApplication/Connections/HostOperationAccess.swift), [transport construction](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift), [Agent services](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift), and [forwarding pool](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift).
+
+Focused tests: `FrameworkTests/HostOperationAdmissionTests.swift` admits an upload, expires access, proves a new directory read is rejected without disconnecting the upload, then restores access and reads again. `FrameworkTests/MetricsHostAccessTests.swift` covers locked targets and jumps, preserved cache/selection, and the distinction between a quota lock and unresolved entitlement verification.
 
 ## Interactive terminal channels
 
@@ -160,7 +201,7 @@ Focused regression coverage: `TFMTests/SSHMaxSessionsPolicyTests.swift` checks d
 
 ## Metrics: bounded exec sampling, not a login shell
 
-`ServerMetricsModel` is the application-level owner, independent of windows. It persists ordered `MetricsSelection` configuration (Host ID, enabled state, disk and interface choices), not monitor connections or samples; missing Hosts stay selected but have no card/worker until available. On macOS `AppModel` constructs it with the connection coordinator's sampler factory and a Pro-dependent card limit; on iOS `MobileMetricsModel` wraps the **same `ServerMetricsModel` implementation**, delegating sampling, authentication, and retries to `core`, while setting its own Pro-dependent card limit. Admission and preference writes run through the core model, which rejects non-SSH Hosts and does not change runtime configuration if saving fails. UI windows share its card state; the desktop details page observes a Host only while visible outside its connection journey, and the mobile detail view uses the same observation interface.
+`ServerMetricsModel` is the application-level owner, independent of windows. It persists ordered `MetricsSelection` configuration (Host ID, enabled state, disk and interface choices), not monitor connections or samples; missing Hosts stay selected but have no card/worker until available. On macOS `AppModel` constructs it with the connection coordinator's sampler factory; on iOS `MobileMetricsModel` wraps the **same `ServerMetricsModel` implementation**, delegating sampling, authentication, and retries to `core`. Neither shell injects a separate Pro-dependent Metrics card limit; current Host access is enforced by the shared Host policy. Admission and preference writes run through the core model, which rejects non-SSH Hosts and does not change runtime configuration if saving fails. UI windows share its card state; the desktop details page observes a Host only while visible outside its connection journey, and the mobile detail view uses the same observation interface.
 
 `ServerMetricsModel` runs a detached serial worker for each enabled SSH Host with a generation guard. The worker resolves an SSH connection preparation with challenge-capable trust and keyboard-interactive handlers, connects a newly made sampler, then samples on a roughly two-second cadence. It publishes the base point first; GPU, filesystem, and process details are optional follow-up work. Filesystems are refreshed only while a detail view is observed and no more often than 30 seconds. On failure it disconnects and retries with exponential delays from 2 seconds to a 60-second cap; a failure needing authentication or an unsupported primary probe waits for attention instead of looping. Cancellation, disabled selection, sleep, stopped model, or a changed generation retires the work; periodic reconciliation notices Host/route/identity changes and invalidates its monitor. `snapshot(for:)` reads the existing monitor without starting collection, returning an explicit paused, sleeping, stopped, or awaiting-authentication state where applicable.
 
@@ -246,3 +287,5 @@ A route/Host configuration edit, deleted/replaced rule, or explicit stop invalid
 - Test lifecycle changes with the focused forwarding suites. `TFMTests/PortForwardingReconnectTests.swift` covers shared-context reconnect, capped backoff, generation rejection, silent recovery, remembered versus temporary trust, and cleanup ordering. `TFMTests/PortForwardingFeatureTests.swift` covers rule normalization/validation, Host-route constraints, deletion cleanup, persistence behavior, and command rendering.
 
 Tailscale-managed targets use a group-bound `SSHNetworkDialing` connection. A failed Tailnet dial does not fall back to the system network, and managed targets cannot be jump Hosts. Metrics retains Tailscale group identity in its selection and treats unavailable peers separately from durable monitor intent. `MultiConnectionPolicy` resolves saved SFTP/forwarding preferences against runtime availability: channels-only and one physical forwarding connection are the fallback, without changing saved preferences.
+nd one physical forwarding connection are the fallback, without changing saved preferences.
+s-only and one physical forwarding connection are the fallback, without changing saved preferences.

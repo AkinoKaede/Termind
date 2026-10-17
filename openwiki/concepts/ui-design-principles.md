@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: UI Design Contracts
+title: UI Design and Presentation Contracts
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -20,8 +20,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
     resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
-  - id: openwiki-source-118439c3fd21dea3ac2ad393
-    resource: repo://Frameworks/TermindPresentation/HostConnectionIcon.swift
   - id: openwiki-source-a6809548e658973d3caeb87b
     resource: repo://Frameworks/TermindPresentation/HostDistributionIcon.swift
   - id: openwiki-source-7ce0caf95a799e357a1bcaeb
@@ -30,8 +28,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
   - id: openwiki-source-c64a723125ae79e3e2e47109
     resource: repo://Frameworks/TermindPresentation/HostIconPicker.swift
-  - id: openwiki-source-9991b648b0458ed9d4eb11d5
-    resource: repo://Frameworks/TermindPresentation/HostSystemIcon.swift
   - id: openwiki-source-b94703f13853dd091b9c8088
     resource: repo://Frameworks/TermindPresentation/NotificationSettingsFields.swift
   - id: openwiki-source-4706711c42fe2431044b1e84
@@ -46,8 +42,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
-  - id: openwiki-source-98bdcb8d33d425fe144907e1
-    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift
   - id: openwiki-source-821c6451f936b3390d26080d
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
@@ -78,6 +72,8 @@ sources:
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
   - id: openwiki-source-215c24353f612bb80e412229
     resource: repo://TFI/Features/Settings/MobileAppSettingsView.swift
+  - id: openwiki-source-a9957dd7f924e8ace5825a9d
+    resource: repo://TFI/Features/Settings/MobileCustomThemeEditorSheet.swift
   - id: openwiki-source-e21fae39ef7af76f86acbff6
     resource: repo://TFI/Features/Settings/MobileSettingsView.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
@@ -134,8 +130,8 @@ sources:
     resource: repo://TFM/Features/Ports/PortForwardingView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
-  - id: openwiki-source-af7fbbca079c2cb6201a5151
-    resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift
+  - id: openwiki-source-9111b4447c69e2c2d6c3e1d6
+    resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorPage.swift
   - id: openwiki-source-c661b665fc19c6bd43499b01
     resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -184,13 +180,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
-# Cross-Platform UI Design Principles
+# UI Design and Presentation Contracts
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -218,15 +214,17 @@ The desktop App settings picker offers Follow System, German, English, French, J
 
 ### Settings navigation belongs to each shell
 
-Desktop `RootView` mounts `SettingsPageView` at the window's Settings destination. `WindowModel.openSettings(route:)` remembers the displaced destination; toolbar Back follows `SettingsRoute.parent` to the index, then restores that destination, or Vault if its workspace has disappeared. The index has App, **Notifications**, Terminal, Connections, AI and Sync categories, Developer in DEBUG, optional separate Logging, and a Pro paywall action instead of a Pro route. Category and Logging routes return to index; provider model lists return to their provider, other AI details to AI. Terminal configuration returns first to the appearance-specific theme browser, then to Terminal, then the index. Paywall presentation does not consume the return destination. Both apps use `NotificationSettingsFields` with their own settings-opening adapter; desktop places it in the Notifications route and mobile places it inside a native link.
+Desktop `RootView` mounts `SettingsPageView` at the window's Settings destination. `WindowModel.openSettings(route:)` remembers the displaced destination; toolbar Back follows `SettingsRoute.parent` to the index, then restores that destination, or Vault if its workspace has disappeared. The index has App, **Notifications**, Terminal, Connections, AI and Sync categories, Developer in DEBUG, optional separate Logging, and a Pro paywall action instead of a Pro route. Category and Logging routes return to index; provider model lists return to their provider, other AI details to AI. Built-in theme browsers and the custom-theme manager return to Terminal. A custom-theme editor returns to the custom-theme manager, then Terminal, then the index. Paywall presentation does not consume the return destination. Both apps use `NotificationSettingsFields` with their own settings-opening adapter; desktop places it in the Notifications route and mobile places it inside a native link.
 
 ```mermaid
 flowchart TD
     Previous[Window destination] --> Index[Settings index remembers destination]
     Index --> Category[Category]
     Category --> Browser[Terminal theme browser]
-    Browser --> Editor[Terminal custom configuration]
-    Editor -->|Back| Browser
+    Category --> Manager[Custom-theme manager]
+    Manager --> Editor[Custom-theme editor]
+    Editor -->|Back after save or discard| Manager
+    Manager -->|Back| Category
     Browser -->|Back| Category
     Category -->|Back| Index
     Index -->|Back| Restore[Restore destination or Vault]
@@ -247,6 +245,12 @@ The compact Snippets and History shelves use `SidebarListItem` with stable recor
 
 Mobile card columns follow available width and accessibility text sizes force one column; cards use a 106-point minimum height and show at most two tags. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
 
+### Host artwork is a presentation contract
+
+`HostIconCatalog` loads `HostIcons.json` from the app bundle and degrades to an empty catalog on missing or invalid data. Automatic artwork matches the detected distribution ID, then related IDs, then Linux. Explicit general-icon overrides resolve to system symbols; catalog overrides resolve to assets. An unknown explicit override is preserved by the picker as Unknown Icon and renders the generic server symbol rather than silently switching to detected artwork. The picker separates Automatic, general icons and sorted catalog entries into native menu sections. `HostDistributionIcon` gives a Host color tag priority over contrast-adjusted brand color, then accent fallback; artwork is independent of connection state. Asset production and app-icon generation belong to [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md), not the UI shell.
+
+Sources: [catalog resolution](../../Frameworks/TermindPresentation/HostIconCatalog.swift), [picker](../../Frameworks/TermindPresentation/HostIconPicker.swift), [distribution artwork](../../Frameworks/TermindPresentation/HostDistributionIcon.swift).
+
 ## Native actions report intent to their owners
 
 Desktop `ManagedCardPage` consumes typed sections, externally owned selection, capabilities and cards, manages geometry/selection/drag and reports stable IDs. Mobile `MobileCardPage` / `MobileCardGrid` / `MobileActionCard` use taps for the primary action and context menus for secondary actions; other lists use swipe actions or links. Renderer enablement is feedback, not a replacement for operation validation. Shared `operationConfirmation` resolves text with the view locale and keeps an explicit Cancel action. Anchored operations use native SwiftUI confirmation dialogs; centered collection-wide operations use the app-injected UIKit renderer. The latter waits for existing presentation transitions, uses an arrowless window-centered popover on iPad, and runs actions after dismissal completes rather than deleting their source views during exit.
@@ -264,9 +268,9 @@ Cards offer intents; the feature or application owner performs the operation.
 
 A mobile Vault Host card taps into scene-owned host activation. Its context menu offers SSH/SFTP only when `sshEnabled` and Telnet only when `telnetEnabled`, separated from Edit/Duplicate and destructive Delete; a Host with no enabled protocol still has edit and delete. The Vault also renders grouped, collapsible Host sections and native links to Keychain, Forwarding, Snippets, Known Hosts and History; search can find Hosts or links into those features, passing the query to the destination where appropriate. `MobileVaultView` passes connections through its `open` callback, edits through an item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication creates a new ID, clears Host-custom SSH, Telnet and proxy identity references and clears the proxy username when its custom identity is removed. TFM's `HostContextMenu` instead has Quick Connect, Connect submenu and Copy SSH Command, retaining desktop-owned editing/deletion.
 
-Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Shared `SnippetCardContent` supplies colored icons, valid-target counts, risk and timestamp content while native cards retain surfaces and actions. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one SSH workspace per allowed target, passing the snippet command as live startup state, never into its restoration descriptor.
+Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Shared `SnippetCardContent` supplies colored icons, valid-target counts, risk and timestamp content while native cards retain surfaces and actions. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one workspace per allowed target using that Host's preferred terminal transport, passing the snippet command as live startup state, never into its restoration descriptor.
 
-Desktop `WindowModel.findKind` selects the foreground Vault, Assistant, Metrics, appearance-specific terminal theme browser or focused workspace pane's query; Welcome owns search in content, while other Settings routes and unsearchable workspaces have no titlebar Find. Theme browser queries live in `WindowModel.terminalThemeQueries` per light/dark scheme, so returning from the custom editor retains the browser's filter without giving the editor its own Find. `RootView` mounts one OS-selected toolbar slot: macOS 26 uses a background `WindowToolbarSearchHost` with system `.searchable`, while older systems use a native field and `NSSearchField` owner (or compact Metrics popover). The legacy owner and direct focus handler protect keyboard intent when SwiftUI replaces toolbar content. Both paths use window query and terminal find navigation/cancellation; `focusToolbarFind()` stands panes down before requesting focus so rebuilding terminal content cannot reclaim the caret. Leading New actions follow foreground content rather than sidebar mode; Navigator rows can offer page-specific verbs without first navigating there.
+Desktop `WindowModel.findKind` selects the foreground Vault, Assistant, Metrics, appearance-specific terminal theme browser or focused workspace pane's query; Welcome owns search in content, while other Settings routes and unsearchable workspaces have no titlebar Find. Theme browser queries live in `WindowModel.terminalThemeQueries` per light/dark scheme; the custom-theme manager has a separate `customThemeQuery`. These filters survive navigation, but the custom-theme editor has no Find. Theme libraries keep a visible `WindowToolbarFindField`, including empty/no-results states; other searchable destinations use the OS-selected search slot. macOS 26 uses a background `WindowToolbarSearchHost` with system `.searchable`, while older systems use a native field and `NSSearchField` owner (or compact Metrics popover). The legacy owner and direct focus handler protect keyboard intent when SwiftUI replaces toolbar content. Both paths use window query and terminal find navigation/cancellation; `focusToolbarFind()` stands panes down before requesting focus so rebuilding terminal content cannot reclaim the caret. Leading New actions follow foreground content rather than sidebar mode; Navigator rows can offer page-specific verbs without first navigating there.
 
 ### Inline review invitations must not interrupt work
 
@@ -280,7 +284,7 @@ Sources: [review state and visit policy](../../Frameworks/TermindApplication/Fea
 
 `HostOrganizationSection`, `HostProtocolProfileControls` and `HostConnectionFields` bind to a platform-owned Host draft. The organization section accepts platform-supplied group/tag controls; profile selection exposes SSH or Telnet fields. iOS connection fields select URL/number keyboards and suppress address autocorrection. These shared fields do not save. Stateless `HostEditorBindings` projects the existing Host/custom-identity drafts and reports platform-owned creation callbacks, without storing a second selection model.
 
-TFM edits a local draft inside the Vault work column: nested identity/group/environment routes must stay there rather than promoting into the outer split detail. `VaultWorkEditingSession` tracks dirty transitions and commit; desktop validity checks SFTP initial paths and validated SSH routes. TFI opens `MobileHostEditor` as an item-based Vault sheet for new or existing Hosts. It seeds a local Host draft, loads a separate `HostCustomIdentityDraft` once, and feeds child identity/group/environment changes back into the parent. Save persists custom identities and Host through the library. Mobile eligibility requires a nonblank address, enabled terminal protocol, valid enabled ports, configured custom SSH/Telnet/proxy identity and valid SSH environment variables.
+TFM edits a local draft inside the Vault work column: nested identity/group/environment routes must stay there rather than promoting into the outer split detail. `VaultWorkEditingSession` tracks dirty transitions and commit; desktop validity checks SFTP initial paths and validated SSH routes. TFI opens `MobileHostEditor` as an item-based Vault sheet for new or existing Hosts. It seeds a local Host draft, loads a separate `HostCustomIdentityDraft` once, and feeds child identity/group/environment changes back into the parent. Save persists custom identities and Host through the library. Mobile eligibility requires a nonblank address, enabled terminal protocol, valid enabled ports and terminal transports, valid custom SSH/Telnet/proxy identities and valid SSH environment variables. Managed Tailscale drafts bypass ordinary custom SSH validation and save through `saveTailscaleHost` with a separately loaded username; both platforms disable managed name/group, protocol and connection fields while retaining icon, tags and color editing.
 
 `MobileEditorSheet` owns the enclosing `NavigationStack`, Form and toolbar. Clean Cancel runs `onCancel` and dismisses; dirty Cancel presents a titleless, destructive-only action sheet with resource-specific copy for new drafts, and confirmed discard runs `onCancel` before dismissal; invalid or already-saving Save is disabled; an in-flight save disables editing, actions and interactive dismissal. Successful save checks cancellation before dismissal; becoming clean clears any discard prompt, while failure alerts without dismissing, and disappearance cancels an outstanding task. Desktop and mobile save gates intentionally differ.
 
@@ -301,9 +305,13 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 ### Terminal preferences and Assistant output
 
-`TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include a family with any loadable monospaced member, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
+`TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include every family with a loadable member, including proportional families, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
 
-`TerminalThemeOptions` is the read-only, appearance-filtered theme browser model. It preserves missing, empty and wrong-appearance stored names and shows `TerminalThemeAvailabilityNotice` when the selected base is unavailable; rendering chooses an appearance-specific default without repairing storage on entry. Each app's light/dark browser has a custom tile and separately editable custom configuration. Tapping a catalog tile calls `TerminalSettingsModel.selectTheme`, which saves the chosen name **and disables that appearance's custom overlay atomically**; tapping Custom calls `selectCustomTheme`, enabling the overlay without changing the saved base name. Successful selection goes Back on desktop or dismisses the mobile browser; save failure retains the page and shows `storageError`. Rendering applies resolved base theme, enabled custom overlay, then device-local typography in that order. Desktop custom editing debounces autosave, flushes on disappearance and imports UTF-8 files; mobile opens a draft `MobileEditorSheet` and explicitly saves the custom text. Theme previewing and opening Settings alone do not write preferences. Tests cover font membership/precedence/controller identity, theme fallback and overlays with zero writes on opening desktop Settings, and mobile controls in English and both Chinese scripts.
+`TerminalThemeOptions` is a read-only projection of preferences plus `TerminalThemeLibrary`. Missing, empty or wrong-appearance built-in names and missing custom selections produce a localized availability notice and display-time fallback, not storage repair. Each light/dark browser lists compatible named custom themes and built-in themes; custom themes are managed separately, with name, appearance, base theme and configuration. Built-in selection uses a native library selection when supported (or when selections already exist), clearing custom selection; the legacy preferences path saves the base name and disables its overlay in one edit. Selecting a custom tile validates its ID and appearance before saving a library selection. Both browsers leave only after a successful save and otherwise show `storageError`.
+
+Rendering resolves the base, applies enabled configuration and incorporates local typography without rewriting stored choices. Local family is prepended as the preferred family while theme families remain fallbacks; empty theme family resets reinsert that preference. Manual local size is appended last unless size follows the theme. Desktop `TerminalCustomConfigurationEditorPage` debounces edits by 300 ms and imports UTF-8 text; `WindowModel` attempts saving before Back or changing destinations. Invalid, deleted or failed-save drafts protect navigation with discard confirmation. Cancelling keeps the draft; discarding clears the owner before deferred navigation, preventing pending autosave from resurrecting it. Autosave avoids trimming a trailing name-space while typing; navigation can normalize the name. Mobile `MobileCustomThemeEditorSheet` explicitly saves its draft and can import UTF-8 text. Deleted themes cannot be overwritten by stale drafts; editors offer Save Copy instead. Tests cover loadable font membership (including proportional families), family fallback/reset ordering, size precedence, controller identity, nonmutating theme fallback and zero writes on opening desktop Settings. Mobile font rendering covers English and both Chinese scripts.
+
+Sources: [theme projection](../../Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift), [selection and persistence](../../Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift), [desktop editor](../../TFM/Features/Settings/TerminalCustomConfigurationEditorPage.swift), [mobile editor](../../TFI/Features/Settings/MobileCustomThemeEditorSheet.swift), [navigation regressions](../../TFMTests/SettingsNavigationTests.swift).
 
 The app-owned keyword-highlighting editor, rule model and shared runtime modifier were retired. Terminal Settings now exposes theme, local typography and shell-integration choices, not synchronized highlighting rules. V52 removes historical highlighting storage, and Settings preparation/receipt excludes inactive legacy records without replacing other preferences. Preserve historical schema shapes rather than recreating the deleted UI; see [Ghostty Terminal Integration](ghostty-terminal-integration.md) and [Persistent Data and Secrets](persistence-and-secrets.md).
 
@@ -311,13 +319,13 @@ Native terminal menus belong to the platform adapters. On iOS `MobileTerminalVie
 
 ```mermaid
 flowchart TD
-    Stored[Saved light or dark preference] --> Options[Read-only theme options]
+    Stored[Preferences and theme library] --> Options[Read-only theme options]
     Options --> Browser[Appearance-specific browser]
-    Browser -->|Catalog tile| Base[Save name and disable overlay]
-    Browser -->|Custom tile| Custom[Enable overlay and retain base name]
-    Base --> Render[Resolve base then overlay then local font]
+    Browser -->|Built-in tile| Base[Save built-in selection without custom]
+    Browser -->|Named custom tile| Custom[Validate ID and appearance then save selection]
+    Base --> Render[Resolve base and configuration with local typography]
     Custom --> Render
-    Options -->|Unavailable base| Fallback[Render appearance fallback without saving]
+    Options -->|Unavailable selection| Fallback[Display fallback without saving]
     Fallback --> Render
 ```
 
@@ -341,16 +349,9 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit and distribution-brand contrast. `MobileCardLayoutTests` measures balanced minimum-height padding, stable Host headers/timestamps across 0–2 tags in English and both Chinese scripts at 320/600 points, light/dark appearance and large text, plus snippet header stability with/without a folder. `MobileCompactCardTests` pins standard/compact column counts, scaled widths, accessibility one-column layout, square-or-taller sizing, mounted preference updates and persistence, warning badges and snippet risk. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit and distribution-brand contrast. `MobileCardLayoutTests` measures balanced minimum-height padding, stable Host headers/timestamps across 0–2 tags in English and both Chinese scripts at 320/600 points, light/dark appearance and large text, plus snippet header stability with/without a folder. `MobileCompactCardTests` pins standard/compact column counts, scaled widths, accessibility one-column layout, square-or-taller sizing, mounted preference updates and persistence, warning badges and snippet risk. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
 
 For review changes, `MobileAppReviewTests.invitationFitsPhoneAndTabletWidths` renders English and both Chinese scripts at 320, 430 and 768 points, comparing light/standard text with dark/accessibility3 and requiring the accessible layout to grow vertically without recording a response. `TERMIND_REVIEW_PREVIEW=1` records PNG attachments; it does not enable the controller's developer preview. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
-
-For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
-
-Tailscale peer details are an eligible Host menu section; managed Hosts disable duplication and deletion with matching application guards. The iOS terminal menu puts editing actions in a medium inline group and upload actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
-erminal menu puts editing actions in a medium inline group and upload actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
-ad actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
-nd 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 

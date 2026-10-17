@@ -1,11 +1,8 @@
 ---
 type: implementation guide
 title: Shell Integration and Terminal Context
-description: "Authenticated SSH shell integration, ordinary-shell and tmux context journals, capability-gated draft operations, and safe command completion reporting. Explains transport admission, active-context ownership, invalidation, replay protection, and conservative unsupported states."
+description: "SSH shell startup, multiplexer context inspection, display-only native directories, context-bound history and capability-gated drafts. Explains active-context authority, replay protection, command notifications and separate Telnet semantics."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
@@ -27,16 +24,18 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalCommandObservation.swift
   - id: openwiki-source-9dfd0d1178e2ed5b33263580
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift
+  - id: openwiki-source-def4e2a1e496584ce004142c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerRuntimeAdapter.swift
   - id: openwiki-source-ccccd315b54fdf214da7c51d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellContextJournal.swift
+  - id: openwiki-source-6048486262adf7eef1d39270
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellStartup.swift
   - id: openwiki-source-c2c39769d8f4c493487eeef6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalContextFilter.swift
   - id: openwiki-source-1afc5208db69520219d6eac2
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift
-  - id: openwiki-source-d38fae081703fee1c3052753
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeAdapter.swift
-  - id: openwiki-source-17e3659f97ad9034fcdac928
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxShellStartup.swift
+  - id: openwiki-source-28e148e03a224714293643b8
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
@@ -45,17 +44,16 @@ sources:
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-ff78389501d942aabe259a03
     resource: repo://FrameworkTests/TerminalCommandMonitorTests.swift
-  - id: openwiki-source-cc833bafcd369a243c638b69
-    resource: repo://FrameworkTests/TerminalNotificationCoordinatorTests.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
-  - id: openwiki-source-0c0e5cf058fc9e65d592cc20
-    resource: repo://TFMTests/CommandNotificationTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Shell Integration and Terminal Context
@@ -76,7 +74,7 @@ The value-type bootstrap and event filter are driven by the PTY's queue-confined
 
 ### Journals and inspection
 
-Each initialized Bash, Zsh, or Fish shell has its own `ctx.*` directory. `RemoteShellContextJournal` atomically renames state/journal temporary files: metadata (`M1`) identifies token, pane, shell instance, shell, home, process and optional history path; state (`R1`) gives sequence, readiness and cwd; the bounded tail contains at most 32 `E1` events. Start clears readiness, prompt sets it, and directory updates cwd. Ordinary shells emit token-scoped `TermindContext` OSC frames with metadata, snapshot and the new event. Managed tmux shells write journals without relying on visible pane output, allowing inspection to observe completions in invisible panes.
+Each initialized Bash, Zsh, or Fish shell has its own `ctx.*` directory. `RemoteShellContextJournal` atomically renames state/journal temporary files: metadata (`M1` for ordinary/legacy records, `M2` with an explicit backend for managed multiplexers) identifies token, pane, shell instance, shell, home, process and optional history path; state (`R1`) gives sequence, readiness and cwd; the bounded tail contains at most 32 `E1` events. Start clears readiness, prompt sets it, and directory updates cwd. Ordinary shells emit token-scoped `TermindContext` OSC frames with metadata, snapshot and the new event. Managed multiplexer shells write journals without relying on visible pane output, allowing inspection to observe completions in invisible panes.
 
 `RemoteTerminalContextFilter` removes matching BEL-terminated terminal/context frames before display conversion, retaining split prefixes. It validates the inner token and ordinary `shell` pane. Malformed or oversized recognized frames produce `.unavailable`, not capabilities; its frame bound is 64 KiB. Wrong-token traffic remains ordinary terminal output. Journal parsing separately enforces strict percent escapes, supported shells, identity fields, contiguous tail sequences ending at the snapshot sequence, and record/event bounds. Token scoping is not authentication against a malicious remote host: the host receives the token.
 
@@ -85,7 +83,7 @@ sequenceDiagram
     participant Sh as Remote shell hooks
     participant PTY as SSH PTY worker
     participant Exec as Shared authenticated exec owner
-    participant TM as RemoteTmuxRuntimeAdapter
+    participant TM as RemoteMultiplexerRuntimeAdapter
     participant CC as TerminalContextCoordinator
     participant UI as Session feature
     Sh->>PTY: Token scoped tty and ordinary context frames
@@ -98,7 +96,7 @@ sequenceDiagram
         PTY->>CC: Generation and revision guarded update
         CC->>UI: Active capabilities and new contiguous events
         UI->>PTY: Draft read or replace for captured context
-        PTY->>Exec: Reinspect tmux and install expiring request
+        PTY->>Exec: Reinspect multiplexer and install expiring request
         Exec->>Sh: Trigger negotiated draft widget
         Sh->>Sh: Validate sequence and optional original buffer
         Sh->>Exec: Journal draft response with request UUID
@@ -114,19 +112,45 @@ Runtime inspection and draft control share the terminal's existing authenticated
 
 The runtime executor uses the shared exec owner with `requiresImmediateCapacity: true`, no channel-open retries, no login shell, a two-second timeout and a 1 MiB output limit. Admission must not wait behind the PTY occupying the channel budget. A server channel refusal latches control unavailable for the session. Publishing then removes ordinary-shell draft capabilities or marks tmux unavailable; terminal input/output remains usable. Observation starts after tty discovery, polls initially after 500 ms, uses 750 ms after a multiplexer result and backs off to at most five seconds otherwise. Worker generation/revision guards discard inspections overtaken by input or newer context frames.
 
-`RemoteTmuxRuntimeAdapter` validates the client tty, client PID/creation, server PID, session ID/creation, pane PID, foreground shell, and journal instance. It does not infer activity from the latest directory event. Read-only or `active-pane` clients are unavailable. A missing journal yields an unintegrated active context with no capabilities. Copy mode, synchronized panes, a foreground non-shell, non-ready shell, or process mismatch cannot reuse a trusted directory/draft. A non-root key table (such as prefix mode) preserves an otherwise verified directory but withholds draft read/replace. Unknown/unavailable status has no active context.
+`RemoteMultiplexerRuntimeAdapter` delegates managed attachments to registered dialects and preserves tmux's native tty lookup. If that does not yield an active context, `RemoteTerminalProcessProbe` binds the PTY foreground multiplexer process to its actual UNIX socket endpoint, not an argv session name. Linux uses socket-peer evidence from `ss` or Python socket diagnostics; Darwin uses `lsof`. A matching managed helper can recover integrated journals; otherwise `RemoteNativeMultiplexerRuntime` attempts a read-only native directory and rechecks the client after inspection.
+
+Tmux-specific validation belongs to `RemoteTmuxRuntimeDialect`: client tty, client PID/creation, server PID, session ID/creation, pane PID, foreground shell and journal instance. Read-only or `active-pane` clients are unavailable. Copy mode, synchronized panes, a foreground non-shell, non-ready shell, or process mismatch cannot retain directory-operation authority or drafts. Prefix mode preserves otherwise verified directory authority but withholds drafts.
+
+### Displayed cwd is not operation authority
+
+`TerminalContextCoordinator.directory` returns the active snapshot's directory without testing capabilities or readiness. A running command leaves the last shell-reported cwd visible until another directory arrives; losing active context clears it. A directory chip is not permission to upload or replace shell input.
+
+Unintegrated tmux panes can expose a native display directory. Native Zellij inspection requires unanimous terminal-pane focus across listed clients and reads `pane_cwd`; zmx reads the bound shell process cwd rather than cached list output; Herdr accepts only a single pane with `foreground_cwd`, not saved cwd or global focus. Native snapshots have empty capabilities, no ready prompt or history source, and `.shellIntegrationUnavailable`. Ambiguous focus, unsupported versions, missing endpoints, invalid paths and detected nested multiplexers produce conservative issues rather than guessed authority. A detected multiplexer failure must not retain the outer shell's cwd. Only a negative observation with no detected backend may retain the non-ready ordinary snapshot, without restoring prompt rights.
 
 ### Tickets, replay and invalidation
 
 Tickets capture coordinator **generation, revision and context identity**, and require a ready active context with all requested capabilities. Reset changes generation and clears contexts/high-water marks/running commands; input increments revision without pretending a context switch occurred. Status, client, active identity, readiness, directory, capabilities, active non-draft events and active sequence gaps can change revision. A draft response alone does not. Consequently a command that starts and finishes between polls still invalidates a draft even if cwd and prompt look unchanged. Asynchronous refresh also checks the latest inspection ID, generation and revision after awaiting the adapter.
 
-Per-context sequence high-water marks suppress duplicate/replayed events. On first joining tmux, snapshot sequences are installed **before** replaying the journal, so past commands do not notify again. Other snapshots establish a high-water mark after processing their event tail, without inventing a command start. A gap clears that context's running-command eligibility; a completion is accepted only after a capability-authorized start and a contiguous event sequence. Old active snapshots are rejected. Independent panes retain separate running state, and an unknown foreground does not forget the outer ordinary shell's pending command (for example manual tmux attach/detach).
+Per-context sequence high-water marks suppress duplicate/replayed events. On first joining a multiplexer, snapshot sequences are installed **before** replaying the journal, so past commands do not notify again. Other snapshots establish a high-water mark after processing their event tail, without inventing a command start. A gap clears that context's running-command eligibility; a completion is accepted only after a capability-authorized start and a contiguous event sequence. Old active snapshots are rejected. Independent panes retain separate running state, and an unknown foreground does not forget the outer ordinary shell's pending command (for example manual tmux attach/detach).
 
 Desktop and mobile route runtime updates through the coordinator, then send only accepted events to history and `TerminalCommandMonitor`. They derive cwd, shell, lifecycle availability and prompt readiness from the active snapshot. A revision change cancels draft reads, pending uploads and command generation. Once runtime ownership is established, legacy shell events are ignored; desktop's Ghostty cwd observation is also gated off. Directory-sensitive operations capture and revalidate a `.directory` ticket and use `confirmContext` before committing; see [File Drag and Drop](../workflows/file-drag-and-drop.md).
 
 ### Safe draft read and replace
 
-Runtime composition uses `.readDraft`/`.replaceDraft` tickets, `SSHPTYChannel.contextDraft`, and request/response journals—not unconditional clear plus paste. Only one runtime draft request is pending. The worker captures input revision and PTY generation, checks active identity/capability, reinspects tmux for exact snapshot equality, and revalidates after awaits. Replacement is limited to 4096 UTF-8 and encoded bytes and rejects NUL. Remote requests are atomically installed with a UUID, expected sequence, action, two-second expiry and optional original-buffer baseline. The widget consumes the request only at the matching ready sequence; replacement refuses a changed original buffer, including edits from another client. Ordinary mode queues the widget key only after request installation; tmux sends the key to the validated pane with client/session and mode/foreground guards. Neither submits a newline. Result polling reads the matching UUID from the shell-instance journal and local input/generation/context checks run again before returning; failures clear pending state and throw rather than retargeting another pane.
+```mermaid
+flowchart TD
+    Snapshot["Active snapshot"] --> Display["Display cwd without granting authority"]
+    Snapshot --> Ready{"Ready and required capabilities?"}
+    Ready -->|No| Deny["No ticket"]
+    Ready -->|Yes| Ticket["Capture generation revision and identity"]
+    Ticket --> Await["Await operation"]
+    Input["Input or context change"] --> Revision["Advance revision and cancel dependent work"]
+    Reset["Connection reset"] --> Generation["New generation and cleared replay state"]
+    Await --> Validate{"Ticket still current?"}
+    Revision --> Validate
+    Generation --> Validate
+    Validate -->|No| Stale["Reject stale work"]
+    Validate -->|Yes| Confirm["Confirm remote context before commit"]
+```
+
+Cwd display survives some readiness changes, but operation authority cannot survive input, context changes or reconnects.
+
+Runtime composition uses `.readDraft`/`.replaceDraft` tickets, `SSHPTYChannel.contextDraft`, and request/response journals—not unconditional clear plus paste. Only one runtime draft request is pending. The worker captures input revision and PTY generation, checks active identity/capability, reinspects the multiplexer for exact snapshot equality, and revalidates after awaits. Replacement is limited to 4096 UTF-8 and encoded bytes and rejects NUL. Remote requests are atomically installed with a UUID, expected sequence, action, two-second expiry and optional original-buffer baseline. The widget consumes the request only at the matching ready sequence; replacement refuses a changed original buffer, including edits from another client. Ordinary mode queues the widget key only after request installation; tmux sends the key to the validated pane with client/session and mode/foreground guards. Neither submits a newline. Result polling reads the matching UUID from the shell-instance journal and local input/generation/context checks run again before returning; failures clear pending state and throw rather than retargeting another pane.
 
 ## End-to-end byte and event path
 
@@ -264,7 +288,7 @@ The monitor increments unread completions for background work **before** checkin
 
 For SSH PTY, the worker creates distinct input and output converters from the connection charset. Environment variable names and values are encoded before channel setup; user input is converted before entering the pending SSH write queue, preserving unconvertible bytes rather than rejecting the write. The receive chain in the diagram strips command events and rewrites OSC 7 on raw PTY bytes before streaming text conversion. On orderly terminal close, `finishCharsetOutput` flushes the OSC 7 filter remainder through the output converter and finishes the decoder before clearing session state. Fatal transport/read errors instead call `cleanup` directly, which discards converter/filter state without that tail flush; receive conversion exceptions fall back to raw bytes rather than halting the PTY. Cwd rewriting is installed even if shell integration is disabled, so a remote OSC 7 frame can still reach the terminal; this does not install Termind command hooks.
 
-Telnet uses the same converter **but does not run the SSH shell bootstrap, OSC 777 filter, or OSC 7 rewrite**. Both direct TCP and proxied-socket connection paths configure encoder and decoder before opening the transport. `TelnetProtocolParser` first strips Telnet negotiations and handles NVT data, then the worker decodes application bytes for the terminal and login-prompt scanner; conversion preserves unconvertible application bytes. Input (including automated username/password) is encoded before Telnet NVT formatting and IAC escaping. Unconvertible user and automatic-login bytes are preserved by the converter. Cleanup finishes the output converter to deliver its remaining bytes and clears converter and prompt state. Desktop and mobile Telnet session models pass converted output to their terminal backends and surface charset errors, but do not consume SSH shell integration events for Telnet.
+Telnet uses the same converter **but does not run the SSH shell bootstrap, OSC 777 filter, or OSC 7 rewrite**. Direct and proxied paths configure encoders/decoders before transport opening. Telnet protocol/NVT parsing precedes application-data decoding; decoder exceptions pass raw application bytes to display and prompt scanning. Outgoing encoding precedes NVT formatting and IAC escaping. Unconvertible user and automatic-login bytes are preserved; user-write conversion exceptions fall back to the original bytes. Automatic-login failures clear secrets and continue manually, without a dedicated charset error or strict representability guarantee. Cleanup flushes decoded output and clears converter and prompt state. This route grants no SSH runtime shell capabilities.
 
 ```mermaid
 flowchart TD
@@ -296,7 +320,7 @@ Follow [Agent Runtime and Assistant](agent-runtime-and-assistant.md) for turn ca
 
 Start runtime regressions with [TerminalContextCoordinatorTests](../../FrameworkTests/TerminalContextCoordinatorTests.swift) (active ownership, ticket expiry, replay/gaps, independent panes and unchanged-prompt command invalidation) and [TerminalContextWireTests](../../TFMTests/TerminalContextWireTests.swift) (every frame split, malformed records, unsafe modes, prefix-mode capability separation and immediate budget admission). [TerminalContextRuntimeTests](../../TFMTests/TerminalContextRuntimeTests.swift) is fixture-gated by `TERMIND_TMUX_FIXTURE`: it exercises Bash/Zsh/Fish ordinary and managed shells, invisible completions, manual attach/detach, reconnect without replay, remote draft edits, silent pane switches, capacity refusal and login-script auto-attach without bootstrap input. These are source-grounded acceptance scenarios, not evidence that this update ran the fixture.
 
-Core implementation references: [coordinator](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift), [PTY integration](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift), [journal protocol](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellContextJournal.swift), [tmux inspection](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeAdapter.swift), and [draft requests](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift). New runtime backends implement `TerminalRuntimeAdapter` using the existing authenticated transport and return the backend-neutral snapshot/event model; they must preserve active-client binding, capability conservatism and sequence semantics rather than teaching the coordinator tmux commands.
+Core implementation references: [coordinator](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift), [PTY integration](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift), [journal protocol](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellContextJournal.swift), [tmux inspection](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerRuntimeAdapter.swift), and [draft requests](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift). New runtime backends implement `TerminalRuntimeAdapter` using the existing authenticated transport and return the backend-neutral snapshot/event model; they must preserve active-client binding, capability conservatism and sequence semantics rather than teaching the coordinator tmux commands.
 
 `RemoteShellIntegrationLifecycleLogger` correlates an attempt with host and operation IDs. It records started, delayed, completed, skipped, or timed-out outcomes with stable reasons, stage, late status, and home/system availability flags. It does **not** log the token, remote shell path, home path, or system field values. A terminal outcome consumes the logger's operation ID, so later session-end cleanup does not emit a duplicate outcome. `ShellIntegrationLoggingTests` asserts both redaction and this deduplication; use these diagnostics instead of exposing hidden bootstrap traffic.
 
@@ -312,4 +336,13 @@ Core implementation references: [coordinator](../../Frameworks/TermindApplicatio
 
 The listed tests are source evidence, not a claim that live remote shells or the test suite were executed during this documentation update. Use the pinned-package commands in [Engineering Quickstart](../quickstart.md) for implementation changes.
 
-After authentication, each terminal’s memory-only `CommandHistoryModel` loads a bounded remote history snapshot through `RemoteShellHistoryLoader`, then merges live shell events. Installer metadata supplies the shell history path. Reconnect keeps a completed snapshot; disconnect cancels an unfinished read and close clears the session history.
+
+## Context-bound remote history
+
+The memory-only `CommandHistoryModel` merges remote file snapshots with accepted live events, not keystrokes. Non-runtime connections can resolve default history paths even without integration. Runtime connections must use the selected context's `historySource`; native display-only contexts never fall back to the exec shell's history. Desktop and mobile select context on every runtime update, independently of session persistence.
+
+Switching context cancels an unfinished read and removes previously imported rows; live observed commands remain terminal-wide. Within a coordinator generation, contexts sharing the same shell/path source can reuse a cache of at most 16 recent file snapshots, including empty reads. New generations clear the cache. Disconnect cancels loading, and close clears history; legacy completed-snapshot retention across reconnect is not runtime cross-generation authority.
+
+`RemoteShellHistoryLoader` reads files as data over existing authenticated exec, with safely quoted paths and random response markers. An explicit empty path disables reading without a control channel; missing files produce empty results. It reads the last **2 MiB**, transports bytes as base64, unmetafies Zsh before remote-charset decoding, then parses records and retains the configured entry limit. Nonzero exit, truncation or incomplete framing rejects the snapshot. The deadline is ten seconds with a 3 MiB exec output allowance. Immediate-capacity failures get at most three attempts, separated by 100 ms and 200 ms; this does not enable channel-open retries.
+
+Context reads validate active identity and history source before and after exec, reinspecting multiplexers on both sides; admission also checks PTY generation/source. They do not require a ready prompt or identical sequence, so commands may run while the same source remains valid. A pane/source or generation change rejects the result. See [RemoteShellHistoryLoaderTests](../../FrameworkTests/RemoteShellHistoryLoaderTests.swift) for quoted paths, disabled history, capacity retries, bounded tails, Zsh metafication and charset coverage, and [NativeTerminalContextTests](../../FrameworkTests/NativeTerminalContextTests.swift) for display-only and ambiguity boundaries.

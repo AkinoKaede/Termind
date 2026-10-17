@@ -54,10 +54,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Tailscale Integration
@@ -171,6 +171,15 @@ Live session system information reaches `HostLibraryModel.recordRemoteSystemInfo
 
 Presentation's `HostIconCatalog` resolves a non-nil `iconOverrideID` first; nil means automatic artwork from the latest detected distribution. Manual artwork does not change detection, SSH identity, host-key trust or network routing. Detection and artwork choices travel with group preferences and survive rediscovery, including discovery on another device after sync; the embedded node and its transport remain owned by `TailscaleModel`. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for the broader storage boundary.
 
+### Access policy and physical LAN boundaries
+
+Managed peers are exempt from `HostAccessPolicy`'s ordinary three-host free limit: they neither consume ordinary slots nor become ordinary locked Hosts, and managed additions are excluded from that policy's save count. This is **not** free Tailnet access. `TailscaleModel` still checks the separate `.tailscale` Pro capability when acquiring and using a dialer. See [Commerce and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for entitlement context.
+
+Embedded discovery is not the physical LAN scanner. `LANHostDiscovery` uses local IPv4 candidates and Bonjour on physical-network interfaces; `LocalDiscoveryModel` owns a cancellable scan with distinct unavailable, permission-denied and failed states. Tailnet managed peers instead come from the enrolled node's network map and are rebuilt under their bound group. A MagicDNS name or advertised SSH key is not a discovered MAC address.
+
+<!-- openwiki: broken internal link [../workflows/local-network-discovery-and-wake.md] file "../workflows/local-network-discovery-and-wake.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+A managed peer can nevertheless save an explicit MAC address and automatic-wake choice in its group preference. `LocalNetworkTests.tailscaleWakePreferencesSurviveProjectionSavingAndWireRoundtrip` verifies these survive rediscovery and sync and that V6 encoding rejects them. Wake uses `WakeOnLANController` and the current **physical LAN**, not the group's Tailnet dialer or Exit Node. `requestWake` checks Host access before configuration and transmission, and a sent packet is not confirmation that the peer woke or SSH is available. See [Local network discovery and wake](../workflows/local-network-discovery-and-wake.md) for that separate workflow.
+
 ## Two connection paths
 
 | Target | Network route | SSH authentication and trust |
@@ -194,7 +203,7 @@ Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant us
 | Pending erasure | Device-local durable `PersistentTailscaleProfileCleanup`; never synchronized. |
 | Metrics selection | Separate Metrics V2 record, with V1/V2 readers and decoder-capability refetch. |
 
-V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup readers accept V1–V5 and the current writer emits V5; historical V3 remains readable and supports independent groups for the same Tailnet. V5 layers artwork overrides onto the V4 group payload as an `iconOverrides` map keyed by canonical lowercase Host UUID strings, each referencing an existing peer preference. Encoding an artwork override into a pre-V5 envelope is rejected rather than silently losing it; non-default session persistence similarly requires V4 or later. Reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
+V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup readers accept V1–V7 and the current writer emits V7; historical V3 remains readable and supports independent groups for the same Tailnet. V5 layers artwork overrides onto the V4 group payload as an `iconOverrides` map keyed by canonical lowercase Host UUID strings, each referencing an existing peer preference. Encoding an artwork override into a pre-V5 envelope is rejected rather than silently losing it; non-default session persistence similarly requires V4 or later. Reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
 
 Retirement saves removal of the active local row and cleanup intent atomically before releasing the last runtime reference. Erasure excludes active and in-use profiles, including candidates suspended inside Save. Cleanup closes retired nodes, erases native state, then removes the durable marker; erasure failure remains retryable across database reopening. Startup enumerates only canonical UUID directories that are real directories, not symlinks, and rechecks active enrollments after enumeration before scheduling orphan cleanup. Cleanup can proceed without Pro and does not need to start a node. Shutdown cancels login/monitors, closes active nodes and joins cleanup work; it does not erase saved enrollment merely because the app exits.
 
@@ -216,3 +225,4 @@ When debugging, first distinguish Pro denial, device enrollment, pending Exit No
 - `TailscaleSSHWireTests`: real SSH/SFTP fixture through an injected loopback Tailnet dialer, gated by `TERMIND_SSH_FIXTURE` or `TERMIND_SSH_FIXTURE_JSON`. This does not exercise live control-service enrollment, WireGuard/DERP, browser policy approval or a physical multi-device Tailnet.
 
 Use resolved-only Xcode builds/tests from [Build, Test, and Release](../operations/build-test-and-release.md). This documentation update checks source and evidence; it does not claim the wire suite or a live Tailnet test ran. Pair connection/authentication changes with actual macOS and iOS enrollment, policy approval and SFTP checks.
+ds/tests from [Build, Test, and Release](../operations/build-test-and-release.md). This documentation update checks source and evidence; it does not claim the wire suite or a live Tailnet test ran. Pair connection/authentication changes with actual macOS and iOS enrollment, policy approval and SFTP checks.

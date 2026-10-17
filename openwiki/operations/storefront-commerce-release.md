@@ -34,12 +34,8 @@ sources:
     resource: repo://StoreKit/Termind.storekit
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
-  - id: openwiki-source-dc9295278cc250ed20567540
-    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
-    resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
@@ -50,6 +46,8 @@ sources:
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-b8fca76c89564e16eccfbb53
+    resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
@@ -60,10 +58,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Storefront and Commerce Release
@@ -109,13 +107,17 @@ Use the Mac plist path for the first command when inspecting the Mac app. Record
 
 ## Access and refresh lifecycle
 
-`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. `ProFeature` covers Tailscale, Assistant, remote MCP, the Mac built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. On Mac `.mcpServer` gates the built-in server; mobile uses `.remoteMCP` for remote connections. The enumeration alone is not a platform availability promise.
+`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. The current `ProFeature` set is Vault sync, unlimited Hosts, Tailscale and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. Do not reuse the fixture's AI/MCP descriptions as the current paid-feature contract: `.assistant`, `.remoteMCP`, `.mcpServer` and `.unlimitedMetrics` are not current Pro feature cases.
+
+Host access is a separate admission check: free access permits three ordinary Hosts, selected deterministically by creation date then UUID; Pro unlocks all ordinary Hosts. Additional saved Hosts are locked rather than deleted. Over-limit operations during `.loading` or `.verificationFailed` report unresolved/failed verification rather than treating that state as a resolved free account. Check purchase, expiry and verification failure with more than three Hosts, not just with an empty library. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the detailed Host policy.
+
+The Mac built-in MCP server is constructed without a Pro predicate and its settings toggle calls `setEnabled` directly. Mobile remote MCP Add and Import actions likewise have no `.remoteMCP` gate. This does not establish a built-in server on mobile: validate remote-client messaging separately from Mac server availability. [Source: `ProAccessTypes.swift`](../../Frameworks/TermindDomain/Commerce/ProAccessTypes.swift), [Host policy](../../Frameworks/TermindDomain/Hosts/HostAccessPolicy.swift), [mobile MCP settings](../../TFI/Features/Settings/MobileMCPSettings.swift).
 
 For Mac release verification, inspect the **composition root**, not the `AppModel` initializer default: `AppModel` defaults to `.unrestrictedForTesting()`, but `TermindApp` explicitly injects `.live()` for normal launches and `.unrestrictedForTesting()` when running tests. The DEBUG screenshot-demo branch also explicitly injects unrestricted access and returns early. Neither a screenshot nor a directly constructed default `AppModel` demonstrates production entitlement enforcement.
 
 On mobile, `TermindIOSApp` selects `MobileAppDependencies.live()` for normal launches and `.testing()` when `XCTestConfigurationFilePath` is present. Neither dependency factory explicitly injects `proAccess`: `.live()` supplies `hosts: nil` and `inMemory: false`, while `.testing()` sets `inMemory: true`. `MobileAppModel` honors an explicitly injected `proAccess` first; only when it is absent does the model choose unrestricted access for in-memory or supplied-host fixtures and `.live()` otherwise. Thus the production entitlement controller is selected by the model's fallback, not by an explicit controller assignment in the live factory. Validate the normal launch path on iPhone and iPad, not just a fixture-created model. `MobileRootView` binds the paywall sheet directly to `app.pro.isPaywallPresented`; its URL routing is unrelated to purchase authorization.
 
-Mac entitlement changes also reconcile runtime services: `accessDidChange` updates Tailscale, Metrics and effective SFTP/port-forwarding connection preferences without requiring a visible settings surface. `RootView` observes status changes to reconcile sync and the built-in MCP server. SFTP integration tests verify that gaining access restores the saved concurrency strategy and losing access uses the free effective strategy without rewriting saved preferences or opening a paywall. Include access gain/loss in release checks, not just initial paywall presentation.
+Mac entitlement changes also reconcile runtime services: `accessDidChange` updates Host admission, sync, Tailscale, Metrics and effective SFTP/port-forwarding connection preferences without requiring a visible settings surface. `RootView` also observes status changes to reconcile Host admission and sync; this no longer reconciles a Pro-gated built-in MCP server. SFTP integration tests verify that gaining access restores the saved concurrency strategy and losing access uses the free effective strategy without rewriting saved preferences or opening a paywall. Include access gain/loss in release checks, not just initial paywall presentation.
 
 ```mermaid
 flowchart TD
@@ -182,3 +184,5 @@ Normal invitation eligibility requires an enabled controller, no prior response,
 2. Run the default shared/macOS tests as described in [Build, Test, and Release](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
 3. Check final localized **storefront imagery** separately from the paywall. The parent screenshot runner supports and defaults to all seven locale keys: `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr`; `locales` options or `TERMIND_MAC_SCREENSHOT_LOCALES` / `TERMIND_SCREENSHOT_LOCALES` can narrow the selection. It sets test language, region and Apple locale for each capture. This is capture-tool coverage, not proof of localized remote paywalls or final exported boards. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout available for this repair is empty, so no current board count, filenames, final canvas dimensions or image profiles are verified here. Establish the release inventory from the inspected checkout; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.
+s or entitlement mapping.
+or entitlement mapping.

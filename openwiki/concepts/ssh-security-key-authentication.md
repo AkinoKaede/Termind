@@ -54,10 +54,10 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # SSH Security-Key Authentication
@@ -72,7 +72,7 @@ This page covers the hardware credential path. See [SSH Session Lifecycle](../wo
 2. Copy the generated SSH **public key** from the key editor and add it to the intended server user's `authorized_keys`. Select the saved key through the Host's identity. The public-key offer can be rejected by the server before any authenticator prompt; the connection then reports that the username or key should be checked.
 3. Connect. The SSH attempt offers the public blob, requests a WebAuthn assertion only when the server proceeds to signing, and shows the native Security Key prompt. Touch or verify as requested by the authenticator. An interactive signing card is bound to the current connection, metrics monitor, Agent interaction, or external authentication window rather than to a global reusable approval.
 
-Registration and assertion both use the fixed relying party **`termind.akinokaede.com`**. Both app entitlements declare `webcredentials:termind.akinokaede.com`, and the website publishes its webcredentials association. The key is therefore a Termind RP credential, not a generic SSH Security Key handle that another app can claim through its own RP. Keep the associated-domain deployment and OS presentation anchor working on each platform: an unanchored or overlapping authorization request fails with `SSHInteractionRequired` rather than silently attempting authentication.
+Registration and assertion both use the fixed relying party **`termind.akinokaede.com`**. Both app entitlements ([iOS/iPadOS](../../TFI/TFI.entitlements), [macOS](../../TFM/TFM.entitlements)) declare `webcredentials:termind.akinokaede.com`, and the website publishes its webcredentials association. The key is therefore a Termind RP credential, not a generic SSH Security Key handle that another app can claim through its own RP. Keep the associated-domain deployment and OS presentation anchor working on each platform: an unanchored or overlapping authorization request fails with `SSHInteractionRequired` rather than silently attempting authentication.
 
 ## What is saved and portable
 
@@ -112,7 +112,7 @@ For `webauthn.get`, conversion checks matching credential ID, challenge encoded 
 
 ## Connection owners and interaction policy
 
-`SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata directly into `.securityKey` instead of resolving an account in Keychain; `SSHConnectionPreparation` then resolves the same credential for destination and jump Hosts on a detached worker before opening transport. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses `SSHInteractionPolicy.forbidden`, which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
+`SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata directly into `.securityKey` instead of resolving an account in Keychain; `SSHConnectionPreparation` then resolves the same credential for destination and jump Hosts on a detached worker before opening transport. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses [`SSHInteractionPolicy.forbidden`](../../Frameworks/TermindApplication/SSHConnectionTypes.swift), which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
 
 When SSH agent forwarding is enabled, `VaultSSHAgent` can advertise the Vault public key and sign a matching forwarded request. It requires an allowed interaction policy and an active interaction surface, then rechecks key-library revision and availability after the assertion before releasing the SSH signature. A forwarded request with unsupported flags or a nonmatching public blob is rejected. Forwarding never exports the authenticator private key.
 

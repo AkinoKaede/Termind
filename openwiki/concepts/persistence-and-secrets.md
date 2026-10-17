@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistence, Migration and Secrets
+title: Persistence, Compatibility and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -32,6 +32,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-2e17cdb3ce4c771016abe64e
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalRecoveryRecord.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-36d16adefef02f0ed0cdc428
@@ -100,6 +102,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-6f8db123d550d9a8718c172c
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/KeychainSecretStore.swift
+  - id: openwiki-source-6256aeada274ebb6ce422d82
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-e2abe97c93dbb91be81b63e2
@@ -122,10 +126,10 @@ sources:
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
+  - id: openwiki-source-5f8ec704a2abdcb7e9db5130
+    resource: repo://FrameworkTests/TerminalTransportTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
-  - id: openwiki-source-294dd6a8637abdafe40e9570
-    resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-5b8c72c5373a41af34fa9fd4
@@ -134,8 +138,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
-  - id: openwiki-source-b822b041afbf829d09a8555a
-    resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -148,17 +152,17 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
-# Persistence, Migration and Secrets
+# Persistence, Compatibility and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
-This is a safety boundary, not merely a storage abstraction: plaintext credentials must never enter logs, sync payloads, `UserDefaults`, or ordinary persistence. Runtime authentication state is also excluded from domain records and restoration. See [System Boundaries and Dependency Ownership](../architecture/system-boundaries.md) for the framework ownership rules and [Assistant, Agent Runtime, Skills, and Memory](agent-runtime-and-assistant.md) for assistant-specific durable data.
+This is a safety boundary, not merely a storage abstraction: plaintext credentials must never enter logs, sync payloads, `UserDefaults`, or ordinary persistence. Runtime SSH authentication state is also excluded from domain records and restoration; resumable transport checkpoints use a separate encrypted device-local boundary described below. See [System Boundaries and Dependency Ownership](../architecture/system-boundaries.md) for the framework ownership rules and [Assistant, Agent Runtime, Skills, and Memory](agent-runtime-and-assistant.md) for assistant-specific durable data.
 
 ```mermaid
 flowchart TD
@@ -244,14 +248,14 @@ An edit commits its graph cut before live projection; adoption later transfers t
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V52. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; consult `TermindPersistence.schema` and `TermindMigrationPlan` for the selected endpoint and supported path rather than treating a version number in this guide as a permanent latest-schema contract. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V58. Its recent path is V27→V28→V30→V31→V34 followed by successive stages through V58; all stages on this recent path are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; consult `TermindPersistence.schema` and `TermindMigrationPlan` for the selected endpoint and supported path rather than treating a version number in this guide as a permanent latest-schema contract. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
-V28 is required for existing installed stores. Removing its endpoint made staged migration reject those stores with CoreData error `134504` (unknown model version). `TermindSchemaV28HostModels` restores the historical fields, defaults and model identity from the parent of `b0d35d24`; V30 retains its existing model types and order. Recovery uses the normal container factory and preserves the original database on an opening failure, rather than clearing or rebuilding it.
+V28 remains registered for endpoint recognition. Its frozen Host model is retained alongside V30's replacement types; registration is necessary for staged migration, but is not itself a historical-fixture test. Opening uses the normal container factory, which propagates failure rather than clearing or rebuilding the database.
 
 ```mermaid
 flowchart TD
-    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with selected schema and migration plan"]
-    Factory --> V28["Recognize frozen V28 endpoint"]
+    LegacyStore["Prior-version disk store"] --> Factory["makeContainer with selected schema and migration plan"]
+    Factory --> V28["Registered frozen V28 endpoint"]
     V28 --> V30["Lightweight V28 to V30"]
     V30 --> V31["Lightweight V30 to V31"]
     V31 --> V34["Custom V31 to V34 device backfill"]
@@ -263,11 +267,11 @@ flowchart TD
     V39 --> V40["Lightweight V39 to V40 retire category quarantine"]
     V40 --> V41["Lightweight V40 to V41 notification preferences"]
     V41 --> V42["Lightweight V41 to V42 collaboration sidecars"]
-    V42 --> V46["Lightweight V43 through V52 stages"]
-    V46 --> Reopen["Open same migrated path again"]
+    V42 --> Later["Lightweight V43 through V58 stages"]
+    Later --> Reopen["Open same migrated path again"]
 ```
 
-The fixture-based path tests endpoint recognition, successive migration and reopening of the same on-disk data. The arrows show **local** stages only, not CloudKit wire-format upgrades.
+The diagram shows the registered local path; current tests exercise selected prior-version disk stores, not a bundled historical V28 fixture. These are **local** stages, not CloudKit wire-format upgrades.
 
 Examples show why this matters:
 
@@ -278,11 +282,13 @@ Examples show why this matters:
 - V34 directly migrates released V31 stores to the Host/connection-history/device model types named V32 and the Identity type named V33, and adds workspace preferences. These type names do not imply intermediate released schema endpoints. Host and Identity replacements remove obsolete `lastUsedAt` columns. The custom migration preserves events, assigns the stable installation ID to their `sourceDeviceID`, and inserts a separate `DeviceRecord` for that installation. The event itself receives no hostname field, and the CloudKit envelope format remains V1.
 - The V31→V34 compatibility test verifies retained Identity configuration and the independent Vault journal modification date, connection origin/backfill with no invented end time, and default workspace-preference journal bootstrap. Historical Host and Identity shapes retain the old columns solely for schema compatibility.
 
-`PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and expected checksum and explicitly stores synthetic references, not a password or private key. The fixture uses a V28 host with SSH port and charset, ordered environment-variable name/value arrays, snippet and group IDs, an identity pointing to an SSH key and a Keychain reference, a known-host mismatch flag, a connection event without a device ID, and a preexisting Vault installation ID. The V28→V30 model preserves the old `port`, `identityID` and `charset` property names as SSH fields and supplies Telnet defaults; V30 replaces the known-host type to discard only the obsolete mismatch flag. V31→V34 backfills event origin from the installation ID and inserts a separate device row without synthesizing an end time. The fixture test copies the original store to a temporary path and calls the normal factory twice on that same path: each open asserts projected host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts, history and the installation ID/device row, plus workspace defaults after `prepare()`. This tests migration **and subsequent reopening**, not a newly created V28 store using today's model declarations; it does not test recovery from a deliberately failed open. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch, checking host/identity projections and event origin. The suite retains V27, V30, V31 and current full-schema compatibility coverage, full-schema independent in-memory containers, and new-field defaults; `CloudSyncSafetyPersistenceTests` also migrates a V39 disk store through V40 to the current schema, checking that scoped fences and record presence remain while retired category quarantine tables are dropped. A V41 disk migration test checks that opening the current schema retains existing data and starts with empty collaboration sidecars. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
+`PersistenceCompatibilityTests` creates prior-version disk stores with registered historical schemas and opens them through the production factory. Coverage includes V16 workspace-template defaults, V25 startup-snippet defaults, V26 environment defaults, V27 Host/charset and Known Host retention, V30 quarantine/recovery defaults, V31 identity and journal-date retention with device backfill, V35 importer retirement with native journal/account retention across two opens, and V41 collaboration-sidecar defaults. It also checks file-store reopening and independent in-memory containers against `TermindPersistence.schema`, not a hard-coded latest endpoint. The current suite does not provide historical V1/V14/V28 fixture-file coverage or a V28 mobile startup/relaunch test. Do not infer those guarantees from endpoint registration alone.
+
+`CloudSyncSafetyPersistenceTests` separately exercises prior disk stores and scoped safety preservation; notification, Snippet color, session-persistence and Host icon suites add focused migration/reopen checks. When changing entities, defaults, stages or storage enum raw values, test retained values through the normal factory and reopen the same disk path. These are repository-level checks, not evidence of signed-device CloudKit deployment readiness.
 
 ### Host preferences, remote recovery, and retired mobile snapshots
 
-The selected local schema is currently `TermindSchemaV54`, but the migration contract is the factory and registered plan, not a permanently asserted latest version. V53 replaces the V44 Host shape with a frozen Host model that adds `sessionPersistenceEnabled`, `sessionPersistenceBackend`, and `sessionPersistenceOnConnect`. V54 replaces that shape again to add optional `iconOverrideID`; `PersistentHost` aliases the V54 type. Both V52→V53 and V53→V54 are lightweight stages. Existing hosts default to persistence disabled, backend `tmux`, and on-connect policy `ask`; icon override defaults to `nil` (automatic). These are non-secret durable configuration fields, alongside identity references, not saved SSH credentials or copies of a remote shell.
+The selected local schema is `TermindSchemaV58`, but the migration contract is the factory and registered plan, not a permanently asserted latest version. V53 replaces the V44 Host shape with a frozen Host model that adds `sessionPersistenceEnabled`, `sessionPersistenceBackend`, and `sessionPersistenceOnConnect`. V54 replaces that shape again to add optional `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight stages. V55 adds SSH-authenticated terminal transport preferences, V56 adds Wake-on-LAN preferences, V57 adds native custom-theme and appearance-selection rows, and V58 replaces the Host model for creation ordering without inventing historical dates; these later stages are also lightweight and `PersistentHost` now aliases the V58 type. Existing hosts default to persistence disabled, backend `tmux`, and on-connect policy `ask`; icon override defaults to `nil` (automatic). These are non-secret durable configuration fields, alongside identity references, not saved SSH credentials or copies of a remote shell.
 
 Remote-session recovery is a separate capability boundary. `RemoteSessionReference` carries a version, backend, opaque backend identity, Host ID, endpoint, username and optional ownership token; only the backend interprets its identity, never as an arbitrary command. `RemoteSessionCoordinator` validates an existing attachment against the current route and the backend's session inventory before reattaching. A missing or mismatched session requires selection rather than silently applying the create policy. This recovery does not restore authentication material: a connection still uses the runtime secret-resolution boundary. Only explicit-close teardown is eligible to end a managed remote session; suspension, application termination and detach are not. A failed termination does not authorize workspace removal unless the user explicitly chooses disconnect-only. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection handling.
 
@@ -304,6 +310,31 @@ flowchart TD
 Durable configuration selects behavior; recovery references identify remote sessions, while credentials remain on their own channel.
 
 These changes also have independent wire representations: Host/HostGroup V4 adds session-persistence preferences and V5 adds icon overrides, including Tailscale host preferences within a group. The codec rejects older writes that would lose non-default session preferences (before V4) or a non-nil icon override (before V5). It does not infer wire safety from an optional domain property. [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift) checks V52 disk upgrade/reopen with persistence disabled, preference round trips and rejection of lossy older writes. [HostIconTests](../../FrameworkTests/HostIconTests.swift) creates a V53 disk store, migrates it through the normal factory, saves an override and reopens the same path; it also covers legacy wire defaults, tombstones and failed-save projection safety. When extending this path, assert retained values and behavior through the production factory rather than hard-coding a latest schema number as testing advice.
+
+### Encrypted device-local terminal recovery
+
+Resumable transport checkpoints are a narrow exception to the ordinary-record rule: they can contain protocol passkeys and counters, so they belong in `TerminalRecoveryStore`, **not** SwiftData, Vault, CloudKit, defaults snapshots, or the GRDB index. This actor owns `Application Support/Termind/TerminalRecovery` independently of the main database. It AES-GCM encrypts checkpoint JSON and authenticates the separately encoded recovery metadata as associated data. Metadata is readable in the file; it is not encrypted. `TerminalRecoveryRecord` strips environment variables because their values can contain secrets, and records the Host connection identity, username, transport and save time.
+
+The store writes atomically with file protection until first user authentication, sets directory/file permissions to `0700`/`0600`, and excludes its directory from backup. Its 256-bit encryption key lives in a non-synchronizable Keychain item (`com.akinokaede.termind.terminal-recovery`, `device-key-v1`) with `AfterFirstUnlockThisDeviceOnly` accessibility. If that key is missing while checkpoint files remain, the store fails rather than creating a replacement key that strands existing ciphertext. Keychain and filesystem errors propagate.
+
+**Lease fencing:** `register(id)` replaces the current owner token. A save requires that exact lease and a matching transport. `discard(id)` removes ownership before deleting the file, so an in-flight save carrying an obsolete lease cannot recreate a checkpoint after close. `invalidate(id)` only removes the file, preserving the live owner for a future suspension. The mobile workspace waits for suspension to finish and invalidates the saved checkpoint **before** resuming an already-live transport.
+
+**Consume before resume:** `record(id)` authenticates the envelope before returning metadata; `records()` is only a metadata listing and does not authenticate/decrypt each checkpoint. `consume(id, host:)` authenticates/decrypts, validates the ID, checkpoint version and transport, and matches the current Host endpoint, SSH identity, jump route, proxy, Tailscale configuration and relevant Eternal Terminal port. It deletes the file before returning protocol state to a caller that can transmit. A failed validation leaves it unconsumed; a failed deletion prevents return. Mobile also checks the current username and enabled transport before consumption, then clears pending launch/startup commands before connecting. Once consumed, a failed or cancelled resume cannot reuse that disk checkpoint; recovery of a managed tmux attachment is a separate validation/selection path, not permission to replay the old launch command.
+
+```mermaid
+flowchart TD
+    Suspend["Suspend resumable transport"] --> Checkpoint["Capture checkpoint with current lease"]
+    Checkpoint --> Save["Encrypt and atomically save device-local file"]
+    Save --> Restore["Authenticate metadata and validate current Host"]
+    Restore --> Consume["Decrypt validate and delete checkpoint"]
+    Consume --> Resume["Resume transport without replaying startup commands"]
+    Close["Explicit close or discard"] --> Fence["Remove owner lease and delete file"]
+    Fence --> Reject["Reject stale racing saves"]
+```
+
+Recovery state is encrypted locally and removed before a restored transport can transmit; leases prevent a late save from reviving a discarded session.
+
+[`TerminalTransportTests`](../../FrameworkTests/TerminalTransportTests.swift) checks that checkpoint payload bytes are absent from the file, endpoint mismatch fails without consumption, consumption succeeds only once, and a discarded lease cannot save again. Mobile restoration tests exercise workspace-level recovery separately from these store checks. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for transport behavior and [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test scope.
 
 ### Snippet color: local migration and independent wire evolution
 
@@ -369,9 +400,9 @@ The on-disk safety tests cover V30→current and V39→current migration through
 
 ## Secret references, not secret persistence
 
-A durable identity, SSH key, AI provider, or MCP record may contain `credentialRef` plus public/configuration metadata, but not the credential plaintext. The `SecretStoring` port separates string passwords from stored SSH-key credentials and resolves them by reference plus device/iCloud storage selection. Its runtime extensions turn fetched values into `SSHSecret` or `SSHResolvedKeyCredential`; `InMemorySecretStore` exists for tests and injected configurations, while app composition supplies Keychain storage.
+A durable identity, SSH key, AI provider, or MCP record may contain `credentialRef` plus public/configuration metadata, but not the credential plaintext. The `SecretStoring` port separates string passwords from stored SSH-key credentials and resolves them from reference plus device/iCloud storage selection. Its runtime extensions turn fetched values into `SSHSecret` or `SSHResolvedKeyCredential`; mobile uses `InMemorySecretStore` for in-memory or injected-host configurations, while live composition supplies Keychain storage. Desktop XCTest still constructs `KeychainSecretStore` despite its in-memory database and disabled cloud coordinators.
 
-SSH Security Key records are a deliberate exception to Keychain-backed private-key storage: the V45 SSH key row stores credential ID, P-256 public key, verification preference and presence flag, while the private key stays on the authenticator. `HostLibraryModel.upsert` validates the credential ID and 65-byte public key, disallows supplied secret material and replacement of a software key with the same ID, normalizes the label, clears `credentialRef`, sets `.external`, and rolls back the in-memory projection if persistence fails. Loading even an older hardware row marked `.thisDevice` or `.iCloud` normalizes it to `.external`. The `SSHRuntimeSecretResolving` overload for `SSHKeyRef` builds `.securityKey` directly from metadata without a Keychain read; availability reflects the presence of that metadata, **not** physical authenticator availability. Editing and deleting metadata likewise avoid Keychain calls. V2 Vault wire records serialize the reference, encoding `.external` as the frozen wire spelling `thisDevice`, then recovering `.external` for a Security Key on decode; software keys with external storage are rejected. V1 remains available for older categories and records; local schema V52 and per-kind cloud wire versions are different version axes. Vault sync can move this reference, but using it still requires the physical authenticator and a local WebAuthn interaction. [WebAuthnVaultMetadataTests](../../FrameworkTests/WebAuthnVaultMetadataTests.swift) exercise jump and destination resolution with a deliberately failing Keychain, round-trip and remote merge, legacy storage normalization, invalid external software storage, rollback, and V44 software-key migration/reopen. See [SSH Security Key Authentication](ssh-security-key-authentication.md) for registration, signing and portability limits.
+SSH Security Key records are a deliberate exception to Keychain-backed private-key storage: the V45 SSH key row stores credential ID, P-256 public key, verification preference and presence flag, while the private key stays on the authenticator. `HostLibraryModel.upsert` validates the credential ID and 65-byte public key, disallows supplied secret material and replacement of a software key with the same ID, normalizes the label, clears `credentialRef`, sets `.external`, and rolls back the in-memory projection if persistence fails. Loading even an older hardware row marked `.thisDevice` or `.iCloud` normalizes it to `.external`. The `SSHRuntimeSecretResolving` overload for `SSHKeyRef` builds `.securityKey` directly from metadata without a Keychain read; availability reflects the presence of that metadata, **not** physical authenticator availability. Editing and deleting metadata likewise avoid Keychain calls. V2 Vault wire records serialize the reference, encoding `.external` as the frozen wire spelling `thisDevice`, then recovering `.external` for a Security Key on decode; software keys with external storage are rejected. V1 remains available for older categories and records; local schema and per-kind cloud wire versions are different version axes. Vault sync can move this reference, but using it still requires the physical authenticator and a local WebAuthn interaction. [WebAuthnVaultMetadataTests](../../FrameworkTests/WebAuthnVaultMetadataTests.swift) exercise jump and destination resolution with a deliberately failing Keychain, round-trip and remote merge, legacy storage normalization, invalid external software storage, rollback, and V44 software-key migration/reopen. See [SSH Security Key Authentication](ssh-security-key-authentication.md) for registration, signing and portability limits.
 
 Live `KeychainSecretStore` separates passwords/AI strings, software SSH keys and Secure Enclave handles by service within a configured access group in the Data Protection Keychain. It validates nonempty `termind.password.` or `termind.ai.` string references and `termind.key.` key references; invalid types and Keychain status errors propagate. `.iCloud` items use synchronizable, WhenUnlocked access; device and enclave items are non-synchronizable, WhenUnlockedThisDeviceOnly. `.external` has no Keychain service and cannot be stored there. Runtime reads decode software-key JSON into wipeable `SSHSecret` values and clear temporary byte buffers, while Secure Enclave reads return a handle; the editor's legacy typed credential API is separate from this runtime byte path. This is a Keychain storage location distinction, not SwiftData CloudKit replication.
 
@@ -420,4 +451,4 @@ Memory history indexing follows committed agent data; suspension invalidates con
 4. **Adding a credential:** persist only a stable reference and non-secret provenance. Use `SecretStoring`/Keychain for material; exclude it from logs, CloudKit/sync records, `UserDefaults`, SwiftData/GRDB ordinary records, and reusable session snapshots.
 5. **Passing a secret to transport:** use the runtime secret owner, clear it at every success, error, cancellation, and teardown boundary, and retain only non-secret identifiers when a reconnectable configuration is needed.
 
-V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. Historical V46/V51 shapes remain immutable; `RetiredTerminalHighlightingTests` verifies upgrade/reopen cleanup and pending-upload retirement. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host and HostGroup writes use V5; Snippet writes V2 and SSHKey writes V3. Host readers accept V1/V2/V4/V5 (not V3), HostGroup readers accept V1–V5, SSHKey readers accept V1–V3, and Snippet readers accept V1/V2. Native History and Device formats remain V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.
+V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. Historical V46/V51 shapes remain immutable; `RetiredTerminalHighlightingTests` verifies upgrade/reopen cleanup and pending-upload retirement. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host writes use V8 and read V1/V2/V4–V8 (not V3); HostGroup writes V7 and reads V1–V7. SSHKey writes V3 and reads V1–V3; Snippet writes V2 and reads V1/V2. Native History writes V2 and reads V1/V2, while Device remains V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.

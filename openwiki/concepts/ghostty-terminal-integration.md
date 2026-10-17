@@ -8,16 +8,14 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
-  - id: openwiki-source-b37c974aaea12bd08606d67d
-    resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
-  - id: openwiki-source-1e3a2ac8356020fd3ea569c9
-    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFind.swift
-  - id: openwiki-source-fe1dc993163bb9ff61397be7
-    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-e4f5ea9b30063cdc7d027956
+    resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
-  - id: openwiki-source-01fd62d857f198c9f92cb8a5
-    resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
+  - id: openwiki-source-c9279b591baf8f41084268d6
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift
+  - id: openwiki-source-0d0e7ce62874bbaca379e0eb
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -36,10 +34,10 @@ sources:
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
-  - id: openwiki-source-a7d4f0957a52ddd59cd45344
-    resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
+  - id: openwiki-source-60cf43ca04c5b3c3816300d8
+    resource: repo://TFITests/MobileTerminalThemeTests.swift
   - id: openwiki-source-4be25dd014939527fac996f5
     resource: repo://TFITests/MobileTerminalUploadMenuTests.swift
   - id: openwiki-source-194f038fde2b1218c1c960b2
@@ -52,15 +50,17 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+  - id: openwiki-source-91826a88f242f001f33fff89
+    resource: repo://TFMTests/WindowToolbarFindTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Ghostty Terminal Integration
 
-Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
+Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH-backed terminals (SSH, Mosh and Eternal Terminal), Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
 
 The package is consumed directly from `https://github.com/Lakr233/libghostty-spm.git`, with no local Ghostty maintenance submodule. Xcode's package reference uses `upToNextMinorVersion` with `minimumVersion = 2.2.2026101301`; this is a compatible-version requirement, not an exact-version requirement. `Package.resolved` currently pins version `2.2.2026101301` at revision `d403978c66870baa422709d1dde385730a4bdaef`. Treat the requirement and resolved pin as separate parts of the embedding contract. See [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) for dependency-update procedures and requirement/resolution alignment.
 
@@ -73,17 +73,21 @@ The package is consumed directly from `https://github.com/Lakr233/libghostty-spm
 - Navigation emits `navigate_search:previous` or `navigate_search:next` only while presented with a nonempty query and not resize-suspended. `presentAndNavigate` opens first. The app maps Find Next to `.previous`, toward older output, because the search starts at the bottom of the buffer.
 - `dismiss(restoringFocus: Bool = true)` emits `end_search`, closes presentation and retains the query. It is idempotent while closed. The default then invokes the focus closure; `restoringFocus: false` ends the search without requesting terminal focus.
 
+### Desktop Find targets the content in front
+
+`WindowModel.findKind` chooses terminal Find from the focused SSH-backed, Telnet or serial pane, and SFTP filtering from the focused file-browser pane—not any terminal elsewhere in a split. `focusToolbarFind()` marks toolbar focus before presenting the terminal's retained Find controller, then requests native field focus on the next main-actor turn. This ordering prevents a pane rebuild from immediately taking the caret back. Theme-browser search is also app-owned toolbar filtering, with separate retained light, dark and custom-library queries; it is not a Ghostty search binding.
+
 ### Resize coordination does not close Find
 
 `MobileTerminalView.layoutSubviews` suspends engine search before forwarding changed bounds to Ghostty, preventing search from interfering with blank-row trimming. The controller ends an active search while retaining query/presentation and suppresses search/navigation during suspension. Each size change cancels and replaces the native delayed resume task; it waits for the configured resize throttle plus 0.1 seconds. Resume searches the latest query only if Find is still presented and nonempty. Closing while resize is settling therefore cannot reopen search.
 
 ### Mobile UIKit owns search presentation
 
-For SSH and Telnet, `MobileWorkspaceSearchModifier` binds the native search text to `workspace.find.query` and presentation to `workspace.find.isPresented`. Its **false presentation setter** calls `dismiss(restoringFocus: false)`: native cancellation must not request terminal focus during UIKit's responder transition. Submit navigates `.previous`. SFTP uses the same toolbar UI but binds its channel filter instead of Ghostty Find, with no terminal presentation binding.
+For SSH-backed terminals (SSH, Mosh and Eternal Terminal) and Telnet, `MobileWorkspaceSearchModifier` binds the native search text to `workspace.find.query` and presentation to `workspace.find.isPresented`. Its **false presentation setter** calls `dismiss(restoringFocus: false)`: native cancellation must not request terminal focus during UIKit's responder transition. Submit navigates `.previous`. SFTP uses the same toolbar UI but binds its channel filter instead of Ghostty Find, with no terminal presentation binding.
 
 `mobileToolbarSearch` embeds a `UIViewControllerRepresentable` whose `MobileToolbarSearchController` retains a `UISearchController` and installs it on the enclosing navigation owner's `navigationItem`. UIKit owns activation, first-responder changes and dismissal—not SwiftUI `searchable` focus. Configuration defers synchronization to the main queue so delegate callbacks do not publish model changes during a SwiftUI update. The search bar uses integrated-button placement on iOS 26+, inline placement otherwise.
 
-Cancellation marks `isDismissing`, resigns the search bar, publishes false and deactivates search. `willDismissSearchController` also publishes false; `didDismissSearchController` releases the guard. While dismissing, synchronization cannot reactivate search and text/submit callbacks are ignored, protecting the retained query from dismissal-time changes. Teardown removes the owned search controller and restores the navigation owner's previous presentation-context setting.
+Cancellation marks `isDismissing`, resigns the search bar, publishes false and deactivates search. `willDismissSearchController` also publishes false; `didDismissSearchController` releases the guard. While dismissing, synchronization cannot reactivate search and text/submit callbacks are ignored, protecting the retained query from dismissal-time changes. Teardown removes the owned search controller and restores the navigation owner's previous presentation-context setting. Visibility is a separate gate: `viewWillDisappear` removes active search even when a tab or navigation stack retains the workspace. Later model updates cannot reactivate it while hidden; returning reinstalls the retained controller with the retained query.
 
 ```mermaid
 sequenceDiagram
@@ -128,7 +132,7 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 `MobileTerminalView` maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It preserves the package handlers, places editing actions in a medium-sized inline group, and places localized Upload File actions in a separate inline group before other inherited items. Tests supply a system AutoFill menu and assert it remains after the upload group; they do not establish when UIKit supplies it.
 
-`MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
+`MobileWorkspace.configureTerminalUpload` installs handlers only for SSH-backed terminal workspaces (`isSSHTerminal`: SSH, Mosh and Eternal Terminal). The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
 
 **Package evidence boundary:** this page derives the app contract from Termind's overrides and tests, not an audit of package internals. The repository records the direct upstream remote package pin, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the package's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
 
@@ -144,7 +148,7 @@ The desktop menu also offers **Open with SFTP** in the current or a new workspac
 
 Desktop `PersistentTerminalViewOwner` creates the in-memory backend, `TerminalViewState` and `TermindTerminalView` once, then mounts the same view in a changing `NSViewRepresentable` container. Mobile `MobileWorkspace` likewise creates a backend and state once and returns its retained `MobileTerminalSurface` view through `makePlatformView`. Both pass remote output into the backend and route keyboard/paste output to their transport. Do not reset surface options on an ordinary view update: replacing the controller or backend can tear down the live surface.
 
-Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for terminal workspaces, hiding it and disabling interaction rather than replacing it. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
+Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for all non-SFTP workspaces, hiding it and disabling hit testing and accessibility rather than replacing it. `MobileTerminalInitialFocus` also disables native interaction and resigns first responder while Journey blocks input. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
 
 ### Reparenting and keyboard focus
 
@@ -168,10 +172,22 @@ The retained surface bridges terminal bytes and geometry to host-owned transport
 
 Keeping a local surface alive does not itself keep an SSH connection or managed remote shell alive. Connection coordination, shell context and remote-session selection remain separate host responsibilities; see [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Shell Integration](shell-integration.md).
 
-Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. It applies the chosen base, optional custom commands and then device-local font overrides; app command notifications force Ghostty's `notify-on-command-finish` to `never` so the Termind notification coordinator owns delivery. The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
+Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. `TerminalThemeOptions` resolves library selections, falling back to legacy preference fields when no library selection exists. Built-in names missing from the catalog or of the wrong appearance render the Termind fallback without repairing stored preferences. Saved custom themes resolve their own base and configuration. The host then applies:
+
+1. The resolved base theme.
+2. The device's preferred font family, followed by ordered custom commands. An empty `font-family` reset reapplies the preferred family rather than dropping it.
+3. A manual device-local font size last, unless `sizeFollowsTheme` is enabled.
+
+Custom `notify-on-command-finish` entries are filtered out, and the session configuration forces it to `never` (with 8-point X/Y window padding). Termind owns command-notification delivery; this is host configuration policy, not evidence about Ghostty's internal notification implementation. Mobile reapplies appearance when preferences, the theme library or resolved font change; desktop chrome applies on appearance and shared appearance changes.
+
+Theme-editor previews are separate, noninteractive in-memory surfaces with sample ANSI output and discarded write/resize callbacks—not shell or remote sessions. Editing a preview reconfigures its theme without applying or enabling the draft in settings.
+
+The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
 
 ## Focused checks
 
+- [WindowToolbarFindTests](../../TFMTests/WindowToolbarFindTests.swift) checks focused-pane routing, starting terminal Find before native field focus, and separate retained light/dark/custom-theme browser queries.
+- [MobileTerminalThemeTests](../../TFITests/MobileTerminalThemeTests.swift) checks that browsing and previewing do not mutate settings or enable a draft, and that the editor preview uses an in-memory backend with sample output rather than a shell. Key-window snapshots cover theme browsers and custom editors in multiple locales and appearances.
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.
 - [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys. Its full-workspace SSH fixture also checks unchanged native surface, output and connection generation through repeated reopening with empty, matching and missing queries.
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.

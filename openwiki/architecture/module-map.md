@@ -1,6 +1,6 @@
 ---
 type: architecture map
-title: Module Ownership and Composition Roots
+title: Module and Dependency Map
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
@@ -32,18 +32,30 @@ sources:
     resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-739f64e0e0f22dee6b791bc4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift
+  - id: openwiki-source-3109840ad21c82d203dadc0a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift
+  - id: openwiki-source-7f83ab23ea7d4eb08dabc616
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift
+  - id: openwiki-source-e8ecc74af3010141a19f60ac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift
   - id: openwiki-source-23be2440342b8fbbefe69214
     resource: repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-d785833dd230253fdc4946d7
     resource: repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift
+  - id: openwiki-source-79b6bc8e02ca55053bd497fa
+    resource: repo://FrameworkTests/ResumableTerminalEngineTests.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-dc9295278cc250ed20567540
+    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -80,17 +92,15 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-  - id: openwiki-source-6e24c51785378202d2983e92
-    resource: repo://TFMTests/HostIconPresentationTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
-# Module Ownership and Composition Roots
+# Module and Dependency Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -115,7 +125,7 @@ Use [System Boundaries](system-boundaries.md) for contracts, [Engineering Invari
 | `AgentKit` | Reference checkout of the separately versioned, host-neutral agent package. | Xcode consumes the resolved remote package, not this checkout. |
 | Supporting products | MCP stdio bridge, Live Activity extension, and standalone forwarding benchmark. | Different executable/extension boundaries, not app feature folders. |
 
-Host artwork is a concrete example of shared Presentation ownership. `HostIconCatalog` loads `HostIcons.json` from the main bundle (falling back to an empty catalog on load/decode failure), resolves an explicit `iconOverrideID` before detected distribution matching, and otherwise matches the distribution ID before its `likeIDs`. An unknown explicit override returns no catalog entry rather than falling through to detection. `HostDistributionIcon` composes that choice with `HostSystemIcon`; tint precedence is the host's color tag, then `HostIconBrandColor`, then the accent color. `HostIconBrandColor` owns the conditional AppKit/UIKit semantic-color adaptation, adjusting brand foregrounds toward the label color for contrast on the tinted icon surface. `TFMTests/HostIconPresentationTests.swift` checks bundled assets, override priority, and light/dark contrast. These are shared rendering responsibilities, not connection or app-lifecycle ownership.
+Host artwork is a concrete example of shared Presentation ownership. `HostIconCatalog` loads `HostIcons.json` from the main bundle (falling back to an empty catalog on load/decode failure), resolves an explicit `iconOverrideID` before detected distribution matching, and otherwise matches the distribution ID before its `likeIDs`, falling back to the generic Linux entry when neither matches. An unknown explicit override returns no catalog entry rather than falling through to detection. `HostDistributionIcon` composes that choice with `HostSystemIcon`; tint precedence is the host's color tag, then `HostIconBrandColor`, then the accent color. `HostIconBrandColor` owns the conditional AppKit/UIKit semantic-color adaptation, adjusting brand foregrounds toward the label color for contrast on the tinted icon surface. `TFMTests/HostIconPresentationTests.swift` checks bundled assets, override priority, and light/dark contrast. These are shared rendering responsibilities, not connection or app-lifecycle ownership.
 
 ## Shared-framework build dependencies
 
@@ -142,7 +152,7 @@ Both `TFM` and `TFI` directly depend on all six frameworks; `TermindDomain` has 
 
 ## Product and package boundaries
 
-Arrows here are **labeled relationships**, not a complete link graph. The shared-framework group expands into the graph above. The remote AgentKit package supplies `AgentKit` to Domain, Application, Persistence, both apps, and tests; `AgentKitScrubber` is linked by Remote Infrastructure and desktop composition. The single package edge below groups those consumers rather than implying one exclusive entry point. `TermindPresentation` instead directly links the Ghostty and MarkdownView package products, and `TermindRemoteInfrastructure` links `CSSH2` and `OpenSSL`. Check target `packageProductDependencies` for the exact package linkage before relocating code.
+Arrows here are **labeled relationships**, not a complete link graph. The shared-framework group expands into the graph above. The remote AgentKit package supplies `AgentKit` to Domain, Application, Persistence, both apps, and tests; `AgentKitScrubber` is linked by Remote Infrastructure and desktop composition. The single package edge below groups those consumers rather than implying one exclusive entry point. `TermindPresentation` instead directly links the Ghostty and MarkdownView package products, and `TermindRemoteInfrastructure` links `CSSH2`, `OpenSSL`, `TailscaleKit`, and the `swift-mosh` / `swift-et` bootstrap and engine products (`MoshBootstrap`, `MoshCore`, `ETBootstrap`, `ETSession`). These remote packages implement transports behind the shared Remote Infrastructure boundary; they do not add shared Xcode framework targets. Check target `packageProductDependencies` for the exact package linkage before relocating code.
 
 ```mermaid
 flowchart LR
@@ -185,11 +195,17 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and a device-kind History journal; Infrastructure's `DeviceSyncCoordinator` writes native `DeviceItem` fields through its own sync engine, subject to the app's iCloud/Pro sync gate. | Platform composition supplies the stable installation ID and system display name. |
 | Display remote metrics | Domain metrics; Application sampling/snapshot interfaces and model. | Remote SSH sampler plus Infrastructure output parsers. | Native dashboards and desktop menu-bar integration. |
 
+### Transport construction and extension seams
+
+`RemoteConnectionCoordinator` lives in Remote Infrastructure but is supplied by native composition. It constructs PTY, SSH and SFTP clients with shared logging and max-session policy; its one-shot SSH/SFTP connect helpers disconnect the newly created client before rethrowing a connection failure. `MobileAppDependencies.live()` shares one coordinator across workspace connections, metrics and app assembly. Its testing factory selects in-memory composition and test metrics, but defaults workspace connections to `.live`: in-memory storage alone is not a guarantee of transport isolation. Inject workspace connection services when a test must not connect.
+
+Resumable terminal protocols extend Remote Infrastructure, not native feature switches over engine classes. The coordinator injects an immutable `ResumableTerminalEngineRegistry` into PTY channels; its live registrations select Mosh and Eternal Terminal engines. Engines own protocol resources while `ResumableTerminalClient` owns the shared lifecycle and serialization boundary; it rejects an unregistered transport before wake, route or bootstrap side effects. Persistent remote-session backends use a separate seam: `RemoteSessionBackendRegistry.live` wraps registered multiplexer dialects in `RemoteMultiplexerService`. Application policy consumes backend contracts rather than tmux/Zellij command dialects. Architecture tests explicitly keep engine and dialect implementation names out of Domain, Application, Presentation and both native feature trees, and guard PTY/client code against bypassing registration. `FrameworkTests/ResumableTerminalEngineTests.swift` exercises injected engines, missing-registration failure before side effects, restore without startup replay, and recovery retry on the existing engine.
+
 The Assistant is a useful change-placement example: `AssistantExecutionController` accepts an injected registry factory, authorization callback, run repository, and title generator; app-specific host services provide tools without making the Application framework construct SSH machinery. On mobile the app model wires `AgentHostServices.live` with its connection coordinator and SFTP scheduler. For speech it supplies `IOSSpeechAudioInput` to the shared transcription service and cancels speech on interruption. The remote-filesystem port similarly separates file policy from the SFTP transfer coordinator; Vault sync reads Persistence-owned journals rather than moving CloudKit policy into the app.
 
 The device directory illustrates why target edges alone are insufficient: native composition supplies the installation ID from `VaultSyncJournal` and acquires the display name outside the shared model. Desktop `TermindApp` delegates to the app-owned `MacDeviceName`, which prefers a trimmed, nonempty `kern.hostname` and falls back to `Device.current.safeDescription` when that hostname is unavailable or blank; mobile supplies `Device.current.safeDescription` directly. `MacDeviceNameTests` pins hostname priority and nil, empty, and whitespace fallback behavior. `DeviceDirectoryModel` registers the current installation on initialization, caches lookup results, and reports storage errors. The SwiftData repository refuses to resurrect a remotely deleted device during launch registration, but an explicit rename can upsert it; successful writes notify `DeviceSyncCoordinator` through History mutations. Remote application of device records invalidates the model's cache on both platforms. The device and connection-history coordinators share a CloudKit zone but keep separate kind-filtered engines and sync state; the device coordinator is independent of the Vault **record format and journal**, not exempt from the app's Pro/iCloud start/pause policy. See [System Boundaries](system-boundaries.md) for the sync contract.
 
-This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities. Application owns `TerminalFindController` policy and state; native session/workspace owners inject binding actions and focus callbacks. Dismissal retains the query and can suppress focus restoration, while native resize can suspend engine search and later resume only a presented nonempty query. `MobileWorkspaceSearchModifier` owns the feature-level SSH/Telnet versus SFTP binding choice; the reusable UIKit search bridge does not. `TerminalFindControllerTests` covers retention, empty-query navigation, focus-free dismissal and resize suspension; native shortcut tests pin F3/Escape routing.
+This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities. Application owns `TerminalFindController` policy and state; native session/workspace owners inject binding actions and focus callbacks. Dismissal retains the query and can suppress focus restoration, while native resize can suspend engine search and later resume only a presented nonempty query. `MobileWorkspaceSearchModifier` owns the feature-level SSH/Mosh/Eternal Terminal/Telnet versus SFTP binding choice; the reusable UIKit search bridge does not. `TerminalFindControllerTests` covers retention, empty-query navigation, focus-free dismissal and resize suspension; native shortcut tests pin F3/Escape routing.
 
 ## Composition and state boundaries
 

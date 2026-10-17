@@ -4,8 +4,8 @@ title: SFTP Transfers and External Editing
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
-  - id: openwiki-source-d593fb9c62c3736497a39486
-    resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
+  - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
@@ -18,8 +18,12 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
   - id: openwiki-source-f2860ea1e34da1a6d9ec1510
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift
+  - id: openwiki-source-de03b453e9349cc11ea90e3c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
+  - id: openwiki-source-f3c300fe43c8f1ceb0906ed3
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
   - id: openwiki-source-b9bae3a52f35a3a412f81e10
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift
   - id: openwiki-source-79d8ded739aa8dd4fa3f5cdf
@@ -36,6 +40,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-c89602a53e897675408a8bb9
+    resource: repo://FrameworkTests/HostOperationAdmissionTests.swift
   - id: openwiki-source-d92ce4bb378fe3506b55c85a
     resource: repo://FrameworkTests/SFTPRemoteConflictResolverTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -60,10 +66,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 ## Scope and operating model
@@ -103,11 +109,23 @@ An empty configured initial path means **resolve the server's home**, not browse
 
 Listing refresh captures the path, connection attempt, and history object and applies its result only if all still match a connected browser. Upload and copy planners use the browser path as their destination; queued downloads, uploads, copies, promised files, and edit operations also receive `homeResolution.resolvedDirectory` as path context. Actual targets remain the planned remote paths. For basic metadata mutations, the shared `RemoteFileSystem` helpers validate a new leaf name, join it to the remote parent, refuse overwrite on rename, and mask permissions to `0o7777`. [^browser-listing-context]
 
-[^companion-source]: `TFM/Features/Workspaces/WindowModel.swift#L861-L919`.
-[^companion-placement]: `TFM/Features/Workspaces/WindowModel.swift#L868-L894`; `TFM/Features/Workspaces/WindowModel.swift#L1037-L1062`; `TFMTests/SFTPChannelTests.swift#L74-L122`.
+[^companion-source]: `TFM/Features/Workspaces/WindowModel.swift#L939-L999`.
+[^companion-placement]: `TFM/Features/Workspaces/WindowModel.swift#L947-L975`; `TFM/Features/Workspaces/WindowModel.swift#L1129-L1149`; `TFMTests/SFTPChannelTests.swift#L74-L122`.
 [^browser-integration]: `TFM/Features/SFTP/SFTPChannelModel.swift#L316-L318`; `TFM/Features/SFTP/SFTPChannelModel.swift#L474-L537`; `TFM/Features/SFTP/SFTPChannelModel.swift#L1212-L1243`.
 [^browser-path-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L202-L233`; `TFM/Features/SFTP/SFTPChannelModel.swift#L670-L729`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L167-L185`.
 [^browser-listing-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L807-L825`; `TFM/Features/SFTP/SFTPChannelModel.swift#L940-L1146`; `Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift#L16-L47`.
+
+## Access admission and fresh connection material
+
+Host access admission is separate from the scheduler's logical-file capacity. `SSHMultiplexedSFTPChannelOwner` checks access when opening a subsystem and returns an `AccessControlledSFTPChannel`. That wrapper checks access before each new metadata or data operation and before sibling creation; remote copy checks both wrapped endpoints before delegating to raw channels. **Entitlement loss blocks new operations without aborting a transfer already delegated to the channel.** It does not disconnect the transport or continuously recheck each chunk of an admitted upload. Restored access permits later operations again. Thus a scheduler permit alone is not permission to start I/O after access changes. [^operation-access]
+
+Additional connections do not replay a retained credential-bearing configuration. The snapshot captures the authenticated destination, route, authentication references and persisted host-key constraints without password, private-key or passphrase bytes. Once-only host trust does not grant trust for extra connections. Immediately before every saved/context silent open, `additionalConnectionRequest(from:)` checks current access and resolves current Identity, Key and proxy secrets from the host store into a one-shot, interaction-forbidden request. Missing ephemeral credentials, required user presence or unavailable silent authentication cannot produce a background prompt. Partially resolved secrets are cleared if request construction fails. [^fresh-request]
+
+Both saved leases and context silent opens bridge the transfer cancellation token and task cancellation to the connection-opening task. They remove the token observer after opening, recheck cancellation before accepting the result, and disconnect the client on failure. Context primary waiters also observe both cancellation paths. A cancelled silent capability probe must propagate cancellation rather than caching channel-only degradation. [^opening-cancellation]
+
+[^operation-access]: [AccessControlledSFTPChannel](../../Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift#L6-L162); [subsystem opening](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift#L49-L74); [admission regression test](../../FrameworkTests/HostOperationAdmissionTests.swift#L10-L39).
+[^fresh-request]: [snapshot and request construction](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L275-L455).
+[^opening-cancellation]: [context opening and waiters](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L208-L259); [saved lease opening](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L669-L699).
 
 ## Admission, fairness, and SSH topology
 
@@ -322,6 +340,8 @@ sequenceDiagram
     else validated or confirmed
         EditService->>EditService: snapshot local copy
         EditService->>Coordinator: queue upload with edit policy
+        Coordinator->>Access: fresh lease and new operation checks
+        Access-->>Coordinator: allow or throw
         Coordinator->>Remote: validate then atomic upload
         Coordinator-->>EditService: committed version
         EditService-->>User: update baseline and digest
@@ -329,6 +349,8 @@ sequenceDiagram
 ```
 
 *An edit upload snapshots local content and validates the remote version before the transfer is admitted; it is never an automatic save.*
+
+External editing uses the same operation-level access boundary, not a separate entitlement bypass: initial attribute inspection, upload conflict inspection, and the queued download/upload each reach access-controlled channels. Already delegated transfer I/O can finish after access expires, but a later inspection or explicit upload must be admitted anew. This differs from route invalidation, which explicitly cancels attached edit uploads. [^operation-access] [^edit-open] [^edit-conflict]
 
 Upload is explicit. Before taking an immutable local snapshot, the service hashes the current local copy and returns without work if its digest equals the last uploaded digest. It then reads the remote attributes: a changed baseline, a missing modification time, or an unconfirmed replacement returns `true` so the UI can request confirmation. Confirmation is tied to exactly the observed remote version and expires if it changes again. [^edit-conflict]
 
@@ -349,7 +371,7 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^scratch-admission]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L49-L61`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L124-L146`.
 [^agent-admission]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L989-L1057`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L626-L657`.
 [^agent-primary]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1131-L1141`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1462-L1527`.
-[^agent-route]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L492-L527`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1607-L1635`.
+[^agent-route]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L522-L557`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1709-L1737`.
 [^agent-lease]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1234-L1296`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1359-L1386`.
 [^agent-probe]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1298-L1365`.
 [^agent-release]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1368-L1386`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1529-L1562`.
@@ -407,4 +429,5 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^resolver-tests]: `FrameworkTests/SFTPRemoteConflictResolverTests.swift#L9-L167`.
 [^edit-tests]: `TFMTests/SFTPEditTests.swift#L12-L269`.
 
-Browser history belongs to one live session in memory. Successful fresh listings and local opens record into that session’s `SFTPHistoryModel`; closing clears it and late transfer callbacks are ignored. Tailscale extra connections use the captured group-bound dialer, with no system-network fallback. `SFTPTransferContext` additionally retains a weak host-store reference so current authentication material can be resolved for silent extra connections without storing secret bytes.
+Browser history belongs to one live session in memory. Successful fresh listings and local opens record into that session’s `SFTPHistoryModel`; closing clears it and late transfer callbacks are ignored. Additional connections resolve the current Tailscale network from the first saved route node when building their one-shot request. If the snapshot requires Tailscale and no network is available, request construction fails rather than falling back to the system network. `SFTPTransferContext` retains a weak host-store reference for this fresh resolution, not secret bytes. [^fresh-request]
+tions without storing secret bytes.

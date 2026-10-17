@@ -1,14 +1,16 @@
 ---
 type: architecture guide
-title: Desktop Navigation and UI Ownership
+title: Desktop UI and Window Ownership
 description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-c375092b23c70ace642fdbd7
+    resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-873894299539cce9a737a860
@@ -83,10 +85,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 ---
 
-# Desktop Navigation and UI Ownership
+# Desktop UI and Window Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -158,25 +160,24 @@ A workspace move waits for native destination registration before changing owner
 
 ### Explicit close authorization and recoverable history
 
-Explicit pane/workspace Close is not native window dismissal. `close`, `closePane`, `closeOthers` and ordinary `closeAll` defer removal when their target includes managed SSH attachments. `authorizePersistentClose` snapshots all workspace and pane IDs and asks the window's `RemoteSessionCloseCoordinator` to terminate the managed attachments, deduplicated by remote identity. It does **not** show an initial confirmation: termination is attempted immediately. On failure, the root-owned `RemoteSessionClosePromptView` offers retry, Cancel or disconnect-only; cancellation does not authorize removal. Successful earlier terminations are not repeated when retrying the remaining attachments. [Sources: `WindowModel.swift`, lines 1435–1463 and 1486–1594; `RemoteSessionCloseCoordinator.swift`, lines 35–82.]
+Explicit pane/workspace Close is not native window dismissal. `close`, `closePane`, `closeOthers` and ordinary `closeAll` defer removal when their target includes managed SSH attachments. `authorizePersistentClose` snapshots all workspace and pane IDs and asks the window's `RemoteSessionCloseCoordinator` to terminate managed attachments, deduplicated by remote identity. Termination is **best-effort and has no confirmation UI**: an ordinary transport or termination failure proceeds to local disconnect while retaining the failed attachment's recovery identity. Cancellation instead refuses authorization; successful terminations mark matching attachments ended. [Sources: `WindowModel.swift`, lines 1523–1550; `RemoteSessionCloseCoordinator.swift`, lines 17–42.]
 
-Authorization is valid only while the targeted sessions remain owned by this window and the workspace/pane ID snapshot remains unchanged. Successful termination marks matching attachments ended. Taking a workspace or pane for a live move cancels pending authorization before extraction; `closeForWindow` also cancels it but preserves attachments. Application termination passes `.applicationTermination` to `closeAll`, bypassing managed-session termination. Transport checks and remote ownership enforcement belong in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md), not in view disappearance handlers.
+Authorization is valid only while the targeted sessions remain owned by this window and the workspace/pane ID snapshot remains unchanged. Taking a workspace or pane for a live move cancels pending authorization before extraction; `closeForWindow` also cancels it but preserves attachments. Application termination passes `.applicationTermination` to `closeAll`, bypassing managed-session termination. Transport checks and remote ownership enforcement belong in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md), not in view disappearance handlers.
 
 ```mermaid
 flowchart TD
     Intent[Teardown intent] --> Kind{Operation}
     Kind -->|Live move| Ready[Wait for destination registration]
     Ready --> Transfer[Cancel authorization and transfer live ownership]
-    Kind -->|Native window dismissal| Veto[Native close confirmation]
+    Kind -->|Native window dismissal| Veto[Native delegate and unsaved-theme checks]
     Veto -->|Approved| Preserve[Record recovery before client disconnect]
     Kind -->|Explicit pane or workspace close| Managed{Managed SSH attachment}
     Managed -->|No| Remove[Disconnect and record recoverable close]
     Managed -->|Yes| Attempt[Attempt remote termination]
-    Attempt -->|Failure| Choice{Retry or cancel or disconnect only}
-    Choice -->|Retry| Attempt
-    Choice -->|Cancel| Retain[Keep local workspace]
-    Choice -->|Disconnect only| Snapshot[Validate ownership snapshot]
+    Attempt -->|Ordinary failure| Recovery[Retain recovery identity]
+    Recovery --> Snapshot[Validate ownership snapshot]
     Attempt -->|Success| Snapshot
+    Attempt -->|Cancelled| Retain[Keep local workspace]
     Snapshot -->|Unchanged| Remove
     Snapshot -->|Changed| Retain
 ```
@@ -193,7 +194,7 @@ Recoverable close history is a separate app-owned mechanism, not the connection-
 
 Workspaces are session owners, **not edited documents**. `MainWindowRegistrationView` observes `isDocumentEdited` and resets it to false on its own attached window, suppressing edited decoration without disabling close confirmation. Detaching removes that observation. Native close is owned by `WorkspaceWindowCloseDelegate.windowShouldClose`, not a SwiftUI dismissal confirmation dialog that could also participate in Quit.
 
-The proxy preserves the previous native delegate weakly, forwards other supported delegate selectors, and restores it when moving off that window. For close, it rejects reentrant confirmation, honors the forwarded delegate's veto first, then permits an empty or already-closed model without a workspace prompt. Otherwise it asks to close **this window**, even when Vault, Assistant, Metrics or Settings hides its open workspaces. Cancel preserves the model, sessions and close history and permits a later retry. Both window and application alerts make Cancel the Return-key default; only the explicitly chosen destructive second button approves the operation.
+The proxy preserves the previous native delegate weakly, forwards other supported delegate selectors, and restores it when moving off that window. For close, it rejects reentrant checks and honors the forwarded delegate's veto first. It then flushes terminal-theme edits; only changes that remain unsaved require a discard decision. Cancel keeps the draft and window open, and a subsequent close can retry. Live connections alone never prompt, even when another destination hides the workspaces; an empty workspace collection does not bypass unsaved-theme protection. The discard alert adds Cancel first and Discard Changes second and approves only `.alertSecondButtonReturn`. [Sources: `WorkspaceCloseConfirmation.swift`, lines 4–61; `WorkspaceCloseConfirmationTests.swift`, lines 11–127.]
 
 Window commands use `performClose(nil)` rather than bypassing the native veto. `closeSelectionOrWindow` consumes the focused pane when a workspace is selected, including its last pane; only a later invocation with no selected workspace falls back to native window dismissal. `closeWindow` resolves only that model's registered native window. Close All Windows snapshots registered windows and calls `performClose` on each, so one veto does not prevent other approved windows from closing. Transfers remains an auxiliary close target, not a workspace model.
 
@@ -208,10 +209,11 @@ sequenceDiagram
     Caller->>Native: performClose
     Native->>Proxy: windowShouldClose
     Proxy->>Prior: ask existing delegate if supported
-    alt Existing veto or confirmation canceled
+    Proxy->>Model: save terminal-theme changes
+    alt Existing veto or unsaved-theme discard canceled
         Proxy-->>Native: false
         Note over Native,Model: Window and sessions stay open
-    else Empty model or explicit close approval
+    else Theme edits saved or discard approved
         Proxy-->>Native: true
         Native->>Coordinator: willClose notification
         Coordinator->>Coordinator: remove entry and source requests
@@ -220,11 +222,11 @@ sequenceDiagram
     end
 ```
 
-Native window dismissal asks permission before the close notification triggers teardown.
+Native window dismissal honors native vetoes and unsaved edits before the close notification triggers teardown.
 
 Once `willCloseNotification` arrives, the coordinator records layout, removes the native entry and requests sourced from that model, unregisters the model from `AppModel`, and calls idempotent `closeForWindow()`. That method records recoverable window descriptors before marking the model closed, disconnecting its workspaces, clearing their lifecycle routers, and releasing its workspace collection, drag/presentation state, transcript cache and toolbar focus callback. Other windows' sessions remain untouched. Ordinary destination switching is not this teardown path.
 
-**Quit** instead belongs to `AppDelegate.applicationShouldTerminate`. `AppModel.hasOpenWorkspaces` checks all live, nonclosed weakly registered models, including workspaces hidden by another destination. The delegate returns `.terminateLater` and asks one application-scoped workspace confirmation when needed; cancellation resets its waiting flag and replies false. Approval proceeds to recheck edited SFTP files and, if necessary, a separate pending-upload warning. Only after those gates does termination save the main-window fallback and begin app-wide shutdown, replying true when cleanup finishes or its three-second bound expires. This is separate from the per-window native veto. See [Platform Runtime](platform-runtime.md) for process shutdown and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for transport teardown.
+**Quit** instead belongs to `AppDelegate.applicationShouldTerminate`. It returns `.terminateLater`, coalesces repeated requests, and flushes terminal-theme edits across registered windows. If any remain unsaved, it asks the same discard question; cancellation resets its waiting flag and replies false. **There is no application-wide live-workspace confirmation.** It next rechecks edited SFTP files and, if necessary, asks a separate pending-upload warning (Cancel first, Quit Anyway second; only the second response approves). After those gates, termination saves the main-window fallback and begins app-wide shutdown, replying true when cleanup finishes or its three-second bound expires. This is separate from the per-window native veto. See [Platform Runtime](platform-runtime.md) for process shutdown and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for transport teardown. [Source: `TermindApp.swift`, lines 290–314 and 473–510.]
 
 The Transfers window is an auxiliary app-owned window, not a workspace. Its open/key flags drive the View toggle and close-command routing: when Transfers is key, Close Window closes it and Close Workspace is disabled, preventing an old workspace focus value from closing a session. Its notifications do not update main-window size fallback.
 
@@ -249,6 +251,10 @@ Keep the following coordinates distinct:
 
 They influence one another, but they are not interchangeable selections. A workspace drag adds a fifth, temporary distinction: `selectedWorkspace` remains the command/selection owner, but `displayedWorkspace` can show the next (or previous) merge-capable neighbour when the selected combinable workspace is being dragged. This is a derived preview, not a selection or session transfer; clearing the drag restores the selected workspace, and a drag without an eligible neighbour leaves it displayed. `RootView` uses the derived workspace to decide which deck child is active, while Navigator highlights the displayed row. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Settings navigation uses a window-local `SettingsRoute` hierarchy: toolbar Back walks to the parent, then restores the prior destination, falling back to Vault if its workspace was removed. `SettingsPageView` cleans up incomplete provider, MCP and skill drafts on route changes or disappearance rather than treating a hidden Settings page as a persistent editor. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection lives in its `WorkspaceDeckModel`; recoverable close records are app-owned and populated by window callbacks; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
 
+### Settings edits are not live-session confirmation
+
+Custom terminal themes have a separate window-owned draft lifecycle. Leaving a custom-theme route or Settings first attempts autosave; valid changes save and clear the editor, while invalid, deleted or failed-to-persist drafts keep navigation at the editor and offer discard/cancel. The deferred destination executes only after explicit discard, and discard cannot recreate a deleted theme. Native window close and Quit also attempt this save before asking about remaining unsaved changes. This protection applies even with no workspaces. `SettingsNavigationTests` covers autosave on Back and destination changes, failed-save retry, deleted drafts and preservation of spaces while typing names; `WorkspaceCloseConfirmationTests` covers window and all-window Quit flushing.
+
 ### Navigator interactions and workspace lifetime
 
 `WorkspaceNavigatorView` is an AppKit-backed SwiftUI `List` of Welcome, Metrics, Vault pages, Workspaces and Settings. A workspace row selects its workspace without starting a drag; the close affordance closes that workspace (Option-click closes the others). Its context menu can save/update a template, rename/reset eligible names, separate split panes, duplicate or split combinable sessions, move a workspace to another window, or close one/others/all. Context actions that operate on the selected pane first select the row's workspace. Section expansion is stored with `@AppStorage` and selecting a Vault page or workspace expands the corresponding section; this is sidebar presentation state, not the workspace collection.
@@ -261,7 +267,7 @@ Navigator layout interaction is window-scoped: `WindowModel.dragging` carries th
 
 The window titlebar contributes creation actions from `WindowModel.creationActions` for the **foreground destination**: a single action is a plus button, several form a New menu, and Settings/Metrics detail can replace that position with Back or contextual controls. A Vault row's context menu calls `creationActions(for:)` through `creationMenu(for:locale:)`, so it can offer that page's creation verbs even when another page is in front. Switching the sidebar from Navigator to Assistant does not change the titlebar's New or Find target.
 
-`WindowModel.findKind` resolves the foreground Vault page, full Assistant, Metrics list/process detail, Settings **terminal themes** route, or the **focused** SSH/Telnet/Serial terminal or SFTP pane. Welcome has its own content search and no titlebar Find; other Settings routes and unsearchable panes offer none. `findContext()` binds the toolbar to the actual page/window query or session query, with SSH/Serial terminal navigation and cancel callbacks and SFTP query cancellation. Direct query bindings use `Bindable` projections; transformed terminal and theme-map bindings still dispatch through their owners. A focused Telnet pane reports `.terminal` from `findKind` and `focusToolbarFind()` presents its terminal search, but `findContext()` currently has no Telnet binding: unlike SSH/Serial it cannot render a usable titlebar field through that path. Vault page queries and each Settings theme scheme's query survive route switches. `TermindCommands` routes Find to the focused window model, which stands down pane focus *before* presenting terminal search, increments the focus request and invokes the mounted toolbar field's focus handler. Welcome instead increments its content-field request; with no searchable target it does nothing.
+`WindowModel.findKind` resolves the foreground Vault page, full Assistant, Metrics list/process detail, Settings **terminal-theme libraries** (built-in schemes and custom themes), or the **focused** SSH/Telnet/Serial terminal or SFTP pane. Welcome has its own content search and no titlebar Find; other Settings routes and unsearchable panes offer none. `findContext()` binds the toolbar to the actual page/window query or session query, with SSH/Serial terminal navigation and cancel callbacks and SFTP query cancellation. Direct query bindings use `Bindable` projections; transformed terminal and theme-map bindings still dispatch through their owners. A focused Telnet pane reports `.terminal` from `findKind` and `focusToolbarFind()` presents its terminal search, but `findContext()` currently has no Telnet binding: unlike SSH/Serial it cannot render a usable titlebar field through that path. Vault page queries and each Settings theme scheme's query survive route switches. `TermindCommands` routes Find to the focused window model, which stands down pane focus *before* presenting terminal search, increments the focus request and invokes the mounted toolbar field's focus handler. Welcome instead increments its content-field request; with no searchable target it does nothing.
 
 ```mermaid
 sequenceDiagram
@@ -284,7 +290,7 @@ Find command routing and keyboard handoff in the focused main window.
 
 Find ownership flows through the active window; the sidebar mode does not choose the query.
 
-On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item when `findKind` exists, binds it to `findContext()` and reports presentation as keyboard ownership; when Find is unavailable it dismisses search and releases that claim. Because the host checks `findKind` rather than `findContext()`, Telnet still installs the system search affordance although its missing query binding reads as empty and ignores edits. Its Return and Escape handlers use the context's navigation/cancel callbacks when present. This host does not change the persistent split-view branch; the toolbar slot itself is fixed by OS availability, not by navigation. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
+On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item when `findKind` exists **except for terminal-theme libraries**, which keep an explicit visible native toolbar field on every supported OS, including empty and no-results states. Custom-theme editing instead contributes import/delete controls and no Find. The system host binds to `findContext()` and reports presentation as keyboard ownership; when its target disappears it dismisses search and releases that claim. Because the host checks `findKind` rather than `findContext()`, Telnet still installs the system search affordance although its missing query binding reads as empty and ignores edits. Its Return and Escape handlers use the context's navigation/cancel callbacks when present. The background host does not change the persistent split-view branch. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
 
 ## Persistent workspace deck: hidden is not destroyed
 
@@ -409,8 +415,8 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Change | Focused seams |
 | --- | --- |
 | Scene ownership, sizing, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MainWindowSizingTests` (stored fallback validation, source-size inheritance, restored frames, sidebar width handshake and visible full-screen behavior), `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
-| Native close veto versus Quit | `WorkspaceCloseConfirmationTests` pins scope-specific wording, Close as the Return default, Cancel on Escape, first-button-only approval, all-window Quit detection, empty-window bypass, retry after veto, delegate forwarding/restoration and managed-session recovery identity preservation on window dismissal. `MultiWindowTests` checks pinned-destination cancellation, one-pane-at-a-time close, per-window session isolation, edited-decoration suppression until detach, unregistered fallback safety and independent Close All vetoes. `AppTerminationTests` covers shutdown draining and bounded reply behavior. |
-| Persistent-close authorization and recoverable history | `FrameworkTests/SessionPersistenceTests` checks immediate explicit termination, passive teardown preservation, failure/cancellation and identity deduplication; `ClosedWorkspaceRestoreTests` checks restart restoration, live-instance reuse and history eviction. `WorkspaceCloseConfirmationTests.closingWindowWithManagedSessionDisconnectsWithoutEndingItsRecoveryIdentity` pins disconnect-only window semantics. |
+| Native close veto versus Quit | `WorkspaceCloseConfirmationTests` pins theme flushing, unsaved-draft veto/retry even in empty windows, populated-window close without a connection prompt, native delegate forwarding/restoration, all-window theme flushing and managed-session recovery identity preservation. `MultiWindowTests` checks command routing, per-window isolation and native close behavior; `AppTerminationTests` covers shutdown draining and bounded reply behavior. |
+| Persistent-close authorization and recoverable history | `FrameworkTests/SessionPersistenceTests` checks explicit termination, passive teardown preservation, failure/cancellation and identity deduplication; `ClosedWorkspaceRestoreTests` checks restart restoration, live-instance reuse and history eviction. `WorkspaceCloseConfirmationTests` pins disconnect-only window semantics and failed explicit managed-pane close preserving its recovery reference without prompting. |
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
@@ -422,4 +428,3 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Welcome Recents, device names, connection-history limits or pane close tracking | `ConnectionHistoryTests` checks local-only recents, stable device IDs and rename lookup; `VaultSyncTests` and workspace close/reopen tests cover synchronization and pane lifetime. |
 
 Some rendering tests explicitly require a visible window; routine checks should not enable those globally. The narrow-editor rendering cases cover English, Simplified Chinese and Traditional Chinese. This guide was derived from implementation and tests; it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](../operations/build-test-and-release.md) for the appropriate verification commands.
- it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](../operations/build-test-and-release.md) for the appropriate verification commands.

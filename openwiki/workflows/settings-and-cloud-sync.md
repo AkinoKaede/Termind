@@ -12,8 +12,14 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-cd830b9886c3f5d3d7181662
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
+  - id: openwiki-source-ff7e1a7fb4c2e41f0599b10c
+    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalCustomThemeDraft.swift
+  - id: openwiki-source-4ae2a0061a7bd729d6e132b4
+    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-44f3b562f3c7b739d591cf92
+    resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
@@ -36,12 +42,16 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/DeviceSyncCoordinator.swift
   - id: openwiki-source-894539337bc9140a109608f0
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
+  - id: openwiki-source-0f2686dea17e03f18f688944
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV2.swift
   - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
   - id: openwiki-source-3effdff7f6b04e2a66d8f651
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-2d71ca5687a3b29cda0a7006
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/TerminalThemeCloudRecordV1.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-969607b796e062c1bad0a301
@@ -60,6 +70,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-a0d614d618b11f103ec246ae
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
+  - id: openwiki-source-2f7267f869168e6fd20257dd
+    resource: repo://Frameworks/TermindPersistence/TerminalThemePersistence.swift
   - id: openwiki-source-79e0f2a939e874c6a6803c19
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
@@ -68,10 +80,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-33f99816db979bf169f1eab5
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
-  - id: openwiki-source-4e96d6bf2e7ae21ae9f5a5d8
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV53HostModels.swift
-  - id: openwiki-source-d9d273a10bc4dfbf1117ed63
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV54HostModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-ba9bcaaf5c4be2ca83356c1a
@@ -82,14 +90,22 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWireV4.swift
   - id: openwiki-source-e6dff91a0024d952d88a2b56
     resource: repo://Frameworks/TermindPersistence/VaultWireV5.swift
+  - id: openwiki-source-eebe965a9f1a844dba69cccf
+    resource: repo://Frameworks/TermindPersistence/VaultWireV6.swift
+  - id: openwiki-source-828d14fc26332f2c1760de77
+    resource: repo://Frameworks/TermindPersistence/VaultWireV7.swift
+  - id: openwiki-source-df95b4a93b36784556d7ac8c
+    resource: repo://Frameworks/TermindPersistence/VaultWireV8.swift
+  - id: openwiki-source-0bb956065190c6d2f1f898a9
+    resource: repo://Frameworks/TermindPersistence/VaultWorkspaceWireV2.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
-  - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
-    resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
   - id: openwiki-source-e77eccb0637ba395d80ada96
     resource: repo://Frameworks/TermindPresentation/HostIntegrationSection.swift
   - id: openwiki-source-004087118989bdae6d2071e6
     resource: repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift
+  - id: openwiki-source-6256aeada274ebb6ce422d82
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -112,14 +128,12 @@ sources:
     resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
-  - id: openwiki-source-bb65493b0fd5bf5957736cd6
-    resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
+  - id: openwiki-source-7a96834e0ec247f0a7610fde
+    resource: repo://FrameworkTests/TerminalCustomThemeTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-fc448263e4e5ce330b8cbda1
-    resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
   - id: openwiki-source-215c24353f612bb80e412229
     resource: repo://TFI/Features/Settings/MobileAppSettingsView.swift
   - id: openwiki-source-e21fae39ef7af76f86acbff6
@@ -132,18 +146,16 @@ sources:
     resource: repo://TFM/App/DesktopSettingsKey.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
-  - id: openwiki-source-1e0cf223ab8448c8eee3f345
-    resource: repo://TFM/Features/HostEditor/HostEditorView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 ---
 
 # Settings and Cloud Sync
@@ -154,11 +166,11 @@ For embedded node enrollment, stable peer IDs, group preferences and device-loca
 
 ## Settings routes and ownership
 
-On macOS, `WindowModel` owns a per-window `settingsRoute` separate from app-wide preference models. `SettingsPageView` dispatches index → category → detail: App (including workspace preferences and diagnosis consent), Notifications, Terminal, Connections (SSH/SFTP), AI (providers, models, MCP servers, skills), and Sync. The index opens Pro as a paywall rather than a Settings category; a debug-enabled Logging route hangs directly off the index, and Developer is compiled only in DEBUG builds. `SettingsRoute.parent` drives toolbar back navigation: terminal configuration → scheme themes → Terminal, provider models → provider → AI, and other detail pages → their category; back from index closes Settings and restores the previous destination, falling back to Vault if its workspace vanished. [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L10-L207), [WindowModel](../../TFM/Features/Workspaces/WindowModel.swift#L596-L632), [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L13-L39), [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L76-L155).
+On macOS, `WindowModel` owns a per-window `settingsRoute` separate from app-wide preference models. `SettingsPageView` dispatches index → category → detail: App (including workspace preferences and diagnosis consent), Notifications, Terminal, Connections (SSH/SFTP), AI (providers, models, MCP servers, skills), and Sync. The index opens Pro as a paywall rather than a Settings category; a debug-enabled Logging route hangs directly off the index, and Developer is compiled only in DEBUG builds. `SettingsRoute.parent` drives toolbar back navigation: terminal custom-theme editor → custom themes → Terminal, provider models → provider → AI, and other detail pages → their category; back from index closes Settings and restores the previous destination, falling back to Vault if its workspace vanished. [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L10-L207), [WindowModel](../../TFM/Features/Workspaces/WindowModel.swift#L596-L632), [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L13-L39), [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L76-L155).
 
 Leaving a provider draft discards it only if unnamed and unconfigured; a new MCP draft with no valid name/namespace is deleted, whereas a skill with written content but no title is kept as a draft. Navigating between provider and its models does not prematurely clean it up. These route transitions act on shared app models rather than starting CloudKit directly. [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L107-L113), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L213-L245), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L343-L365).
 
-`SettingsKey` contains local `UserDefaults` keys for both UI/selection and mirrors of synced preferences; being a key in this enum does **not** imply it is a cloud record. `SettingsSyncSnapshot.recordPayloads` determines what Settings actually journals: AI providers, MCP servers, roles, skills, web search, terminal, SSH, SFTP, workspace and notification preferences. Retired terminal highlighting no longer participates in that snapshot or active sync. In contrast diagnostic consent (`diagnostics.crashReportingConsent`, retained to avoid resetting earlier choices), debug visibility/logging, review-invitation history and terminal font family/size/follow-theme are device-local. Consent is an optional per-installation choice, not a synced notification preference or a cloud toggle: absence requires a choice and never enables reporting; `DiagnosisController` persists an explicit choice before applying it to the reporter. Terminal theme and integration preferences *do* enter the Settings snapshot even though they are mirrored to defaults. [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift#L4-L78), [SettingsSyncStore](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [DiagnosisController](../../Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32), [DiagnosisTests](../../FrameworkTests/DiagnosisTests.swift#L9-L50).
+`SettingsKey` contains local `UserDefaults` keys for both UI/selection and mirrors of synced preferences; being a key in this enum does **not** imply it is a cloud record. `SettingsSyncSnapshot.recordPayloads` determines what Settings actually journals: AI providers, MCP servers, roles, skills, web search, terminal, per-theme custom themes and per-appearance theme selections, SSH, SFTP, workspace and notification preferences. Retired terminal highlighting no longer participates in that snapshot or active sync. In contrast diagnostic consent (`diagnostics.crashReportingConsent`, retained to avoid resetting earlier choices), debug visibility/logging, review-invitation history and terminal font family/size/follow-theme are device-local. Consent is an optional per-installation choice, not a synced notification preference or a cloud toggle: absence requires a choice and never enables reporting; `DiagnosisController` persists an explicit choice before applying it to the reporter. Terminal theme and integration preferences *do* enter the Settings snapshot even though they are mirrored to defaults. [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift#L4-L78), [SettingsSyncStore](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [DiagnosisController](../../Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32), [DiagnosisTests](../../FrameworkTests/DiagnosisTests.swift#L9-L50).
 
 The desktop Show Status Bar toggle is a separate app-wide, device-local `DesktopSettingsKey.showStatusBar` default, enabled initially and shared by Settings and the View menu. It does not add a Settings sync record or per-window durable preference. The floating root overlay appears only for a selected workspace when enabled; it does not dock below or resize the detail area. Expanded/collapsed state is a separate app-wide local preference. [RootView](../../TFM/App/RootView.swift#L13-L65), [DesktopSettingsKey](../../TFM/App/DesktopSettingsKey.swift#L12-L36).
 
@@ -187,7 +199,7 @@ Local edits persist before updating live models; remote snapshots reach them aft
 
 ## Device-local desktop language selection
 
-The App language picker stores a **device-local** preference, not a Settings journal envelope. Its binding writes `SettingsKey.appLanguage` and calls `AppLanguage.store`. Explicit English, Japanese, Simplified Chinese and Traditional Chinese choices store canonical `en`, `ja`, `zh-Hans` and `zh-Hant` values plus a single-element `AppleLanguages` override. Follow System stores `system` and **removes** `AppleLanguages`, restoring normal Bundle negotiation rather than writing a guessed system language. Missing or unknown preferences resolve to Follow System. Legacy identifiers that Foundation resolves as Simplified Chinese migrate through `store` to canonical `zh-Hans`; unknown and noncanonical Traditional Chinese identifiers are not rewritten. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L76-L113), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L416), [SettingsSyncSnapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L51-L127).
+The App language picker stores a **device-local** preference, not a Settings journal envelope. Its binding writes `SettingsKey.appLanguage` and calls `AppLanguage.store`. Explicit German, English, French, Japanese, Korean, Simplified Chinese and Traditional Chinese choices store canonical `de`, `en`, `fr`, `ja`, `ko`, `zh-Hans` and `zh-Hant` values plus a single-element `AppleLanguages` override. Follow System stores `system` and **removes** `AppleLanguages`, restoring normal Bundle negotiation rather than writing a guessed system language. Missing or unknown preferences resolve to Follow System. Legacy identifiers that Foundation resolves as Simplified Chinese migrate through `store` to canonical `zh-Hans`; unknown and noncanonical Traditional Chinese identifiers are not rewritten. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L76-L113), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L416), [SettingsSyncSnapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L51-L127).
 
 `TermindApp` captures `launchLanguage` during initialization (a DEBUG screenshot demo can override it) and injects its locale into main and external-authentication windows. Selecting a new language does not replace that launch-time choice or automatically relaunch the app. `AppSettings` separately captures `AppLanguage.stored()` in its own initial state, also named `launchLanguage`; when its selected value differs, it shows “The new language will be used after Termind relaunches.” The notice resolves through `AppLocalization` with **the selected language's locale**, not the existing window locale. This local view baseline is not the app's immutable launch capture. [TermindApp](../../TFM/App/TermindApp.swift#L40-L52), [TermindApp](../../TFM/App/TermindApp.swift#L238-L271), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L456).
 
@@ -207,7 +219,7 @@ flowchart TD
 ```
 Language storage affects the next launch; the current picker only stores the choice and presents a notice, with no automatic relaunch step.
 
-`AppLocalization` chooses the `en`, `ja`, `zh-Hans` or `zh-Hant` localization bundle from the supplied locale, falling back to the main bundle if unavailable. Chinese script selection keeps Traditional and Simplified catalogs separate. The Traditional Chinese picker label is `正體中文` only when the device region is `TW` and `DeviceCensorship.canDisplayTaiwanFlag` is true; otherwise it is `繁體中文`. This label policy does not change the `zh-Hant` stored tag. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L3-L64), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L66-L105). For wider localization/product boundaries, see [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
+`AppLocalization` chooses the `de`, `en`, `fr`, `ja`, `ko`, `zh-Hans` or `zh-Hant` localization bundle from the supplied locale, falling back to the main bundle if unavailable. Chinese script selection keeps Traditional and Simplified catalogs separate. The Traditional Chinese picker label is `正體中文` only when the device region is `TW` and `DeviceCensorship.canDisplayTaiwanFlag` is true; otherwise it is `繁體中文`. This label policy does not change the `zh-Hant` stored tag. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L3-L64), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L66-L105). For wider localization/product boundaries, see [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
 
 ## Selection and app ownership
 
@@ -217,7 +229,7 @@ Language storage affects the next launch; the current picker only stores the cho
 | Connection History | `TermindConnectionHistoryV1` / `ConnectionHistoryItem` | Master and optional History |
 | Device | `TermindConnectionHistoryV1` / `DeviceItem` | Master, independently of History and Vault |
 | Metrics | Its own Metrics zone and journal | Master and optional Metrics |
-| Settings | `TermindAIConfigurationV1` / `AIConfigurationItem`, `SSHPreferencesItem`, `SFTPPreferencesItem`, `WorkspacePreferencesItem`, `NotificationPreferencesItem` (legacy highlighting is ignored, not active) | Master and optional Settings |
+| Settings | `TermindAIConfigurationV1` / `AIConfigurationItem`, `SSHPreferencesItem`, `SFTPPreferencesItem`, `WorkspacePreferencesItem`, `NotificationPreferencesItem`, `TerminalCustomThemeItem`, `TerminalThemeSelectionItem` (legacy highlighting is ignored, not active) | Master and optional Settings |
 
 The migration-only `vault.sync.enabled` participates in deriving the master selection if that switch has not been set. **History does not inherit it**: an unset History preference defaults to enabled, and `migrateSyncPreferences` does not copy the old Vault selection or environment into History. `CloudSyncSettingsContent` supplies the same UI to both platforms: a headerless iCloud toggle and aggregate status/actions, then “Optional Sync” toggles in History → Metrics → Settings order. There is no separate Vault or Device toggle. Enabling master sync is Pro-gated and attempts custom Host password migration to iCloud Keychain. [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift), [CloudSyncSettingsContent](../../Frameworks/TermindPresentation/CloudSyncSettingsContent.swift).
 
@@ -312,9 +324,9 @@ Settings' committed local mutation survives an unavailable engine; the fetch and
 
 Bootstrap writes baseline envelopes from local projections; subsequent real edits get ordered `VaultVersion` values and durable pending intent, including logical tombstones. Merge chooses the newer version, breaking equal-version payload ties deterministically; a local winner is requeued. Fetched values do not echo merely because they were read. Journal-held system fields preserve CloudKit optimistic-concurrency metadata; successful acknowledgements clear pending only for the **sent version**, never a later edit or a quarantined ID. Outgoing eligibility derives from journal and scoped replica sidecars, not a restored CloudKit queue alone. [CloudSyncJournal](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift#L41-L96), [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L222-L320), [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L112-L148).
 
-Vault, Metrics and Settings carry version/kind/entity/clock/deletion envelope metadata and validated payload hashes, storing small payloads inline and larger ones in `CKAsset`. Settings uses separate active SSH, SFTP, workspace and notification preference record types inside its existing zone so old clients filtering on type can skip them before decoding. Its record-type check also validates that the decoded preference kind agrees with the type. Vault normalizes device-local group/package expansion rather than syncing it; the V33 Identity shape has no `lastUsedAt`. Debug/logging, review history and terminal font family/size/follow-theme settings likewise stay device-local. [CloudSyncRecordCoding](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordCoding.swift), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift).
+Vault, Metrics and ordinary Settings records carry version/kind/entity/clock/deletion envelope metadata and validated payload hashes, storing small payloads inline and larger ones in `CKAsset`. Settings uses separate active SSH, SFTP, workspace and notification preference record types inside its existing zone so old clients filtering on type can skip them before decoding. Its record-type check also validates that the decoded preference kind agrees with the type. Vault normalizes device-local group/package expansion rather than syncing it; the V33 Identity shape has no `lastUsedAt`. Debug/logging, review history and terminal font family/size/follow-theme settings likewise stay device-local. [CloudSyncRecordCoding](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordCoding.swift), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift).
 
-Native History/Device writes use **typed CloudKit fields**, not JSON/asset payloads. `HistoryCloudRecordV1` validates `formatVersion`, `kind`, canonical `entityID` and record name, `modifiedAt`, nonnegative `counter`, `writerID`, and `isDeleted`; live events also require `hostID`, `connectionKind` (`ssh`, `telnet`, `sftp`) and `connectedAt`, with optional `endedAt` and `sourceDeviceID`; devices require `displayName`. Writes explicitly clear optional fields; tombstones need only metadata. IDs remain `v1/connectionHistory/<uuid>` and `v1/device/<uuid>`, independent of later format versions. An event can arrive before its Host and is persisted without a CloudKit reference. [HistoryCloudRecordV1](../../Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift), [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L116-L149).
+Native History/Device writes use **typed CloudKit fields**, not JSON/asset payloads. Frozen V1 and V2 adapters validate metadata, record identity and live fields before interpretation, and clear optional fields when writing. History reads V1/V2 and writes V2: V1 accepts `ssh`, `telnet`, `sftp`, while V2 also accepts `mosh` and `eternalTerminal`. Live events require `hostID` and `connectedAt`, with optional `endedAt` and `sourceDeviceID`; Device remains V1 and requires `displayName`. Tombstones need only metadata. IDs remain `v1/connectionHistory/<uuid>` and `v1/device/<uuid>`, independent of format versions. Events can arrive before Hosts without CloudKit references. [V1](../../Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift), [V2](../../Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV2.swift), [History persistence](../../Frameworks/TermindPersistence/HistorySyncStore.swift).
 
 History retains the 250 newest events and journals tombstones for overflow and clear operations while leaving device records intact. Event UUID deletion is terminal even against a delayed update with a later clock; Device, unlike events, can have a later explicit incarnation. Per-scope sidecars remember cloud presence, confirmed deletions and the exact **durable delete handoff before network submission**. Full-inventory reconciliation treats previously present but unseen records as physical deletions; only a newer pending explicit incarnation after a causal deletion handoff is preserved for recreation (not terminal History events). An ambiguous delete retains the handoff for retry; an acknowledgement applies only to the handed-off version, not a newer local edit. This avoids falsely acknowledging a newer device recreation after a crash, while reobserved records and blocked IDs still obey the outgoing fence. Ordinary physical CloudKit deletion is reconciled against the journal rather than treated as a new user edit: surviving local records can be recreated with cleared system fields, subject to upload restrictions. [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L66-L113), [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L123-L170), [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L177-L256), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L480-L512), [CloudSyncSafetyPersistenceTests](../../FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L189-L248).
 
@@ -326,15 +338,17 @@ History retains the 250 newest events and journals tombstones for overflow and c
 
 | Record kind | Read versions | Write version |
 | --- | --- | --- |
-| Vault Host | V1, V2, V4, V5 | V5 |
-| Vault HostGroup | V1, V2, V3, V4, V5 | V5 |
+| Vault Host | V1, V2, V4, V5, V6, V7, V8 | V8 |
+| Vault HostGroup | V1–V7 | V7 |
 | Vault SSHKey | V1, V2, V3 | V3 |
 | Vault Snippet | V1, V2 | V2 |
+| Vault WorkspaceTemplate | V1, V2 | V2 |
 | Other ordinary Vault kinds | V1 | V1 |
-| Native History and Device | V1 | V1 |
+| Native Connection History | V1, V2 | V2 |
+| Native Device | V1 | V1 |
 | Metrics selection | V1, V2 | V2 |
 
-Host V3 is **not** a production reader. Record names retain their `v1/` identity prefix despite format upgrades, and codec errors throw rather than falling back to lossy encoding. Fields an older writer would silently drop require a breaking per-kind version and adapter. Local V28 Host → V30 SSH/Telnet migration is separate: its reopen fixture verifies local SSH settings, default-disabled Telnet, associated state and workspace defaults, **not** CloudKit replica compatibility. [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58), [SyncRecordEvolutionTests](../../FrameworkTests/SyncRecordEvolutionTests.swift), [PersistenceCompatibilityTests](../../FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237).
+Host V3 is **not** a production reader. Record names retain their `v1/` identity prefix despite format upgrades, and codec errors throw rather than falling back to lossy encoding. V6 adds Host/HostGroup terminal transports, V7 adds Wake-on-LAN and Host V8 preserves `createdAt`; older encoding rejects values it cannot represent. WorkspaceTemplate V2 adds Mosh and Eternal Terminal panes. These contracts are independent of local SwiftData migrations. The current compatibility suite tests V30→V31 and V31→V34 migration, not the removed V28 reopen fixture or CloudKit delivery. [Format registry](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift), [Codec](../../Frameworks/TermindPersistence/VaultSyncPersistence.swift), [Workspace V2](../../Frameworks/TermindPersistence/VaultWorkspaceWireV2.swift), [Compatibility tests](../../FrameworkTests/PersistenceCompatibilityTests.swift#L139-L244).
 
 Unsupported versions/kinds, malformed payloads, invalid native fields and known-ID conflicts are quarantined with reason, received bytes (full secure `CKRecord` archive for native fields) and system fields in the container/environment/account/zone/**consumer** scope. Valid remote records, including `serverRecordChanged` replies, merge in a transaction with system-field updates and quarantine removal; failed persistence rolls back the unblock. Future unknown record types in an ordinary fetch may be ignored, but an unexpected type on a conflicting known ID cannot bypass validation. Scoped restrictions persist across pause, retry, relaunch and normal account/environment/zone resets, retain local pending intent, and do not block unrelated records. History and Device restrictions cannot leak into each other. [CloudSyncLifecycleSafety](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L49-L90), [CloudSyncSafetyStore](../../Frameworks/TermindPersistence/CloudSyncSafetyStore.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift).
 
@@ -346,11 +360,13 @@ Snippet color is an explicit per-kind wire upgrade, not a consequence of local s
 
 ## Host session persistence and icon preferences
 
-These are **Vault Host/HostGroup configuration**, not Settings singleton records. Both desktop and mobile Host editors bind `HostSessionSection` to the draft's session-persistence value; the shared section exposes enablement, backend (tmux, preserving unknown backend IDs), and on-connect choices Ask, Create, or Normal Shell. New and legacy Hosts default to disabled persistence with tmux and Ask. The shared `HostOrganizationSection` binds `HostIconPicker` to `iconOverrideID`. These controls change saved host configuration rather than the global terminal preferences. [HostIntegrationSection](../../Frameworks/TermindPresentation/HostIntegrationSection.swift#L4-L30), [Desktop editor](../../TFM/Features/HostEditor/HostEditorView.swift#L296-L307), [Mobile editor](../../TFI/Features/HostEditor/MobileHostEditor.swift#L212-L224), [HostConnectionFields](../../Frameworks/TermindPresentation/HostConnectionFields.swift#L6-L31), [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L13-L47).
+These are **Vault Host/HostGroup configuration**, not Settings singleton records. Both desktop and mobile Host editors bind `HostSessionSection` to the draft's session-persistence value; the shared section exposes enablement, backend (tmux, Zellij, zmx or Herdr, preserving unknown backend IDs), and on-connect choices Ask, Create, or Normal Shell. New and legacy Hosts default to disabled persistence with tmux and Ask. The shared `HostOrganizationSection` binds `HostIconPicker` to `iconOverrideID`. These controls change saved host configuration rather than the global terminal preferences. [HostIntegrationSection](../../Frameworks/TermindPresentation/HostIntegrationSection.swift#L4-L30), [Desktop editor](../../TFM/Features/HostEditor/HostEditorView.swift#L296-L307), [Mobile editor](../../TFI/Features/HostEditor/MobileHostEditor.swift#L212-L224), [HostConnectionFields](../../Frameworks/TermindPresentation/HostConnectionFields.swift#L6-L31), [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L13-L47).
 
 Ordinary Host edits go through `HostLibraryModel.saveHost` and `HostPersistence.save`: projection and changed Vault envelopes are saved together, with context rollback and restoration of the previous library on failure. The V53 local Host shape introduced session-persistence columns; V54 retains those columns and adds `iconOverrideID`. Those schema steps do not select CloudKit wire versions. For Tailscale-managed Hosts, `saveTailscaleHost` stores both choices in the parent group's `tailscale.hostPreferences` keyed by stable Host UUID, then rebuilds the discovered Host projection. Managed peers are not standalone uploaded Host rows. [HostLibraryModel](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L961-L1002), [Tailscale preference projection](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2485-L2546), [HostPersistence](../../Frameworks/TermindPersistence/SwiftDataVaultStore.swift#L44-L94), [V53 Host](../../Frameworks/TermindPersistence/TermindSchemaV53HostModels.swift), [V54 Host](../../Frameworks/TermindPersistence/TermindSchemaV54HostModels.swift#L35-L115).
 
 V4 wraps the frozen V2 Host or V3 HostGroup shape with session-persistence preferences. V5 wraps V4 with user artwork: a Host's optional `iconOverrideID`, or a sparse HostGroup `iconOverrides` dictionary. Group dictionaries require canonical lowercase UUID keys belonging to existing base host preferences. Encoding below V4 rejects non-default session preferences, and encoding below V5 rejects icon overrides: successful old-version encoding must not silently erase selections. Historical reads restore disabled persistence and automatic artwork. [VaultWireV4](../../Frameworks/TermindPersistence/VaultWireV4.swift#L4-L62), [VaultWireV5](../../Frameworks/TermindPersistence/VaultWireV5.swift#L4-L57), [VaultSyncCodec](../../Frameworks/TermindPersistence/VaultSyncPersistence.swift#L69-L139).
+
+V4/V5 are historical session/artwork layers underneath the current transport, Wake-on-LAN and creation-metadata formats. Saved preferences are **not live recovery state**: `TerminalRecoveryStore` is independent of SwiftData/Vault/CloudKit, keeps encrypted device-local checkpoints under `Termind/TerminalRecovery`, excludes its directory from backup and consumes checkpoints before returning resumable protocol state. Neither Settings nor History moves a live terminal session between devices. [Recovery boundary](../../Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L9-L89).
 
 ```mermaid
 flowchart TD
@@ -362,7 +378,7 @@ flowchart TD
     Group --> Commit
     Commit --> Owner["Notify VaultSyncCoordinator"]
     Owner --> Gate["Fetch and scoped upload fence"]
-    Gate --> Encode["Encode Host or HostGroup V5 over V4"]
+    Gate --> Encode["Encode current Host V8 or HostGroup V7"]
     Encode --> Cloud["CloudKit VaultItem"]
     Cloud --> Decode["Validate kind and version then decode"]
     Decode --> Merge["Commit winning projection and cloud metadata"]
@@ -374,6 +390,33 @@ Host preference edits use the Vault journal and wire contract, while sharing the
 The Vault coordinator validates and merges fetched records and conflicts through `HostPersistence.applyRemote`, committing metadata and unblock before publishing accepted snapshots. Desktop and mobile replace their library projections through their existing remote-change plans; Tailscale projection rebuilds restore the group-backed choices. Artwork remains separate from system detection: saving a draft preserves the latest detected distribution, choosing Automatic clears the override, unknown icon IDs round-trip, and artwork-only changes do not trigger connection-route callbacks. [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L172-L209), [HostIconTests](../../FrameworkTests/HostIconTests.swift#L23-L51), [HostIconTests round trips](../../FrameworkTests/HostIconTests.swift#L83-L183), [AppModel](../../TFM/App/AppModel.swift#L505-L534), [MobileAppModel](../../TFI/App/MobileAppModel.swift#L620-L648).
 
 `SessionPersistenceTests` checks historical disabled defaults, backend/policy round trips, refusal of lossy old writes, group preference round trips and V52 disk migration/reopen. `HostIconTests` checks ordinary and Tailscale remote application, clearing and unknown IDs, failed-save rollback, old-format rejection, tombstones, and V53 migration followed by artwork save/reopen. These are codec/local-store tests, not signed-device CloudKit delivery tests.
+
+## Custom terminal themes: drafts, migration and replication
+
+Custom themes are not one opaque replacement of the whole library. `SettingsSyncSnapshot.recordPayloads` emits one `.terminalCustomTheme` envelope per UUID and one `.terminalThemeSelection` per light/dark appearance. Independent edits to different themes can merge. Selections retain a built-in fallback and may arrive before their theme: the custom ID remains unresolved until that theme arrives. Deleting a selected theme or narrowing its applicability repairs affected choices without changing the unaffected mode. [Settings snapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L35-L58), [TerminalSettingsModel](../../Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift#L77-L122), [TerminalCustomThemeTests](../../FrameworkTests/TerminalCustomThemeTests.swift#L205-L268).
+
+UI edits live in `TerminalCustomThemeDraft` until a save entrypoint succeeds. Desktop autosaves valid changes and saves before navigation; invalid or remotely deleted drafts remain protected by the discard flow. Only a clean existing draft refreshes from the live library; dirty text is not silently overwritten by a remote edit. Save trims the name and uses `TerminalSettingsModel.saveCustomTheme` → `saveTerminalThemes` → `saveLocal`, committing projection and per-record intent before updating the live library. A failed write leaves the draft dirty/new and the live library unchanged. An existing draft cannot resurrect a remotely deleted UUID; Make Copy assigns a new identity so the content can be saved intentionally. [Draft](../../Frameworks/TermindApplication/FeatureModels/TerminalCustomThemeDraft.swift), [Theme persistence](../../Frameworks/TermindPersistence/TerminalThemePersistence.swift#L53-L99), [Draft tests](../../FrameworkTests/TerminalCustomThemeTests.swift#L61-L112).
+
+The existing Settings owner writes native `TerminalCustomThemeItem` and `TerminalThemeSelectionItem` records in its existing zone. They use typed V1 metadata and fields rather than a JSON payload. Configuration is inline text or a raw UTF-8 `configurationAsset` above the shared inline threshold, with a SHA-256 `configurationHash`; readers reject inconsistent field combinations, corrupt hashes, invalid identities/appearance and unsupported versions. Tombstones clear live fields. Native-field quarantine preserves the record archive for later decoding. Committed remote snapshots reach `applyRemoteThemes` on both app models, not the draft Save path. [Native theme contract](../../Frameworks/TermindInfrastructure/Cloud/TerminalThemeCloudRecordV1.swift), [Settings owner](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L242-L295), [Desktop reconciliation](../../TFM/App/AppModel.swift#L468-L477), [Mobile reconciliation](../../TFI/App/MobileAppModel.swift#L448-L457).
+
+Legacy dark/light custom configuration is migrated during preparation and after a remote journal merge. Migration uses deterministic IDs derived from appearance, base and text, and baseline clocks that cannot outrank an explicit newer choice. A selection envelope—including its tombstone—is the per-mode migration marker. Fresh defaults do not publish an empty migration; later legacy cloud settings can still seed the library. Once a native selection exists, old terminal-singleton writes do not erase that library. [Migration](../../Frameworks/TermindPersistence/TerminalThemePersistence.swift#L101-L159), [Remote materialization](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L174-L222), [Migration tests](../../FrameworkTests/TerminalCustomThemeTests.swift#L114-L160).
+
+```mermaid
+flowchart TD
+    Draft["Local custom-theme draft"] --> Save["Save through TerminalSettingsModel"]
+    Save --> Commit["Commit theme rows and per-record Settings intent"]
+    Commit --> Owner["SettingsSyncCoordinator and fetch safety gate"]
+    Owner --> Cloud["Native theme and appearance-selection records"]
+    Cloud --> Validate["Validate typed fields and configuration hash"]
+    Validate --> Merge["Merge journal and rebuild complete library"]
+    Merge --> Models["Apply committed themes to both app models"]
+    Models --> Refresh{"Existing draft clean?"}
+    Refresh -->|Yes| Update["Refresh draft from live library"]
+    Refresh -->|No| Keep["Keep unsaved local text"]
+```
+Custom-theme content and selection share the Settings transaction and lifecycle, but drafts are not replicated.
+
+`TerminalCustomThemeTests` covers independent per-theme edits, selection-before-theme delivery, tombstones, failed batch rollback, raw UTF-8 assets and corruption, stable legacy migration and V56 store reopening. These tests exercise local persistence and record coding, not signed-device delivery.
 
 ## Notification preferences across Settings and app models
 
@@ -403,7 +446,7 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 - `SettingsNavigationTests` verifies the Settings parent-route chain, back-to-content return (including a missing workspace), paywall presentation without a Pro route, and navigation through Assistant; `DiagnosisTests` verifies per-installation consent defaults, durable choices and revocation ordering. [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L13-L155), [DiagnosisTests](../../FrameworkTests/DiagnosisTests.swift#L9-L75).
 - `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit. Its delegate-context tests verify detached fetch/send and engine cancellation; late fetch/send and fatal delegate failures cannot revive a retired engine. Disabled selection prevents start, retry and account confirmation.
 - `CloudSyncSafetyTests` uses five real owner adapters with fake CloudKit transport to check winner/queue reconciliation, quarantine at each upload boundary, conflict handling, malformed native fields, rollback, and healthy-peer progress; `CloudSyncSafetyPersistenceTests` covers scoped on-disk recovery and migrations.
-- `HistorySyncTests` checks typed native fields, independent History/Device scopes and switches, terminal event tombstones and retention, no retired-source import, and error/cancellation diagnostics. `PersistenceCompatibilityTests` verifies V28 local reopen as well as dropping retired importer state on V35 reopen.
+- `HistorySyncTests` checks typed native fields, independent History/Device scopes and switches, terminal event tombstones and retention, no retired-source import, and error/cancellation diagnostics. `PersistenceCompatibilityTests` checks current local V30/V31 migration cases and dropping retired importer state on V35 reopen.
 - `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. `WebAuthnVaultMetadataTests` covers Keychain-free connection preparation and Vault round-trip, the frozen V2 `thisDevice` representation, invalid software external storage, metadata rollback, and V44 software-key reopen. `NotificationPreferencesTests` verifies settings record round-trip without echo, invalid remote duration, V40→V41 persistence reopening, edit failure and one-shot authorization across scenes. [HistorySyncTests](../../FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](../../FrameworkTests/PersistenceCompatibilityTests.swift).
 
-Current Vault writers are Host/HostGroup V5, SSHKey V3 and Snippet V2, with the per-kind historical readers listed above. Metrics selection writes V2 and reads V1/V2; its upgraded capability checkpoint forces refetch of formerly quarantined V1 records without losing newer pending local changes. Tailscale group configuration syncs as HostGroup data; managed peer Hosts and local profile/sign-in/cache/cleanup state are excluded. Command/SFTP browse history is memory-only; the History coordinator remains solely the connection-event stream.
+Current Vault writers are Host V8, HostGroup V7, SSHKey V3, Snippet V2 and WorkspaceTemplate V2, with the historical readers listed above. Metrics selection writes V2 and reads V1/V2; its capability checkpoint forces refetch without losing newer pending local changes. Tailscale group configuration syncs as HostGroup data; managed peer Hosts and local profile/sign-in/cache/cleanup state are excluded. Command/SFTP browse history is memory-only; History remains solely the connection-event stream.

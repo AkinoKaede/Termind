@@ -1,11 +1,13 @@
 ---
 type: interaction workflow
-title: File Drag-and-Drop and Terminal Uploads
+title: File Drops and Terminal Uploads
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
   - id: openwiki-source-1f7e305d10685aa880c0abea
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift
   - id: openwiki-source-9f901321faf927c1696ac6e6
@@ -76,13 +78,13 @@ sources:
     resource: repo://TFMTests/FileURLDropTargetTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
-# File Drag-and-Drop and Terminal Uploads
+# File Drops and Terminal Uploads
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
@@ -202,9 +204,15 @@ Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L
 
 ## SSH uploads: shell directory → SFTP preparation → queue
 
-Shell Integration supplies the working directory, but it is not an always-known property of the SSH connection. In the c93ebd8 baseline, desktop `SSHSessionModel` and mobile `MobileWorkspace` use the active `TerminalContextCoordinator` directory once runtime context has been received. Legacy Ghostty OSC 7 observation is accepted only with integration enabled and before runtime context takes over. An unavailable runtime context clears the directory; later unscoped OSC 7 or prompt events cannot restore a stale pane's path. `TerminalUploadAvailability.problem` requires a connected session, transfer configuration and a nonempty directory with directory resolution no longer pending. It asks the user to wait for the shell prompt rather than guessing `/` or home. Desktop passes `homeResolution.isPending` to that gate; mobile passes `workingDirectory == nil`. SFTP browser upload instead uses its explicit browser path. See [Shell Integration](../concepts/shell-integration.md).
+Shell Integration supplies the working directory, but it is not an always-known property of the SSH connection. Desktop `SSHSessionModel` and mobile `MobileWorkspace` use the active `TerminalContextCoordinator` directory once runtime context has been received. Legacy Ghostty OSC 7 observation is accepted only with integration enabled and before runtime context takes over. An unavailable runtime context clears the directory; later unscoped OSC 7 or prompt events cannot restore a stale pane's path. `TerminalUploadAvailability.problem` requires a connected session, transfer configuration and a nonempty directory with directory resolution no longer pending. It asks the user to wait for the shell prompt rather than guessing `/` or home. Desktop passes `homeResolution.isPending` to that gate; mobile passes `workingDirectory == nil`. SFTP browser upload instead uses its explicit browser path. See [Shell Integration](../concepts/shell-integration.md).
 
 ### Context validity is stronger than path equality
+
+The displayed cwd is deliberately retained while a command runs: `TerminalContextCoordinator.directory` returns `active?.directory` even when the context is not prompt-ready or lacks `.directory`. This is useful display state, **not authorization to upload**. The preliminary availability check and hover/menu UI can still find a path; preparation must obtain and confirm the capability ticket. Desktop and mobile tests cover this distinction for ordinary shells and `tmux`, `zellij`, `zmx`, and `herdr` contexts.
+
+Desktop native menu actions recheck `canUploadFiles` or `canOpenSFTP` when invoked, rather than trusting the enabled state captured when a menu was built. Status-bar Open with SFTP is a different operation from dragging its path: it calls `confirmDisplayedDirectory`, checking live session state and path equality, then confirming the active runtime context and rechecking it after the await. That display-context check is not the prompt-ready upload-ticket gate. A status-bar path drag remains escaped text insertion only.
+
+Evidence: [display versus capability](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L36-L71), [desktop running-command tests](../../TFMTests/HostShellIntegrationSessionTests.swift#L12-L44), [mobile running-command tests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L97-L132), [menu action rechecks](../../TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L284-L296), [status-bar open](../../TFM/Features/StatusBar/StatusBarView.swift#L357-L371), [displayed-directory confirmation](../../TFM/Features/Terminal/SSHSessionModel.swift#L396-L427).
 
 Runtime uploads capture a directory ticket containing coordinator generation, revision and active shell identity. A ticket requires a prompt-ready context with the directory capability. Both platforms confirm that context through the existing SSH transport **before opening the transfer client, after preflight, and before enqueueing**. A failed confirmation invalidates a still-current context to unknown. Runtime revision changes cancel pending upload work, including conflict state, even if a newly selected shell has the same directory string. Once runtime mode is active, missing tickets fail closed; legacy mode's confirmation is a no-op, so it must not be described as providing the same identity guarantee.
 
@@ -243,6 +251,45 @@ sequenceDiagram
 
 Upload preparation, policy selection and queue handoff; runtime confirmation is skipped in legacy mode and browser uploads borrow their own explicit-directory connection. Failure or cancellation before admission releases owned preparation resources rather than admitting a stale batch.
 
+### Access checks are independent of destination selection
+
+A saved transfer snapshot is not a permanent access grant. Before an independent SFTP open, `additionalConnectionRequest(from:)` rechecks access to saved route hosts and resolves current Identity/Key contents into a one-shot silent request. In the mobile username-only upload test, a keyboard-interactive challenge is forbidden: preparation rejects with a notice, opens no authentication sheet, and admits no transfers. “Available without Pro” therefore does not promise that every host or credential can currently be used.
+
+Local filesystem access is separate again: the shared planner starts security-scoped access while enumerating each selected root and records that root with its jobs; the transfer coordinator reacquires scoped access when running the upload. Mobile provider staging additionally coordinates the read before UIKit releases the provider URL. These checks do not substitute for server-side SFTP permission checks; preparation or transfer errors must still be reported.
+
+Evidence: [fresh access and credential resolution](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L318-L335), [silent authentication failure test](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L666-L699), [root scope and enumeration](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L44-L89), [upload scope](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L493-L525).
+
+### Upload admission decision flow
+
+```mermaid
+flowchart TD
+    Intake["Local files or desktop remote-copy token"] --> Destination{"Destination surface?"}
+    Destination -->|Terminal| Available{"Connected with snapshot and reported cwd?"}
+    Destination -->|SFTP browser| Browser["Use connected browser directory and client"]
+    Available -->|No| Reject["Reject without queue admission"]
+    Available -->|Yes| Runtime{"Runtime context received?"}
+    Runtime -->|Yes| Ticket{"Prompt-ready directory ticket confirmed?"}
+    Ticket -->|No| Reject
+    Ticket -->|Yes| Open["Open independent SFTP with fresh access checks"]
+    Runtime -->|No| Open
+    Open --> Preflight["Preflight files or remote manifest and conflicts"]
+    Browser --> Preflight
+    Preflight --> Current{"Target still current and runtime confirmation succeeds?"}
+    Current -->|No| Release["Cancel preparation and release owned resources"]
+    Current -->|Yes| Conflict{"Conflicts?"}
+    Conflict -->|Yes| Policy["Replace, Skip, Keep Both or cancel"]
+    Policy -->|Cancel| Release
+    Policy -->|Chosen| Confirm["Reconfirm runtime context before enqueue"]
+    Conflict -->|No| Confirm
+    Confirm --> Queue["Admit jobs and release preparation owner"]
+    Queue --> Receipt["Wait for successful resolved root paths"]
+    Receipt --> Insert{"Picker opted in and target still current?"}
+    Insert -->|Yes| Draft["Replace runtime draft or paste legacy paths without execution"]
+    Insert -->|No| Done["Transfer only"]
+```
+
+Branching upload/copy admission and optional insertion; desktop may fall back to a current PTY SFTP channel, while legacy and browser routes skip runtime confirmation. Any open, preflight or enqueue error follows the rejection/resource-release path.
+
 ### Upload completion versus path insertion
 
 Dropping local files or private remote items uploads/copies them but does **not** insert their uploaded paths. The native terminal Upload File picker captures a target and opts into insertion (`selectedTarget` on desktop, `insertPaths: true` on mobile, including Photos). Desktop rejects a picker result when its captured target—including its context ticket—differs from the current target. Mobile's picker checks Workspace ID, connection generation and destination before preparation; preparation then captures its own runtime ticket. These picker checks are not interchangeable.
@@ -251,7 +298,7 @@ Dropping local files or private remote items uploads/copies them but does **not*
 
 Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path.
 
-Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1202-L1288), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L78), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L351-L399), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L597-L610), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L722-L735), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1662-L1768), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1918-L2035), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
+Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1411-L1494), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L71), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L392-L447), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L597-L610), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L722-L735), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1662-L1768), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1918-L2035), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
 
 ## SFTP uploads and desktop remote-file dragging
 
@@ -289,7 +336,7 @@ Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTar
 | --- | --- |
 | Native precedence, hidden targets, stale pasteboards, filename preservation | [FileURLDropTargetTests](../../TFMTests/FileURLDropTargetTests.swift), especially private SFTP payload versus promised local file, path-only copy proposal without transfer, and disabled registration/callback cases. [TerminalPathDragTests](../../TFMTests/TerminalPathDragTests.swift) checks shell escaping, absence of file-URL advertising, rejection of plain text/malformed private data, and refusal by an unmounted terminal. |
 | Provider staging, text/link exclusion, cancellation, duplicate delivery, interaction restoration | [MobileDropTests](../../TFITests/MobileDropTests.swift): `MobileDropPayloadTests` and `MobileWorkspaceDropTests`. Includes late exits, presentation/hiding/detachment and window changes. |
-| Shell-reported destination, folder preflight, partial provider failures, queue surviving closure | [MobileCommandGeneratorAndUploadTests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift), including `sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient` and `cancelledUploadDoesNotCreateRemoteDirectories`. `runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents` verifies that an unavailable runtime pane clears the directory and rejects later unscoped directory/prompt events. |
+| Shell-reported destination, folder preflight, partial provider failures, queue surviving closure | [MobileCommandGeneratorAndUploadTests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift), including `sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient` and `cancelledUploadDoesNotCreateRemoteDirectories`. `runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents` verifies that an unavailable runtime pane clears the directory and rejects later unscoped directory/prompt events. `runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother` in both this suite and [HostShellIntegrationSessionTests](../../TFMTests/HostShellIntegrationSessionTests.swift) protects retained display cwd without a usable capability ticket. `usernameOnlyTerminalUploadRejectsInteractionWithoutOpeningASheet` protects silent-open failure behavior. |
 | Desktop connection fallback and transfer ownership | [SFTPTransferContextTests](../../TFMTests/SFTPTransferContextTests.swift); cancellation cannot fall back, releasing a UI owner cannot invalidate retained transfers. |
 | Remote manifests, conflicts, streaming without a temporary file | [SFTPFeatureTests](../../TFMTests/SFTPFeatureTests.swift) and [SFTPRemoteConflictResolverTests](../../FrameworkTests/SFTPRemoteConflictResolverTests.swift). |
 | Attachment formats and pending-import/send lifetimes | [ContextAttachmentImporterTests](../../TFMTests/ContextAttachmentImporterTests.swift), [AssistantConversationOperationsTests](../../FrameworkTests/AssistantConversationOperationsTests.swift), [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift). |

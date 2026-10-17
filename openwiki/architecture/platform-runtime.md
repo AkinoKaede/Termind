@@ -28,6 +28,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
   - id: openwiki-source-ecede91560d27caa3ae01d3e
     resource: repo://Frameworks/TermindPresentation/DiagnosisConsentView.swift
+  - id: openwiki-source-6256aeada274ebb6ce422d82
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-ad1a1eea0aea739f2004d93a
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -78,6 +80,8 @@ sources:
     resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
   - id: openwiki-source-8d34d9ba6456e86e57933569
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
+  - id: openwiki-source-28243bbeecc381626d39eeb6
+    resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -118,10 +122,10 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # Platform Runtime and State Lifetimes
@@ -310,7 +314,7 @@ Quit confirmation precedes the SFTP recheck and bounded reply race; assistant pe
 
 ### Native window-close bridge
 
-Closing one main window is a different scope from Quit. `MainWindowRegistrationView` attaches `WorkspaceWindowCloseDelegate` to the native window, preserves the previous delegate and forwards its other selectors. `windowShouldClose` honors the forwarded delegate's veto first, lets empty or already-closed models close without prompting, and asks the window-specific confirmation for populated models. Its reentrancy guard vetoes recursive close requests while the alert is showing. A veto preserves the workspaces and permits a later retry; detaching restores the original delegate. Accepted native close invokes `closeForWindow()`: it cancels pending persistent-close prompts, remembers the window, marks its model closed and disconnects clients while preserving managed remote-session recovery references. Explicit workspace/pane close can instead require managed-session authorization and end the managed session. This native veto stays outside SwiftUI's dismissal dialog, which also participates in Quit.
+Closing one main window is a different scope from Quit. `MainWindowRegistrationView` attaches `WorkspaceWindowCloseDelegate` to the native window, preserves the previous delegate and forwards its other selectors. `windowShouldClose` rejects reentrant requests and honors the forwarded delegate's veto, then saves terminal-theme changes. Only a remaining unsaved theme draft requires discard approval; populated windows and managed remote attachments do **not** themselves prompt. A veto preserves the draft and permits a later retry; acceptance clears the theme editor, and detaching restores the original delegate. Accepted native close invokes `closeForWindow()`: it cancels pending persistent-close prompts, remembers the window, marks its model closed and disconnects clients while preserving managed remote-session recovery references. Explicit workspace/pane close instead uses managed-session authorization and attempts remote termination; failed termination can still disconnect locally while retaining the recovery reference.
 
 The same bridge observes `NSWindow.isDocumentEdited` with initial and new values and resets `true` to `false`: workspaces are not documents, so the edited titlebar decoration is suppressed **without removing the native close confirmation**. These are separate responsibilities, not a document-unsaved-state mechanism.
 
@@ -430,7 +434,7 @@ Scene phases are aggregated by scene ID. The app only enters global background b
 
 `MobileBackgroundController` owns one UIKit background-task lease. Beginning another lease finishes the old one; foreground `finish()` and expiration retire a valid identifier at most once. Expiration calls its cancellation callback synchronously before ending the task, even when UIKit expires during `begin`; a late callback for a retired lease is ignored. If UIKit returns `.invalid`, the controller expires immediately without trying to end an invalid identifier. Async disconnects started by the callback are best effort, not a guarantee that every drain completed before the lease ends.
 
-When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, History, Device, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all five. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and any applicable optional preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling the global iCloud switch, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those five coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, History, Device, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all five. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and any applicable optional preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling the global iCloud switch, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those five coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy non-resumable connections; resumable transports resume after their entry-time suspension. After expiration, ordinary workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
 
 ```mermaid
 stateDiagram-v2
@@ -444,7 +448,7 @@ stateDiagram-v2
     Tracked --> Background: All tracked scenes backgrounded
 ```
 
-Mobile phase aggregation controls a single background lease and foreground sync eligibility; expiration retires live runtime work, not persisted workspace descriptors. An empty scene registry is not treated as all-backgrounded.
+Mobile phase aggregation controls a single background lease and foreground sync eligibility; resumable transports checkpoint on background entry, while expiration retires remaining runtime work without removing recovery descriptors. An empty scene registry is not treated as all-backgrounded.
 
 ## Ownership invariants and safe extension points
 
@@ -489,3 +493,12 @@ See [System Boundaries](system-boundaries.md) for framework ownership, [Agent Ru
 Vault and Device follow the master iCloud switch and Pro eligibility. History, Metrics and Settings retain optional selections. Both apps render shared `CloudSyncSettingsContent` with one aggregate status and the optional switches in History → Metrics → Settings order.
 
 Both app roots construct `TailscaleModel` with a device-local store and native node factory. Memory-only compositions disable native profile storage and reject factory calls, so fixtures cannot inspect or erase live node state. Managed Host deletion is rejected by the ordinary Host path. Terminal command and SFTP browse history live in memory with their sessions; explicit close clears them and a transport disconnect preserves them.
+disconnect preserves them.
+SFTP browse history live in memory with their sessions; explicit close clears them and a transport disconnect preserves them.
+disconnect preserves them.
+untime-and-assistant.md) for shared agent execution state, [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage policy, and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for per-session connection behavior.
+
+Vault and Device follow the master iCloud switch and Pro eligibility. History, Metrics and Settings retain optional selections. Both apps render shared `CloudSyncSettingsContent` with one aggregate status and the optional switches in History → Metrics → Settings order.
+
+Both app roots construct `TailscaleModel` with a device-local store and native node factory. Memory-only compositions disable native profile storage and reject factory calls, so fixtures cannot inspect or erase live node state. Managed Host deletion is rejected by the ordinary Host path. Terminal command and SFTP browse history live in memory with their sessions; explicit close clears them and a transport disconnect preserves them.
+disconnect preserves them.

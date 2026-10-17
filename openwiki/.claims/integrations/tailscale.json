@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:66a0b214a9cd4ec0458d26a575f96058e3e987b999e8503d4b80be0483a2babd",
+  "pageVersion": "sha256:174fec70e78bb36e1ec73ec149d0ef3721d2de97e6b894458d02c4dfed377208",
   "claims": [
     {
       "id": "claim_2995a0e9234344e9a73843aeaeb9e9b2",
@@ -15,7 +15,7 @@
           "version": "repo-lines-v1:sha256:edec8f0cb4ab5bad3e188e683a209ce4b4ce9bbbba4edb898d4901020ae13a6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYTBmYzFlZDkwNzU2Y2Q0YzkzNjQ0MDliYzdkYTRkNjc1ODVkOWZkY2ZlMjg1NmIwYTYyNjFlNGI4ODMxNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZDQ1Y2FiZjNiMDQ3YTdhNWJlNzU2MDE3OTk3YjA0ZjAwYzJlOGM2YWEzZDczYmMyZjg4ODY1YTQ2ZmNmNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4ZmQ5M2Q5Njg3NWRhZGM5ZTg0YmZiOWU1NTRkM2JmOGVlMDIyNWNhNWVjYzk4ZmJiODdjMWVlMjFmZDVkZDUifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L300-L315",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L324-L339",
           "version": "repo-lines-v1:sha256:2819a588e65b11b00207c774ab382c30322dcbb4c0d124bb4c6f7078cf568f92:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Mzc4YjMzNGM4NjQzODNkMWJkN2EwNTg4YTI5YjkyMDkzNTJhNzc0NmZjYzkzMDMzODEwYzkzY2E0ZDEwNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiOWUzMjRjYmNhZWY3NmI5NmIzYzlkNjJjNTE0NjUwZWZkYzllZWQ4MTdhMTg2OTRkODUzMzQ4MGM4YjI3OTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3Zjk0NWUwZWY2NGZiMjJlNmY2MDgzY2NkOWQ3ZmZmYjRkZmEyZTg5OWZkZDA4NjNiZWJlNDI0OThhNWUwZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MzU2Mjk4YTVhZDU0NjMzNWY4NDgyOGVhOGY0MWY0NzE4OGZkODA4ZDcxMjA2MmEyNjljNzlmNmQ4YmY5ZjIifQ"
         },
         {
@@ -83,7 +83,7 @@
           "version": "repo-lines-v1:sha256:b2f81de5342926018ab4f37805e9853f49e591a2fdecebe92ecfc1208f24b463:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExY2I1YTBmM2M3Yjk5MjE0MzdjZGI4ZDI5ZmE1MDVjZmU1ODIxOGMxYjJhOTk5M2VhYzNiOWRhODZhNGYwNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0YTRiMGU3MjY1Yjg2MWU4OGMyNmViZGUzOTAxZjU2OWY2ODkyZjljNThlMGEyMzliYzIwZjJkOGU2ZTVkYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2ZjN2UxYTZlYTI2YjVhODU2MjM2MDRhOTc0YjE4OTFkYjMyYTdlNTZiMmU0ZmNiY2RjY2ViNzJmNjg1MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExZDk5ZGIwOGU4NmQ4NDM4MDE3ODcxMmFkMzFjNzNiNWUzNmFhNjg3ZDhhODVhYWZhOGU5ODVkZWI1NWU1ZGYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L130-L179",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L136-L185",
           "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
         },
         {
@@ -101,7 +101,7 @@
           "version": "repo-lines-v1:sha256:f6c77889cf276dc0d36ee6b2ce50c6fb67ef2f077d9e16b20c84d3b6feddb635:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3NGVjZmM0MmZhMzg1NDY5NTk2ZWVmOTNlMmU5NGI3MDg5Nzk4N2NhYjIxY2JhMWIzYWM5MjE5YmJhYWFmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYWU3YmExOTIzMTFlMzhiY2JkMWQ5MTk2Y2FkMGVjMTgwZjE3NTVmMTQ4MWExZGE5YzE0ZDFjOGY3ZGZiZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Nzg4Y2E1OGViMzgwZjE5N2I0OGQ2Y2VhZjk4YzJlNWRmOTQ5MTJiYzRiYzkwZTU2OWY0MDIwNDIxMjU1ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MmIzNGQwNjkwNDllMDVmODQ4MDcwYTY5ODI1ZTJiYzMyZTExMDg2NmRkODM4MDg4Y2E5YWViOGY3ZDBhMjMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L130-L179",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L136-L185",
           "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
         }
       ]
@@ -111,16 +111,20 @@
       "statement": "Native status requires a Peer field and retains offline diagnostic peers; only peers with stable IDs/DNS names in the network map and outside sharee nodes are accepted. The library projects only SSH-advertising peers as managed Hosts, rebuilding current discovery names and DNS addresses with group-scoped preferences including detected distribution, artwork override and session preferences that survive rediscovery and sync before discovery.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/HostIconTests.swift#L115-L142",
-          "version": "repo-lines-v1:sha256:93aa81a0410638eae2aef4ed2003d72b03cb2013faf24b8d1659fea7d1943808:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOTZiYzlkZjg5ZDIzODQ5MTEzOWNjYmY3Yjk2YjNjMzA1ODFkYzcxYWUxNzY1YjIxNzE2OGM2YWQ5MmQ3MTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyZTdlY2MzYWNmODBmM2YwYWY2ZWYwODMxZTZlNzQ0ZWVhOTBhZjIwZTEzMjQxMDA3NDBlZTkzM2Q2OTA2YjIifQ"
+          "resource": "repo://FrameworkTests/HostIconTests.swift#L192-L219",
+          "version": "repo-lines-v1:sha256:995a91d19a3f732d7f9edfc41e0ed83731cedd1448db878f5d52c846c50277f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOTZiYzlkZjg5ZDIzODQ5MTEzOWNjYmY3Yjk2YjNjMzA1ODFkYzcxYWUxNzY1YjIxNzE2OGM2YWQ5MmQ3MTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyZTdlY2MzYWNmODBmM2YwYWY2ZWYwODMxZTZlNzQ0ZWVhOTBhZjIwZTEzMjQxMDA3NDBlZTkzM2Q2OTA2YjIifQ"
         },
         {
-          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L300-L338",
-          "version": "repo-lines-v1:sha256:93bbd2c50e6c77be1d04d237d674bbaeb5fd78cd5c37e75ede21d475f0d8a349:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyY2IzZWQwMDg4NGM5ZDkzZTRiNTI3MDEzMjU2NzA2ZWY1OGUwMGUxNDI3ZDExMGVmNGE4MWQ5ZGUzZTU4OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyMGQxNGQyNWZjMjQxYWU4ZGFiNDk2NDFlZWIzOWNmYjdmMDJhZWJlMzA5YWUxZjE4MmFjMzcyZWJiYTMxNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxN2ZiNzE2OWIxYjA2OTQ1MmZkYTZkNzE3ZGNlMWU4NmY4N2Q5NjYwZjZiZTE1MDJkYzIyN2E1YTM5NjBiMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4MmY3ZDJjMDJmODlhNzQwOTM5NWM4MjEzMjIwNmJmY2I0MWQzMmJiNzFjODc4ZDQ1YzM0YjE3OGNkNWJhNTkifQ"
+          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L300-L342",
+          "version": "repo-lines-v1:sha256:f8fda483f30fefcfd24af852c2bcca79ebd6b1467722781975b645f717dadb65:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyY2IzZWQwMDg4NGM5ZDkzZTRiNTI3MDEzMjU2NzA2ZWY1OGUwMGUxNDI3ZDExMGVmNGE4MWQ5ZGUzZTU4OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyMGQxNGQyNWZjMjQxYWU4ZGFiNDk2NDFlZWIzOWNmYjdmMDJhZWJlMzA5YWUxZjE4MmFjMzcyZWJiYTMxNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxN2ZiNzE2OWIxYjA2OTQ1MmZkYTZkNzE3ZGNlMWU4NmY4N2Q5NjYwZjZiZTE1MDJkYzIyN2E1YTM5NjBiMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4MmY3ZDJjMDJmODlhNzQwOTM5NWM4MjEzMjIwNmJmY2I0MWQzMmJiNzFjODc4ZDQ1YzM0YjE3OGNkNWJhNTkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2485-L2546",
-          "version": "repo-lines-v1:sha256:0a8ce40d91ce79f04f8641d556682421fa122f227f794a92dea2c3bd1b5b992c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZTk5OTkzYTNiMGExMGZjMjQ2ZWNlZjg4ODk1ZDZlN2E0NGI4NDQwZGI5ZTM5OTU1MzM4NjM4ZTNiYzk0N2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3Nzc3ZjhmM2I4MWEzYTgzOWNlOTE0Mjk1ZjMxZTAxMjIwMDQwMTgzODZjNTdkZTBiNTBkZTFmYWM1NjM4NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxM2IzZDlhMjk0OGFlNWI0NDE5MWJkYjEzMzY1NjE1NDRiZmUwNTcwYmY2M2M4NDA4ZTRhNDFlNGNlY2EwMDIifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2602-L2628",
+          "version": "repo-lines-v1:sha256:0ff9e4f3f06f01296010cd5e90f965ad0bb47477aff46076b89127c435eddb4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ODVkZDQ2MzNkMGM3Yzk1MWJiZmYwNTRlMDY4YTQxODU5MzNlMDk5YTNlYjI0ZGY4YzU2N2UwZDU0MzllMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTE5MDlmMjE5MzkwMDE5YmUzOTVkYjBlNWUzY2U1ZTFjNWNjNGJhMDA3NTFjZTE1N2QyZTYxODgxMmRjY2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MzE1NjliOWI3NzNkMGZjNTlkN2FlMTljYzIxZmI5NWM0ZGJjN2ExNWMwZTkyNDNiZGNhZTMwM2IxNWJjYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4ZTRhMzhhNzU1NGZjYjE1NDFlYTdmOTY0ZGU5YTRmNGZlYzgyYzZkZGZjMzY5NmEzYThlNDIxZmM3MWM4MTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift",
+          "version": "repo-file-v1:sha256:0c7ed2e41121e4ebac216c18a7edbe0a4e7f7486a4b209642f991b1378aee88f"
         }
       ]
     },
@@ -129,28 +133,24 @@
       "statement": "Managed Host saves modify group preferences while preserving managed address/name/port/authentication and current detected distribution; ordinary identities/proxy/jumps/Telnet/agent forwarding are rejected, and managed targets cannot be jump, key-export or forwarding targets. Changed resolved live detection updates the current group preference with rollback on persistence failure. Artwork override is independent presentation state resolved before detection, with nil following automatic detection; V5 sync carries canonical lowercase UUID iconOverrides referencing existing preferences, while older writes reject unsupported artwork or session persistence rather than losing them.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1054-L1080",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1159-L1185",
           "version": "repo-lines-v1:sha256:c554d54f89eeeb5714824fec2f538cb4020bb062593c81bc818842deb9ad6388:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjNjQ3OTg3MDYyZGI2YWQ3MzQxMDUxNzVjZDJhMWM3NTAxN2I1MzQzZWY4YjMyMWQzZmRlYTI3OWFmY2MyOWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmODUzZTY4YTFjMmNkNGJkZmY1MDJmMTI2MWQ4M2E2NTYyODhkNDVmZDZkODU2YjQxZDg0YWNiMGI1YTZiYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZDQxMzZhOGMyMTBlNTFkNTZlMTFjMDZkNmY0ZTdmZmRlZjNhYWQ5YmY3YmVlMDI5MGZjM2FiNDNkOTk1ZGUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2517-L2546",
-          "version": "repo-lines-v1:sha256:3bb042a372fb4f30f82451a332d7fec87329103695c281c26a5ba72e588ee426:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1MzczMGE2Mzc5M2Q0YTA0YzVlOWI4MDkyYTdkNWU3ODdlMzUxMWQ4NzJhN2EzYzIxOGQwMDc3ZjIwNmZlNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkZGFmMDcxMTg1MmJmNzFlMDEzY2RjYjc1MWQ3NzgwZDVkOTdlZThmYzZhM2RmYjMyZjg5MjEyNWMwYmU3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxM2IzZDlhMjk0OGFlNWI0NDE5MWJkYjEzMzY1NjE1NDRiZmUwNTcwYmY2M2M4NDA4ZTRhNDFlNGNlY2EwMDIifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2602-L2662",
+          "version": "repo-lines-v1:sha256:001bb95af8f4c2683079bf188850d47bcf95c8c0c13787e9b113457ae2d42c2d:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ODVkZDQ2MzNkMGM3Yzk1MWJiZmYwNTRlMDY4YTQxODU5MzNlMDk5YTNlYjI0ZGY4YzU2N2UwZDU0MzllMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MzE1NjliOWI3NzNkMGZjNTlkN2FlMTljYzIxZmI5NWM0ZGJjN2ExNWMwZTkyNDNiZGNhZTMwM2IxNWJjYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxM2IzZDlhMjk0OGFlNWI0NDE5MWJkYjEzMzY1NjE1NDRiZmUwNTcwYmY2M2M4NDA4ZTRhNDFlNGNlY2EwMDIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L916-L925",
-          "version": "repo-lines-v1:sha256:9e85b8be78770bd523da8806421adf2b28730f37434638aaf8f0dfc8aceb0127:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhMDc2ZDIyZDE1YTg5MmMzYzc1NDBhNGE5NDFiMmI3YmVmM2NkOTZhMDk5NTUzOTc0YTUzN2VlODE3Yzk5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwYWNjYTBiMmQzOGIxMjcxM2Y2MzRhZDU1Y2I0OTAwOGM5N2E5NzcwYWY4N2YzYzkzZDMzZmU2ODUxYTMyODkifQ"
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
+          "version": "repo-file-v1:sha256:3686245901bc5563758026c11403ef5627724539f85d345e88503a625b9210dc"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L69-L98",
-          "version": "repo-lines-v1:sha256:9f470d3b852356626858fe93657d859f076aa8d026e3f78f92905751e7f40603:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyYjc2ZmMwYzgxNzNhMjI2MzJkODllMDJhOGU3ZmQwNWFmM2E3ZTkxNjM2NDI5ODg2NmZmNWYwMWE3NGViYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5ZGE3NmUyZWM1ZWFjMmVjNjM1YjVjMWMwMjU4MzVkNTFlMzQ4NmVmMWZiYjI4ODNjZjM2NjdjZTQwYTViNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0NzIzMzFiY2E5YzBlYzM1YTAwNTJiZTExZmNiMDZjMTQzYzMxNmEyMmY3MWYyNjk0YWJkYTY5OGQ4ZjQ5ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMjE5M2MzNTk5ODRkMGZjNjA5MDU3NDQ5NDNiMWEyNTA5N2UxYzBhNDM1YjBhZTU4YmFiMzhmZjZiMjQxMTAifQ"
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV5.swift",
+          "version": "repo-file-v1:sha256:6f18c3609bc11e299a3bb416135089696739b19e184e44481fd93af37392e1ec"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultWireV5.swift#L22-L57",
-          "version": "repo-lines-v1:sha256:53672b51f7221bdb21cb5065fc7d176dd07492b026dcb0dc3e85f65d48e5ad10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxYjJiMTAyMWEzZTYwMzY5YmFmNjk4YmRmMGYzMDQ0OGVjNjc2MTVhMjg4NTM4OWY0NDUxNzZhNTVlYzg3MzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlMmVkMjE3NDNlMmE5NjE2ZmQyODMzNjdjODc3M2U1NjUxN2FkZThhODlkZmU0Mzk0YjQ5YTEyNTNmMjBiMmQifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift#L29-L36",
-          "version": "repo-lines-v1:sha256:3ff035117bf4cfac39119c87d6b746ef26bcd8cf919e037e4993bf2198d7316b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjU4YWQ2OWViNzg5MmY4M2Q5ZWEwZTBhZDRiMDI2N2UwNzU1ZDdmN2YwOTc3YTU2YjkxNGI2ODkwZjU1YzkwZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Q0YzdlZjJiYjg5MTQ5MjgwNTgxMjk1ZGM4N2UyOGQ4Yzc1YmJkZmRjYTUyMzJhNjNlYmZlMmNkYTg4MWEyYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTM2YmEwMmU5MGE0NDRiNTMxNGM4NzA5ZTA0NjdmYjczNmZjMGYzNTgxNWRmNzBhZTU4MDAzNmQ0ZWRlZGYzZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGYwMjFkMDgwMmIwZTNlYTI4ZTllYzY2MTVhOGZkNmQwNjE4ZDI4NjU3MWE0OTU3YjBmZTU0ZTQyZmFkMzM3NSJ9"
+          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
+          "version": "repo-file-v1:sha256:c086fd82bc3560987e636c859eed4e4a1d6206b49a1b290e5407b8d54fe3b944"
         }
       ]
     },
@@ -159,7 +159,7 @@
       "statement": "Ordinary Hosts inherit the nearest configured ancestor's Tailnet dialer while keeping ordinary SSH authentication; managed peers use group-bound dialers, remote username and no ordinary credential list. Retained dialers recheck Pro/profile/network/applied Exit Node and never fall back to system networking.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L151-L159",
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L157-L165",
           "version": "repo-lines-v1:sha256:2811fa44c9b01718a1743dd656ce4359b9c665f49f41ee3b43239aa97b9c3759:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTdlZWZiMDIzZjEwZTNiNDA4NjJmMzZlODQyOWZhMzFhODI5MjgwYWQ2NmYyYTNjYWJmY2Y0Njc0ZGQzZmViMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzEwODkwMTg4YWQ1OWY3NjE4ZGVlNTA4NjZiYTU2YzQ1OWYwMWMzYzg1ZTM0NGEwYmM0ZTVlMjUxZmM3NjI5ZCJ9"
         },
         {
@@ -167,7 +167,7 @@
           "version": "repo-lines-v1:sha256:4a824789662cc256de3524cb56d3384789385a00122bd7a2e0ae87ded6d1ae40:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NTJiNTkzZWE2ZjAxNzhlZTlhN2M1MWYxNGZkNWZmOGVkZDg1NTBkZWFhYWVhYzg2MmFlOWU5N2ZlNzcxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMWNmNDM1YmU0YmM0M2E4NjljZTI4OGViODAyMjI4OGRlZjYzNTAyY2ViYTA4Zjg4YTg2MmJkNGZmMThlZDIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2438-L2483",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2550-L2595",
           "version": "repo-lines-v1:sha256:35dff10766b2c0fe57c14c1f2b1d4303f00180066cd367cd61a280218e4bdc70:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NzdkODU3ZGM2NWZmMGVmMGIzYTUzMDk0N2IyMjhlZjkwZmQyYmE3OTAwNmFjMjEwMGQ3OTVmYmRlNGEwMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOTRlNDM3ZTBiMzU0ODQ0MTNmZmU0ZjhhMGViMzdhYzNmYTA1ZDZiZjhjZDA0ZGI5NGM0NDdhMTc0MTM5OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3YzA5NTVhNWU4ZmUzMTBhZDJlOTFmYzY5MDY0NDhmMzUyNzEzYjNmZGEwMTcyMDBjMDQwMDJmYTRlNDcxMDMifQ"
         },
         {
@@ -189,11 +189,11 @@
           "version": "repo-lines-v1:sha256:53381b7fa0900e2e7b7ef2c30e58d77c29cbd991d26a72fea2227dc010b236b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZjlhNGZhMTdkOWJiNzQ4MmVmZmQ4M2EyNmI2ODc3OWRlOTNlYWMwYjgzZGFlMDAxMmY1OWUyYjk4YjRmOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Mzg5YzgyN2Q5NTE4MzNmNTA0OTEwNDhlODYzOTU4ZWMyZjEwODM3ZDc3OWJmZWQ2YmQyOTZhNzE0MmI4ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiZWZiMjJhNzliOGIxMTRjODYyODMzMGZjYWE1NjI1MTUzMDZlODVlNzFjYzU2Y2U5MzUyMmNjMmE5OGE0MmEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1009-L1040",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1121-L1152",
           "version": "repo-lines-v1:sha256:75663736af797c0afbc77fa63d1747e0aa5bc23ae65973d740a0f3ddccaffbad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0OTE0ODdkNDdmMGM3ZDdlNjU2NzdlNmNmNzBlYjZmMTMwNDU1Y2Q0YzRkMjQ2MjI5YWE5YTNjYzkxNzdiMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDJmNzMzYzk3OWYxOWJkNTE4OWM1OGNkZjk5MzZjNWEwZTJjMDRkZDM0ZjU5NWQ0ODAzNzAwZWZmNTNiYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2Zjg2YmQ3OTIzZjkzYThlMzhmZjMzNzNhMjBlNDlkMDRlMDMzOGE4ZTI5Yjg0MzQ5Y2E1NTg5YmY2YmZlMzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4YzZiYmYzNmQyNjRiNGM4NjRhNzk1ZWRmYmFmMjAwNDUyZTI5MTNkMzNmZWQ0OTFkY2E4MzM1Y2U2ZmY2OTAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L967-L974",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1080-L1087",
           "version": "repo-lines-v1:sha256:c10653ff913a7ca3624e0fadcc5d7a7fe53f7f654f5caa3fb67ee43c9c9e28e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM5NjhiNTQ3ZDM2MmE1Njk0OWQxNjUxNmFiZTQyNDVjZWUwZmE3ZjYwOWM0MDNkNWVkM2Y3NjU0MTcxODBiOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzE5OTg1ZjI4NDViZWM5Y2NhNTAzNzI2YWFlNWQ3NGIwOWNiYjNhZjNlNDIwM2QwNGIzYTkxN2EyODU3ZTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzgzN2Y0OTE5ZDYzNTNmZTkzN2RkZDQ0ODcwNDYyNzU5NjVjM2JiZjZhZTlkOWJmODU1MWI5OTM0MTgyZDA4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJiZmQ4YTMzYjQ3OGM2Mjg5ZTkzYjI3NWUxZmU5NGRlMDAyNGZmYTIxYjAwZDAxYjFkYzNiNzdmMmZjNDhhNyJ9"
         },
         {
@@ -204,23 +204,23 @@
     },
     {
       "id": "claim_2fd16786cd0743d78d3b7233c12dd909",
-      "statement": "HostGroup Tailscale configuration syncs through the current Vault V5 writer with V1–V5 readers, while managed Host projections, local profile/hostname/peer cache and cleanup remain device-local; Metrics V2 retains V1 readers and capability upgrades refetch quarantined records.",
+      "statement": "HostGroup Tailscale configuration syncs through the current Vault V7 writer with V1–V7 readers, while managed Host projections, local profile/hostname/peer cache and cleanup remain device-local; Metrics V2 retains V1 readers and capability upgrades refetch quarantined records.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleSyncSafetyTests.swift#L13-L80",
-          "version": "repo-lines-v1:sha256:00f3ae55786e6a6726f6b2b5fd731e0c11c4823d23c7eed5d352cfb0610ddd41:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYTJhZTdiNTFiNWUxNDQ3ODg1NWE0MTUwNzViZjU2Yzg5ZmIxNjViNWY4NWU1NDU0NjhkYzZmNjFiMWFjODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiN2RlYWRkNzU0MjZmYTU4NjcwZGYyOTk5N2I0ODIzY2Y5YWU4ZGVkZmQxNTE2Yzc3NjVkNGQ0MjI2YjdkYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4M2E0ZDU4MTlmMmNlZGNjZTIyMzkyYzUwYWI4NmMyZDJkNGE3NTg4NjBjODE4MjgxZmNhNDcxN2U0NDIyMzkifQ"
+          "resource": "repo://FrameworkTests/TailscaleSyncSafetyTests.swift",
+          "version": "repo-file-v1:sha256:590ea0d8698ba7e8bcffca9c80d3ee2ff630ef7b4016fc773cb7b2a6ebdaf128"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58",
-          "version": "repo-lines-v1:sha256:afd6127cead8cd63f6ea03ad09b34a5c22a052dde1261674ff83727f597bc9aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
+          "version": "repo-file-v1:sha256:c1d9ceb6b46edb084646a12b5bcba05f3a3c81f22c7bae9e8187b6379e80c279"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift#L20-L89",
-          "version": "repo-lines-v1:sha256:b8966755041cc251bfb38cbc316103d8b011b8181291fa7ecce12225eaab2b4d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkY2M0ZTk4MDhjYjc2YmEwNWIxOTRkNTAzYjdjNzQ4MTZiNTZhZGE3YjY1OTljMTViMzMxYmEyZDQxMzExMDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhNTNiNjRjOWRmMmY5ZDMwZmIyNDhmNTQwZTk5OTUyOTI4YTM2ZmNlMTM5NGFiZDMyYTdmNzA4MDZiNTA3ZmIifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift",
+          "version": "repo-file-v1:sha256:a62805e94af24232f2619c706d3de38adb0340e33d169c7d2c525566ecb7e8ad"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L58-L103",
-          "version": "repo-lines-v1:sha256:80ebb5ffc1b96ce4830aea2aaa0901a79db4e05eb7e53accf32e812f8c30adc1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5MzM4MzIzNWU1MTg0MGRmODIxYjM0MjNiZjAyODdkOThiOTgwMTNhMGM4ZWE3OTAwZGI2M2FlNTBhYTY1ZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5Mjg3MmNkNmNmZjgxZTYzZjc4NzljZTYyZjU2Y2I4NTY3MDczMzJiMDk4NjJkZGQwYjA4MjJkMDQ1M2U4MWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3MTRlMjZlNzdiMmI1OTg5YTc1OTBiYTlhNmNmNTNhN2NiNTdmNWU2ZjU4MWUwNDAzZDdhYjRhNjAxNzY5ZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlODFjOTE5Nzg1ZDhkN2VmMzRiZGU0YmZiMzNiYzU3NTU3Yzk3ZWQxYmFhOWE5ZTY5Zjc3ZjM5OTE0MmNjODUifQ"
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
+          "version": "repo-file-v1:sha256:3686245901bc5563758026c11403ef5627724539f85d345e88503a625b9210dc"
         }
       ]
     },
@@ -291,6 +291,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-15T22:50:00.588Z"
+    "at": "2026-10-16T22:23:31.119Z"
   }
 }

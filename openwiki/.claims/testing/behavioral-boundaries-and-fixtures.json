@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b9576f3d77a148112667b1b05548b404760ea026b484cab40c87e73e0ad984ef",
+  "pageVersion": "sha256:8e2be7ed27396460fa0af415618645b3810e674a25c499833803811b98b1d3ec",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -18,11 +18,11 @@
     },
     {
       "id": "claim_46317f2e2a1c469cb75d414d61222c34",
-      "statement": "ArchitectureBoundaryTests enforces module-specific import/construction rules, shared Persistence model/repository ownership, guarded AgentKit/presentation ownership and shared CloudKit gates. It also excludes concrete tmux policy dependencies from neutral layers/Features and keeps embedded Tailscale imports outside Domain, Application, Presentation and Persistence; source checks complement runtime tests.",
+      "statement": "ArchitectureBoundaryTests checks module-specific import/construction and Persistence ownership boundaries, excludes concrete multiplexer dialect/service/runtime dependencies from neutral layers and Features, retains SSHPTYChannel StartupPreparation, and forbids direct concrete/vendor engine dependencies in SSHPTYChannel and ResumableTerminalClient; these source checks complement runtime tests.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L7-L30",
-          "version": "repo-lines-v1:sha256:244ac224e46ffe079b41b3e25186c9fe4909e11cd439bf9ee80e754ad0a783ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3MWRmOWRlMjgyNTNhNGM2M2Y1ZjRjYjZmNzJmNTg1YWIyNjFiZjIzMjY3NWJkNGY4MWVkODhkMjNiN2M0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxZjMwNWE0ZWI4MzZhY2NkYzA1MDBhNDQzNDg5NzljMjcyZDYzODg1YzkzZTFiY2M2Y2Q2YmY4OWJhYTE2NWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:2f53388b8d2381d2a31e3493471a64e43630a915807f83debb14fe4ae0d9f199"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
-          "version": "repo-file-v1:sha256:33518206da5e2316a89bda5bf24f1066934e5be959c13cfa6c8527342a5a71ce"
+          "version": "repo-file-v1:sha256:4b696229d477c534e549e61b07df5ed2a27374d7d3c993f9915e004f83deffe1"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift",
@@ -42,11 +42,11 @@
     },
     {
       "id": "claim_8de4a65c68ce4eea86eb1cc8590b29a1",
-      "statement": "Mobile retired snapshots are not a durable restoration channel: recently closed state is app-instance local, grouped reopen is once-only and bounded in tests, and external connections remain transient without replaying one-shot commands. Native close requests retain workspaces until discard and rejected/missing windows do not delete work. Activity URLs omit opaque references and reject extra parameters; budget tests preserve whole focused entries.",
+      "statement": "Retired mobile snapshots are not a restoration channel; recently closed state remains app-instance local, grouped reopen is once-only and bounded, and external connections remain transient without replaying one-shot commands. Native close retains workspaces until discard; rejected/missing windows do not delete work. Activity URLs omit opaque references and reject extra parameters, and budget tests preserve whole focused entries.",
       "evidence": [
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
-          "version": "repo-file-v1:sha256:e3c47b857bae774278fc4e4583cc5fe80ff42d856b8cc975d5b9792c9f23b25f"
+          "version": "repo-file-v1:sha256:b5f118427da0ee1b17899f6aa294745d3ffa660a99112baa42570dc13e0239b2"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift",
@@ -59,11 +59,11 @@
       "statement": "Mobile app tests establish that conversations are shared across scenes while assistant navigation, selection, and drafts are scene-local, and that external connection workspaces are ephemeral rather than Vault or saved-workspace records.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileAppTests.swift#L94-L114",
+          "resource": "repo://TFITests/MobileAppTests.swift#L61-L81",
           "version": "repo-lines-v1:sha256:44a44d0846176ba6bb293383a7779c81cb4166a12ce4c8b0e9187c283fc300e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2MTY1NjI5NDdiMzAyYWQ2MTZhYWIyNGIyOTA3MGU2YmIxM2IzMWI1MGM2YTFlODVlNTM4NzIxMjExOGViYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmYWM0MGJmNGMzNjFmYjBkZjk2OTEwYTY4NjUyOTQ3OWNjYzlhZTYxZDhiYTc4MTgwZTRlNGQzMDFjZTJmYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0MzIxMTJhYWQ2YzRmNGY1NzI2MGFlYTc0N2NkMTkxZjJmYzY1MmFlZmFhNGI0MTE2ODc1YzM3ZGY2OWY2OGEifQ"
         },
         {
-          "resource": "repo://TFITests/MobileAppTests.swift#L153-L176",
+          "resource": "repo://TFITests/MobileAppTests.swift#L120-L143",
           "version": "repo-lines-v1:sha256:75263482f13bbd0dd3eed2a93c2fd3ddb0756e153fdf017a4deba717fa55ae90:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiYTBlYWExNjRiMWFkNGRlZDY3YTA5MTJiOTczNzgyYjVlODFiMTk5MzljYWVkOTk4NGQ1YjhiZDkyZjVmMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0N2NmYWJkMWNhNjMyYzI3ZGI2NzhkMTk1ZmJiN2MxMzQ2MmE1YjNkYjA1N2FhZDMxODY3OWI5ZDk4NmQwNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZWMxZTJiYjEyZmY5NzEyY2M4MThiZWI1MDY3MTdjZjU0OWE2MDgzYWFjZTUzZDczNTBmZWRhODVkODhmMDQifQ"
         }
       ]
@@ -142,19 +142,19 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Historical stores migrate through the current shared V54 factory; endpoints omit V29/V32/V33 and preserve frozen pre-color Snippet models. SnippetColorTests upgrades real V50 data, preserves content/relations/order, saves color and reopens.",
+      "statement": "Historical schemas migrate through the shared current V58 factory; migration endpoints omit V29/V32/V33 and retain frozen pre-color Snippet models. SnippetColorTests programmatically constructs V50 disk data, preserves content/relations/order, saves color and reopens.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SnippetColorTests.swift",
-          "version": "repo-file-v1:sha256:ad55ac92cf1589c68b116a45f6f95ebea62075cfe969857f34f2d74492b61b40"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L110-L142",
+          "version": "repo-lines-v1:sha256:d8b3d8d674e2d48412b7ece5e830080e257e12351ee6970fc44a103de83c073b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZWQ4YmI5OGY5MTI1MTE5NDI4MGVhNDU2NGNkZTY4NWE2MWU3MzY1NWVhY2M5Y2Y2MGY4MmEwMmI1ZDk3MTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L945-L995",
-          "version": "repo-lines-v1:sha256:e89a37e6ca450daef8ff26914358a22aea9783e76d4bb7301833046086a02225:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDM1YzIyNDY4ZmJkY2EzOTYyYjhlOGRkYTM5OTQ0M2ExOWY1NWJmMjU1NjUzNDQwNzI3NTcwZDhmODAzNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NmVkYjczY2VkNGZjOGNjMjdmNjc4NjAxNTMxY2I2MWY1MjI4MGQ4M2QxOThhZDQ1OTViMzU3YWE2M2YyOTcifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L938-L1031",
+          "version": "repo-lines-v1:sha256:58c62d50d11b55661b1807e8cb7b3274d5c38f7fe56fa0c4cdf1f8cb4bc22150:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMzU1ZTQ0OTZlODRhNDVmOTMwNmEyYWU2ZjYzYTMwMDJmMjIyYTZiM2M0NjZlNmZmZDQ2NjljNTgzMTljZWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NmVkYjczY2VkNGZjOGNjMjdmNjc4NjAxNTMxY2I2MWY1MjI4MGQ4M2QxOThhZDQ1OTViMzU3YWE2M2YyOTcifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:e684ea396fbf8624ab5966245cdf987e7f36959fbd623937389b9391732dfcf2"
+          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
         }
       ]
     },
@@ -202,7 +202,7 @@
     },
     {
       "id": "claim_eb35f30233ca461cb7de961bbe793326",
-      "statement": "CloudSyncSafetyPersistenceTests upgrades synthetic V30/V39 stores through the current V54 factory across retired per-category quarantine tables and reopens interrupted categories with scoped blocks/recovery/pending intent intact; this is not live CloudKit proof.",
+      "statement": "CloudSyncSafetyPersistenceTests upgrades programmatically constructed V30/V39 stores through the current V58 factory across retired per-category quarantine tables and reopens interrupted categories with scoped blocks, recovery and pending intent intact; this is not live CloudKit proof.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
@@ -210,7 +210,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:e684ea396fbf8624ab5966245cdf987e7f36959fbd623937389b9391732dfcf2"
+          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
         }
       ]
     },
@@ -220,11 +220,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:81c8ba60c426c6c88e4fe876fc6ca98e514828e0a4707423dd46744acccce696"
+          "version": "repo-file-v1:sha256:273c88435e5ca35c40e8d8f50d0d34d4b04133282a8640ef7e8af85acffb0772"
         },
         {
           "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
-          "version": "repo-file-v1:sha256:336726bfdacb86511d412593243e9d748024c82d6f7a13199cad96f24f6208fc"
+          "version": "repo-file-v1:sha256:b9c831975ff294b9ecd8650b2d44389602a12c773ab771b3adaf585c1d4673bb"
         },
         {
           "resource": "repo://TFITests/Screenshots/MobileCardRenderingTests.swift",
@@ -232,7 +232,7 @@
         },
         {
           "resource": "repo://TFMTests/ConnectionHistoryTests.swift",
-          "version": "repo-file-v1:sha256:a0d510ba51cf3f539fcc00cf94ef484483c33fdec7785fb6b92a56482da68390"
+          "version": "repo-file-v1:sha256:0eca01efd58201ff4f66577fdecf2ad9b99eb24de868658c30db72e893d1bc4c"
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
@@ -396,7 +396,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:94b20ace54bc868d4640865a6b168168b31f3d7fd86a987e722ef735fdcefc12"
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -405,26 +405,16 @@
       ]
     },
     {
-      "id": "claim_7d1d880b23e6474195f086192c75496c",
-      "statement": "The historical V28 generator records commit 0dc173d4b1d190071d35bc66f80ebb767d8b950c and requires historical models. V1/V14 fixtures separately retain original app-module identities from revision 726a2eb909adba3ced6a507c4704886f787e5f66 with synthetic SQLite-backup data, and must not be regenerated with extracted models.",
-      "evidence": [
-        {
-          "resource": "repo://FrameworkTests/Fixtures/README.md",
-          "version": "repo-file-v1:sha256:df7270ec39f1e785912f5f41e0a9ac12dc140f051530f35f350ee927ffbccd4a"
-        }
-      ]
-    },
-    {
       "id": "claim_ce6b999d819f4e0194234629de0037ac",
-      "statement": "TFITests explicitly bundles the same V28 fixture; MobileAppTests constructs MobileAppModel twice with its migrated disk container through test dependencies and checks host, charset, identity and history projections as an in-process startup/reopening integration test.",
+      "statement": "MobileAppTests now checks in-memory startup with the shared schema and empty repository rather than a bundled V28 migration/relaunch fixture. PersistenceCompatibilityTests constructs historical disk stores programmatically; V31/V34 retired-journal inputs and V35 native Device/account state are checked on repeated opens, while several other cases assert only the first migrated open.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileAppTests.swift#L15-L84",
-          "version": "repo-lines-v1:sha256:3865790958abf1954b7029902cd211c4ed611606f4cac0b4a0f9d454a4362760:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwOTZlMjY3ZTZhZWEzMDQyZjYwNjg3MTJmMjlmZjQwMjRmNmYxNDJiOTMyYTQxMWNjODNlM2EyZTU5YWMzOWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNDU3YjJhYWRhZTY4NzQzNzY2M2EyNTQxN2Y5MGRkNTQ1MTMxNmViZjQzN2Q1MDY5MTQ3ZTY2NzhhZDg3MmMifQ"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:273c88435e5ca35c40e8d8f50d0d34d4b04133282a8640ef7e8af85acffb0772"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1434-L1441",
-          "version": "repo-lines-v1:sha256:648c396e63e3d377561261d0c495b200302fa5bdc075fbf3ce475869164f9b91:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTYxYjE0YjExYzI1ZjUyYWEwNzM3NmExMWJkN2VjNzgwYjJmYWRhZmFmMjAwMGViNWVmMzYxZDk0MWUyMDEyZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmRlNTQ0YjkwZjFiM2YxMTNhNGFhNmYwNjQyOGU5MGUwZDk1NTI0NWI0Yjk2N2E0ODhmZDEzZWU1OTc1ZDk5MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFlYWVmZGU3NTJmMmViMjYxZDMzOTY2ZmZiNzdiYmI2NzhlMjU3ZGI4YjlkY2ZkYzU4OGU0ODNmZGY5ZWIwMyJ9"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift",
+          "version": "repo-file-v1:sha256:ad55ac92cf1589c68b116a45f6f95ebea62075cfe969857f34f2d74492b61b40"
         }
       ]
     },
@@ -437,11 +427,11 @@
           "version": "repo-lines-v1:sha256:203aa343c49de9718ed1481fc0c5dd047202bebb7559f3a8a515b9e9ace96763:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4NzVmOTI4NTQ2YWVlNzg1NWNiMWRiOWFmYzhhYjNmMWE4YTM0ZDQzZGU1YmJkNjJmNzA3NmQ3YmE5ZjM5MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3MTU5M2U0ZTRkNzMxNGJhMjI4ZmIxZDRiMzRlOTE5MTkxZWQ5MTVmODAzMzQyZDEzNzViYmYyNTI2MzkwNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L340-L410",
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L371-L441",
           "version": "repo-lines-v1:sha256:5f94dd59a3da5149ef5ba7a1733d15939468070f53ef49fbf29e604cc56d3287:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0NmIyNmIyZWI2YmY1YjdkNmM4NjgzM2FiOTEzYmEzNWZjZWMwN2E1NmUyNzFhNmQ5MzVjNDBlMjUyMTU4MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L460-L500",
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L492-L532",
           "version": "repo-lines-v1:sha256:5752916d8687cf48132800042cd2ba6cf5d91670ab9f1d3d51e4b368454f175f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1Njc4MjE1Mzg3MWM5ZTExZTk3OThiMjExNzY1Zjk4MGY0ZTBkMTVhMGRkNmJkNzViOTQ2MjAyYzJlZmFjYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNWM1YTIzNjU4OTFkZDY2YTg2OTgwODY5YjEzYjU4NTNjNDVhZWY4Yzk4YjYzZmQ0NGU3NDJiNmZkZmI0ZTkifQ"
         }
       ]
@@ -456,7 +446,7 @@
         },
         {
           "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L12-L227",
-          "version": "repo-lines-v1:sha256:ce524b7b7ecc52747c6e0096460efa76c4ba344a3d082f34d92e9222eb8bcea1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZjQzNzI1NGE1N2Q3OTI1ODc1NTljMmRiNDViY2NmMjQ3NzEzOGMzNjQ1NzMzN2E0Y2IzY2NiZDM3YzdmOGJkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNzc0ZDYzYzUyYjcxOTBkYzk4ZDJmN2JmNjgxNzA5YzY2Y2Y1MThhYjAwZWFiNWU0NzhjNjZjMTdkNjcwMzE2In0"
+          "version": "repo-lines-v1:sha256:9d33e65a3f366eb3b3df91c6564c867ca326cbf0a8d4d5fd0cd2f1e9d4d6d416:eyJzZWxlY3RlZExpbmVDb3VudCI6MjE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZjQzNzI1NGE1N2Q3OTI1ODc1NTljMmRiNDViY2NmMjQ3NzEzOGMzNjQ1NzMzN2E0Y2IzY2NiZDM3YzdmOGJkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNzc0ZDYzYzUyYjcxOTBkYzk4ZDJmN2JmNjgxNzA5YzY2Y2Y1MThhYjAwZWFiNWU0NzhjNjZjMTdkNjcwMzE2In0"
         }
       ]
     },
@@ -480,7 +470,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/HistorySyncTests.swift#L13-L89",
-          "version": "repo-lines-v1:sha256:0147fa895f1280c60fa2f538c47459641ca2fdda6ed25c56e11d46adab12b39b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5NmJmMTQ2NDViY2ZmODE3ZmY3NGYxNzc2MzE2OWZkN2M3Njk2Y2MyNTgwZjAxODQ2YWJkNzQwMmY1ZTAzMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhZGRjOTJkODQ5MGRkOTY3NWQyNWM0MDUyZjM0N2ZjMDg4MzNhZmRmNjgwMTRlNGU2YjEwNzIzN2FiZThhMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlODRkZDA1M2M1MzlhNzYwNzM1ZWMwMWVmNWNhODk4NmM2OGQyYjE3MjA2MWVjODA3OTRhYzZkYzM5ODA3ZjEifQ"
+          "version": "repo-lines-v1:sha256:5f0f80223cf52257962bb27b6f10ec9aecd4e1a31a2dd9a43e85ac5bd683d12e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5NmJmMTQ2NDViY2ZmODE3ZmY3NGYxNzc2MzE2OWZkN2M3Njk2Y2MyNTgwZjAxODQ2YWJkNzQwMmY1ZTAzMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhZGRjOTJkODQ5MGRkOTY3NWQyNWM0MDUyZjM0N2ZjMDg4MzNhZmRmNjgwMTRlNGU2YjEwNzIzN2FiZThhMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlODRkZDA1M2M1MzlhNzYwNzM1ZWMwMWVmNWNhODk4NmM2OGQyYjE3MjA2MWVjODA3OTRhYzZkYzM5ODA3ZjEifQ"
         },
         {
           "resource": "repo://FrameworkTests/HistorySyncTests.swift#L197-L325",
@@ -556,16 +546,20 @@
       "evidence": [
         {
           "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
-          "version": "repo-file-v1:sha256:336726bfdacb86511d412593243e9d748024c82d6f7a13199cad96f24f6208fc"
+          "version": "repo-file-v1:sha256:b9c831975ff294b9ecd8650b2d44389602a12c773ab771b3adaf585c1d4673bb"
         }
       ]
     },
     {
       "id": "claim_4ba14ad136864faaad44f99c2605b554",
-      "statement": "Mobile session tests require old snapshot deletion, empty newly bound scenes and no connection-history events; a fresh app cannot claim old native workspaces and an ID-only link to one reports unavailable.",
+      "statement": "Legacy mobile snapshot inputs are deleted and bind empty scenes; ordinary SSH-only cold launch cannot claim old scene workspaces. Separately, the new restoration store reconstructs dormant Mosh, Eternal Terminal and tmux descriptors in original session lists without creating live workspaces or connecting.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L736-L768",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L180-L250",
+          "version": "repo-lines-v1:sha256:40e9f54eb3ef38aeb7df28707d45a7b1eca1a1f39d2be9ab7782a2480280ab9d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjOGM2MWRhMGQzNTMzODVmMGFhOWNiYjkxNDc5ZmM1ZWI5YTM3Y2NjODBiNTUzNjEzNWE2ZTI3ZWVlYjdmNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmYTgwNjI2YmI1NTgyYjM2NzRlODI4ZGI1ZDczMzI1NGQ2YTRmMzk1ZjI0MDdlNTE1MGFlOTczZTNlMTliNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhYTBlNGZjY2I4YTMxMjI4MTE0ODU3NDAxY2ZmYzViMTIwNDJkMTY3ODg3MzMyMmJlNDgzYzg5M2FjNmJhNDYifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L752-L784",
           "version": "repo-lines-v1:sha256:a54756f97e0e5de378a0b3fe8195556826434c4c961d6d081f0b4a8636d377b6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3MWVkNTJjOTM3ZDYzOTU3MTdkNTIwOTNlOWRlNjEyZjgxMTRjMTJmMjgwMGI5NTY0ZjhkODI4ODRlZTI3NzgifQ"
         }
       ]
@@ -575,15 +569,15 @@
       "statement": "In-process reconciliation retains ownership while the native session exists; missing sessions hand the same live workspaces to an active destination without new history or wait for one. Source-ID tracking makes late discard close only its transferred workspaces and prevents discarded-session opens.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L534-L560",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L577-L603",
           "version": "repo-lines-v1:sha256:8fd789fe346edf8028026e3f169e3793202e5c0cd25a67ba52479910922c7c45:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhYmE1M2E3ZjZiZmE0NDY3MWYyN2ZjNjE1MDE2MDBjNGY1YTc3ODk4ZWJjZGEyMGU0NDFhOWJiN2ZhODg5NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMGVhYzUyYWE2NjM0MDczNjQ0MjU1MTg2YTc5NGIxMjdmYzQ5MTA2NTRmYTNhMjBiOTgzMjMxOTIxZWU2ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhOTBjYmJkZjRhNDExYzczMTg0N2RhMzMyN2JjYTNjYmZjNDE2NGYzMTU5YWJmOGIwOGRlNDk3YmZkMDVhZDkifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L722-L756",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L768-L802",
           "version": "repo-lines-v1:sha256:7466d27b042cf46f83076f135c519c2c9f7a105fc8f94d86039be5366900e66b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjMWIwMTFjMjUwMTVjMjJmMGNiMDNiZjJkYzM4NjhjZmMyYTNhYzM4YmFjNzg3OGNhZDMyODVlYmExODQ1NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NTljNTIzMjc4NGFiNDQ2ZWQzODZkOTJjZTJiOWYxODE3ZTUzOTA4OGNmZTFjNTQ2NmRlYWQzZWRiOWU3NDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNTFjMDIzNTg2OTk0MDFhZDg1ZTkxZjZjNGU1YWQzYWU3ZmU5NGE3YWNjOTc0YTg5MTQ4MzZlNzIzZDg3NDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhOTFjM2EyMjkyOWJhMTQxNTMyODE2MmUyNGViOTIzMzQ5NmMyN2VmMTE2ZTU3OWExZTdlN2VmZDQyNTcyZjQifQ"
         },
         {
-          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L770-L843",
+          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L786-L859",
           "version": "repo-lines-v1:sha256:70ed1923bd26634ecf5d10ee3406782286d0c76e6171ad457343c5fa72d4257e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1NDIzN2QwNWI0ODE1MjY3ZmFhMzA1ZGNkMGMzYzFkZDY5ZTVkY2RhMzI5ZTA4MTY1OWE3MGIwZmZjN2NlNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiNzRhMjhiZDA3ODZjMjk1YWE5NmNiYTUwOWNiZmIxZWJhODhkMDViM2ZkMWM2MmNkMGJlMzZkZTU0MmRhNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjYTEzYjZlNWM4MjEzZjJhNDQxZWM1NjZkNDJlZGYyMmZhYTU4YWE3ZjdjNjVhMTZmNGI0NjI4ZTRjZTFkYTcifQ"
         }
       ]
@@ -608,11 +602,11 @@
         },
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:81c8ba60c426c6c88e4fe876fc6ca98e514828e0a4707423dd46744acccce696"
+          "version": "repo-file-v1:sha256:273c88435e5ca35c40e8d8f50d0d34d4b04133282a8640ef7e8af85acffb0772"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:741922b76eeb0c279f8e872a4c683671dc290011c5dfe89ab75f9cc52c8c61da"
+          "version": "repo-file-v1:sha256:b2801cf38cb33c56e72aea89956ead95fd7dfc94dd41e66b689718b4b9c11722"
         }
       ]
     },
@@ -652,11 +646,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:95cf0f8083af5a94bd656bdc19a01548f00a3bf6b9edba0a382738e892a177e6"
+          "version": "repo-file-v1:sha256:a53a28ce11cb2a9fe8fe2b3a3ab238f4b91a6a35f9190034df09aa9cadca46e7"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
-          "version": "repo-file-v1:sha256:e3c47b857bae774278fc4e4583cc5fe80ff42d856b8cc975d5b9792c9f23b25f"
+          "version": "repo-file-v1:sha256:b5f118427da0ee1b17899f6aa294745d3ffa660a99112baa42570dc13e0239b2"
         }
       ]
     },
@@ -720,7 +714,7 @@
         },
         {
           "resource": "repo://TFITests/MobileMetricsJourneyTests.swift#L9-L99",
-          "version": "repo-lines-v1:sha256:e08b7dca7e0761fcc7cdec72ae27f96d027107d4657e5e6a3c21f12aea33086f:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ODNhNTg0MzNmOWE1NTY5YTBmMDA4MWUzOTBiMDk3YjczMGJlZTZhMDEyMjFiYTdiMWNmMTExNzI3ZGZhMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1YTgzNzMyYjdlZGZkMjczNGUxMTQ1ODVjYzRhMTE1N2VhNzI0YmUxZDliM2M0OGMwMzQ3ZWMwYjRlM2ZhYjQifQ"
+          "version": "repo-lines-v1:sha256:9ebd70cedd74e5fe187175b6492247383a9168a838ee4e92c03f257981b3fe11:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ODNhNTg0MzNmOWE1NTY5YTBmMDA4MWUzOTBiMDk3YjczMGJlZTZhMDEyMjFiYTdiMWNmMTExNzI3ZGZhMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1YTgzNzMyYjdlZGZkMjczNGUxMTQ1ODVjYzRhMTE1N2VhNzI0YmUxZDliM2M0OGMwMzQ3ZWMwYjRlM2ZhYjQifQ"
         }
       ]
     },
@@ -730,11 +724,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:94b20ace54bc868d4640865a6b168168b31f3d7fd86a987e722ef735fdcefc12"
+          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
         },
         {
           "resource": "repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift",
-          "version": "repo-file-v1:sha256:7724721aaccf42af2f4904fe1bdd946429a478fccdf86934be074231c833383a"
+          "version": "repo-file-v1:sha256:e57e3d0a1da45c364397aa08ceae2dc3cc95c81e7c5dcb7a368525cae6baa00c"
         },
         {
           "resource": "repo://TFMTests/MetricsJourneyRenderingTests.swift",
@@ -744,11 +738,11 @@
     },
     {
       "id": "claim_ac6b855414eb42ad933f8601eb3c1284",
-      "statement": "Persistence owns the V54 model set/migrations, disables automatic CloudKit and rejects URL-plus-memory mode; platform roots choose storage and container lifetime, and independent memory/historical fixtures use the common factory.",
+      "statement": "Persistence owns the V58 model set and migration factory, disables automatic CloudKit and rejects URL-plus-memory mode; platform entry points choose storage and own container lifetime.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:e684ea396fbf8624ab5966245cdf987e7f36959fbd623937389b9391732dfcf2"
+          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
         }
       ]
     },
@@ -833,15 +827,15 @@
           "version": "repo-lines-v1:sha256:4043fa2276183ec24328c7da9835c50b80f78d156ab24073ef03f33e83e93f37:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzhhZGQ1OWEwYmU1MDBkZjA0OTI5MjhkYzg4YzAzYzZlY2JlMzkxNDgwYWE5YTM2OWQ4NWE1NzhiNDE2ZThlZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzk4N2IzZDY1ZTVlNTRkM2ZjODc5MmIyOTc0MGFmY2E0ZTBkZGRjMDMwODEzYTI3YzE5ZmM1YmJkMWNjMWMyMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjJmMDRmMzZjZDYwNjQ4ZTM1MDRkYTliMDI0ZTk5MjMwYjcwNjhiNDA5MDEzM2MwNTI3OTliM2M4YWVjOTFmMSJ9"
         },
         {
-          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L13-L91",
-          "version": "repo-lines-v1:sha256:ab5f1318465c134b752065aa4f804d832dd79b71cc28a018d845970061e986fb:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNjhmOTlhZjVjMjcyNTVlZWE4NGYyMjJkNzg0ZTAwYThlNzJkYTQzYzVjNTI5ZGNlZTFkNTcxNzcxY2E0ZjIifQ"
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L14-L104",
+          "version": "repo-lines-v1:sha256:5ef4ed6ff12631aac81a8cb9716788e62727b2dd024f714693ff66ee8b3a6b27:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNjhmOTlhZjVjMjcyNTVlZWE4NGYyMjJkNzg0ZTAwYThlNzJkYTQzYzVjNTI5ZGNlZTFkNTcxNzcxY2E0ZjIifQ"
         },
         {
-          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L131-L205",
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L173-L247",
           "version": "repo-lines-v1:sha256:35109dc1044edd14969250530283a30a59825332ed0fa2a3fc0fcbe3608f55fc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2OTllNGJmZDIyN2YxOTYwZWI1MWY3ZTlmMTU4NTFmMWMwOWQ4NWNjNDkzZWJjN2E1MDRmMGQxZTY2NmQ0ZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNThmMzRiYzdiNjFmYWU4NDVhMDA4MzViMjJhNWY0YmRmZmViNzVjMGMyYTg5ODlmYmYyOWQ4ZjM2OWNjZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzYTY4ODRiMzgxMDAzNmU1NmQ4YzU5NDQyNDMyZDEwYTRmZWJkYjM4OWI2OGEzZjQ1NDA3ZWM2ZmZkOTllNWIifQ"
         },
         {
-          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L424-L611",
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L466-L653",
           "version": "repo-lines-v1:sha256:ebd34afc806c7b1bc971b4678ac9052e9cd962050dcb9601f5589f03aa877137:eyJzZWxlY3RlZExpbmVDb3VudCI6MTg4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNjU2Zjk1NzI1Nzc0MGUwNTMyMTM3ZDlkOWVmMTQ3NmE5MDNiNDUyMTM1YmRlMjk5ZjJiODQ4ODcwMzIxYzM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyZjg4ZGVhYzNiYWI3ODhkY2NlMTVkMmU0NjQwZTkyODAwNGIzMWUzNjIzODg3MWE3ODgwOTk4NzcwNDlkYTZlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1MzdiMTM3NDFjN2U0MmZhM2IyN2Y4MGY0ZmM1ODFlYTA4NWY3Yzc1MzAxZjUzOThhNWQ4NjI3YWViY2JjYjAxIn0"
         }
       ]
@@ -851,7 +845,7 @@
       "statement": "ArchitectureBoundaryTests additionally prohibits direct StoreKit imports in Infrastructure commerce, isolates Firebase SDK imports to Infrastructure and requires collection-disabled diagnostic plist defaults; it checks targeted forwarding and mobile authentication ownership and requires additional-connection owners to reference snapshots instead of carrying full connection configurations.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L33-L113",
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L144",
           "version": "repo-lines-v1:sha256:44c8468d1504f46df57f38362c71262455088c0a0a54338c48352e47dfbbca45:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5ZjdjNGNiNzk4NDRmM2QyMTg3YjU1MGRiNjhlZmVlMjU5MDQ4NDZiNTgwZWRmNjIxNTc3MGE4NTAyYTIwMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZmEzZmRhMTEzZGRmODI0OGMxZTE2N2RjOTgzOWVmOTJlMDQ0ZTUyNjczNzU0YTRlOWY2OTEyY2QzNDFjMGEifQ"
         }
       ]
@@ -861,7 +855,7 @@
       "statement": "Mobile workspace notification fixtures ensure newer assistant clicks supersede older clicks and stale window activation failures cannot reset newer requests, independently of UIKit window presentation.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L405-L467",
+          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L421-L483",
           "version": "repo-lines-v1:sha256:8fb43bc344a18b6478522812c5e94b70ff76c2c0fc23aa9789ff2b5242b26b13:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1ZGY3MjNiZTk4ZWZhYjFkY2IyYmYyZTZkNzAzYzNhMTMzNmFjZTQ5YzlhNTU4MTVjMGI4NWU0NGQ0MjgxNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkMWZiMWQ3ODljZmE4ZDMyNjU4Y2JjZmEyZTc4ODhiNGJmMjYzMmViOTZjYWQzNzBkOGE3NjI0OWE4ZjMyYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTEwNTEwMTYzNTNiNzBjNDQ5YWM1OGUxNmI3YjcxN2E0MTRmZjc4NTA1NDBiNjIwZjZiNzA5MTgxZmRiZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiNDNmYzBkOTEzZjgzNjE4MmI3ZTljYjEzM2FlMWVjNWI1MmUzNzM1YTEzMTY1MjQ5MTdmZTk5MWE5OWM3MmQifQ"
         }
       ]
@@ -900,19 +894,19 @@
     },
     {
       "id": "claim_e01c1bcc3caf4c83a9eabd7a11a7c5c8",
-      "statement": "TerminalFindController retains query separately from presentation, restarts nonempty search on closed-to-open transitions and ignores already-closed dismissals; mobile SSH/Telnet search binds to it and native closure suppresses focus restoration, while SFTP binds directly to its channel query and the workspace supplies terminal execution/focus closures.",
+      "statement": "TerminalFindController retains query independently of presentation, restarts nonempty search when reopened and ignores already-closed dismissal. Mobile SSH, Mosh, Eternal Terminal and Telnet bind to it with native closure suppressing focus restoration; SFTP binds directly to its query and the workspace supplies execution/focus closures.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift",
           "version": "repo-file-v1:sha256:0798e8403877f68ac70bebeb70830ea2e03db6e574643231a1a473265cd410c4"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L109-L112",
-          "version": "repo-lines-v1:sha256:5de0e323412692253818de8c7c536cafb12900b849be2d4556fcb076a0102b0d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2QzZGIxMzkwMmVjNDJkZjcyNGM0YTMzMzkwZGQ5NWY1ZDg2M2FjMjZhOTFkYzNjODE5ZGQzMGQ0OGY2YmQwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzBjMWYxODhmMTQyZWQ3YTgyNDY4MGIyMDcxNzJjNTUxOWJjNjE0YTQ4ZmRhN2NmMTY3ZWRiOGRkZjc5OTU2YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI4YzIzMmEwOWFmMmJlNGI3NmZhNGZhN2Y5NWE3MWViYWQ2NWY2YTFhODZkZTk3MzZhZmZiNDIzZDM3NDNjMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWYyZDM1MjE4ZjZiMjNkMmU3YTMzOGI2OWZhMGU0Yzc5Mjc5ZjZjZjM0NjBlNWRlNGRiNDk2NDdhZDlmNzU1NCJ9"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
+          "version": "repo-file-v1:sha256:5056241b8d2ce884dc4a036e41f61d4aaa23c80f4feac419dfa2c0b986f9a1c4"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift",
-          "version": "repo-file-v1:sha256:a28d1b5e4ce0bc87dbf80ba65d0e6437df5b88de1759b12c488f705b94334579"
+          "version": "repo-file-v1:sha256:bff0d7683ab67c26af8eba5fe7a1020cca47c033d2e1444125a1fbbc17d01952"
         }
       ]
     },
@@ -1061,6 +1055,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-15T22:50:00.588Z"
+    "at": "2026-10-16T22:23:31.119Z"
   }
 }

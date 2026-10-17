@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:98337bd8b96c21470453a12914499d2516e3ccac242bddd67620b5b464a8687a",
+  "pageVersion": "sha256:cd602d33d7137a424c247281037de366bfc1f2c2c8dffb0a0415a85913e1bec1",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -79,19 +79,19 @@
       "statement": "The Xcode project selects `AppIcon` as the compiled asset-catalog icon name for the application targets.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2030-L2030",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2032-L2032",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2342-L2342",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2344-L2344",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2592-L2592",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2594-L2594",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2630-L2630",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2632-L2632",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         }
       ]
@@ -206,15 +206,19 @@
     },
     {
       "id": "claim_bc91018db0144f5999c76a1306399b68",
-      "statement": "Runtime host artwork is independent of app icons and marketing frames. HostIconCatalog loads bundled JSON with empty-catalog failure fallback; an explicit override wins even if unknown or server (generic server.rack), otherwise detected ID then likeIDs selects artwork. The picker offers Automatic, Server, macOS, Windows then sorted entries and preserves unknown choices. Darwin auto-detects macOS; Windows is a manual artwork choice, not Windows auto-detection. Overrides persist/sync including Tailscale without changing probe detection or reconnecting; tests cover round trips, migration and failed-save isolation. Host color overrides adapted brand hex then accent; adaptation steps toward semantic label color for 3:1 on the 16% tinted surface, with macOS black and presentation-chosen Windows 0078D4. The retained shell wrapper delegates to update-host-icons.py, which pins explicit Simple Icons/Tabler releases, verifies npm SHA-512 integrity, validates safe SVGs, stages vector/template assets, provenance JSON and licenses before non-atomic replacement. Simple Icons CC0 does not imply all brand artwork is CC0 or grant trademark rights; retain its license/disclaimer and Tabler MIT notices. Presentation tests verify bundled images and light/dark brand contrast.",
+      "statement": "Runtime host artwork is independent of app icons, marketing frames and connection status. HostIconCatalog loads bundled HostIcons.json with empty-catalog failure fallback. An explicit override wins: HostGeneralIcon IDs select SF Symbols, catalog IDs select template assets, and unknown IDs fall back to server.rack without using detection. Automatic matches detected ID, then ordered likeIDs, then generic Linux; absent detection uses server.rack. Darwin detects macos; FreeBSD/OpenBSD/NetBSD/DragonFly detect lowercased kernel IDs, with DragonFly aliased to BSD artwork; Linux without a distribution ID detects linux. Missing kernel/probe data preserves prior detection, while unsupported kernels such as Windows_NT resolve nil and clear it; Windows is manual artwork, not auto-detection. DetectedDistribution normalizes family/related IDs and excludes versions. The picker separates Automatic, declared-order localized general-purpose choices, and all verbatim catalog titles sorted case-insensitively using en_US with ID tie-breaking, preserving unknown choices. Overrides persist/sync including Tailscale without altering probe detection or reconnecting; tests cover round trips, migration and failed-save isolation. Host color overrides adapted brand hex then accent; adaptation steps toward semantic label color for 3:1 on the 16% tinted surface, with macOS black and presentation-chosen Windows 0078D4. The retained shell wrapper delegates to update-host-icons.py, which pins explicit Simple Icons/Tabler releases, verifies npm SHA-512 integrity, validates SVGs and stages vector/template assets, provenance JSON and licenses before non-atomic replacement. Linux selections/aliases belong to Scripts/linux-distribution-icons.json, additional OS families to the Python updater, and general-purpose symbols to HostGeneralIcon. Simple Icons CC0 does not imply all brand artwork is CC0 or grant trademark rights; retain its license/disclaimer and Tabler MIT notices. Focused tests verify override/detection/fallback behavior, bundled images and SF Symbols, expanded aliases, brand contrast and opt-in native menu grouping.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/HostIconTests.swift",
-          "version": "repo-file-v1:sha256:583ec7ff5d0b8ea3b7ca56b66e42878196fd0bff0c06d936f894222bd47e9315"
+          "version": "repo-file-v1:sha256:71a57a6593fabfacbf27a40024c0da50f5449746b1e51786873a9e9bb1bd7204"
+        },
+        {
+          "resource": "repo://FrameworkTests/RemoteSystemInfoTests.swift",
+          "version": "repo-file-v1:sha256:a81d35fd3cd0dab1a72775ac10aa298c248a576385acd67cb48158464306e06f"
         },
         {
           "resource": "repo://Frameworks/Resources/HostIcons.json",
-          "version": "repo-file-v1:sha256:7f5b5352e3149ddb412f8effb0abc64fa23e5982fb175b3535b62572250e9ca5"
+          "version": "repo-file-v1:sha256:4ef69aa957b820d15993809cb6a4b1eb576b58ab8d92f985281b4d722b01c778"
         },
         {
           "resource": "repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md",
@@ -225,12 +229,24 @@
           "version": "repo-file-v1:sha256:b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift#L133-L149",
-          "version": "repo-lines-v1:sha256:2eaa18636d899e42da2523bb98752d9d50b6bd7776667c0fc1c0beddb022803a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiM2E0NTllOTczYWFkNTA2YjA0MGJlMWZlNTE1NjA3YTEwN2IyNzJmOGRmODU1MWE2MTBlYTIxMzNkMzExYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1159-L1185",
+          "version": "repo-lines-v1:sha256:c554d54f89eeeb5714824fec2f538cb4020bb062593c81bc818842deb9ad6388:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjNjQ3OTg3MDYyZGI2YWQ3MzQxMDUxNzVjZDJhMWM3NTAxN2I1MzQzZWY4YjMyMWQzZmRlYTI3OWFmY2MyOWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmODUzZTY4YTFjMmNkNGJkZmY1MDJmMTI2MWQ4M2E2NTYyODhkNDVmZDZkODU2YjQxZDg0YWNiMGI1YTZiYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZDQxMzZhOGMyMTBlNTFkNTZlMTFjMDZkNmY0ZTdmZmRlZjNhYWQ5YmY3YmVlMDI5MGZjM2FiNDNkOTk1ZGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/DetectedDistribution.swift",
+          "version": "repo-file-v1:sha256:bf0b3e099c31c286a161abfb0e39486e4a86fb31a7497d04491e12b500cbbeef"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift#L133-L150",
+          "version": "repo-lines-v1:sha256:68550629c80b8814dd51eca3b1616e0bb83080f4830e0428e76b2b3d657833e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiM2E0NTllOTczYWFkNTA2YjA0MGJlMWZlNTE1NjA3YTEwN2IyNzJmOGRmODU1MWE2MTBlYTIxMzNkMzExYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift",
-          "version": "repo-file-v1:sha256:a721750031b08d11d5e14bf1eb906f35db0775651424db0c0a6ff7770861cc8a"
+          "version": "repo-file-v1:sha256:28218a09e06db8f2131eb2077457cbffb9ec70e6c5e53096dd2c3e0ce708dd35"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostGeneralIcon.swift",
+          "version": "repo-file-v1:sha256:6fa8112ee9a06ab82eaa90b5e39ccc4605b3a5b1b17138c0bdb79a04d8c107fd"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostIconBrandColor.swift",
@@ -238,19 +254,23 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
-          "version": "repo-file-v1:sha256:9428f47e869c5433b84ec990655aaea26145283f9a0cd42e73fe98ef94b819aa"
+          "version": "repo-file-v1:sha256:c086fd82bc3560987e636c859eed4e4a1d6206b49a1b290e5407b8d54fe3b944"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostIconPicker.swift",
-          "version": "repo-file-v1:sha256:2ac33671eed343034a4074150c34aefd6a3c7e86d4688ebfd0ea8965681550d7"
+          "version": "repo-file-v1:sha256:1b5d4413405947add6bdccbd7a56909d6d48865b4b8e8813e7d9872787a4c176"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift",
-          "version": "repo-file-v1:sha256:1913b9ea29312de9de94a86e1cec5ff6be913c7197f05fdaa0a57e62629600a0"
+          "version": "repo-file-v1:sha256:1e2450ebbbbb15956a5e5768500a7fea002203f22c6a455131abcc3acaff7bef"
+        },
+        {
+          "resource": "repo://Scripts/linux-distribution-icons.json",
+          "version": "repo-file-v1:sha256:aaa441818a28446c5ca953fd6557557a85a2797588a8aee573bdb8d349729a1b"
         },
         {
           "resource": "repo://Scripts/update-host-icons.py",
-          "version": "repo-file-v1:sha256:95a385fdd9683599e960610c96860f1ce7421000149eca8e9262f3ac0a6b04ef"
+          "version": "repo-file-v1:sha256:afba15b02d033e787c8d0e453645d80ac1f326602e2ec9240d78602745da5d49"
         },
         {
           "resource": "repo://Scripts/update-linux-distribution-icons.sh",
@@ -258,7 +278,7 @@
         },
         {
           "resource": "repo://TFMTests/HostIconPresentationTests.swift",
-          "version": "repo-file-v1:sha256:8bff79a1dc6a1e596cfa28a5bddf9527a56f859de443073f4616dd28ec53a3a1"
+          "version": "repo-file-v1:sha256:b1135e50c92c523f6faeb5ec53ad970e882bbe3652785dd2b80269ac8ed2cb2e"
         }
       ]
     },
@@ -579,6 +599,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-15T22:50:00.588Z"
+    "at": "2026-10-16T22:23:31.119Z"
   }
 }

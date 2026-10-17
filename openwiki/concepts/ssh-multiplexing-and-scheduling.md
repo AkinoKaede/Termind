@@ -40,10 +40,10 @@ sources:
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 # SSH Multiplexing and Scheduling
@@ -86,9 +86,11 @@ This diagram shows connection-local admission before serial library access. It i
 
 Metrics deliberately opts out of concurrent operations: `SSHExclusiveConnectionAdapter.withConnection` uses a busy flag and FIFO continuations to serialize complete operations on its owned connection. That adapter has no topology/fallback policy. Similar-looking SSH usage does not authorize merging Metrics, terminal, Agent, and forwarding lifetimes.
 
-The Agent has a separate higher-level reuse policy: `AgentConnectionPool` keeps one primary SSH connection per Host ID and route fingerprint across tool calls, runs, and conversations. Exec and primary SFTP share it; same-fingerprint connection opens and primary SFTP opens are joined rather than duplicated. A changed route retires the old connection and its SFTP state; failure to resolve a deleted/closed target disconnects it. A successful open is bound to the **post-authentication** route fingerprint, so saving an identity during a prompt does not immediately invalidate that new connection. This is an Agent-owned pool, not the terminal or forwarding pool.
+The Agent has a separate higher-level reuse policy: when **Agent Forwarding is disabled**, `AgentConnectionPool` keeps one primary SSH connection per Host ID and route fingerprint across tool calls, runs, and conversations. Exec and primary SFTP share it; same-fingerprint connection opens and primary SFTP opens are joined rather than duplicated. A changed route retires the old connection and its SFTP state; failure to resolve a deleted/closed target disconnects it. A successful open is bound to the **post-authentication** route fingerprint, so saving an identity during a prompt does not immediately invalidate that new connection. This is an Agent-owned pool, not the terminal or forwarding pool.
 
-Idle retirement defaults to 180 seconds (swept every 30 seconds in the app). Active exec or SFTP operation leases block whole-host retirement; idle auxiliary SFTP connections can be retired separately. Idle expiry then closes the primary and its SFTP state. `openConnectionCount` includes pooled primaries and auxiliary SFTP connections, not sibling subsystem channels. `disconnect(hostID:)` and `closeAll()` also cancel pending opens and SFTP activity. The Agent's `withSFTP` acquires an exclusive channel lease for an operation; overlap can use silent auxiliary connections or sibling channels according to scheduling mode, but the operation itself is never replayed.
+**Agent Forwarding is an explicit isolation exception for exec acquisition.** `connection(hostID:)` opens a separate connection per acquisition instead of joining the reusable primary. `withExecLease` disconnects that isolated connection on success or failure; `disconnect`/`closeAll` cancel its tracked openings and disconnect surviving isolated connections, including late opens. The reusable-primary open path sets `permitsAgentForwarding = false`. This authentication-agent isolation is distinct from TCP port forwarding and its own connection pool.
+
+Idle retirement defaults to 180 seconds (swept every 30 seconds in the app). Active exec or SFTP operation leases block whole-host retirement; idle auxiliary SFTP connections can be retired separately. Idle expiry then closes the primary and its SFTP state. `openConnectionCount` includes pooled primaries and auxiliary SFTP connections, not sibling subsystem channels or isolated Agent Forwarding exec connections; it is not a census of every live SSH socket. `disconnect(hostID:)` and `closeAll()` also cancel pending opens and SFTP activity. The Agent's `withSFTP` acquires an exclusive channel lease for an operation; overlap can use silent auxiliary connections or sibling channels according to scheduling mode, but the operation itself is never replayed.
 
 ## Session-channel budget: local FIFO, not server discovery
 
@@ -146,6 +148,23 @@ flowchart TD
 
 Exec admission and bounded queue turns; cancellation may return to the caller while the close/free branch still owns its lease.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Opening: lease admitted and context validated
+    Opening --> Opening: EAGAIN or eligible OPEN retry after 50 ms
+    Opening --> Starting: channel opened and optional forwarding complete
+    Starting --> Running: exec accepted
+    Running --> Closing: EOF or cancellation or timeout
+    Starting --> Closing: cancellation or channel error
+    Closing --> WaitingForClose: CLOSE succeeds
+    Closing --> Freeing: CLOSE fails without EAGAIN
+    WaitingForClose --> Freeing: wait completes or EOF absent
+    Freeing --> Freeing: native free returns EAGAIN
+    Freeing --> [*]: release command and lease
+```
+
+Reduced native exec retirement states; connection teardown can dispose outstanding state from any phase. Caller cancellation does not skip native retirement.
+
 `SSHReadyQueue` deduplicates IDs, pops FIFO, and places reinserted hot work behind peers. Socket readiness wakes commands; a 100 ms timer also checks command deadlines and keepalive. Thus exec scheduling is readiness-assisted **with periodic safety/deadline wakes**, not a promise of strict equal byte bandwidth or entirely timer-free progress.
 
 ## SFTP: the same owner, a different retry path
@@ -158,6 +177,37 @@ Exec admission and bounded queue turns; cancellation may return to the caller wh
 2. On the owning queue, start a bounded buffer pass and flush encrypted output. Return `.again` under backpressure or `libssh2_sftp_init` EAGAIN; on success retain pointer and lease in `channels[id]`.
 3. For each raw SFTP operation, enter the same queue, validate the channel/context, begin/flush a pass, perform the operation, flush again, and update socket interest.
 4. On `.again`, leave the queue and **asynchronously sleep for 2 ms** before retrying. Shutdown uses the same retry interval. Closing releases the lease and can notify a PTY owner when its last sibling is gone. The SFTP driver retains that worker through asynchronous close, without a worker-to-driver cycle. Closing the terminal explicitly retires the transport unless live SFTP channels remain; pending exec closes alone do not keep it alive. Prepared sessions can deliberately retain the authenticated connection for post-exit control, completing PTY close/free before a probe uses the released slot. Worker destruction is queue-confined and avoids synchronous self-reentry.
+
+```mermaid
+sequenceDiagram
+    participant Caller as SFTP caller
+    participant Owner as SFTP channel owner
+    participant Budget as Connection budget
+    participant Queue as Serial SSH queue
+    Caller->>Owner: Open subsystem
+    Owner->>Owner: Reserve initialization turn
+    Owner->>Budget: Acquire session lease
+    Budget-->>Owner: Lease after FIFO admission
+    loop Until initialization succeeds
+        Owner->>Queue: Flush and attempt sftp_init
+        Queue-->>Owner: Value or again
+        opt Again from EAGAIN or backpressure
+            Owner->>Owner: Async sleep 2 ms outside queue
+        end
+    end
+    Owner-->>Caller: Channel backed by pointer and lease
+    Caller->>Owner: Disconnect subsystem
+    loop Until shutdown completes
+        Owner->>Queue: Attempt sftp_shutdown
+        Queue-->>Owner: Complete or EAGAIN
+        opt EAGAIN
+            Owner->>Owner: Async sleep 2 ms outside queue
+        end
+    end
+    Owner->>Budget: Release lease
+```
+
+SFTP admission, asynchronous retry, and retirement leave the shared queue available between native attempts.
 
 This is important when reasoning about fairness: SFTP does **not** live in the exec worker's `ready` dictionary. Queue confinement and short retry turns allow PTY/exec and other channel calls to interleave; the SFTP path currently uses async retry sleeps rather than a single unified readiness queue for all operations. Do not describe every transport user as fully event-driven or as receiving a common weighted scheduling guarantee.
 
@@ -186,14 +236,14 @@ Socket dispatch sources are queue-confined. `SSHSocketEvents.cancel` resumes sus
 
 ## Agent authentication and pool retry boundaries
 
-`AgentSSHAuthenticationRegistry` leases one `AgentSSHAuthenticationContext` per destination to overlapping calls, including exec and SFTP. It removes the context when the last call finishes; temporary passwords/passphrases are **not** a cross-run credential cache even though the authenticated pool connection can persist. A missing connection first resolves local route checkpoints (proxy credentials, identity, required key passphrase) before opening a socket. Configuration attempts and prompts join by generation; cancelling a waiter removes it without cancelling another waiter's work, and the last waiter cancels the shared attempt. Host-key prompts and keyboard-interactive answers are carried on the attempt request, not returned as tool content.
+`AgentSSHAuthenticationRegistry` normally leases one `AgentSSHAuthenticationContext` per destination to overlapping calls, including exec and SFTP. It removes the context when the last call finishes; temporary passwords/passphrases are **not** a cross-run credential cache even though the authenticated pool connection can persist. With Agent Forwarding enabled, each operation instead receives a fresh authentication context, and acquisition resolves a configuration attempt even when a reusable primary exists. A missing connection first resolves local route checkpoints (proxy credentials, identity, required key passphrase) before opening a socket. Configuration attempts and prompts join by generation; cancelling a waiter removes it without cancelling another waiter's work, and the last waiter cancels the shared attempt. Host-key prompts and keyboard-interactive answers are carried on the attempt request, not returned as tool content.
 
 ```mermaid
 flowchart TD
-    Call["Agent exec or SFTP acquisition"] --> Reuse{"Pooled connection exists?"}
+    Call["Agent exec or SFTP acquisition"] --> Reuse{"Reusable primary and Agent Forwarding off?"}
     Reuse -->|yes| Pooled["Open without fresh credential attempt"]
     Reuse -->|no| Config["Resolve local route requirements and join generation attempt"]
-    Config --> Open["Join pooled open by Host and fingerprint"]
+    Config --> Open["Acquire connection or SFTP lease"]
     Pooled --> Open
     Open --> Result{"Open result"}
     Result -->|success| Success["Consume attempt secrets and return client"]
@@ -223,6 +273,8 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Can a busy/slow flow starve or corrupt a peer? | `SSHForwardingPumpTests`: ready-queue rotation, watermarks, window updates, half-close; `SSHForwardingWireTests`: concurrent streams and slow consumer. |
 | Why did SFTP open another socket rather than a sibling? | File permit's selected mode and `SFTPTransferContext.capability`, not the exec ready queue. |
 | Why does closing the terminal not close SSH yet? | PTY `closeTerminalSession` and last-sibling callback; an SFTP subsystem can still own the transport. |
-| Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, in-flight join, active leases and idle sweep; `AgentConnectionPoolTests`. |
+| Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, in-flight join, active leases and idle sweep; `AgentConnectionPoolTests`. Its Agent Forwarding tests cover separate per-command connections, release after execution and late-open disposal. |
+
+Implementation entrypoints: [exec owner](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift), [SFTP owner](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift), [session policy](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift), and [Agent acquisition/pool](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift). For service-specific ownership and forwarding limits, see [Remote Services and Forwarding](remote-services-and-forwarding.md).
 
 Tests cited here are implementation evidence; they are not a performance guarantee for arbitrary servers/routes. Keep the pinned dependency graph when validating changes, and do not turn the [historical forwarding benchmarks](../operations/port-forwarding-benchmarks.md) into general WAN latency claims.

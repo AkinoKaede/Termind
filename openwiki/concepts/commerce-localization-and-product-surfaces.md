@@ -14,14 +14,20 @@ sources:
     resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
+  - id: openwiki-source-0dba6aaa3f80b8ef8e74ebe9
+    resource: repo://Frameworks/TermindApplication/Connections/HostOperationAccess.swift
   - id: openwiki-source-b2f57db7a90dcc30dd3886da
     resource: repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-04b071ada5b9e8d7b65a1b7a
     resource: repo://Frameworks/TermindApplication/FeatureModels/SnippetTimestamp.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
+  - id: openwiki-source-ef8c7923014af1fd2e8821f9
+    resource: repo://Frameworks/TermindDomain/Hosts/HostAccessPolicy.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
   - id: openwiki-source-f0aa3596750ed8bd3ffd8c9e
@@ -44,8 +50,18 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
   - id: openwiki-source-f0eb100f79cea6b455207748
     resource: repo://Frameworks/TermindPresentation/Strings/Presentation.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-de03b453e9349cc11ea90e3c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift
+  - id: openwiki-source-ab74624bdc6b7046d91bcbac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
+  - id: openwiki-source-079b35134aa7d0dc22681651
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift
   - id: openwiki-source-eae5d91412d0e2847dacd5b6
     resource: repo://FrameworkTests/AppReviewControllerTests.swift
+  - id: openwiki-source-6e2febd4a2646c8786d30db3
+    resource: repo://FrameworkTests/HostAccessTests.swift
   - id: openwiki-source-d4dc435e4e9f6262c9e07564
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
@@ -90,10 +106,6 @@ sources:
     resource: repo://TFITests/MobileAppReviewTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
-  - id: openwiki-source-8d34d9ba6456e86e57933569
-    resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
-  - id: openwiki-source-9b78a7e39bfa08bea5192722
-    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-205304536d13b39bf2e7e666
     resource: repo://TFITests/Screenshots/MobileCardRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
@@ -120,10 +132,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-15T22:50:00.588Z
+    at: 2026-10-16T22:23:31.119Z
 ---
 
 ## Commerce ownership and configuration
@@ -160,7 +172,32 @@ This is the access-resolution and refresh path, not a guarantee that a remote pa
 
 `RevenueCatEntitlementResolver` rejects failed CustomerInfo or entitlement verification and ignores entitlements other than the configured ID. An active entitlement without an expiration maps to lifetime purchased access (including family-shared ownership); an inactive one is free. A subscription grants access for an active trial or subscription before its deadline, and for an active billing-issue grace period before the **grace** deadline. Refund maps to revoked; after the deadline a billing issue maps to billing retry and otherwise to expiry. Cancellation disables renewal but does not itself withdraw access before expiration. Unlike the previous StoreKit `.subscribed` fallback, a cached `isActive` flag cannot extend access beyond a past deadline. `apply` cancels its prior expiration timer and schedules a re-fetch at a future granting subscription deadline; no timer is installed without a future deadline. iOS scene activation and macOS app activation also refresh access. A refresh failure without cache can retain an established controller status, so neither a timer nor an offline test proves a server-side revocation was observed.
 
-`ProFeature` enumerates Tailscale, Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration. `canUse` reflects the current entitlement and `require` returns false and presents the shared paywall when denied; it does **not** record a requested feature. The basic remote-workspace experience remains free. Protected callers gate Tailscale node access, Assistant execution, remote MCP operations, built-in macOS MCP availability, iCloud sync, monitoring beyond three free cards and the optional multi-connection acceleration settings. SSH terminal uploads remain available without Pro when the session and destination are ready. The mobile Metrics picker passes current access to `MobileMetricsModel.replaceHosts`; on failure it reports the core storage error, otherwise presents Pro. The shared Metrics model preserves choices outside the edited set, counts net additions and persists a replacement atomically; desktop supplies a live card limit and calls `require(.unlimitedMetrics)` on rejection. Losing access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data; macOS also suspends an enabled built-in MCP server. Mobile synchronization additionally requires an active foreground scene. `RootView` reconciles macOS status changes; `MobileRootView` reconciles mobile access changes and scene activity.
+`ProFeature` now enumerates **Vault sync, unlimited Hosts, Tailscale, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration**. `canUse` reflects current entitlement; `require` returns false and presents the shared paywall when denied, without recording a requested feature. Assistant execution, remote MCP and the built-in macOS MCP server are no longer independently Pro-gated. Host operations performed through those features still obey saved-Host admission. SSH terminal uploads need a ready session and destination, not a separate Pro upload entitlement.
+
+### Deterministic free Hosts and operation admission
+
+[`HostAccessPolicy`](../../Frameworks/TermindDomain/Hosts/HostAccessPolicy.swift) grants free access to three ordinary saved Hosts. It excludes Tailscale-managed Hosts from this quota (Tailscale has its own entitlement gate), sorts by `createdAt` ascending with undated historical records first, and breaks ties by UUID string. Names, display order and groups do not affect priority. Deleting an unlocked Host promotes the next eligible record; locks are derived locally, never synced. Pro unlocks all ordinary Hosts. Existing over-quota records can still be edited: saving counts distinct **new** ordinary IDs, not updates or duplicate proposals.
+
+Loading and verification failure are not interchangeable with a resolved free account. The first three remain usable, but an excess operation throws `.verifyingEntitlement` or `.entitlementVerificationFailed`; unresolved states deliberately do not paint Host locks. `HostLibraryModel.resolveHostAccess` and `resolveSavingHostsAccess` await the initial refresh only when needed for an excess operation, check cancellation and recheck admission before proceeding. A resolved save quota rejection requests the paywall without manufacturing a storage error; verification failure remains an actionable localized error rather than an upgrade request. Custom identity saves and SSH import batches check quota before their identity/import side effects.
+
+```mermaid
+flowchart TD
+    Request["Save or operate on saved Host"] --> Within{"Within free admission or Pro"}
+    Within -->|yes| Admit["Proceed"]
+    Within -->|no| Loading{"Entitlement loading"}
+    Loading -->|yes| Refresh["Await initial refresh and recheck"]
+    Refresh --> Within
+    Loading -->|no| Failed{"Verification failed"}
+    Failed -->|yes| Error["Report verification error"]
+    Failed -->|no| Deny["Deny excess operation and offer upgrade"]
+```
+Host admission distinguishes unresolved verification from a resolved quota denial; it is not just a card overlay.
+
+Connection admission includes the target and jump-host route. Prepared configurations carry a `HostOperationAccessCheck` backed by a lock-protected current policy/Host snapshot, so cached configurations do not freeze the entitlement that existed at preparation time. SSH execution, cached Agent connections, SFTP operations and forwarding admission consult these checks. The SFTP wrapper admits each new operation without cancelling a transfer already delegated to its channel. Preserve these runtime checks when adding alternate entrypoints; see [Remote Services and Forwarding](remote-services-and-forwarding.md).
+
+Metrics no longer has an independent three-card cap or `.unlimitedMetrics` gate. The shared model retains selections outside the edited picker, deduplicates additions and persists the replacement in one operation. Collection instead follows Host access: locked Hosts surface a locked monitoring state, and the mobile locked card opens Pro rather than detail. Picker save failures report storage errors, not an automatic unlimited-Metrics paywall.
+
+Status changes update Host policy, reconcile Tailscale and Metrics, and recompute connection acceleration preferences through the controller's app-owned `accessDidChange` callback, without requiring a visible paywall. Losing Vault sync access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data. Desktop reconciles these coordinators directly; mobile sync additionally requires an active foreground scene and is reconciled by `MobileRootView` access observation and scene activity. The built-in MCP server is not suspended merely because Pro expires.
 
 ## Paywall presentation and copy boundary
 
@@ -301,10 +338,11 @@ Once source is available, follow the documented website workflow (`cd com.akinok
 
 ## Focused change checklist
 
-- Native entitlement policy and gates: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests and platform-specific gate tests. Check live entitlement configuration and account migration separately from the local StoreKit metadata fixture. [RevenueCat configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift) and [service configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift) explain the native SDK boundary, not public-site promises.
+- Native entitlement policy and gates: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests, `HostAccessTests` and platform-specific gate tests. Preserve deterministic Host ordering, pre-mutation quota checks, jump-host admission and current-policy checks in cached connections. Check live entitlement configuration and account migration separately from the local StoreKit metadata fixture. [RevenueCat configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift) and [service configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift) explain the native SDK boundary, not public-site promises.
 - RevenueCat dashboard-owned paywalls and legal copy: inspect the remote layouts, visibility rules, translations, offer terms and legal destinations independently. Compare them with the native [paywall variable contract](../../Frameworks/TermindPresentation/ProPaywallState.swift), [mobile wrapper](../../TFI/Features/Commerce/MobileProView.swift), [desktop wrapper](../../TFM/Features/Commerce/ProPaywallView.swift) and [state tests](../../FrameworkTests/ProPaywallStateTests.swift). These tests verify status mapping, not remote wording or live purchases.
 - Apple storefront metadata: verify live product availability, localized descriptions, prices, introductory-offer eligibility, Family Sharing and purchase/restore behavior in App Store Connect and Sandbox. Neither website prices nor the local fixture establish the offer a particular user receives. See [Storefront Commerce Release Checks](../operations/storefront-commerce-release.md).
 - Review invitations: run `AppReviewControllerTests` and `MobileAppReviewTests`; preserve elapsed-time and entry-snapshot semantics, shared-window response invalidation, rejected-open behavior and preview isolation. Use `TERMIND_REVIEW_PREVIEW=1` to attach the mobile invitation renders; inspect layouts rather than treating successful rendering as translation approval.
 - Mobile cards and Live Activity: check both card densities and run `MobileCardTests`, opt-in `MobileCardRenderingTests`, `MobileLiveActivityRestorationTests` and `MobileWorkspaceStoreTests`. Keep recovery references out of URLs and preserve whole-entry payload budgeting.
 - App catalogs: run `python3 Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `python3 Scripts/check-localization.py`, `python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md). Language preferences and sync ownership are discussed in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md); visual copy checks complement [UI Design Principles](ui-design-principles.md).
 - Independently authored website claims: obtain the website source and inspect the deployed site before comparing its FAQ, offers, prices, privacy/security disclosures and localized routes with native entitlement and sync behavior. Build and visually check the routes actually present in that checkout. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.
+. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.
