@@ -68,11 +68,15 @@ public final class AIPersistence {
         )
         let oauthRows = try context.fetch(FetchDescriptor<PersistentMCPOAuthConfiguration>())
         let oauth = Dictionary(oauthRows.map { ($0.serverID, $0.value) }, uniquingKeysWith: { first, _ in first })
+        let metadataRows = try context.fetch(FetchDescriptor<PersistentMCPServerMetadata>())
+        let descriptions = Dictionary(
+            metadataRows.map { ($0.serverID, $0.serverDescription) }, uniquingKeysWith: { first, _ in first })
         var seenMCPServers: Set<UUID> = []
         let mcpServers = mcpRows.compactMap { row -> MCPServer? in
             guard seenMCPServers.insert(row.id).inserted else { return nil }
             var server = row.value
             server.oauth = oauth[row.id]
+            server.serverDescription = descriptions[row.id]
             return server
         }
 
@@ -98,6 +102,7 @@ public final class AIPersistence {
         try context.delete(model: PersistentAISelection.self)
         try context.delete(model: PersistentMCPServer.self)
         try context.delete(model: PersistentMCPOAuthConfiguration.self)
+        try context.delete(model: PersistentMCPServerMetadata.self)
 
         for (providerIndex, provider) in snapshot.providers.enumerated() {
             // A provider with no recorded endpoint is read back as
@@ -122,6 +127,9 @@ public final class AIPersistence {
         context.insert(PersistentAISelection(snapshot.lastSelectedModel))
         for (serverIndex, server) in snapshot.mcpServers.enumerated() {
             context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
+            if let description = server.serverDescription {
+                context.insert(PersistentMCPServerMetadata(serverID: server.id, serverDescription: description))
+            }
             if let configuration = server.oauth {
                 context.insert(PersistentMCPOAuthConfiguration(serverID: server.id, configuration: configuration))
             }

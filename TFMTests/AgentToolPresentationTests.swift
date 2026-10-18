@@ -13,6 +13,44 @@ import struct TermindDomain.Host
 @Suite
 struct AgentToolPresentationTests {
     @Test
+    func mcpCallsUseCallingAndCalledWithoutChangingCommandVerbs() {
+        var card = makeCard(
+            name: "docs.search", target: .mcp,
+            presentation: .init(symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
+        let english = Locale(identifier: "en")
+        card.state = .running
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Calling "))
+        card.state = .completed
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Called "))
+        #expect(AgentToolPresentation.batchSummary(for: [card, card], locale: english).hasPrefix("Called "))
+        card.state = .failed
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Failed to call "))
+        card.state = .waitingForApproval
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Waiting to call "))
+
+        card.descriptor.target = .local
+        card.descriptor.presentation?.actionKind = .run
+        card.state = .running
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Running "))
+        card.state = .completed
+        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Ran "))
+    }
+
+    @Test(arguments: ["zh-Hans", "zh-Hant"])
+    func mcpCallVerbsAreLocalized(_ language: String) {
+        var card = makeCard(
+            name: "docs.search", target: .mcp,
+            presentation: .init(symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
+        let locale = Locale(identifier: language)
+        card.state = .running
+        let running = language == "zh-Hans" ? "正在调用docs.search" : "正在呼叫docs.search"
+        #expect(AgentToolPresentation.summary(for: card, locale: locale) == running)
+        card.state = .completed
+        let expected = language == "zh-Hans" ? "已调用docs.search" : "已呼叫docs.search"
+        #expect(AgentToolPresentation.summary(for: card, locale: locale) == expected)
+    }
+
+    @Test
     func approvalUsesTheRegisteredToolArgumentProjectionWithoutRedactingIt() throws {
         let hostID = UUID()
         let command = "sudo deploy --token=visible-to-the-user"

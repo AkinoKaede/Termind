@@ -712,7 +712,9 @@ public final class AIConfigurationModel {
     /// reconnect would silently undo the decision made about this server. A
     /// genuinely new tool uses its Termind default: a non-destructive tool with
     /// `readOnlyHint == true` is approved, while every other tool asks.
-    public func setTools(_ discovered: [MCPTool], version: String, for id: MCPServer.ID) {
+    public func setTools(
+        _ discovered: [MCPTool], version: String, serverDescription: String? = nil, for id: MCPServer.ID
+    ) {
         mutatePersistedState {
             guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
             let previous = Dictionary(
@@ -726,6 +728,7 @@ public final class AIConfigurationModel {
                 return merged
             }
             mcpServers[index].negotiatedVersion = version
+            mcpServers[index].serverDescription = serverDescription
             mcpServers[index].lastConnectedAt = Date()
         }
     }

@@ -1358,7 +1358,7 @@ private enum NativeTranscriptFactory {
         let expanded = context.presentation.disclosures.isExpanded(disclosureID)
         let header = NativeDisclosureHeader(
             symbol: "exclamationmark.triangle",
-            title: String(localized: AppStrings.Assistant.agentError),
+            title: AssistantFailurePresentation.summary(for: failure.reason),
             iconColor: .systemRed,
             titleColor: .labelColor,
             expanded: expanded,
@@ -1378,17 +1378,16 @@ private enum NativeTranscriptFactory {
                 top: 0, left: Metrics.Sidebar.rowIcon, bottom: 0, right: 0
             )
             detail.addArrangedSubview(NativeVerticalRule())
-            detail.addArrangedSubview(
-                NativeLabel(
-                    failure.reason,
-                    font: .monospacedSystemFont(
-                        ofSize: NSFont.smallSystemFontSize,
-                        weight: .regular
-                    ),
-                    color: .systemRed,
-                    selectable: true
-                ))
-            detail.addArrangedSubview(NativeCopyButton(text: failure.reason))
+            let label = NativeLabel(
+                failure.reason,
+                font: .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
+                color: .systemRed,
+                selectable: true
+            )
+            label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            detail.addArrangedSubview(label)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.trailingAnchor.constraint(equalTo: detail.trailingAnchor).isActive = true
             stack.addArrangedSubview(detail)
         }
         return stack

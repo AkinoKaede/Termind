@@ -328,7 +328,7 @@ struct MobileAISettingsTests {
                 #expect(request.url == "https://draft.invalid/mcp")
                 #expect(token == "draft-token")
                 return MCPDiscovery(
-                    protocolVersion: "test", serverName: "Test",
+                    protocolVersion: "test", serverName: "Test", serverDescription: "Manage gateway tools.",
                     tools: [
                         MCPTool(id: "existing"),
                         MCPTool(id: "new"),
@@ -350,11 +350,15 @@ struct MobileAISettingsTests {
         while editor.running { await Task.yield() }
         #expect(ai.mcpServers.isEmpty)
         #expect(editor.draft.tools.map(\.accessPolicy) == [.deny, .ask, .approve, .ask])
+        #expect(editor.draft.serverDescription == "Manage gateway tools.")
         let conflictingIndex = try #require(editor.draft.tools.firstIndex { $0.id == "conflicting" })
         editor.draft.tools[conflictingIndex].accessPolicy = .approve
         try editor.save()
         #expect(ai.mcpServer(server.id)?.namespaceID == "gateway")
+        #expect(ai.mcpServer(server.id)?.serverDescription == "Manage gateway tools.")
         #expect(ai.mcpServer(server.id)?.tools.map(\.accessPolicy) == [.deny, .ask, .approve, .approve])
+        editor.invalidateConnection()
+        #expect(editor.draft.serverDescription == nil)
     }
 
     @Test func mcpCancellationAndRemoteDeletionCannotRestoreResults() async {

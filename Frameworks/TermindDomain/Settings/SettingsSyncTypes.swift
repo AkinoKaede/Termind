@@ -118,6 +118,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
     public var id: UUID
     public var name: String
     public var namespaceID: String
+    public var serverDescription: String?
     public var transport: MCPServer.Transport
     public var url: String
     public var isEnabled: Bool
@@ -131,6 +132,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
         id = server.id
         name = server.name
         namespaceID = server.namespaceID
+        serverDescription = server.serverDescription
         transport = server.transport
         url = server.url
         isEnabled = server.isEnabled
@@ -143,7 +145,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
 
     public var value: MCPServer {
         MCPServer(
-            id: id, name: name, namespaceID: namespaceID, transport: transport,
+            id: id, name: name, namespaceID: namespaceID, serverDescription: serverDescription, transport: transport,
             url: url, isEnabled: isEnabled, credentialRef: credentialRef, headers: headers, tools: tools, oauth: oauth)
     }
 }

@@ -710,20 +710,16 @@ struct MobileAssistantConversation: View {
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                AssistantCopyButton(text: failure.reason) {
-                    UIPasteboard.general.string = $0
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
             }
             .padding(.leading, 24)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(.red)
-                Text(AppStrings.Assistant.agentError)
+                Text(verbatim: AssistantFailurePresentation.summary(for: failure.reason))
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .font(.callout)
         }

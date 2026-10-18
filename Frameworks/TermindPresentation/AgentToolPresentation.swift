@@ -1138,6 +1138,11 @@ nonisolated public enum AgentToolPresentation {
         if usesLocalizedActionTemplates(locale) { return localizedActionVerb(kind, locale: locale) }
         let forms: ActionForms =
             switch kind {
+            case .call:
+                .init(
+                    infinitive: localized(AppStrings.MCP.callVerb, locale: locale),
+                    progressive: localized(AppStrings.MCP.calling, locale: locale),
+                    past: localized(AppStrings.MCP.called, locale: locale))
             case .cancel: .init(infinitive: "cancel", progressive: "Cancelling", past: "Cancelled")
             case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
@@ -1185,6 +1190,7 @@ nonisolated public enum AgentToolPresentation {
         _ kind: AgentToolDescriptor.Presentation.ActionKind, locale: Locale
     ) -> String {
         switch kind {
+        case .call: localized(AppStrings.MCP.callVerb, locale: locale)
         case .cancel: localized(AppStrings.Common.cancel, locale: locale)
         case .ask: localized("ask", locale: locale)
         case .compare: localized("compare", locale: locale)

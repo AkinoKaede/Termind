@@ -2,6 +2,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum MCP {
+        public static var callVerb: LocalizedStringResource { "call" }
+        public static var calling: LocalizedStringResource { "Calling" }
+        public static var called: LocalizedStringResource { "Called" }
         public static var oauth: LocalizedStringResource { "OAuth" }
         public static var oauthAuthorization: LocalizedStringResource { "OAuth Authorization" }
         public static var oauthSignedIn: LocalizedStringResource { "Signed in on this device" }

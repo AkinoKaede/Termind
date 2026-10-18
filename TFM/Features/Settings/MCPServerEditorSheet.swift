@@ -385,7 +385,9 @@ struct MCPServerEditorPage: View {
                 guard !Task.isCancelled, generation == session.generation,
                     app.aiConfiguration.mcpServer(serverID) == server
                 else { return }
-                app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
+                app.aiConfiguration.setTools(
+                    discovery.tools, version: discovery.protocolVersion,
+                    serverDescription: discovery.serverDescription, for: serverID)
                 app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(
                     String(

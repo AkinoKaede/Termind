@@ -452,7 +452,7 @@ extension AppStrings {
         }
 
         public static var mcpEndpointUrl: LocalizedStringResource {
-            "MCP endpoint URL"
+            "Endpoint URL"
         }
 
         public static var mergeWithThisICloudAccount: LocalizedStringResource {

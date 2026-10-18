@@ -109,6 +109,7 @@ final class MobileMCPEditorModel {
                     return tool
                 }
                 draft.negotiatedVersion = outcome.protocolVersion
+                draft.serverDescription = outcome.serverDescription
                 draft.lastConnectedAt = .now
                 connection = String(
                     localized: AppStrings.Settings.discoveredTools(
@@ -137,6 +138,7 @@ final class MobileMCPEditorModel {
         for tool in draft.tools { policies[tool.id] = tool.accessPolicy }
         draft.tools = []
         draft.negotiatedVersion = ""
+        draft.serverDescription = nil
         draft.lastConnectedAt = nil
     }
 
@@ -212,6 +214,7 @@ final class MobileMCPEditorModel {
             if draft.lastConnectedAt != original.lastConnectedAt {
                 value.lastConnectedAt = draft.lastConnectedAt
                 value.negotiatedVersion = draft.negotiatedVersion
+                value.serverDescription = draft.serverDescription
             }
         }
         value.url = value.url.trimmingCharacters(in: .whitespacesAndNewlines)
