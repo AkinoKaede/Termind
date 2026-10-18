@@ -902,9 +902,9 @@ struct WelcomeView: View {
 
     private var searchField: some View {
         TermindSearchField(
-            text: $query, prompt: AppStrings.Workspace.searchHostsOrTemplatesOrTypeSshUserHost, density: .prominent
+            text: $query, prompt: AppStrings.Workspace.searchHostsOrTemplatesOrTypeSshUserHost,
+            density: .prominent, externalFocus: $isSearchFocused
         )
-        .focused($isSearchFocused)
         .onSubmit(submit)
         .onChange(of: query) { _, _ in
             hasSubmitted = false
