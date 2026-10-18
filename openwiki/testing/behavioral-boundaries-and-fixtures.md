@@ -172,10 +172,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "pi", at: "2026-10-18T17:39:35.546Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-18T17:39:35.546Z
 ---
 
 # Behavioral Boundaries and Fixtures
@@ -351,7 +351,7 @@ For tool-card changes use `AgentToolPresentationTests`: the registered tool's ar
 
 For Ghostty menu changes, test the app seams: `TFMTests/TerminalContextMenuTests.swift` checks AppKit blank-space and selection menus, Paste on Right Click/Option behavior, live upload availability and late pane teardown; `TFITests/MobileTerminalUploadMenuTests.swift` checks the native Photos/Files group and disabled states. The mobile suite also checks localized editing actions before Upload and system AutoFill, for both unselected and selected menus. It is serialized but constructs menus offscreen, without a key window or the mobile UI gate.
 
-Package gesture/selection validation remains a separate **upstream-package step**, not locally inspected or executed coverage here. Ghostty comes directly from `Lakr233/libghostty-spm`; there is no local maintenance submodule to initialize. Inspect the selected package's source/tests for direct-touch, indirect-pointer and dispatch behavior rather than assuming the removed fork's paths. Termind owns grouping/localization through separate `touchMenuItems(for:)` / `touchSelectionMenuItems(for:)` overrides; app composition tests do not establish package internals. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md).
+Package gesture/selection validation remains a separate **upstream-package step**, not locally inspected or executed coverage here. Ghostty comes directly from `Lakr233/libghostty-spm`; there is no local maintenance submodule to initialize. Inspect the selected package's source/tests for direct-touch, indirect-pointer and dispatch behavior rather than assuming the removed fork's paths. Termind owns grouping/localization through separate `touchMenuItems(for:)` / `touchSelectionMenuItems(for:)` overrides; app composition tests do not establish package internals. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and [Ghostty Dependency Updates](../operations/ghostty-dependency-updates.md).
 
 For MCP upload changes use `MCPUploadTests` with the real coordinator and streaming operation, a fake SFTP client and controlled clock. Protect ticket/run scope and capacity, acknowledged-offset resume and full digest, bounded streaming/backpressure, timeout/cancellation and cleanup residue, revocation on disable, conflict policy and queryable terminal status. `actualHTTPRouteStreamsAboveTheMCPBodyLimit` additionally runs a loopback HTTP server for fresh and resumed bodies larger than the ordinary MCP limit; a passing fake SFTP upload does not establish interoperability with a real remote server.
 

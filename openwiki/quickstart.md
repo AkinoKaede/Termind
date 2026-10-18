@@ -84,10 +84,10 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "pi", at: "2026-10-18T17:39:35.546Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-18T17:39:35.546Z
 ---
 
 # Termind Engineering Quickstart
@@ -120,7 +120,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | SSH admission/backpressure and multiplexed I/O | [SSH Multiplexing and Scheduling](concepts/ssh-multiplexing-and-scheduling.md) | Multiplexer and worker-lifecycle tests |
 | Security Key registration, signing, Vault metadata, silent-connection restrictions | [SSH Security-Key Authentication](concepts/ssh-security-key-authentication.md) | `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, `SSHInteractionPolicyTests` |
 | Terminal Find, mobile search dismissal, SFTP filtering, retained surfaces | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Mobile UI](architecture/mobile-ui.md) | `TerminalFindControllerTests`, `MobileTerminalSearchIntegrationTests` in `TFITests/MobileTerminalSearchTests.swift` |
-| Ghostty menus, touch selection, fonts/themes, surface identity or dependency APIs | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Ghostty Dependency Maintenance](operations/ghostty-fork-maintenance.md) | `MobileTerminalUploadMenuTests`, `TerminalContextMenuTests`; review resolved upstream source for package internals |
+| Ghostty menus, touch selection, fonts/themes, surface identity or dependency APIs | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Ghostty Dependency Updates](operations/ghostty-dependency-updates.md) | `MobileTerminalUploadMenuTests`, `TerminalContextMenuTests`; review resolved upstream source for package internals |
 | Active directory, draft input, command lifecycle and context consumers | [Shell Integration and Terminal Context](concepts/shell-integration.md) | Context and command-monitor tests |
 | Terminal/metrics/Agent service ownership, host-scoped forwarding | [Remote Services and Forwarding Boundaries](concepts/remote-services-and-forwarding.md) → [Port Forwarding Pool and Dispatch](workflows/port-forwarding-pool-and-dispatch.md) | Service/pump/pool tests; native metrics authentication uses `MetricsJourneyRenderingTests` and `MobileMetricsJourneyTests` |
 | Tailscale groups, login/logout, peer identity, routing and cleanup | [Tailscale Integration](integrations/tailscale.md) | Group-editor, identity, integration, cleanup, metrics and sync-safety tests |
