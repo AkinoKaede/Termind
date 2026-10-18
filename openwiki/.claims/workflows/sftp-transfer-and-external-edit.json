@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:135f0057c24f9ae1e6213b024679e2e40099ef18f2900f147de3972ec2fc5454",
+  "pageVersion": "sha256:697f7152145855732effc771787590136b68a48587cc9f88409512a3944e4a05",
   "claims": [
     {
       "id": "claim_5ca6241ea6cc4ebbb915ccbe304f8430",
@@ -43,7 +43,7 @@
       "statement": "Queued transfers use saved snapshots or managed contexts, not externally borrowed channels. Saved leases and context silent opens resolve fresh one-shot interaction-forbidden requests with current host access and identity/key/proxy secrets from credential-free snapshots. Once-only trust is not promoted. Requests resolve current Tailscale networking and fail without required network rather than using system fallback. Opening cancellation bridges task/token cancellation, removes observers, checks cancellation before returning and disconnects on failure.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L275-L455",
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L285-L465",
           "version": "repo-lines-v1:sha256:0ffa7d112f32143df59d32f77b971bffb49961f541b99a9aecf601b9f71471fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2OGU3MmNiNDE2YzFlMGMzMDQ3ZmI2ZDUxZDNiNDY5ZTY4MjY3NTIzNWYxZGE5MGMwZThlN2MyZmE3N2Q4OWI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3MGQ2MmNlN2I1ZTVmMmY2NTczMjU0NjJkMDgzNjMyZTU2MGNiODc2MzU4MTFjMWFmMGY0MDZhNTVmODU0MTJhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4OGI2MzFhM2Y3M2QwMDRlNDhlZTIzZjc5YmExMmIxZTUzMWM4ODM3YWQ4OWVjM2MwNzYwZTc5YWMyZjI1M2ZjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzYTNmZmUyOTU2YTkyNjdlMjAwZGI0MWMyMmUwMGJjZDFjZTIzODRmYWZlNzBmZmE4NmIwMDlhNWYwMjExY2U1In0"
         },
         {
@@ -417,8 +417,8 @@
       "statement": "Agent built-in SFTP read/write and scratch pull/push request logical-file admission, while SFTP metadata tools use the default non-data path; SFTP operations validate and normalize remote paths before using the authenticated pool lease.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L206",
-          "version": "repo-lines-v1:sha256:7647a400325efb06e00b502f3195513ae9d3a66f5498707c795c3f0de4034910:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhODhhY2FmNzgwYzRkMGFjOTBhMTY2ZDVjODdjMDVhYThjNTE0YmE4MjY2ZWViNGI3MWRhNGFmNjA4YWZlYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZWFmMjVkNTY2YWY3MDRlZDQyMDQ3YTk4MjY3NGQ0Y2U1OWQ0YzQ3N2NlZWQ4ODE0OGViNDc0MTIzMjc1OTUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208",
+          "version": "repo-lines-v1:sha256:37be3b56f028020b116d78b52d09509f693e2b6ae901589afe2f3ee1c589c869:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2NDE2YWU4ODRhOGU5MjNkMDBlZTdkYzk3NmI2NDViYzg5OWM3ZGQ2OTBlMTdjMWYyMjgzNjA5MGY3NDk5OTgifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L75",
@@ -543,7 +543,7 @@
       "statement": "MCP uploads are session-bound HTTP tickets with a separate upload budget and offset/length/token validation; their streaming SFTP transfer uses the Agent pool and file scheduler, not browser coordinator queue rows, while cleanup acquires a separate non-data SFTP lease.",
       "evidence": [
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L37-L63",
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L40-L66",
           "version": "repo-lines-v1:sha256:22f0d6a315104b5fd2d9ab180e8d95c250b38dbc1a5cc5b5504e37a516e0db63:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3ZjA1ODBhYjJkOTc0YWEyYmEyNzE4MzE4ZDA0ZmVjOGFlMDA5NTBkMjFiMDIzOTJlZmJkODMxZjQ5ZjgxMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5ZTUyZmRhNjQyNWQzM2ZhY2IxNzc0NTQ2NWQ4Mjc2MzhkOTIwMTM4YzUwMTU4NzRiNjU1NmNiMzdhMWMwY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiM2U1MGViOTg5ZWIyYWRkMzUwZDBiY2I1MzJlOGY5Yzk5ZmU1N2JhM2Q1YzUxZDNiOTUyOTAxN2Q5MWRjOTYifQ"
         },
         {
@@ -579,23 +579,23 @@
           "version": "repo-file-v1:sha256:00dfaa89bb467aaec976ecb2dac1e61dbc71e5966242f6686efe905d92b9733c"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L335-L338",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L356-L359",
           "version": "repo-lines-v1:sha256:a01e377c205a130caf330836c31c79013f28521f9716c64ea36dc963441c7b65:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTMwMzdiMWQzMWYwNjZmYzJlNDEwOGE0M2Y1ZWY4MTQwOWJiYzIxMDdiYmQ3NDhmZGFiMWRhZmRmYTNiMDg0YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWMwOWY5MGQyODU1OWZkNDU4NTQ0YzFhYjA3ODQ3MGE5MjJhMzM1YmQ0ZDIwMmYzOWE4NjdjMzljMjNhMzMyMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjczNzA2ZWU1NzYwMzFiNWMyMzhhMGViMmFhN2Y4ZjI5ZjMyZjg0ZGFhZGVlNjgzZDYyYjc1MzMxYWE5ZDBkZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTQ0NWZkMDJiZWJiZTNhODlkZjU5YjgwNWExOWU0YWExNjE2MzMwZTkwODk0MzEyMDIxNzgwNzgzZTI2MzVmNCJ9"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L411-L429",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L432-L450",
           "version": "repo-lines-v1:sha256:582592dbf770146fa8fb1bd516791792137cdd268f6e08c03e8dd4cc7f75b244:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZmRmOGU1ZWM3NDIzOThkMGI2NDNhYTIwZTRmNTkyNTgwMmM3NDg3YmY0MWQwZjFlZjA0NzRjMmU5YzU5ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNjExYmE4NjJhMDE5NmIwZmRhMzhlMTNhNGEyYjA2MjMzYmRiZGYxMDg1YmJmY2VkMWYyZmUzM2NlMTdiY2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3NDVmMDRiM2FlOWQ3N2MyOTlmOGQyNDQwZjkzZjJlZjBmYWU2ODgzNDQ3NTM3Y2YzY2I5NTMzMWEyNjdiMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlYWNhYjVkZjc2ZDE2NGRiZTQ2Mzc0NzVlYTY4ZTcyZGY1MTMxZDRmMjk3MmFhMzA2MDZlMGVhNGUyOTFiYmEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L481-L484",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L516-L519",
           "version": "repo-lines-v1:sha256:db0e92d61633acdb4c879895a200fa4c923d433729c6224138f222bba1e49d53:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzBiYjIxZThlMWMwNTJmMDM3Mzc0ZWFiZDk0ZGY3OTljNzNhM2E5M2NhMmQyYzk0ZDc3NjA5ZTc1M2ViODU1NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmFhMDIyNWY0MWUxMTU1NWMzNDUxMTVhMDdiMzY0YjBiZjc0ZjQyNDMwYWZiZjQ3OTM1Y2M1NjY1ZjU1OWIwMiJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L297-L304",
+          "resource": "repo://TFM/App/AppModel.swift#L310-L317",
           "version": "repo-lines-v1:sha256:ffc519db4c85fe1e6ddab6735c746860834cffa16fb0da7038dc20306e53f1ba:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTMwMzdiMWQzMWYwNjZmYzJlNDEwOGE0M2Y1ZWY4MTQwOWJiYzIxMDdiYmQ3NDhmZGFiMWRhZmRmYTNiMDg0YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjAxZGRmYTJjMDM4MmYzYjYzNzM5MmMwNzBiODhiYWU5ODdlMzYxYzY4YzY5NjkzOGVmMzk4YTUzMzBkOWVlMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjRlMTQxNjg2Njc4YWNhYzkyMmJmOTdjMGY2NjQwMjE2MjBlNTYwMTM3MWZlMjI3MDkxNWJlOGQwOGFmZjUxZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjQyNWMyZmIzNGQ1N2VmMzI0ZmMxNWYyMjAzYmJmNTUzOGY0NzE5MzcyOTJlZTA4MTFkMTA0ZTc1YzkxMmI4MSJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L499-L502",
+          "resource": "repo://TFM/App/AppModel.swift#L512-L515",
           "version": "repo-lines-v1:sha256:a86941f823947913680dea35851838bf3ae342d032f6f17f4ba83a4160a3d53c:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2U2Y2E1N2M4MWRmOTU0NDRjYzU3NTk5YWYxNmQ4YTBjMDlkOWEyMzc2ZjlhMjZjODM4N2ZmM2JiMTY1MTY2NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzUwZmJmMGU0YTM3MDQyMWUzMjY5ZjhkNTkzYjRjYjkyZGY5YWFkNWQ1NGQ4NTdkODQwODUzZjc4ZjY1YmZlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTU5ZDE0ZTg1NjMzYjFkNjI1YWUzZGVmMDc2MmRlMTNhM2ExNWYzNTcyY2Q3YmE4MGRlMTEyN2RhMmVhOGEwYyJ9"
         }
       ]
@@ -617,10 +617,110 @@
           "version": "repo-lines-v1:sha256:cdaf40df72fe09ba2812abcb3550b688fa7992ed5ac4a24b244db456707d1762:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhZTEyYTFjNjM2NGI5YTVmZjdjMzM1NDRhZjgzMzI2MzlmZmJkYTg5Yzg2YTk5YThjNjk2OTc0M2IwNWVmM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2YjNlMmY0ZDFmMDAzZDA5NjJiM2YyNjI5MTIzMTg0YTQ3OTI0NDllM2ExZDkyMmUyYTQwOTExNDAxMTgzY2IifQ"
         }
       ]
+    },
+    {
+      "id": "claim_92f1b8a00a314cc2977a7855ab515e24",
+      "statement": "sftp_read exposes 1-based line pagination with schema offsets 1–10,000,000 and limits 1–2,000, defaults to 2,000 lines, and returns up to 64 KiB of whole-line UTF-8 content with continuation metadata; the reader normalizes CRLF and rejects invalid selected UTF-8, past-EOF offsets, and oversized lines.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift",
+          "version": "repo-file-v1:sha256:3a86ee343ab054e9c5faf47239e8252b6f779edb8bf9832277204bce6107e149"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentTruncateResult.swift",
+          "version": "repo-file-v1:sha256:c6cdf7eddae5bebf9d26e07e7fe38dce8987c749a95024a80d1127d5975c044c"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170",
+          "version": "repo-lines-v1:sha256:e749fc81e27312adf9df5aef0fe8685599d9be3884afb255b254f9be23081515:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MmRmZjk1OWQ5Yjc1Y2RlMWM2NGI1ODQ4NzIyOGYwNzk1ZjEyYWQxMDBkYWQ2NDJhZDY1ZDMxYWZhMzhhNjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_49321d6c7998406cbb6343b1a2b5bd5a",
+      "statement": "The default SFTP readTextPage implementation reads the file under the 8-MiB scratch ceiling before pagination, while concrete inline reads use chunks up to 64 KiB and a one-byte overflow probe; sftp_read's 64-KiB scheduler estimate is not a limit on actual network bytes fetched.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L287-L287",
+          "version": "repo-lines-v1:sha256:f46edac9a7f42a1baea414b02dd03c2ad0da3e256034c15cc98deb4805947ed1:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjQ2ZWRhYzlhN2Y0MmExYmFlYTQxNGIwMmRkMDNjMmFkMGRhM2UyNTYwMzRjMTVjYzk4ZGViNDgwNTk0N2VkMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjQ2ZWRhYzlhN2Y0MmExYmFlYTQxNGIwMmRkMDNjMmFkMGRhM2UyNTYwMzRjMTVjYzk4ZGViNDgwNTk0N2VkMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTdlMGZhMmM4NjhiZmIwMzViOGEzYmI0NTI4ODdmZWRlYTJlMGRkNDU0YWJhMmM3Yjg5MDVjMTlkNDM2ZjNjYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMThmOGQxMzA3YmU5ZDE1NDNkN2I4NGM0MzNiNGJkYTNiOGM1OGY1MjBlNDgyNTA1ZDI4YzY2NmQzNTFiZDM2MSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L151-L158",
+          "version": "repo-lines-v1:sha256:2ebb2d40f9c3ef6e2a84b6b66830bcaf41fc5de8b97487611caa9037cbd86142:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjkxZjMzOTczMTBhOTFhZTY1YTIyZTViMTdkNTNkOThmMmJkOWJiOGYyYWVjNTAyNGFlODRkYWYyMDc0MTQ0ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTZkMDQ2ZjU0OGEyNTgzZGMyZWNjOTY1Yzc2YjQ5MWE5ZjBiNzI1ZmJiMTQ0ZTI3OTZlZGIzNDI5MDc3MTE4NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjMzMGE2YTZhZmJkMTQ2YjA3Y2ZmY2FjZmNlMjQzYmU3N2Q5MjI5MmQ1ZjdjYzc1MDNiZDJiOWY5NzczZTY1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGZiMTVkZmE1NjEzMmY5Y2E2ZDAyOGM2NWM4N2U0ZTkyNTNjNTllYzRjZWQ2NWU5NWY3MzRkMTcyOGExZGZlYiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L240-L263",
+          "version": "repo-lines-v1:sha256:3af0e05e9b8e2a122b39e0bd7e5e5b8a36b47f41a695738f74db7e474dae1fe2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiMTNkNWE2MDkxOWE1ZDE1OGRhYjZkMDYwMDRmOGI4MjIwNDI4YWE5MDQxYmViNzI5NzMyN2YxYzE3MTZjNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlYTM2NTYyOWJmMzRjMjk3NzMwYmVjNjUxM2IwMjVhYjI4YjJjNTQxYzk1MWE1ZWFjMDAxZjM5YzdlZWFkNzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1ODIyZTQ5NzNkZDcxZWFjYjE5ZTE2Yjk4YjcxYmEzNmZiYWIzYWEyOWIzMWVkMmRhMzZkODNlYjBmODBjYjYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L173-L178",
+          "version": "repo-lines-v1:sha256:e906824159021d28ad99af699fbda0cefea366e47229c1cb26b481a70d5a5287:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjg2MjI3NTU1NjIyMDE3MjNmYWE2YzE0N2IyMDE0ZGYxZWIxZjFjZDEzMWZiZTBiNTcwZWQ5NzNmYjcyOWQzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGUxOWI1NzYzM2FjMjFmNzE1ZTNlMzE2ZWFlOTI3ZGFiNzBhYWJmNjYwM2ExOGU0YWVhOTJiZjk3YjU1OTgwMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDJmZTE1MzI5YjE3MTBjNWE1NTY2YjdhZWE2YzE4NzRmY2FjNzZhODg4MjQwYmFjNmRlMDU3MmRhYzY4YjIxMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_06d10c06caf049d0ae196ea5c2f9dd45",
+      "statement": "sftp_read marks results as bounded model content, selecting redacted page-aware projection that budgets escaped JSON and framing and corrects returned_lines, next_offset and eof when fewer lines fit; raw and external-client results are untouched by model projection.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L129-L175",
+          "version": "repo-lines-v1:sha256:fe99da2985d8654a711a7a5eec8f63b0be3de41691ed18b4c07182ee526b831e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0ODQ4YWI1Y2UyNTZiMWQ2NmNiZjJkZjJlZjVlNDM3NWUzMTIzMGM4NmFmOTJlYjQwNDk1NGRlMTlhMjUxYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmNGY3OTIyZjBmODVmOTVjYWY4NzA2NjdkZDQ0NjIwNGJiMGY4NmRkYWFlZGZjY2NlODU1YTRlOGYxYWNkYjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZmM2Yjg3YzA0M2I3NjQ0YmZmOWJjNDVkNmNjMjBkYzlhOGI0ODA1NzU2ZGY5NjFlMjcyY2NiYzgzYmFiZjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyM2QwY2U4NDQ5ZDUyNzQ1NzQ2ZDZhZDBjMWFhMDE4ODUyMzk2Yjg0MGJkNmFkOTg3Y2JjNmQ3M2QyMjc4MWQifQ"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L22-L50",
+          "version": "repo-lines-v1:sha256:8a9de3264c6e9457406b802c571543357278d8b264ce44a7d58fdea2f67f8071:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4MmM4MmU0YzdkZDcyYjc4Nzk4OGY2NTQ4MWNmYWFhN2I2ZjdhNGYyYTVlNTBiYjA0ZTFiNTJhMDM1MWQyYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYmJiN2Y1YTE1NjIwYzQ2YTQ5N2I1MDM3NDQ0MTIxOWE0MTQ0ZjJkZDFmMDQwZTMyOTNlMzlmZWQzNDhiM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwYjI1ZWQ5ZjVkNjk3ZjgwNjVjYjQwNTkyMjljZGU1Mzg2Mzc0N2ViNTM0OTA2ZWU5Yjg2N2NlNzJmNzhjZTkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L160-L170",
+          "version": "repo-lines-v1:sha256:84476cb8a424119b074389dfe61cc674bf94ae5fafc5170340b511dba6c51dc1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYzMyZGNhMDI4YjM0YWE0ZTc4YjVjZTU3YjlmOGNhNzIxZWI1OTBhNWNmMTYyY2VhODQ4NDQ2ZjVlNDEzYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmMGEzZjI2MmVkMTA4M2Y3ODg5ODBjMDI0MDE1NWZhYTU4NGQ4ZDgzN2U5OTU0OTk3MDBhODlmZTg3NzM1ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MmRmZjk1OWQ5Yjc1Y2RlMWM2NGI1ODQ4NzIyOGYwNzk1ZjEyYWQxMDBkYWQ2NDJhZDY1ZDMxYWZhMzhhNjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a74b0eb27aa14fcaab851040bafaf4c6",
+      "statement": "sftp_read declares .approve with inherited parallel concurrency and sftp_write declares .ask with inherited sequential concurrency, independently of both tools' data-transfer admission; write content is schema-limited to 131,072 characters, estimates UTF-8 bytes for scheduling, and defaults overwrite to false.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentJSONSchemaValidator.swift#L58-L58",
+          "version": "repo-lines-v1:sha256:f989d5eda53f66488d264c466965e9abbab3fae21aceb11980d9e2522c98420a:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjk4OWQ1ZWRhNTNmNjY0ODhkMjY0YzQ2Njk2NWU5YWJiYWIzZmFlMjFhY2ViMTE5ODBkOWUyNTIyYzk4NDIwYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjk4OWQ1ZWRhNTNmNjY0ODhkMjY0YzQ2Njk2NWU5YWJiYWIzZmFlMjFhY2ViMTE5ODBkOWUyNTIyYzk4NDIwYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTBhNjIzYmVjOGJlZGVhOTI3MTgyMDQ1ZjhiODAzYjA5YzA3NmE3NjUxNzg0MDQyNDQ4MzY2MzkzODI0MzMwMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWNjZWEyZjExMmFjNDRmYTk2OWM1NmViNGY5ODQwMzNkMjgxMjE0ZjI3OTAzNmMzNmRjMTdlZGQxNzQwMDQ1ZCJ9"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentToolSchema.swift#L54-L54",
+          "version": "repo-lines-v1:sha256:3f01da26896c23e2cda904d34742eaa3fb7a965ebec800555cff1b520e986aeb:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2YwMWRhMjY4OTZjMjNlMmNkYTkwNGQzNDc0MmVhYTNmYjdhOTY1ZWJlYzgwMDU1NWNmZjFiNTIwZTk4NmFlYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2YwMWRhMjY4OTZjMjNlMmNkYTkwNGQzNDc0MmVhYTNmYjdhOTY1ZWJlYzgwMDU1NWNmZjFiNTIwZTk4NmFlYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTdjZmJhZTdlMDQ2ZmJhYTYwMzYyMTdjZjZlYTIxODQ4M2VjMjNlZGVkZDUzZjEzNjdhMmQ1NzYxYTAwYTc4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjU4MjY0MDZlNWQyZWExOTYzMjhlNWZmZGUyYzY4MDRkYzVkYTE4OThmYjIxZDk3M2M0NGQ4MDYyNDlmNDNkYiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208",
+          "version": "repo-lines-v1:sha256:37be3b56f028020b116d78b52d09509f693e2b6ae901589afe2f3ee1c589c869:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2NDE2YWU4ODRhOGU5MjNkMDBlZTdkYzk3NmI2NDViYzg5OWM3ZGQ2OTBlMTdjMWYyMjgzNjA5MGY3NDk5OTgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L32",
+          "version": "repo-lines-v1:sha256:d2b330ec393b7ca37c339ee197ebcb7ead640e12843c59b1d6c0ca266f15d48d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU2NGEyYTM4NWUzYjE1MmI3ZTlhYWJhZDliMGUzOGY5NjgxNGYxODdlYTg1ZTFlZmNmYmMzNWM3YzBmNTJjMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTZjMGZkMmE0ZjQ1ODRjMmRmNTM0ZjFhODk4Y2NjNDE5NGQ5NzI3MDhiNWYwMzVhYWZkNDZlZTA5OGM3ZWYyZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjk1NzY1MDM3MTAwNTQ1ZWQ5NjY3NzQ1NTFhMGE5YmQ5ODg1ZGVjYzQxZjY5NmM5ODAyYTMzZWVhYjQ4NmUwMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWQ2YTI0MWM4MzMwOTAyZTQwOGMyZjNjNzRkM2UyZmVlYjM2YmY1YjM2NTk1OWJmYmUxOWM1ODYwZjc3MWI0NiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_40526302aca04a83b8eebaa4223ca256",
+      "statement": "Inline SFTP writes use a sibling .termind-write temporary, close it, recheck destination conflicts, and rename into place, attempting temporary cleanup on failure rather than using the coordinator's resumable queue lifecycle.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L265-L282",
+          "version": "repo-lines-v1:sha256:3886cd14c965cc5fe30314fd1c296a8d0ad9d9e7dfc04c621bed69898e9ac42f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2YmYxYmZkMTA4N2VhMGIxNjQ3OGQ4ZmM4MDg1NzE2NTgxMDU1NmNkNDZiNWJlYzE3ZDYwN2Y0ZTIwNzRkYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4MzUwYzdhMGYwNjJhZTRjYTZlODU3Y2VmMzZiOGU0YTUzMjNiMGU5YjVlYzlkNzY2YzA2ZWY3NzAwZTRlZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5ZGE3YmE5YThmM2FmMmJiZDY0ZTQzNWU5ZGZhNjhjZGMwZDhlNjMyNTdkZmY5ZjE3YjNlMjc4Nzc0ZjYzNmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_43b9205ebcf84b96a8c20d2a02d25319",
+      "statement": "AgentTextPageTests cover split multibyte characters and CRLF, whole-line byte bounds and continuation, empty files, invalid offsets, oversized lines, and invalid UTF-8 at the reader level.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift#L8-L46",
+          "version": "repo-lines-v1:sha256:c4f501055e4c14b7bf0e98256957ec3202c9f3966babb6158650d09f5ece5fde:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlMmM3YmRjZTIyZjY0YzYxZmRlNWZhYzQ5M2RkN2FlYTE0YmZhMTA0OTk5NDkwODg4Y2M3MjgwY2U3YTJkYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

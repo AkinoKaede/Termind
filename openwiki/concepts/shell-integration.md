@@ -1,6 +1,6 @@
 ---
 type: implementation guide
-title: Shell Integration and Terminal Context
+title: Shell Integration
 description: "SSH shell startup, multiplexer context inspection, display-only native directories, context-bound history and capability-gated drafts. Explains active-context authority, replay protection, command notifications and separate Telnet semantics."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
 sources:
@@ -12,8 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
   - id: openwiki-source-1b008d375c28ace3a9684717
     resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
-  - id: openwiki-source-9302a1b0b7b0f5227d741afd
-    resource: repo://Frameworks/TermindDomain/Hosts/HostShellIntegrationMode.swift
+  - id: openwiki-source-86eb75ab2f7e6931267a0dea
+    resource: repo://Frameworks/TermindDomain/Sessions/SSHShellIntegrationEvent.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
@@ -40,23 +40,33 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
     resource: repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift
+  - id: openwiki-source-9a89b3839a1dab08fc7159de
+    resource: repo://FrameworkTests/CommandNotificationContentTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-ff78389501d942aabe259a03
     resource: repo://FrameworkTests/TerminalCommandMonitorTests.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
+  - id: openwiki-source-6551e1821f08f37b10dfe7fa
+    resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# Shell Integration and Terminal Context
+# Shell Integration
 
 ## Ownership and entrypoint
 
@@ -64,7 +74,7 @@ Shell integration is a **PTY startup feature**, not a prerequisite for authentic
 
 For an ordinary integrated shell, preparation creates `/tmp/termind-shell.XXXXXXXX` with `umask 077` and launches its wrapper instead of typing installer text into an attached terminal. If helper installation fails, integration becomes unavailable: it **never falls back to typing a bootstrap**. This protects login scripts that auto-attach tmux or exec a full-screen program. Without preparation and integration, the plain path simply starts the shell. The older queued bootstrap state machine remains a parsing/testing seam described below, not the normal integration-enabled entrypoint.
 
-`HostShellIntegrationMode` resolves `followGlobalSettings`, `enabled`, or `disabled` against the global terminal preference. Desktop and mobile capture that decision at the beginning of a connection attempt; changing settings does not retrofit hooks into the live shell. `HostShellIntegrationSessionTests.connectionRetainsItsPreferenceUntilTheNextAttempt` protects this boundary.
+`HostShellIntegrationMode` resolves `followGlobalSettings`, `enabled`, or `disabled` against the global terminal preference. Desktop and mobile capture that decision at the beginning of a connection attempt; Mosh explicitly disables integration regardless of the preference. Changing settings does not retrofit hooks into the live shell. `HostShellIntegrationSessionTests.connectionRetainsItsPreferenceUntilTheNextAttempt` protects this boundary.
 
 The value-type bootstrap and event filter are driven by the PTY's queue-confined worker behind its actor facade. Keep the pure parsing/state-machine seams separate from native feature state. For authentication and teardown context, start with [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md); for shared I/O ownership, use [SSH Multiplexing and Scheduling](ssh-multiplexing-and-scheduling.md).
 
@@ -260,19 +270,25 @@ The following legacy client behavior applies **only before runtime context takes
 - **Startup submission readiness** is separate from command-generator prompt readiness. Desktop can unblock a pending startup command on `.available`, `.promptReady`, or `.homeResolutionUnavailable`, so failed/late integration does not indefinitely withhold startup work.
 - **Composition** reads the current shell draft with `ESC [777;1~`. `TerminalCommandDraftController` allows one pending read, times it out after 2 seconds, and resolves it from a draft event. Replacement sends the clear binding `ESC [777;2~` followed by bracketed-paste start/content/end, with no submit newline. The feature gates reads on a live supported shell, enabled/available integration, and prompt readiness.
 
+### Startup fallback is not shell capability or transport recovery
+
+`SSHShellIntegrationEvent` separates `.runtime` context updates from legacy hook events and `.ordinaryStartupUnavailable(ticket:)`. The latter can release a pending ordinary startup command without granting cwd, lifecycle, or draft capabilities. Both platform consumers handle it before the legacy-event gate, refuse it for managed attachments, and discard pending startup work when its ticket is nil. A valid `SSHOrdinaryStartupTicket` binds fallback submission to a transport generation and input revision; the worker revalidates that epoch before writing. A later prompt must not replay a rejected startup command. See `HostShellIntegrationSessionTests.ordinaryStartupFallbackSubmitsOnceButNeverIntoManagedAttachments` and `rejectedOrdinaryStartupDoesNotReplayAtALaterPrompt`.
+
+This startup signal does not reconnect a transport or restore a remote session. Those responsibilities remain in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
+
 Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md).
 
 ## Completion observation and notifications are not prompt readiness
 
-`TerminalCommandMonitor` is per terminal/workspace and is **separate from command history and the prompt-ready bit**. Desktop SSH and mobile workspaces forward accepted integration events to it; desktop SSH, Telnet, Serial, and mobile terminal surfaces also attach `TerminalCommandObservation` to Ghostty's `TerminalViewState`. The observation drops the initial duration publisher value and reads the exit code in the same sink as each newly published `lastCommandDurationNanos`, including consecutive equal durations. It forwards OSC 133 completion data to the monitor without command text. This fallback can account for command completion even when no Termind hook was installed; it does not assert shell-hook availability or unlock draft composition.
+`TerminalCommandMonitor` is per terminal/workspace and is **separate from command history and the prompt-ready bit**. Desktop SSH and mobile workspaces forward accepted integration events to it; desktop SSH, Telnet, Serial, and mobile terminal surfaces also attach `TerminalCommandObservation` to Ghostty's `TerminalViewState`. The observation drops the initial duration publisher value and reads the exit code in the same sink as each newly published `lastCommandDurationNanos`, including consecutive equal durations. It forwards OSC 133 completion data to the monitor without command text. This fallback can account for command completion without Termind hooks only when the consumer permits unscoped completions. Desktop SSH calls `requireScopedEvents()` immediately after `beginConnection()`; mobile does the same for `descriptor.kind.isSSHTerminal`. Those sessions therefore do not regain OSC 133 notifications merely because hook installation fails or integration is disabled. The fallback does not assert shell-hook availability or unlock draft composition.
 
 ```mermaid
 flowchart TD
     Surface["Ghostty terminal state"] --> Observer["OSC 133 completion observation"]
     Hook["Accepted SSH shell event"] --> Monitor["Terminal command monitor"]
     Observer --> Monitor
-    Monitor --> Gate["Focus and notification preferences"]
-    Gate --> Unread["Unread completion count"]
+    Monitor --> Unread["Update unread count from focus"]
+    Unread --> Gate["Check notification preferences and focus"]
     Gate --> Delivery["Bell or system notification"]
 ```
 
@@ -281,6 +297,10 @@ Completion reporting sources converge in the per-terminal monitor; notification 
 At `beginConnection` the monitor permits OSC 133 fallback and clears both unscoped and per-context running commands. Legacy `.available` selects private start/finish reporting and suppresses OSC 133; legacy private finishes require a pending start. `receiveRuntimeEvents` disables unscoped OSC 133 even for an empty event list, and pairs starts/finishes by full context identity so independent panes cannot overwrite each other. `requireScopedEvents` can disable fallback before runtime results arrive. The coordinator, not the monitor, enforces runtime sequence continuity and replay rejection. A valid nonnegative finite reported duration wins, otherwise elapsed nonnegative uptime is used. End/begin clears source and running state across connections. None of these completion paths grants prompt readiness or draft capabilities.
 
 The monitor increments unread completions for background work **before** checking alert eligibility, even for a subthreshold completion, disabled notifications, or a `never` mode; a focused workspace clears the count at completion and `markRead` clears it explicitly. `NotificationPreferences` defaults to enabled, unfocused-only terminal delivery with a five-second minimum and system notifications; mode (`never`, `unfocused`, `always`), focus, nonnegative threshold and master switch determine whether to alert. The app's `TerminalNotificationCoordinator` then selects one delivery route: a bell or a notification targeted to the terminal identity, with live title and policy rechecked at actual system delivery. The command preview in notification content collapses control characters and whitespace and truncates at 160 characters; OSC 133 completions have no command text. Custom Ghostty `notify-on-command-finish` overrides are filtered and the terminal configuration forces it to `never`, leaving app settings in charge of delivery. See `TerminalCommandMonitorTests`, `TerminalNotificationCoordinatorTests`, and `CommandNotificationTests` for duplicate finishes, reconnect, equal-duration publication, focus/threshold and delivery-race coverage.
+
+Platform consumers keep unread state distinct from delivery. Desktop workspaces sum pane-monitor counts and take the maximum of that sum and a manual-unread floor of one. Mobile workspace sessions apply the same floor per workspace, including saved workspace items; marking read removes the manual flag and clears the live monitor. Both apps wire monitors to `TerminalNotificationCoordinator` with platform-owned target identity, focus, title and bell handling. Disabling alerts does not erase these workspace badges.
+
+[CommandNotificationContentTests](../../FrameworkTests/CommandNotificationContentTests.swift) checks one-line content for success, failure and unknown status, including blank or absent commands, and verifies that truncating a long command does not remove the failure code.
 
 ## Charset boundary and the separate Telnet path
 

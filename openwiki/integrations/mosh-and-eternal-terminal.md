@@ -1,10 +1,11 @@
 ---
-type: "Reference"
-title: "Mosh + Eternal Terminal"
-openwiki_generated: true
+type: Reference
+title: Mosh and Eternal Terminal
+description: SSH-bootstrapped resumable terminal transports, checkpoint ownership, and foreground recovery. Explains Eternal Terminal connection confirmation and terminal-end safeguards.
+tags: [terminal, mosh, eternal-terminal, recovery, ssh]
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 sources:
   - id: openwiki-source-f009a1e2645a074589550c44
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
@@ -16,10 +17,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift
   - id: openwiki-source-79e6c1c879cf7dbc211647b6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+  - id: openwiki-source-95fa11ff59d3a38d49da5c6f
+    resource: repo://FrameworkTests/EternalTerminalResumeTests.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-28243bbeecc381626d39eeb6
+    resource: repo://TFITests/MobileTerminalRestorationTests.swift
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 ---
 
-# Mosh + Eternal Terminal
+# Mosh and Eternal Terminal
 
 Mosh and Eternal Terminal (ET) are alternative terminal transports authenticated through SSH. They do not replace auxiliary SSH services such as SFTP, Agent execution or forwarding. Transport recovery preserves a remote PTY; [Session Persistence](../concepts/session-persistence.md) separately controls the remote multiplexer session inside that PTY.
 
@@ -45,6 +52,7 @@ flowchart TD
     Live --> Suspend[Suspend and checkpoint]
     Suspend --> Recover
 ```
+The resumable transport lifecycle separates fresh SSH bootstrap from recovery of existing protocol state.
 
 The resumable client owns transport state, queued lifecycle requests, maintenance and network monitoring. Engines own protocol-specific state. Engine availability is checked before wake, routing or bootstrap side effects. Failed preparation invokes engine rollback, disconnects bootstrap SSH and closes the client. Network recovery reuses protocol state rather than bootstrapping another shell.
 
@@ -56,6 +64,33 @@ Recovery payloads contain protocol capabilities, not merely navigation state. Ke
 
 Live foreground resume is distinct from cold restoration: the former resumes retained engine state after suspension, while the latter consumes saved state. Neither guarantees that a remote server is still alive. A failed transport recovery must not silently create another remote shell.
 
+### Eternal Terminal foreground confirmation
+
+On mobile, `resumeAfterBackground()` waits for the pending suspension/checkpoint save, invalidates the disk recovery record, and only then calls `resumeTransport()` on the retained session. Generation checks reject stale work; invalidation or resume errors become transport recovery failures. This avoids leaving a consumable disk checkpoint alongside the resumed live owner.
+
+The resumable client publishes `.recovering` before calling the engine's resume operation. ET can keep its connection alive during suspension without emitting another vendor `.connected` event. `EternalTerminalEngine` therefore remembers the latest vendor connection state and, after `resumeFromApplicationBackground()`, explicitly emits `.connected` **only if that retained state is still `.connected`**. This confirms recovery without requiring new output or a duplicate vendor notification; it is not an unconditional success signal or a fresh server probe.
+
+```mermaid
+flowchart TD
+    Resume[Foreground resume] --> Open{Locally open?}
+    Open -->|no| Cancel[CancellationError]
+    Open -->|yes| Vendor[Resume retained vendor session]
+    Vendor --> Check{Still locally open?}
+    Check -->|no| Cancel
+    Check -->|yes| Retained{Latest vendor state connected?}
+    Retained -->|yes| Confirm[Emit connected confirmation]
+    Retained -->|no| Silent[No synthetic confirmation]
+```
+ET foreground confirmation uses the retained vendor state and checks local closure before and after the asynchronous resume call.
+
+A disconnected, reconnecting, failed, never-connected, or ended session gets no synthetic confirmation. Lost connections require a subsequent vendor `.connected` event to report connectivity again. A locally closed engine throws `CancellationError`; foreground resume must not revive it.
+
+### Terminal end is not recovery
+
+ET maps vendor `.reconnecting` and `.disconnected` to recovery, `.failed` to failure, and `.sessionEnded` to terminal end. On terminal end it waits for its output reader to drain before emitting `.ended`. The resumable client publishes `.ended` and closes resources without replacing that terminal state with `.closed`.
+
+Mobile workspaces retain the terminal during recovery rather than scheduling ordinary SSH reconnect. A connected confirmation completes the recovery journey; duplicate connected notifications do not repeat it. On `.ended`, the workspace clears foreground resume intent and its recovery lease, cancels pending suspension, discards saved recovery state, and handles a successful remote exit. Ended or closed workspaces ignore later transport state notifications, so a late connected event cannot reopen them. Recovery and failure alone do not request workspace closure.
+
 ## Ownership and extension seams
 
 Domain owns Host options and recovery descriptors; Application owns startup plans and backend interfaces; Remote Infrastructure owns SSH routing, resumable clients and engines. Native workspaces retain terminal views and decide when to suspend, restore or detach. Add a transport through the engine registry and capability checks, not by adding protocol branches throughout native views.
@@ -64,4 +99,9 @@ Domain owns Host options and recovery descriptors; Application owns startup plan
 
 Review `ResumableTerminalEngineTests`, `TerminalTransportTests` and mobile restoration tests for startup, rollback, checkpoint validation and stale-owner behavior. These are test entrypoints, not a claim that this documentation update ran them. Real-server validation should separately exercise blocked UDP, ET route reconnection, foreground/background transitions and server-side session loss.
 
-See also [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Session Persistence](../concepts/session-persistence.md).
+Focused regression coverage:
+
+- [EternalTerminalResumeTests](../../FrameworkTests/EternalTerminalResumeTests.swift) checks retained-connection confirmation without a new vendor event, no confirmation after connection loss or before initial connection, and no revival after terminal end or local close.
+- [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift) checks recovery journey completion while retaining the terminal, duplicate-event handling, missing/incompatible checkpoint failure without opening a new shell, and exactly-once workspace closure on remote end for both transports.
+
+See also [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md), [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Session Persistence](../concepts/session-persistence.md).

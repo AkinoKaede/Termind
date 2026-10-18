@@ -5,14 +5,18 @@ description: How macOS navigation divides shared app services, per-window routes
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-e23b71e7deab33832fd92796
+    resource: repo://TFM/App/RecentlyClosedWorkspaces.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -29,10 +33,14 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-507cd94a8ae82f840ac8591f
     resource: repo://TFM/Features/Vault/VaultView.swift
   - id: openwiki-source-9cfd8531aa60dcfb31f04e04
     resource: repo://TFM/Features/Vault/VaultWorkspaceView.swift
+  - id: openwiki-source-a370cd6cc59dde4602ec8425
+    resource: repo://TFM/Features/Workspaces/ClosedWorkspaceRecord.swift
   - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-ba160208435f3410138a3539
@@ -77,6 +85,8 @@ sources:
     resource: repo://TFMTests/WindowStateTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
+  - id: openwiki-source-f2aa15752a3f604fe5244e8f
+    resource: repo://TFMTests/WorkspaceBackgroundCloseTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
@@ -85,7 +95,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 ---
 
 # Desktop UI and Window Ownership
@@ -149,7 +159,6 @@ sequenceDiagram
     Scene->>Target: create fresh window model
     Target->>Coordinator: register native window and request UUID
     Coordinator->>Source: take workspace or pane for move
-    Source->>Source: cancel pending persistent-close authorization
     Source-->>Coordinator: existing live workspace or pane wrapper
     Coordinator->>Target: open live workspace
 ```
@@ -158,33 +167,30 @@ Scene-request handoff: the source keeps the session until the target's native wi
 
 A workspace move waits for native destination registration before changing ownership. Repeated requests to move the same workspace or pane from the same source reuse the pending scene request. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
-### Explicit close authorization and recoverable history
+### Background close cleanup and recoverable history
 
-Explicit pane/workspace Close is not native window dismissal. `close`, `closePane`, `closeOthers` and ordinary `closeAll` defer removal when their target includes managed SSH attachments. `authorizePersistentClose` snapshots all workspace and pane IDs and asks the window's `RemoteSessionCloseCoordinator` to terminate managed attachments, deduplicated by remote identity. Termination is **best-effort and has no confirmation UI**: an ordinary transport or termination failure proceeds to local disconnect while retaining the failed attachment's recovery identity. Cancellation instead refuses authorization; successful terminations mark matching attachments ended. [Sources: `WindowModel.swift`, lines 1523–1550; `RemoteSessionCloseCoordinator.swift`, lines 17–42.]
+Explicit pane/workspace Close is not native window dismissal. `close`, `closePane`, `closeOthers` and ordinary `closeAll` call `closePersistentSessions` and **remove their local targets immediately**, without waiting for remote cleanup or showing confirmation UI. The app owns `persistentSessionCloser` and injects it into registered windows. Each eligible managed attachment supplies a `RemoteSessionCloseRequest` with a validated connection snapshot and, for SSH when available, a transferred live connection. Requests with connections are queued first. Accepted requests mark the old session `isRemoteSessionClosing`, making `restorableRemoteSession` nil before close history is captured. Thus reopening an explicitly closed session does not reattach to an identity scheduled for termination, even if cleanup later fails. If there is no cleanup owner or no valid request can be built, the recovery reference remains available. [Sources: `WindowModel.closePersistentSessions`, `SSHSessionModel.takePersistentSessionCloseRequest`, `WorkspaceBackgroundCloseTests`, `WorkspaceCloseConfirmationTests`.]
 
-Authorization is valid only while the targeted sessions remain owned by this window and the workspace/pane ID snapshot remains unchanged. Taking a workspace or pane for a live move cancels pending authorization before extraction; `closeForWindow` also cancels it but preserves attachments. Application termination passes `.applicationTermination` to `closeAll`, bypassing managed-session termination. Transport checks and remote ownership enforcement belong in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md), not in view disappearance handlers.
+`RemoteSessionCloseCoordinator` owns one-shot cleanup independently of window and pane lifetime. It deduplicates pending requests by remote identity, releases transferred connections exactly once, and cancels the operation at its default 30-second deadline. Failure and cancellation are swallowed without retry; neither restores the removed workspace nor reinstates its recovery identity. There is no pending close authorization or workspace-ownership snapshot gate for moves to cancel. Live moves simply transfer existing ownership, while `closeForWindow` preserves managed attachments and application termination passes `.applicationTermination` to `closeAll` to bypass new termination requests. See [Session Persistence](../concepts/session-persistence.md) and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for remote lifetime and transport enforcement.
 
 ```mermaid
 flowchart TD
     Intent[Teardown intent] --> Kind{Operation}
     Kind -->|Live move| Ready[Wait for destination registration]
-    Ready --> Transfer[Cancel authorization and transfer live ownership]
+    Ready --> Transfer[Transfer live ownership without close history]
     Kind -->|Native window dismissal| Veto[Native delegate and unsaved-theme checks]
     Veto -->|Approved| Preserve[Record recovery before client disconnect]
-    Kind -->|Explicit pane or workspace close| Managed{Managed SSH attachment}
-    Managed -->|No| Remove[Disconnect and record recoverable close]
-    Managed -->|Yes| Attempt[Attempt remote termination]
-    Attempt -->|Ordinary failure| Recovery[Retain recovery identity]
-    Recovery --> Snapshot[Validate ownership snapshot]
-    Attempt -->|Success| Snapshot
-    Attempt -->|Cancelled| Retain[Keep local workspace]
-    Snapshot -->|Unchanged| Remove
-    Snapshot -->|Changed| Retain
+    Kind -->|Explicit pane or workspace close| Request{Valid managed cleanup request}
+    Request -->|No| Remove[Disconnect and record recoverable close]
+    Request -->|Yes| Queue[Enqueue app-owned cleanup and suppress recovery identity]
+    Queue --> Remove
+    Queue --> Async[Attempt remote termination in background]
+    Async --> Finish[Release connection after success or failure or cancellation]
 ```
 
 Live transfer, native dismissal and explicit close have different effects on remote lifetime and recovery.
 
-Recoverable close history is a separate app-owned mechanism, not the connection-event timeline. `RecentlyClosedWorkspaces` stores descriptors plus in-process workspace instances. Only records whose items all have restorable layouts are persisted; external temporary SSH workspaces have no durable layout. A split-pane close records a wrapper containing **only the removed pane**, so reopen cannot reconnect surviving panes. Reopening consumes history only after a destination exists and every requested item can be restored; window records open a new scene and restore their selected workspace. `prepareForReopen` retains pane identity but replaces the torn-down SSH model through `copyForReconnect`, while a live move keeps the original pane and session. [Sources: `RecentlyClosedWorkspaces.swift`, lines 5–59; `ClosedWorkspaceRecord.swift`, lines 15–56; `Pane.swift`, lines 190–234; `WindowModel.swift`, lines 1571–1594.]
+Recoverable close history is a separate app-owned mechanism, not the connection-event timeline. `RecentlyClosedWorkspaces` stores descriptors plus in-process workspace instances. Only records whose items all have restorable layouts are persisted; external temporary SSH workspaces have no durable layout. A split-pane close records a wrapper containing **only the removed pane**, so reopen cannot reconnect surviving panes. Reopening consumes history only after a destination exists and every requested item can be restored; window records open a new scene and restore their selected workspace. `prepareForReopen` retains pane identity but replaces the torn-down SSH model through `copyForReconnect`, while a live move keeps the original pane and session. [Sources: `AppModel.restoreClosedRecord` in `TFM/App/RecentlyClosedWorkspaces.swift`, `ClosedWorkspaceRecord`, `Pane.prepareForReopen` and `WindowModel.closePane`.]
 
 ### Weak registration is discovery, not window ownership
 
@@ -416,7 +422,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | --- | --- |
 | Scene ownership, sizing, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MainWindowSizingTests` (stored fallback validation, source-size inheritance, restored frames, sidebar width handshake and visible full-screen behavior), `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
 | Native close veto versus Quit | `WorkspaceCloseConfirmationTests` pins theme flushing, unsaved-draft veto/retry even in empty windows, populated-window close without a connection prompt, native delegate forwarding/restoration, all-window theme flushing and managed-session recovery identity preservation. `MultiWindowTests` checks command routing, per-window isolation and native close behavior; `AppTerminationTests` covers shutdown draining and bounded reply behavior. |
-| Persistent-close authorization and recoverable history | `FrameworkTests/SessionPersistenceTests` checks explicit termination, passive teardown preservation, failure/cancellation and identity deduplication; `ClosedWorkspaceRestoreTests` checks restart restoration, live-instance reuse and history eviction. `WorkspaceCloseConfirmationTests` pins disconnect-only window semantics and failed explicit managed-pane close preserving its recovery reference without prompting. |
+| Background close cleanup and recoverable history | `WorkspaceBackgroundCloseTests.explicitCloseDoesNotWaitForRemoteCleanup` covers workspace, pane, others and all close paths, immediate removal and omission of queued identities from recovery records; its passive-close case checks termination bypass. `FrameworkTests/SessionPersistenceTests` checks one-shot failure, managed-only enqueue, pending-identity deduplication, cancellation and timeout without retry. `ClosedWorkspaceRestoreTests` checks restart restoration, live-instance reuse and history eviction. `WorkspaceCloseConfirmationTests` pins disconnect-only window semantics and recovery preservation when no cleanup owner exists. |
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |

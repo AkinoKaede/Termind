@@ -1,9 +1,23 @@
 ---
 type: workflow
-title: SFTP Transfers and External Editing
+title: SFTP Transfer and External Editing
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
+  - id: openwiki-source-9e41b4dad085bd7548570d6e
+    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift
+  - id: openwiki-source-d526cefab2a8fa2d443cd695
+    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentJSONSchemaValidator.swift
+  - id: openwiki-source-564ff49b7948000c3dab1409
+    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift
+  - id: openwiki-source-78f2d492b39976732fe3a4cc
+    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentToolSchema.swift
+  - id: openwiki-source-8495a20ec939d431dc4bd46f
+    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentTruncateResult.swift
+  - id: openwiki-source-e6c541cdb3cbf96d9f0d4b97
+    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift
+  - id: openwiki-source-032cb23cf9ee2e5c982fe794
+    resource: repo://AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift
   - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
@@ -22,6 +36,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
+  - id: openwiki-source-f45e107ba4ae15ff23a99333
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift
   - id: openwiki-source-f3c300fe43c8f1ceb0906ed3
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
   - id: openwiki-source-b9bae3a52f35a3a412f81e10
@@ -66,10 +82,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 ## Scope and operating model
@@ -271,6 +287,24 @@ MCP uploads are a separate HTTP ticket workflow, **not** browser queue rows or s
 
 Do not copy browser-context assumptions wholesale into the Agent pool: browser auxiliaries are operation-scoped, Agent auxiliaries remain eligible for reuse, and MCP's HTTP budget/tickets are not scheduler permits. Focused pool tests verify one handshake across repeated execs, concurrent primary opens and exec/SFTP sharing, cancellation of one or the last connection opener, route retirement, idle sweeps and no replay of a command that already started. These tests cover primary reuse rather than exhaustively asserting every SFTP auxiliary-mode branch. [^agent-pool-tests] [^agent-lease]
 
+### Bounded Agent reads and writes
+
+`sftp_read` is a **line-paged UTF-8 tool**, not a byte-range download. Its schema accepts a 1-based `offset` (1–10,000,000) and `limit` (1–2,000); defaults are offset 1 and 2,000 lines. A source page contains at most 64 KiB of text and returns `path`, `content`, `bytes`, `offset`, `returned_lines`, `next_offset`, and `eof`. Continue using `next_offset`, not a guessed byte position. The reader returns whole lines, normalizes CRLF to LF, and reports invalid selected UTF-8, an offset past EOF, or an oversized line as errors. [^agent-page]
+
+The page limit is **not a network-read limit**. The current default `SFTPChannelProtocol.readTextPage` first calls `readFile` with the scratch-file ceiling of 8 MiB, then feeds that data to `AgentTextPageReader`. The concrete channel reads in chunks of up to 64 KiB and probes one byte beyond the ceiling to reject oversized files. Thus requesting a small page does not make a larger-than-8-MiB file readable through this implementation. The scheduler estimate for `sftp_read` is 64 KiB, not the actual bytes fetched. [^agent-page-io]
+
+Read results set `hasBoundedModelContent`, which selects page-aware model projection rather than exempting the result from output limits. Projection redacts decoded fields and accounts for JSON escaping and envelope size; if fewer whole lines fit, it updates `returned_lines`, `next_offset`, and `eof` accordingly. Raw results and external-client responses are not changed by this model projection. Use the continuation in the response actually received. [^agent-page-projection]
+
+`sftp_read` declares approval policy `.approve` and inherits parallel concurrency; `sftp_write` declares `.ask` and inherits sequential concurrency. Both still request logical-file admission—approval policy, model-output bounds, and transfer scheduling are independent controls. Write's schema bounds `content` to 131,072 characters, while its scheduling estimate counts UTF-8 **bytes**; do not interpret the schema limit as a 128-KiB byte cap. `overwrite` defaults to false. The channel writes a sibling `.termind-write-<UUID>` temporary, closes it, rechecks destination conflicts, and renames it into place; failure attempts temporary cleanup. This inline write is distinct from the coordinator's resumable queue workflow. [^agent-inline-write]
+
+Focused reader tests cover split multibyte characters, CRLF, whole-line byte limits, continuation offsets, empty files, invalid offsets, oversized lines, and invalid UTF-8. These are reader-level tests, not proof that SFTP pages use streaming network reads. [^agent-page-tests]
+
+[^agent-page]: [read tool contract](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170); [line reader](../../AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift#L13-L108).
+[^agent-page-io]: [default page implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L173-L178); [inline reads](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L240-L263); [scratch ceiling](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L287).
+[^agent-page-projection]: [projection dispatch](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L22-L50); [page projection](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L129-L175).
+[^agent-inline-write]: [tool policies and concurrency](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L32); [read and write tools](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208); [atomic inline write](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L265-L282).
+[^agent-page-tests]: [AgentTextPageTests](../../AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift#L8-L46).
+
 ## From a file lease to libssh2 turns
 
 A sibling channel shares the same driver's transport identity. `SSHMultiplexedSFTPChannelOwner` serializes each raw libssh2 call on its SSH owner's queue, uses the encrypted buffer's bounded pass/backpressure, and returns to an async 2 ms retry sleep on EAGAIN. File fairness above does not imply strict round-robin ordering for every SFTP packet below. See [SSH Multiplexing and Scheduling](../concepts/ssh-multiplexing-and-scheduling.md).
@@ -430,4 +464,3 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^edit-tests]: `TFMTests/SFTPEditTests.swift#L12-L269`.
 
 Browser history belongs to one live session in memory. Successful fresh listings and local opens record into that session’s `SFTPHistoryModel`; closing clears it and late transfer callbacks are ignored. Additional connections resolve the current Tailscale network from the first saved route node when building their one-shot request. If the snapshot requires Tailscale and no network is available, request construction fails rather than falling back to the system network. `SFTPTransferContext` retains a weak host-store reference for this fresh resolution, not secret bytes. [^fresh-request]
-tions without storing secret bytes.

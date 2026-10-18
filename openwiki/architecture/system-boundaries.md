@@ -6,8 +6,6 @@ tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-3118dfa7dfade14baaccd202
-    resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-6f388236eaa573c3c2ba7706
@@ -46,6 +44,8 @@ sources:
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-e43a0da5ab77c2fc3554244d
+    resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-5b8c72c5373a41af34fa9fd4
     resource: repo://TFI/App/MobileStartupView.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
@@ -74,10 +74,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 # System Boundaries
@@ -279,11 +279,28 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `1.20.0`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `2.1.0`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `2.1.0` at revision `0bf0b12dcb3b17e52f2157a260a86faddc748b41`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 
-Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfrastructure` defines `TermindAgentToolEnvironment` with injected host resolution, connection pools, authentication, metrics, background commands, optional pane access, and optional scratch workspace. `AssistantToolRegistry` returns an empty registry when a model lacks tool-call ability. Otherwise it creates a conversation-scoped scratch workspace shared by AgentKit's scratch tools and Termind's host-facing pull/push tools, records plans through the run's ordered event channel, passes usable MCP servers with credentials resolved from their references plus the MCP authorization client to AgentKit's built-in catalog, and registers `TermindAgentTools` as additional tools. Task management is supplied by the built-in catalog rather than a separate task callback in this registry. `ssh_exec_run` receives the injected authentication registry; Termind handles host login rather than asking the user-secret tool for SSH credentials. The Termind catalog constructs host listing, SSH/SFTP, metrics, pane and host-facing scratch tools from narrowly injected services; its presenter registry also combines built-in and Termind tool presenters for historical transcript rendering. The local registry resolves built-ins before additional tools and discovered MCP definitions, preventing host or MCP names from shadowing built-ins. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for run-level behavior.
+Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfrastructure` defines `TermindAgentToolEnvironment` with injected host resolution, connection pools, authentication, metrics, background commands, optional pane access, and optional scratch workspace. `AssistantToolRegistry` returns an empty registry when a model lacks tool-call ability. Otherwise it obtains the shared application scratch workspace for AgentKit's scratch tools and Termind's host-facing pull/push tools, supplies the conversation ID as the Termind environment's scope, records plans through the run's ordered event channel, and passes usable MCP servers with credentials resolved from their references plus the MCP authorization client to AgentKit's built-in catalog. The built-in configuration also receives optional chat-model, chat-coordination, and chat-source ports; Termind's remote tools are registered separately as `additional` tools. Task management is supplied by the built-in catalog rather than a separate task callback in this registry. `ssh_exec_run` receives the injected authentication registry; Termind handles host login rather than asking the user-secret tool for SSH credentials. The Termind catalog constructs host listing, SSH/SFTP, metrics, pane and host-facing scratch tools from narrowly injected services; its presenter registry also combines built-in and Termind tool presenters for historical transcript rendering. The local registry resolves built-ins before additional tools and discovered MCP definitions, preventing host or MCP names from shadowing built-ins. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for run-level behavior.
+
+Pane integration is **optional capability injection**, not part of AgentKit's host-neutral catalog. `TermindAgentTools` constructs `list_panes` and `read_pane` only when `AgentPaneAccess` is supplied; absent access omits their executable definitions, while the presenter registry remains available for persisted cards. Similarly, host-facing scratch pull/push definitions require a supplied workspace. On mobile, `MobileSceneModel` supplies `app.paneAccess(for: self)` to its assistant scene model. The app adapter lists connected terminal workspaces with readable viewport surfaces and distinguishes closed, disconnected, and missing-surface reads; it derives active/current metadata from session and scene ownership. This keeps native terminal surfaces behind closures rather than importing UI into AgentKit or the tool catalog.
+
+```mermaid
+flowchart TD
+    Composition["Native composition and injected ports"] --> Registry["AssistantToolRegistry tool-call gate"]
+    Registry --> BuiltIn["AgentKit built-in configuration"]
+    Registry --> RemoteTools["TermindAgentTools additional definitions"]
+    BuiltIn --> Catalog["AgentToolCatalog registry"]
+    RemoteTools --> Catalog
+    PaneAccess["Optional AgentPaneAccess"] --> RemoteTools
+    Scratch["Shared application scratch workspace"] --> BuiltIn
+    Scratch --> RemoteTools
+    Catalog --> Resolved["Built-ins then additional then discovered MCP definitions"]
+```
+
+The registry assembles host-neutral runtime capabilities and separately injected Termind capabilities without allowing additional or MCP names to shadow built-ins. The external MCP-facing boundary is documented in [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
 
 ### Remote packages versus maintenance checkouts
 

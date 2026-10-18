@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e4f5ea9b30063cdc7d027956
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
+  - id: openwiki-source-9bd2b93db78747d6956c2405
+    resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-c9279b591baf8f41084268d6
@@ -34,6 +36,10 @@ sources:
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-3408d1bbed04a0e72ffb4c4a
+    resource: repo://TFITests/MobileTerminalBackgroundTests.swift
+  - id: openwiki-source-5153620560b535de8ffc4fdc
+    resource: repo://TFITests/MobileTerminalExperienceTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-60cf43ca04c5b3c3816300d8
@@ -52,10 +58,10 @@ sources:
     resource: repo://TFMTests/TerminalContextMenuTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 # Ghostty Terminal Integration
@@ -172,6 +178,14 @@ The retained surface bridges terminal bytes and geometry to host-owned transport
 
 Keeping a local surface alive does not itself keep an SSH connection or managed remote shell alive. Connection coordination, shell context and remote-session selection remain separate host responsibilities; see [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Shell Integration](shell-integration.md).
 
+### Recovery is not surface creation
+
+Mobile distinguishes an existing resumable transport (Mosh or Eternal Terminal) from a new connection attempt. With an existing SSH channel, `connect()` retries that transport rather than starting a new connection generation. Background suspension saves a checkpoint; foreground resume waits for suspension, invalidates the stored recovery record and resumes the existing channel, guarded by the connection generation. Non-resumable background expiration instead detaches the transport and advances the generation, then reconnects on foreground return. Neither path recreates the workspace's backend or native view. See [MobileWorkspace](../../TFI/Features/Workspaces/MobileWorkspace.swift).
+
+For resumable transports, recovering or suspended state presents a transport-recovery Journey and clears `connected`; returning to connected completes that Journey through the workspace's ready boundary. Interactive input is blocked during recovery, suspension, failure, termination or a presented Journey. The backend write callback is deliberately not the same gate: it also carries terminal protocol replies that must still reach the existing transport. Retaining a surface therefore means preserving local presentation, not allowing user input through recovery or replaying transport startup.
+
+When restoring from a stored checkpoint, the workspace validates transport and username before consuming it and clears pending startup commands. If checkpoint recovery fails but a managed remote-session attachment exists, it discards the checkpoint and requests remote-session selection over a new transport rather than silently launching a replacement shell. Without that fallback, invalid recovery presents a failed Journey.
+
 Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. `TerminalThemeOptions` resolves library selections, falling back to legacy preference fields when no library selection exists. Built-in names missing from the catalog or of the wrong appearance render the Termind fallback without repairing stored preferences. Saved custom themes resolve their own base and configuration. The host then applies:
 
 1. The resolved base theme.
@@ -186,6 +200,8 @@ The former app-owned keyword-highlighting feature and its shared modifier/rule m
 
 ## Focused checks
 
+- [MobileTerminalBackgroundTests](../../TFITests/MobileTerminalBackgroundTests.swift) checks Mosh/ET recovery with a real key window: native interaction and first responder are disabled without replacing the Ghostty surface, and recovery restores focus only in the foreground. These are simulated transport-state transitions, not a network-resumption test.
+- [MobileTerminalExperienceTests](../../TFITests/MobileTerminalExperienceTests.swift) checks that the workspace's Mosh/ET recovery-ready boundary produces one success feedback per recovery, not another for a repeated connected event, and none after observation stops.
 - [WindowToolbarFindTests](../../TFMTests/WindowToolbarFindTests.swift) checks focused-pane routing, starting terminal Find before native field focus, and separate retained light/dark/custom-theme browser queries.
 - [MobileTerminalThemeTests](../../TFITests/MobileTerminalThemeTests.swift) checks that browsing and previewing do not mutate settings or enable a draft, and that the editor preview uses an in-memory backend with sample output rather than a shell. Key-window snapshots cover theme browsers and custom editors in multiple locales and appearances.
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.

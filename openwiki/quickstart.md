@@ -1,6 +1,6 @@
 ---
 type: engineering quickstart
-title: Repository Quickstart
+title: Termind Engineering Quickstart
 description: Route Termind changes to architecture owners, connection and data workflows, focused regressions, and safe build and release checks. Source and tests remain authoritative.
 tags: [engineering, architecture, routing, testing, macos, ios]
 sources:
@@ -28,6 +28,8 @@ sources:
     resource: repo://Scripts/check-localization.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -82,13 +84,13 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:24:30.305Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# Repository Quickstart
+# Termind Engineering Quickstart
 
 Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) apps over shared frameworks, plus separate test, widget, and macOS MCP bridge products. Native UI and lifecycle remain app-owned. Start with [Engineering Invariants](architecture/engineering-invariants.md), choose the changed boundary below, then follow its guide to source and behavioral tests.
 
@@ -111,15 +113,14 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | Task | Owning guide | Focused starting checks |
 | --- | --- | --- |
 | Host entitlement verification, locked-host admission, operation access | [Commerce, Localization and Product Surfaces](concepts/commerce-localization-and-product-surfaces.md) and [Remote Services and Forwarding Boundaries](concepts/remote-services-and-forwarding.md) | `HostAccessTests`, `HostOperationAdmissionTests`, `MetricsHostAccessTests` |
-<!-- openwiki: broken internal link [workflows/local-network-discovery-and-wake.md] file "workflows/local-network-discovery-and-wake.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-| LAN discovery, permission handling, MAC lookup, manual/automatic wake | [Local Network Discovery and Wake-on-LAN](workflows/local-network-discovery-and-wake.md) | `LocalNetworkTests`, `LocalNetworkActionTests`, `LocalNetworkLifecycleTests` |
+| LAN discovery, permission handling, MAC lookup, manual/automatic wake | [Remote Services and Forwarding Boundaries](concepts/remote-services-and-forwarding.md) | `LocalNetworkTests`, `LocalNetworkActionTests`, `LocalNetworkLifecycleTests` |
 | SSH/Telnet, routes, credentials, trust, activation and cleanup | [Terminal Connection and Session Lifecycle](workflows/ssh-session-lifecycle.md) | Connection, authentication, host-key and PTY activation suites; `ConnectionJourneyTests` |
 | Mosh and Eternal Terminal routing, startup and transport recovery | [Mosh + Eternal Terminal](integrations/mosh-and-eternal-terminal.md) | `ResumableTerminalEngineTests`, `TerminalTransportTests` |
 | Remote multiplexer persistence, managed ownership and teardown | [Session Persistence](concepts/session-persistence.md) | `SessionPersistenceTests`, `MobileTerminalRestorationTests` |
 | SSH admission/backpressure and multiplexed I/O | [SSH Multiplexing and Scheduling](concepts/ssh-multiplexing-and-scheduling.md) | Multiplexer and worker-lifecycle tests |
 | Security Key registration, signing, Vault metadata, silent-connection restrictions | [SSH Security-Key Authentication](concepts/ssh-security-key-authentication.md) | `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, `SSHInteractionPolicyTests` |
 | Terminal Find, mobile search dismissal, SFTP filtering, retained surfaces | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Mobile UI](architecture/mobile-ui.md) | `TerminalFindControllerTests`, `MobileTerminalSearchIntegrationTests` in `TFITests/MobileTerminalSearchTests.swift` |
-| Ghostty menus, touch selection, fonts/themes, surface identity or dependency APIs | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Build, Test and Release](operations/build-test-and-release.md) | `MobileTerminalUploadMenuTests`, `TerminalContextMenuTests`; review resolved upstream source for package internals |
+| Ghostty menus, touch selection, fonts/themes, surface identity or dependency APIs | [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md) and [Ghostty Dependency Maintenance](operations/ghostty-fork-maintenance.md) | `MobileTerminalUploadMenuTests`, `TerminalContextMenuTests`; review resolved upstream source for package internals |
 | Active directory, draft input, command lifecycle and context consumers | [Shell Integration and Terminal Context](concepts/shell-integration.md) | Context and command-monitor tests |
 | Terminal/metrics/Agent service ownership, host-scoped forwarding | [Remote Services and Forwarding Boundaries](concepts/remote-services-and-forwarding.md) → [Port Forwarding Pool and Dispatch](workflows/port-forwarding-pool-and-dispatch.md) | Service/pump/pool tests; native metrics authentication uses `MetricsJourneyRenderingTests` and `MobileMetricsJourneyTests` |
 | Tailscale groups, login/logout, peer identity, routing and cleanup | [Tailscale Integration](integrations/tailscale.md) | Group-editor, identity, integration, cleanup, metrics and sync-safety tests |
@@ -145,13 +146,13 @@ These are routing reminders, not substitute specifications.
 
 - **Layers:** `TermindDomain` owns portable rules; `TermindApplication` owns ports/use cases; `TermindPersistence` exclusively owns SwiftData models, historical schemas and container construction. Infrastructure implements services; `TermindPresentation` owns reusable content/copy; apps assemble concrete dependencies and native UI. `ArchitectureBoundaryTests` uses root-specific import and construction rules, not a blanket ban on every UI symbol. Shared Application cannot import Infrastructure, Persistence or SwiftData. Fix the ownership boundary rather than bypassing its tests.
 - **Runtime owners:** app services are shared, desktop workspaces belong to window-local `WindowModel`s, and mobile navigation/Assistant presentation belongs to `MobileSceneModel`. Mobile descriptors and live workspaces belong to persistent native UIKit scene sessions, not an interchangeable cross-window pool. Desktop `RootView` registers its window and publishes the focused window value while preserving mounted workspace views across destination changes.
-- **Mobile restoration is selective, not empty-on-launch:** legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` defaults are retired without migration, but `mobile.restorableWorkspaces.v1` stores eligible scene-keyed descriptors. Cold launch restores Mosh/Eternal Terminal and eligible SSH persistence descriptors **without creating live connections**. Selecting a descriptor publishes one live workspace before connecting; repeated selection reuses it, and links in another scene activate its owner. One-shot commands and initial paths are live construction inputs, not restoration descriptors, so restoration must not replay them. Recently closed records remain process-local. See [Mobile UI](architecture/mobile-ui.md) and [Session Lifecycle](workflows/ssh-session-lifecycle.md).
-- **Separate the recovery mechanisms:** SSH session persistence uses remote-session references and selection/attachment policy; Mosh/Eternal Terminal use resumable transport checkpoints and their recovery state, not ordinary SSH reconnect. A missing or incompatible checkpoint must not silently bootstrap a replacement shell. `MobileTerminalRestorationTests` covers this distinction, retained terminal identity and selective cold-launch restoration; shared engine/journey tests cover retry without startup replay.
+- **Saved mobile intent is not a live connection:** legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` defaults are retired without migration, but `mobile.restorableWorkspaces.v1` stores scene-keyed saved descriptors. Persistence is not limited to resumable transports or SSH with remote persistence: ordinary saved workspaces also retain connection intent; transient external connections are excluded. Cold launch loads descriptors **without creating live connections**. Selecting a descriptor publishes one live workspace before connecting; repeated selection reuses it, and links in another scene activate its owner. One-shot commands and initial paths are live construction inputs, not restoration descriptors, so restoration must not replay them. Recently closed records remain process-local. See [Mobile UI](architecture/mobile-ui.md) and [Session Lifecycle](workflows/ssh-session-lifecycle.md).
+- **Separate the recovery mechanisms:** SSH session persistence uses remote-session references and selection/attachment policy; Mosh/Eternal Terminal use resumable transport checkpoints and their recovery state, not ordinary SSH reconnect. A missing or incompatible checkpoint must not silently bootstrap a replacement shell. `MobileTerminalRestorationTests` covers this distinction, retained terminal identity and cold-launch restoration; shared engine/journey tests cover retry without startup replay.
 - **Scene lifecycle:** disconnect/background alone preserves workspace ownership. Native-session reconciliation can transfer live objects without reconnecting; a late explicit discard still targets only the source session's recovered workspaces. Background services pause when all scenes background; expiration suspends workspaces, stops forwards, pauses transfers and expires Assistant work. An active scene resumes eligible services. Follow [Platform Runtime](architecture/platform-runtime.md).
 - **Desktop close and quit:** live connections alone no longer trigger a window-close or application-wide quit confirmation. Native window vetoes and unsaved terminal-theme protection remain; quit saves theme edits, asks before discarding any still-unsaved theme, then rechecks pending SFTP edits with cancellation before shutdown. Termination fences new Assistant work and drains conversations/preparations before agent resource closure while stopping MCP/transfers. Its three-second fallback bounds the once-only AppKit reply, not asynchronous cleanup completion. Debug tests do not terminate on last-window close; otherwise menu-bar metrics settings and running metrics decide. See [Desktop UI](architecture/desktop-ui.md) and [Platform Runtime](architecture/platform-runtime.md).
 - **Connection presentation:** shared `ConnectionJourney` owns route progress and authentication/host-key checkpoints; `ConnectionJourneyRouteView` draws the shared route while apps supply native controls. State tests and opt-in native rendering fixtures are not live SSH validation. Mobile terminal search stays on stable chrome, and terminal surfaces remain mounted beneath journey gates. SSH, Mosh, Eternal Terminal and Telnet use workspace-owned `TerminalFindController`; SFTP filters bind to `sftpChannel.query`.
 - **Local and wire compatibility are independent:** the live local schema is **V58**. Use migration/reopen tests rather than hard-coding the latest schema into unrelated tests. `SyncRecordFormats` independently defines per-kind wire readers/writers: Host writes V8, HostGroup V7, SSHKey V3, Snippet V2, WorkspaceTemplate V2 and Metrics V2. Follow the persistence/sync guides before changing compatibility; a successful build does not prove migration or CloudKit readiness.
-- **Released dependencies, not maintenance trees:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Test and release cross-repository package changes before updating the Xcode requirement and `Package.resolved` together. App builds consume remote pins, not sibling or optional maintenance working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `1.20.0`; libssh2 starts at `2.0.3-termind-4` under the same rule despite older exact-version guidance. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026101502`, with no local Ghostty maintenance submodule. For resolved-build behavior, inspect the project and pin rather than relying on conflicting generic dependency guidance.
+- **Released dependencies, not maintenance trees:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Test and release cross-repository package changes before updating the Xcode requirement and `Package.resolved` together. App builds consume remote pins, not sibling or optional maintenance working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `2.1.0`, also the version recorded in `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; libssh2 starts at `2.0.3-termind-4` under the same rule despite older exact-version guidance. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026101502`, with no local Ghostty maintenance submodule. For resolved-build behavior, inspect the project and pin rather than relying on conflicting generic dependency guidance.
 
 ## Validate narrowly, then validate the product
 

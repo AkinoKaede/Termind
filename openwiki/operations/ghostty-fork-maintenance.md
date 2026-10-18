@@ -22,10 +22,10 @@ sources:
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 # Ghostty Dependency Maintenance
@@ -89,7 +89,7 @@ A successful resolve is not sufficient acceptance for a Ghostty update. Run the 
 
 | Boundary | Regression coverage to retain |
 | --- | --- |
-| iOS native accessory | [MobileTerminalKeyboardTests](../../TFITests/MobileTerminalKeyboardTests.swift) checks upstream key grouping with Paste last, native accessory geometry and reachability across phone/tablet widths. |
+| iOS native accessory | [MobileTerminalKeyboardTests](../../TFITests/MobileTerminalKeyboardTests.swift) checks upstream key grouping with Paste last and matching accessibility labels. Geometry expectations are OS-specific: 60-point intrinsic height on iOS 26 and later, 52 points on earlier systems, and 36 × 36-point buttons. At widths 320, 390, 430, 844 and 1024, scrolling to the end must make Paste reachable. |
 | iOS keyboard integration | `MobileTerminalKeyboardIntegrationTests` in the same file checks readiness-gated initial focus, remount behavior, literal symbol output versus bracketed clipboard paste, sticky modifiers during composition, and surface identity across keyboard toggles. |
 | macOS mouse and drag integration | [TerminalMouseInteractionTests](../../TFMTests/TerminalMouseInteractionTests.swift) checks copy-on-release, right-click paste routing and Option bypass, once-only bracketed paste/broadcast, captured mouse reports without broadcast or clipboard mutation, path drops, and upload picker attachment to the persistent window. |
 | Native menu adapters | `MobileTerminalUploadMenuTests` and `TerminalContextMenuTests` protect menu grouping, localization-facing action identifiers, upload bindings and action-time availability checks. |

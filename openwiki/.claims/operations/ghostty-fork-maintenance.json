@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9c2763cb0598934969f71ccd5822d815b925abbb7c10a6d881c8417d1d2911c1",
+  "pageVersion": "sha256:d0295449daa3e5a126afbf1415ed8ea6a199b84a162bdf5f84094febdfda580d",
   "claims": [
     {
       "id": "claim_178354d1d71f460e9b920a02dd44754f",
@@ -16,11 +16,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
+          "version": "repo-file-v1:sha256:fbaaaca27c726d8313c8afb1ee437ad3f02c44de93bd931eedc8ef4d3c6b8e44"
         }
       ]
     },
@@ -62,11 +62,15 @@
     },
     {
       "id": "claim_a6b25d0cd3f94c8188aea2002d83fb23",
-      "statement": "MobileTerminalUploadMenuTests covers both selection states and pasteboard availability, editing-row identifiers and sizing, upload ordering before system AutoFill, missing upload bindings, and enabled-state changes for Photos and Files. Dependency regression checks also include MobileTerminalKeyboardTests for native accessory grouping with Paste last and geometry and reachability across phone/tablet widths.",
+      "statement": "MobileTerminalUploadMenuTests covers both selection states and pasteboard availability, editing-row identifiers and sizing, upload ordering before system AutoFill, missing upload bindings, and enabled-state changes for Photos and Files. MobileTerminalKeyboardTests checks upstream accessory grouping with Paste last and matching accessibility labels, an intrinsic height of 60 points on iOS 26 and later versus 52 earlier, 36-by-36-point buttons, and Paste reachability after scrolling at widths 320, 390, 430, 844 and 1024.",
       "evidence": [
         {
           "resource": "repo://TFITests/MobileTerminalKeyboardTests.swift#L9-L45",
-          "version": "repo-lines-v1:sha256:9d411f95f00cb215a557de48f74e7614797d9b22cd62b0c6556d29c61f643fbd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQifQ"
+          "version": "repo-lines-v1:sha256:a3f0f74490c71270939c309d46c6cb79fdf4cba9f77a4b11fb463ad6655fc03c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift#L7-L75",
+          "version": "repo-lines-v1:sha256:7d30200f5f7c70f178e78cecba8a82abef2ec722a934424f8426b6e93b7a28df:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxNzE3YjRmNjUxZTc1NDllNTM3ZDFkODdkY2Y4M2E1ZGJiOTE4MDM2YmNkMTEwNGRhYzgzZDEyY2Q3NmU1NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     },
@@ -93,6 +97,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

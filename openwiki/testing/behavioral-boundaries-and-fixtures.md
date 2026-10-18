@@ -1,7 +1,7 @@
 ---
 type: testing strategy
-title: Behavioral Boundaries and Test Fixtures
-description: Route observable behavioral changes to focused regression suites and deterministic fixtures. Distinguish persistence and restore boundaries, context accounting, language migration, independent close and Quit vetoes, and deliberate native-presentation opt-ins.
+title: Behavioral Boundaries and Fixtures
+description: Route observable behavioral changes to focused regression suites and controllable fixtures. Distinguish cancellation and persistence barriers, lazy restoration, passive close, remote-service contracts, and deliberate native-presentation opt-ins.
 tags: [testing, regression, fixtures, architecture, persistence, commerce, navigation, ui]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -56,6 +56,8 @@ sources:
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -168,13 +170,15 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# Behavioral Boundaries and Test Fixtures
+# Behavioral Boundaries and Fixtures
 
 Termind uses Swift Testing to test a behavior at the layer that owns it, rather than treating the test tree as a second implementation. `FrameworkTests/` protects portable framework contracts; `TFMTests/` exercises macOS composition, native interaction, and remote-session behavior; `TFITests/` protects iPhone/iPad composition, scene behavior, and mobile presentation. The targets use `@Suite`, `@Test`, and `#expect`.
 
@@ -197,6 +201,16 @@ flowchart TD
 This flow selects the narrowest test target that owns the behavior, then expands validation only as the affected product surface requires.
 
 ## Behavioral boundaries: start with the prohibited side effect
+
+For the highest-risk lifecycle changes, start with this task-to-test map; these fixtures are default tests unless explicitly marked opt-in.
+
+| Task | First regression | Controlled boundary |
+| --- | --- | --- |
+| Change assistant cancellation or history edits | `AssistantExecutionControllerTests` | Hold memory preparation, truncation or save independently; assert stale edits never mutate history and cancellation joins admitted work. |
+| Change preparation-failure persistence | `AssistantExecutionControllerTests`, `AssistantConversationOperationsTests` | Separate a save attempt from completion, preserve staging on failure, and keep archive/delete behind the save barrier. |
+| Change lazy mobile restoration | `MobileTerminalRestorationTests`, `MobileWorkspaceSessionTests` | Load descriptors without connecting, retain cold ownership, and fail handoff without releasing sources. |
+| Change close or Quit | `SessionPersistenceTests`, `WorkspaceCloseConfirmationTests` | Distinguish explicit best-effort remote cleanup from passive disconnect and theme/SFTP vetoes. |
+| Change native presentation | Offscreen policy first, then `.requiresVisibleWindow` or `.requiresKeyWindow` cases | Native focus and UIKit presentation require deliberate opt-in; mobile runs must be narrow and nonparallel. |
 
 | Boundary | Focused deterministic regression | What passing establishes |
 | --- | --- | --- |
@@ -288,7 +302,7 @@ sequenceDiagram
 
 The captured preparation-failure boundary is the repository save, not merely entry into the recording fixture's `save` method. The real SwiftData queued-cancellation fixture additionally asserts **zero provider calls**, one `.cancelled` real run, removal of the staging summary, captured payload restoration and `.fullAccess` persistence. Both queued cancellation and captured configuration failure check that the real run starts no earlier than staging, finishes no earlier than its start, and bounds the replacement's message clock. Wait on `stopAndWait()` before constructing the fresh repository; a live cancellation flag alone does not establish completed persistence.
 
-`archiveAndDeleteWaitForCapturedFailurePersistence` additionally waits on the blocked save before mutating metadata or deleting the conversation. `capturedFailureSaveOutlivesReleasedControllerAndConversationHandles` releases both external references while the save is held, then checks completion before they deallocate. These tests protect ownership through the persistence handoff, not process-crash durability. The controller's `failedReplacementSaveCannotBeSupersededOrMutatedBeforeItCompletes` holds a failed-run save after truncation: edit/fork cannot bypass the pending preparation, and after release the failed real run takes the replacement's ownership. `failedSnapshotSaveRetiresPreparationWithoutAdoptingStaging` injects a save error at the repository port instead: the staging owner remains, no failed summary is adopted, an assistant error appears, and no save completes. When changing edit/cancel ordering, also run `cancelledPreparedEditCannotEnterHistoryMutation`, `supersededPreparedEditCannotEnterHistoryMutation`, `cancellationDuringEditJoinsHistoryWorkBeforeRecordingInterruption`, and `supersededPreparationIgnoresAnOlderCancellationCompletion` to keep stale operations from mutating the new history.
+`archiveAndDeleteWaitForCapturedFailurePersistence` additionally waits on the blocked save before mutating metadata or deleting the conversation. `capturedFailureSaveOutlivesReleasedControllerAndConversationHandles` releases both external references while the save is held, then checks completion before they deallocate. These tests protect ownership through the persistence handoff, not process-crash durability. The controller's `failedReplacementSaveCannotBeSupersededOrMutatedBeforeItCompletes` holds a failed-run save after truncation: edit/fork cannot bypass the pending preparation, and after release the failed real run takes the replacement's ownership. `failedSnapshotSaveRetiresPreparationWithoutAdoptingStaging` injects a save error at the repository port instead: the staging owner remains, no failed summary is adopted, an assistant error appears, and no save completes. When changing edit/cancel ordering, also run `invalidatedPreparedEditCannotEnterHistoryMutation` (both `cancelled` and `superseded` arguments), `cancellationDuringEditJoinsHistoryWorkBeforeRecordingInterruption`, and `supersededPreparationIgnoresAnOlderCancellationCompletion` to keep stale operations from mutating the new history.
 
 ### CloudKit compatibility: test prohibited uploads, not just decoding
 
@@ -341,7 +355,7 @@ For MCP upload changes use `MCPUploadTests` with the real coordinator and stream
 
 ### Remote session persistence and terminal-context boundaries
 
-`SessionPersistenceTests` separates backend-neutral policy from tmux mechanics. New Host and Tailscale preferences default to disabled persistence; wire tests reject lossy older-format writes, and a V52 disk fixture opens twice through the current factory. Plain-shell policy never probes. Managed creation runs an explicit startup command once; restoring an attachment does not replay it. Manual attachment does not acquire managed ownership, stale choices are ignored, and missing/ended/unsupported references require a choice rather than silently creating a replacement. Explicit close terminates only managed references; application termination, suspension, remote exit and detach preserve them. Failed close can be cancelled without approving closure; duplicate-reference/retry and cancellation fixtures protect partial progress. Read assertions, not `closeFailureRetainsRemainingWorkAndQuitDoesNotTerminate` as a claim that Quit always vetoes: that test actually approves passive application teardown without invoking termination.
+`SessionPersistenceTests` separates backend-neutral policy from tmux mechanics. New Host and Tailscale preferences default to disabled persistence; wire tests reject lossy older-format writes, and a V52 disk fixture opens twice through the current factory. Plain-shell policy never probes. Managed creation runs an explicit startup command once; restoring an attachment does not replay it. Manual attachment does not acquire managed ownership, stale choices are ignored, and missing/ended/unsupported references require a choice rather than silently creating a replacement. Explicit close queues only managed references without waiting for cleanup; application termination, suspension, remote exit and detach enqueue no termination. `closeFailureIsBestEffortAndDoesNotRetry` asserts one attempt and an idle coordinator after failure. Batch cleanup deduplicates owned identities and continues after one failure; cancellation before background work starts opens no connections, and timeout cancels cleanup without retrying. These fixtures establish best-effort cleanup, not a remote-close veto on local UI dismissal.
 
 `TerminalContextCoordinatorTests` protects active-context identity independently of the pane that emitted an event, generation/input/capability ticket invalidation, replay suppression, and sequence-gap refusal to complete commands. Independent panes retain distinct completion events; a command between polls invalidates a draft ticket even if the prompt appears unchanged. A backend-neutral adapter fixture also rejects an older context sequence. Pair these tests with [Shell Integration](../concepts/shell-integration.md) changes rather than relying only on terminal output snapshots.
 
@@ -379,23 +393,28 @@ External connection URLs are another ownership boundary: opening one creates an 
 
 `MobileWorkspaceStoreTests` now protects **retirement**, not a restoration codec. `MobileWorkspaceStore.retire(in:)` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` without decoding or migrating them into another cache. Parameterized assertions cover broken bytes, an empty legacy array and a v2 object, repeat retirement, and preserve an unrelated `connection-history` value. At the app boundary, `MobileWorkspaceSessionTests` asserts that legacy array/v1 inputs disappear and both newly bound scenes remain empty, with no connection-history events. Despite its historical name, `oldSnapshotsAreClaimedOnceWithIdentityAndOrderPreserved` asserts deletion and empty state, not identity-preserving restoration.
 
-The retired snapshots remain **separate from the new native restoration channel**. `MobileWorkspaceStore` now reads/writes versioned per-session descriptors under `mobile.restorableWorkspaces.v1`; invalid or unknown input disables saves on that store instance so the original bytes are not overwritten. `MobileTerminalRestorationTests` restores dormant Mosh, Eternal Terminal and tmux descriptors in their original session lists with zero live workspaces or connection calls. Missing host discovery leaves the descriptor intact. The ordinary SSH-only cold-launch/session test still stays empty; it does not justify a blanket claim that all cold launches are empty.
+The retired snapshots remain **separate from the new native restoration channel**. `MobileWorkspaceStore` now reads/writes versioned per-session descriptors under `mobile.restorableWorkspaces.v1`; invalid or unknown input disables saves on that store instance so the original bytes are not overwritten. `MobileTerminalRestorationTests` restores dormant Mosh, Eternal Terminal and tmux descriptors in their original session lists with zero live workspaces or connection calls. Missing host discovery leaves the descriptor intact. `coldLaunchKeepsRecordsWhenOldNativeWindowIsDiscarded` now covers SSH, SFTP, Telnet, Mosh and Eternal Terminal descriptors: cold records survive an old native-window discard before or after handoff, remain dormant until activation, and persist under the receiving session. Existing native owners keep their records until binding and explicit close; orphaned cold windows transfer as one complete snapshot and ignore late discard callbacks. This is distinct from deleting the retired legacy inputs.
 
 Opening a restored resumable descriptor requires its compatible transport checkpoint. Missing or incompatible checkpoints show recovery failure and repeated selection/retry cannot bootstrap a new shell. A saved tmux reference survives missing transport state and returns to explicit session selection with no pending initial command. An activity recovery fixture checks one connection with the saved username, no target SSH credentials/jumps, no startup writes, and consumed recovery state. This is in-process reconstruction with an injected recovery store and connection services, not OS relaunch or live Mosh/Eternal interoperability. Activity URLs still omit opaque references and reject extra command parameters, while the content budget preserves whole entries and prioritizes the focused reference.
 
-In-process ownership is deliberately different. `reconcileWorkspaceSessions(openSessionIDs:activeSessionID:)` only hands off a missing native session's live workspaces after the native open-session set establishes its absence. Tests compare object identity and unchanged connection history: the destination receives the same workspace without reconnecting. If both native sessions still exist, a disconnected view retains ownership; if no active destination exists, handoff waits. `recoveredWorkspaceIDs` tracks provenance so a **late discard** removes only the disappearing window's transferred workspaces, records that window as recently closed, and prevents the discarded session from opening more workspaces.
+In-process ownership is deliberately different. `reconcileWorkspaceSessions(openSessionIDs:activeSessionID:)` only hands off a missing native session's live workspaces after the native open-session set establishes its absence. Tests compare object identity and unchanged connection history: the destination receives the same workspace without reconnecting. If both native sessions still exist, a disconnected view retains ownership; if no active destination exists, handoff waits. The complete descriptor handoff must save before any source releases its runtime. `failedHandoffKeepsTheSourceRuntimeAndOwnership` supplies unreadable restoration bytes: saving is fenced, both source objects and owners remain unchanged, the destination stays empty, and the app reports an error without overwriting the bytes. For windows used in this process, `recoveredWorkspaceIDs` tracks provenance so a **late discard** removes only the disappearing window's transferred workspaces, records that window as recently closed, and prevents the discarded session from opening more workspaces. Unbound cold-restored sources deliberately do not acquire this late-discard authority.
+
+`unopenedManagedReferenceIsPreservedOnlyForPassiveWindowClose` separately compares discarding a window with explicitly closing a dormant managed workspace. Only passive window discard retains the remote reference in the reopen record; explicit close queues cleanup and strips that reference. The test removes retained in-process state before reconstruction, then verifies no pending initial command. `endedLiveSessionDoesNotResurrectItsDescriptorReference` prevents an ended attachment from leaking back through its old descriptor.
 
 Recently closed state is shared within one app process, not persisted for a new app. Tests cover grouped-window reopen, once-only consumption, failed new-window requests preserving remaining records, a 15-entry limit, fresh workspace/history objects on reopen, external connections remaining transient, and no replay of one-shot commands. Native close requests retain workspaces until the discard callback: rejected closes keep the same workspace and selection without an alert; a missing native session reports `sessionNotFound` without discarding work, and Close All snapshots the native session set while retaining rejected windows.
 
 ```mermaid
 flowchart TD
     Bytes["Retired local snapshot bytes"] --> Retire["Delete both legacy defaults keys"]
-    Retire --> Cold["Fresh app binds empty native sessions"]
+    Retire --> Cold["Legacy input contributes no workspaces"]
+    Saved["New per-session descriptors"] --> Dormant["Restore dormant lists without connecting"]
     Live["Existing in-process workspace"] --> Native{"Native session still exists"}
     Native -->|Yes| Keep["Keep original owner"]
     Native -->|No| Target{"Active destination available"}
     Target -->|No| Wait["Wait for next active window"]
-    Target -->|Yes| Move["Move same workspace and track source IDs"]
+    Target -->|Yes| Save{"Complete handoff saves"}
+    Save -->|No| Retain["Retain source runtime and ownership"]
+    Save -->|Yes| Move["Move same workspace and track live source IDs"]
     Move --> Discard["Late discard closes only source workspaces"]
 ```
 
@@ -494,9 +513,9 @@ For attachment changes, run `ChatComposerStateTests` before native rendering: co
 
 ### Window close and Quit: independent scopes, independent vetoes
 
-`WorkspaceCloseConfirmationTests` is serialized but **offscreen**: it constructs `NSAlert` and `NSWindow`, injects confirmation results and invokes delegate methods without making a key or visible window. Do not opt it out merely because it uses AppKit. It checks distinct application/window copy, Cancel as Return's default, an explicit destructive second-button response as the only approval, all-registered-window workspace aggregation, and an empty window closing without confirmation. A cancelled window close preserves the workspace and can be retried; the forwarded delegate can independently veto before confirmation, unrelated delegate callbacks forward, and detach restores the original delegate.
+`WorkspaceCloseConfirmationTests` is serialized but **offscreen**: it creates `NSWindow` and invokes delegate methods without making a key or visible window. Do not opt it out merely because it uses AppKit. Populated and empty windows close without a live-connection confirmation; the forwarded native delegate can still veto, unrelated callbacks forward, and detach restores the original delegate. Theme edits flush on close and across registered windows for Quit; an unsaved theme draft that cannot be flushed remains protected by a discard decision. Passive window close disconnects a managed session without ending its recovery identity, and a reconstructed closed record retains that attachment. Explicit workspace close without an app-owned cleanup coordinator likewise keeps its recovery reference.
 
-Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: it returns `.terminateLater`, asks the application-scoped workspace confirmation, then rechecks pending SFTP edits and may veto again before starting shutdown. A window-close delegate test does not exercise that app termination path. For shutdown ordering, `AppTerminationTests` holds terminal persistence and verifies cancellation of every stored conversation before waiting, then background-command and connection closure after drains, with repeated cleanup occurring once. `SheetApplicationTerminationTests` checks offscreen mounting/moving/removal restores each window's original modal termination policy. Only `SheetQuitInteractionTests` deliberately makes windows key, focuses sheet fields and sends native Command-Q; it is serialized and `.requiresVisibleWindow`, using a cancelling delegate so the test host does not terminate. Use that opt-in for native Quit reachability, not as proof of real production shutdown or remote paywall layout.
+Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: it returns `.terminateLater`, saves terminal-theme changes and asks about any remaining unsaved theme, then rechecks pending SFTP edits and may veto before starting shutdown. Open connections alone do not trigger a workspace confirmation. A window-close delegate test does not exercise that app termination path. For shutdown ordering, `AppTerminationTests` holds terminal persistence and verifies cancellation of every stored conversation before waiting, then background-command and connection closure after drains, with repeated cleanup occurring once. `SheetApplicationTerminationTests` checks offscreen mounting/moving/removal restores each window's original modal termination policy. Only `SheetQuitInteractionTests` deliberately makes windows key, focuses sheet fields and sends native Command-Q; it is serialized and `.requiresVisibleWindow`, using a cancelling delegate so the test host does not terminate. Use that opt-in for native Quit reachability, not as proof of real production shutdown or remote paywall layout.
 
 ## Focused additions: drafts, confirmations and resource retirement
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:dcfedd24f9c094f4feebe3b18afbc45f9dce460f99f22169959baf2cec425ba6",
+  "pageVersion": "sha256:cbe521424228d8b8d5c11875117887b099fd20aa56e24406ef3e35dde8390ba3",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -90,11 +90,11 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests covers preferences, Chinese migration and resolution, picker ordering, Korean dynamic labels, localized demo prose and Host-access errors.",
+      "statement": "AppLanguageTests covers preferences, Chinese migration and resolution, picker ordering, Korean dynamic labels, localized demo prose and Host-access errors; it also checks Taiwan-region/flag-dependent Traditional Chinese naming and colored, grayscale and missing flag pixels.",
       "evidence": [
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:46d2e039222576c5467272047fd25618673f29468e604b853f6ca4b52b65d8e3"
+          "version": "repo-file-v1:sha256:fa8399dd8b7caa4d258014cdb7eda4f22a40a0831aa5627b52205d06c7fec43a"
         }
       ]
     },
@@ -150,11 +150,11 @@
     },
     {
       "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
-      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 1.20.0; resolved builds use the lockfile selection.",
+      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 2.1.0; resolved builds use the lockfile selection.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3025",
+          "version": "repo-lines-v1:sha256:c8b601384f86243f135d5675db78aa34d8a4c02b39fbcd8fc8d7aedbd1bac748:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
         }
       ]
     },
@@ -272,7 +272,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -314,7 +314,7 @@
       "evidence": [
         {
           "resource": "repo://TFMTests/PresentationCopyTests.swift",
-          "version": "repo-file-v1:sha256:197791d78e368764c7dbab829a7d12c6585044ce879c2ea3bb14007456137c49"
+          "version": "repo-file-v1:sha256:11cb7a748c7f2c6096d0043f76d50c470dba1623209a82510c8aaf5a6ed28d82"
         }
       ]
     },
@@ -328,7 +328,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -364,7 +364,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -404,11 +404,11 @@
     },
     {
       "id": "claim_348ab37b5d7b44e98dd3ce5abde91d18",
-      "statement": "Package.resolved selects AgentKit 1.20.0 at a4fd480cdff40ee793b0ca3b239beba4d18d858d; the minimum requirement is not itself the selected revision.",
+      "statement": "Package.resolved selects AgentKit 2.1.0 at 0bf0b12dcb3b17e52f2157a260a86faddc748b41; the minimum requirement is not itself the selected revision.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L13-L20",
+          "version": "repo-lines-v1:sha256:f340f73cfdd52530b936e236d1e40aa97bd542f1936b8a182e506a8663d3844c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2I0YjBlOGY4M2ZlMjRlYTU1MDViMjMwM2E1ZDMyY2EyNzcxM2U5ZWMzOWU5MDA1OGIwNmMyM2E1OTI5MzI5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
         }
       ]
     },
@@ -432,7 +432,7 @@
       "evidence": [
         {
           "resource": "repo://TFITests/MobileMetricsJourneyTests.swift",
-          "version": "repo-file-v1:sha256:7a902efb04c938a8110059eb019e22836e46ab8210bf7f4c846cc9dc8d357450"
+          "version": "repo-file-v1:sha256:f5252dccb05852f0e6760529dc8bb32ab665e2fb09cd378362933e7d9927b6d9"
         }
       ]
     },
@@ -470,11 +470,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:0c09c25902a8c35902dc1cec0f56e0c911563395f53733fa48f108b641f13644"
+          "version": "repo-file-v1:sha256:fbaaaca27c726d8313c8afb1ee437ad3f02c44de93bd931eedc8ef4d3c6b8e44"
         }
       ]
     },
@@ -561,10 +561,20 @@
           "version": "repo-file-v1:sha256:66888831bd0be796eeae2c5af639cf7592e40c3a33e6a363a6fdcacb44ff915c"
         }
       ]
+    },
+    {
+      "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
+      "statement": "Committed Debug and Release settings use marketing version 1.17.0, with project build 65, TFM build 102, and TFI and TermindWidgets build 91; explicit app and extension overrides mean changing only project defaults does not update their build numbers.",
+      "evidence": [
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

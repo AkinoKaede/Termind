@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b0ac38d816ce90f30f31a427232877a24cad7f80c3d959820f58370ba9803b14",
+  "pageVersion": "sha256:a9d6cea3015a35c198b9cf68086d0d70c7cd4887575785c3008d032d4c0a3001",
   "claims": [
     {
       "id": "claim_5374ba64d60a4b61b1474770c4d3b1a1",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         },
         {
           "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift",
@@ -54,7 +54,7 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         }
       ]
     },
@@ -146,7 +146,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift",
@@ -198,7 +198,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:db35f942522b0503352a788473da785dfe34e9fc7e2411c8148702af77a12a98"
+          "version": "repo-file-v1:sha256:326234790112db748fbd968cfd811fd350a3d24d78bd4744729a712ad0450781"
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
@@ -288,13 +288,83 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:db35f942522b0503352a788473da785dfe34e9fc7e2411c8148702af77a12a98"
+          "version": "repo-file-v1:sha256:326234790112db748fbd968cfd811fd350a3d24d78bd4744729a712ad0450781"
+        }
+      ]
+    },
+    {
+      "id": "claim_869189a2db684b449a0d944bc1c77ac2",
+      "statement": "Mobile retries an existing resumable Mosh/ET channel without starting a new connection generation; background suspension saves a checkpoint and foreground resume waits for suspension and invalidates recovery storage before resuming the channel. Non-resumable background expiration detaches transport and advances generation before foreground reconnection, without recreating the workspace surface.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/Host.swift#L88-L88",
+          "version": "repo-lines-v1:sha256:e01b057353fb78c9b81d2e5eea536f17bc8b2582a1f57dcdf01104a8d6e5473a:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTAxYjA1NzM1M2ZiNzhjOWI4MWQyZTVlZWE1MzZmMTdiYzhiMjU4MmExZjU3ZGNkZjAxMTA0YThkNmU1NDczYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTAxYjA1NzM1M2ZiNzhjOWI4MWQyZTVlZWE1MzZmMTdiYzhiMjU4MmExZjU3ZGNkZjAxMTA0YThkNmU1NDczYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTU0OWE1NGU3NDM5NmJlZjUxZWU5ZDllNmUxM2M1ZDI2YzYwM2U2MmQ1ZjdhODlmMDc5NWUyMGY4NjBiNDljMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNThiNjAyYjUzNzFkOTA2YWYzNzdlYzBmZGUwOTZjODUzZDM3NjBmZDE5ZmIxMjYxMDQ3NTFkYjQ1ODIwNTNlYSJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1564-L1649",
+          "version": "repo-lines-v1:sha256:94301dd0d40fad69f0d96dce65b8963e04d926ab78af936d0245ac1386cbc15a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljN2Y4NWI1NDQ5YmI0MTM0YjhmMTAzN2M1ZDkwNjU4ZDNiMjU4YWIxMDZlNWZmNjEzNTBiZjg2MzlmYzY4ODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMTk2YjYyMDAxNzdiNmRjYWU3MGIxYzE5N2Q1MzBmNDlkZTM1MGI4MGJjY2U3MzU5NTEyNjZjNDA2MDY3OWEifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L355-L376",
+          "version": "repo-lines-v1:sha256:d3b1b6b60d311ba3676b5509813d13455eeaff1cb30c1e8eb6f570c00c4cd37c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExYzg3ZjU2Mjg1MGFkNGNiM2YyNjFhNDE4MGNiMWRmMjdjOWM3YzAwOWViY2Y1MzUwYmZhZjc2MTM4YjFhNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYTkyNmFiMjRjMDE0Y2EwODhlNmQxOGViNmY4ZmEwMjlmNWQ4NWUwMWFhMTI3MmRiY2JhMDJkODNiYzlkM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYxZTE1YWU5MWQ4ZWVkZjZmZmVjYjg2ZGU0YzFhN2M4NDZkYTllMGQwOGVmNDVmMmRlZjZiY2FiMTZjNDc2ODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjZGU0MDE4N2Q4OTc2MGI1NWQzYzA3ODIwYjAzODA1YjhmZGRkNTMwM2E4YjEwYzQ5OTg5NmEwYjUyZTE0MTgifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L904-L939",
+          "version": "repo-lines-v1:sha256:c0b93a1d052c1a4f912b7ea40fc61446978cd306c7ea2e9f6e4cf50754f7c6f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyMzIzZmY1ZDU0NGU1NmJhMTM5NDYyYzQ1ZmI5MWQ3ZTZhZjU1ZTg5MTRiMWIzNTM3ZDVjMmZiY2M0Y2I1MTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwYjI3ZjBjNWRkMTQ5ZTQ4NTc4ZmUyOTBlZTI3ODRkOTVhNGE4ZDg4MGY0NGEyOGY4NTc3OTQyNjY2M2VlN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkNTA5NzM5Zjk1ZGNiMjg4ZTcwNGFmOWI4ZTcwZDhkNmUwN2YzMTNkZDQwZjJkZWRlZWYyYWFmNzI4ZmNlMjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a6eb400406d742308a991a41c3bce200",
+      "statement": "Mobile resumable recovery and suspension clear connected and present a recovery Journey; connected completes recovery through the workspace ready boundary. Interactive input is gated during Journey or unavailable transport states, while backend writes remain able to send protocol replies to the existing transport.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1652-L1716",
+          "version": "repo-lines-v1:sha256:920908fde8010f7a02a2cbfd5e20afe57128cb88671ef2b722fc950ce2276c0e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYjVhYTc0ZDkyYzg4NzUwNWIxNjllMDIxMWVlYWY2MDA1YjAxNzQwNzQ1NjRjNGM4ZjkxYzI5YmYyYmFkZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0NzA2OGRkOTEwMDZiMDM0ODhiMDdlMjYyNjQxODFiZGRkMWNmMGM3NWUzMDMyM2UxOWIwMzU0MDVjYTZiZDUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L580-L601",
+          "version": "repo-lines-v1:sha256:37377cdd22334168a3272416bf372065c6cffdd95990d4e8d6a188ff1b821021:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1NWQyMWQyMTU4YWYxYjI1ZDAxMDlhMWQ4ODViZjIwMDcyNzQ2ZmJlZjg1YTMzNzhjN2ZjMmFlNDNkZjNhNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4ZTFkM2FjNGNmOWUwYTc4NzJhOTM4ZGQwZTFjZjgxN2VhZDY5ZDI3NDE3NWY0MDAyNTM4YTA1YzQ1MDFkYjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiMGNiYzY0ZmNmNGI2MGIyNGY0ZmEyZTkxOTgwZDg4MWE0ZjYxNDIyNjY4ZDc5NGEwOWMwNTNmZjIxYWM4MzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjNjJjYTM4YjI5NmJhYjdkZjA1ZTY2ZDEyY2MwMjgzZWFkM2YxMzkwZjE5ZTc0MTAxODIxOWFmMWI3MWNiMDMifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L76-L81",
+          "version": "repo-lines-v1:sha256:505e286e2b3461fdca4fc1b6e28ab8b910d6ec9222127fdc17ec2130ce9d686a:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGFhMDY3OGJlZTUzOWQ4NmFhNGMyOTc1NjMzNTQxNGIwMDk0MjAzOTk3MTljNzFmOTRjODA4OTJiOGE2NTBmOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWExMTZkN2IxZjQxODgzMTY5NDY0NWFiZjI3ODc0NTE4MWIzY2NiNjNjMGM1N2YyYTZkMDJhMjMyMzgyM2Y4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjhiNTFiYmVkYjNkYzRhMzMyZmFmMDk4OTcwNzZjZTAyZDQzMmYyODU2ZjQ0NTc1MTI2MTYwOWMxMDY4NDRkNSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_bab303a6a93949ed826230477439c0df",
+      "statement": "Mobile checkpoint restoration validates transport and username and clears pending startup commands; failed restoration with a managed session attachment falls back to session selection over a new transport without replaying launch commands, otherwise presenting failed recovery.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L846-L900",
+          "version": "repo-lines-v1:sha256:891f2ec0407a6435b9b0aa51b1287ade5b3c6c7ebb2097d5315d41d5a3246c48:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2Nzg5YjBlODZjNDBmN2JkNDg0MWQzZTMyNDY2ZjQ3NGMzNzFhNzRmMmQzNmZmMGUxNDNhYmFhNGU2ZWMwMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiNGIxZGIyMjhjYTVjYTAxYjRiM2VjN2JiOTc4ZTZiYmU5YmQxMzdhOGE3NzY2ZjBiZDMyMmVhNTRlYjQ4NzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_63b2b4e50dc144c5a059709195fbab26",
+      "statement": "MobileTerminalBackgroundTests simulates Mosh/ET recovery in a key window and verifies retained native surface identity, disabled interaction during recovery, and foreground-only focus restoration; it does not exercise network resumption.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalBackgroundTests.swift#L11-L59",
+          "version": "repo-lines-v1:sha256:4a3864ba316cde3bd0b742fcfca6401b1a030513e5e63d5341550036c077e391:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNTc4OTg5NmMyMjUxZWQwYzVjMGRlYjk5ZmZlMDU4YzQzZWE2ZTY1OWI1ZjBlY2Y2NWE1OWUzNzQyZTljNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4YTY2ZGQ0ZGEyNGZiODUzZmIwMDQxMzNkNWM5OGE3ODkyZTBhNTAxNTMxOWI3ZTE5YmY0OTY0NjEzZWExMTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f16336d81384471f915b768ed2f11f60",
+      "statement": "MobileTerminalExperienceTests verifies one success feedback per Mosh/ET recovery-ready transition, no duplicate on repeated connected state, and no feedback after observation stops.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalExperienceTests.swift#L231-L254",
+          "version": "repo-lines-v1:sha256:629d355436635b57f9febef82fcf7a0a1c8fef92f57d86bd8f0a446352812a0c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmFkMmZmMTY0YTgwM2M4MDcxN2I4M2I4NWU3MmQ5NjM3ZjljNWI5OGFiNDIxOGRkMGVjMmIwMmNhZmJkY2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4NWViNThlOTUxYWY1ZTM3MWM1NmZhNTdhMjVmM2EwNGE4NWU3MzcwMmQwMzUzMjU3NTgxMmQzZTY3ZjdiMGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2ZTJmOTc2YWI2MjQ0ZTk3OWM5YTBiM2JmMzIxOTFlZTA2ZTEzZWU5YjYwYjY3ZGEwMjk3YzE2MmJkYzMzODcifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9e364989a0c131c92319d7f7b6d9f1bde81e7c711a75d82664115ed9aa1ceecc",
+  "pageVersion": "sha256:2e011c9739d605a4b43d4d122a9dd5e1ba0b5cea71172518ff7d1bdc0e4d5024",
   "claims": [
     {
       "id": "claim_cb8c68c7e50f4794ae6ed98e8c1c58c8",
@@ -170,11 +170,11 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
+          "version": "repo-file-v1:sha256:981cc0d644633998d5838414d1000d8bb3b974989ece9be17965d4d41687705a"
         }
       ]
     },
@@ -200,11 +200,11 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         },
         {
           "resource": "repo://TFITests/MobileCommandGeneratorAndUploadTests.swift",
-          "version": "repo-file-v1:sha256:446b3598814181592887e44ec6cc096a9c68da04278d65573287826d215310ae"
+          "version": "repo-file-v1:sha256:dff42da38c82f3b6c750677e4b03e5832aae358f33def21f9bd29619e6e80b4f"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalUploadModel.swift",
@@ -229,11 +229,11 @@
           "version": "repo-lines-v1:sha256:430af1118a53e2a82e473308bf2351a328cd2897c50bb1d049e621f77e2fc3ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxOWE1MmZmYzkyZWNlOWM3NGI0YmI1MDkwYTQ3YTNiZGQ4NmZlMjY1MjM5M2RiMzk2YjVhNGU0NWRlMjRjMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1MGIwNGRkMjcxNWI4YmEyYTIzOGUwYjIwNWZjOTQ2YTJiN2JjMTgxZGJmMDQ0NTBmMDA3NzZmMTVhODcwNzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhNmNjMGIzNWEwNmIxMjZhYzVkYThjODgwYjYxMTUwNjZlZThhOGRjOTI1MDNmOThkNDAwYzdkMmRhOWIxNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxNWZkNGFiZjBlOGQ3N2I0NDNjOGZlZTQwYTNmM2IwMDA5N2I0Y2I5Yzk3YjE2YjUyZWI0NWRhY2RlOTEwOTkifQ"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L657-L670",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L658-L671",
           "version": "repo-lines-v1:sha256:e4eafa0ff15408f543bff512c86d1e0d8852786cd864c3017f18caa4f04ca7e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0MzRiOTA3OTcxYTU2OGRkOGNmOTZmNGM1YzRiZTE2MzU4MmQ5MzdlZTExYjE2NjMxNmE2YTlkNDBhODc4OGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2ZmVkYjk3ODgzYmUzZDY1MTVmN2ZiN2YxYTAzZjlmMzcyNWIzNjkzZTE1NmY3ZTQ4MDEwMDI0YmU0ZDJkMWUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L393-L428",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L398-L433",
           "version": "repo-lines-v1:sha256:bf825400815cbb1142ecf089b62341410db51f57a10c028bc29666af5e1a57e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1ZTlmMWMwNzg2MTE1YzA3YTIyMWFiMjE5MGU4YWU2ZjI3ZTYxZDRmYTY0ODk2NmM4ZmJlZmQ0MjAxNWNiZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhZWMxY2M3MTdlOWZkM2UwNDEwZjdlZjdiZGNjNWIzOGM0MDJhNGIzOGE4NTBmNDEyMDFkOTc0ZmNlNzUwY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4NDdkN2I4ODQ5YzM0OGU0NDk1YzI5NDgyZGMwZmJlNjRhNTk3ODIyMDAzYzhmNDI1MjQ3NDQ0MzE1YzdjYjAifQ"
         },
         {
@@ -252,7 +252,7 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:8bd08be1bcf3c2460eb621dfdfb026ccc92212bfbb94290cf894a784303c5381"
+          "version": "repo-file-v1:sha256:58812cc3959c86a3eac73a3cf173cb78a2e9fb05e1023baefba0ec5b4df013b8"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift",
@@ -260,7 +260,7 @@
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
+          "version": "repo-file-v1:sha256:981cc0d644633998d5838414d1000d8bb3b974989ece9be17965d4d41687705a"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalUploadModel.swift",
@@ -316,15 +316,23 @@
     },
     {
       "id": "claim_4cfc687117cb4e9488d4fc6f7ce16c38",
-      "statement": "Desktop software Key drops populate editor buffers through SoftwareKeyFileImporter while editing is allowed; UTF-8 regular-file classification and name inference precede explicit Save's key inspection, certificate matching and persistence call.",
+      "statement": "Desktop software Key drops populate editor buffers through SoftwareKeyFileImporter while editing is allowed; UTF-8 regular-file classification and name inference precede Save. Editor refresh and software-key Save use SSHKeyMaterial.imported; Save validates certificate matching before persistence, while metadata-only editing uses a separate certificate-validation and metadata-save branch.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift",
           "version": "repo-file-v1:sha256:4abb6970ed8d7525a09c35deff01767f103f98492ca8a819faa2ddd396c31c0f"
         },
         {
-          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift",
-          "version": "repo-file-v1:sha256:235ff999684306a2b303ff19b62c8c32d4ec94c5350354edc9898dd6ffb57812"
+          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L686-L692",
+          "version": "repo-lines-v1:sha256:0fe23920b14a38b2f9abf3c46efa37079983c2a94a30d7db3e243db23cbbdc5b:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzIyNWQ0MDlkMDg2YWVjZTMwZDkwNTI1MzVjNDljMzE4MWNlYjU4YjExNmUzMmZlMmQzZWI0ODhmMDAyYTEzYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTUwMzJlOTY0ZDA5MzIzNTFlNWQxODUyNjkyODFiMTcxYTNhMDliMDhiMjg2ZTY2MWVhNDcwMzIzYzgyZWI0ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWRkYzk0ODBjNDU3YjU3OWUwZDNmZmM5MWU5OTExMGJjYjdhMjEyNDI2MTVjODBjZTA1NjBmMzM2NGZlODY1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTA0YWJkZjI0YTZmMzFjMDEzN2VmY2Q2ZThkYjFhNTkwZWY5ODJiMzA1NzQ1M2JkZjM4ZWQ5MDkzNjhlMGJkNCJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L819-L864",
+          "version": "repo-lines-v1:sha256:95e779fae137611dde6f0d58c48c471749de61458e451216ead8edb857daafe7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2YzgzMDUyNjk1MWU5ZDM0OTkxMWVlMWZjZTI0NWE1ZmFkYTcwZTRhOThlNjVmNjE0ZjM0MzJjZWFiZTk2NzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2NDc2Nzk5NDMwMjdhN2I3MTBkYmNkNjM2NmQxZmNmOTRlM2JjOTllNTI2NDM4MmIzZWY4YmExZWFjNjAyZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2ZWNkM2FmOTIyYmQ5Mzc0Nzc1M2UxZGQ2MzAyMmFhMjA1MWExYzQ4ZjZiYmRjZDhmYTBiNDJmZTNhMzVkMGMifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L934-L1013",
+          "version": "repo-lines-v1:sha256:353b22fa82d48c748f3a081ec7f2e2fa2ed46876b4332f92947e43f669dc0840:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExOWEwNDg3NGY4MDI1ZWE5ODk5Y2I3Mzg3NjRlMjdiNDYyNjliZGE5YmEwYzUzNzllOTI4OGM5MTI4YjUzNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhMTU0ZmNjZTk5YzIyZGIwMmZjMGI5NDY1MzFjY2VlMTNmZWI4MDU0MmRmNjI5OTczZjliYTZmNjJiZTg1ZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         }
       ]
     },
@@ -359,11 +367,11 @@
           "version": "repo-lines-v1:sha256:9b8c8b9201ee03d67cdf41bf4aa61e32e4d00b5487f43120269f205d2181f8fa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkMjU0Y2ExNzc4NTBmNTAyZTY1NWY0NDIwOWI0MWRiOWU0N2RhN2EyMGEzNjFhOTdlM2U0MThlNmUxNjhlY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5YTIwZGIwNTBhOGU5NGJkY2ViZDUzZDkxN2YxNDFmODQ5OTYxODVlMmNkZWE1NTY0NDA1YzczMjRkOGI3OTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjNjBiMjRmZTRiOWMzNDc3ZWNiOTBjMWFlNDg0OWYwNDZlYjlhZmE1Y2JkYTVlZjNmZGUzYjgyMzM5NjVlMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiYTcxYzA5ZjU2NjMxZDA4ZmE1YzliM2IwYjMwNjY4Y2M3ZDdlMjQ2NGUwNzNiM2E0MjM4N2VkZTk1YTM2MDcifQ"
         },
         {
-          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L992-L1011",
+          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L993-L1012",
           "version": "repo-lines-v1:sha256:db4954c1f3e656e0e241987afc4bc99218b23d3e18e50a07673cce8bc8a38977:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjYjI3ZmQ2MDlhY2UyMjZjNGQ2ZDgxYWFkYjk0ZmU1NDNkZWQ4ZTBhZDE3OGYxZmQyMDI1M2JjN2M1MTBmYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYmZhMzkyNDc1MjQ1NjkxODJmMTJiMzI1ZDc5NzhjZDY3MjYyZDIzMjI4MWE4MmI1NDZiOGRmODY1NjhjNDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YTM2NWE5MGVjMTFlOTA0MzI3NTJjZjkzNzZlYzVlZDM2YjgwYmE1ZThlNjg1NGZjZjk4OTcwZDMwNDQ0NjkifQ"
         },
         {
-          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L820-L832",
+          "resource": "repo://TFM/Features/Keychain/KeychainPageView.swift#L821-L833",
           "version": "repo-lines-v1:sha256:88877df6939dd3842d9614496eb6f2ba5721644c455342c22b6c1e2b340a11db:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiMGFhN2M0MGMzYzEzZjYxNWEzOWE0ZGQ1NjU4NWE2MTMwMDljZGI5NjY3YWIyYjYyOGM3MDI0YjJmZWZiN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjODQ5ODc2ZjM3NThkM2E3OTZhOTkzZDllODgxNDJhYTQ5NDZmNDRiOTUzNzVhYmM2ZjA0MzQ2N2U3ZTYwNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhYTk2NmQ3ZGEwMjllZjEyNTdkOGI0NDNmNWE5MzZiODgzN2E1YzMzMTVjYjBkMzFlNzA0YzMwMzQyYWMwZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1ODJkMmZkMzA0NzQxNTIxMWZjNDk0OGE2YTdkOTIwN2IxODVkMTQ4MDJkZmQ1YzE0OTJlZTc3YWEyN2E1M2IifQ"
         }
       ]
@@ -404,7 +412,7 @@
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:49402d091aab4b936e3dbcd8e3652c426ef989ece6dcb959e115cf4e5b5a4fd7"
+          "version": "repo-file-v1:sha256:981cc0d644633998d5838414d1000d8bb3b974989ece9be17965d4d41687705a"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalPathDrag.swift",
@@ -501,11 +509,11 @@
           "version": "repo-lines-v1:sha256:e028fbb6e81a717faa64aad655013a171e6df5801606763ff9ed5486c0f433ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2NTc5NjJmNjU4YzBlOTY4OGE2ZjQ4ZjljMDNjMDlhZDYxMWNiOWY4YTMwZTc3Y2M3N2MwNGYxZGIyODI0Y2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4Mzc4ODJlMDQ0MzNkMDE2YjkyYmY5N2VhYjM0ZDIxNjU1ZTBhNTBlMWQ1ZDQ1NzE2N2ZjZDdiZDRmODdmNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhNmVlZjVmZGJiOWE0M2IzN2M3OTUwYjI5YjhmYjBkZmFmOGEwMGFmODYyYWI2M2M1MGYyYjM2YTFmNjA0YjMifQ"
         },
         {
-          "resource": "repo://TFITests/MobileCommandGeneratorAndUploadTests.swift#L1027-L1051",
+          "resource": "repo://TFITests/MobileCommandGeneratorAndUploadTests.swift#L1020-L1044",
           "version": "repo-lines-v1:sha256:3e519b9a050b9dce6b3e3c6152cea15108525da50d3ae0756d983b4eefc7429a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZDFhNGFmZjM2YmMwMGU2NmMxMGRjNDE3YjNkZThlNDk1MzkyNzdhNmRlODI3M2E4NjM5YjVkNDMzY2Y1MzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlZWMxNzc4Njk0YzJmZGJiNWQxOWFmMmU5YjljYWZhNjQ0ZGI5ZGFlNDJjNzBjMGVjMjMzNjIwNzhjNzRiOWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ZmExODFjYzViNjFjYjU1YWNlMWNhM2IwMTU2M2E5OGY2ZDQ2Njk2MDEzMTkzMTY3ZmU3ZWY4NmQ5YTc0MjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3Mjk0ZjIyMzlhNTJiYjAxNGFkOTUzNWRkMTZkOWUyOTg3NzMwZGFmN2VkNTEzYzU3MjNjMjhmN2UwYjdhOWMifQ"
         },
         {
-          "resource": "repo://TFITests/MobileCommandGeneratorAndUploadTests.swift#L1106-L1154",
+          "resource": "repo://TFITests/MobileCommandGeneratorAndUploadTests.swift#L1099-L1147",
           "version": "repo-lines-v1:sha256:e36cf81e5a223fb98017ad9cc17cb05115d282700631f4edd6ea93f39431bb58:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NTU1NTdjODdiZjM5MTFmYzBkOGRiY2QxZDVjMmYyNTZkZmE3MWExZGI0MThhZGNmYmExYTAzNzY5NTgxMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzZWIyMThlZDJjN2M2NjFlOGM0NzI4YTkyNzE5NDY4NmE0MTFjZGM3NzYyZjMwOTljYWI0ZGUyNDZkODc0NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMmRlZDVmN2FhYmQxMTRiZDc3ZjMyYmJhMTg0MWMyMWU1MDlkYjM2ODc2NzBkN2U3OTc3M2U5ZTQ4NzU4ZWIifQ"
         }
       ]
@@ -523,10 +531,28 @@
           "version": "repo-lines-v1:sha256:b176af00c0214047f938d38aa738af0c32557f63a74ba72d14f627475c0ed906:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1YTZlZGI5ZmYzMDIwYjBmODkzODZjYmZmMGQ2ZjI4Y2VhOGU0ZTYyYTAxZTVkN2U2ODU5MjRmYTMwNmM0NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3YjlhMjdmNjJhMGU2NTMxN2EzMDFkNzk3NGU0Y2U3YjVjZTA0MjE3OTA2N2U2YTMxZDQ4NGZlNmM5ODY0ZWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3MTZlY2ZlMDNjM2ZhMmUzM2EwMWQ5Y2QyMWRmNmUzYTJiMWM2NWE5YzdhMTdmNWJlNDBmNzQwOTFjMjJmYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5NWRkNzQ4Y2ExYWE5MDcxMDRjN2NlYmI2ZDE4YmUwOGM0MDkwOTU5ZTAyNjVkZDcwN2NkZWFhYjliM2ZjZjYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_cb235f7016f345d8bc181cb9b2aa6f90",
+      "statement": "Desktop and mobile Export to Host use KeyExportModel and KeyExportForm as an explicit operation separate from file-drop upload: the model obtains or derives public material, validates an attached certificate, authenticates an export connection and installs the public key with selected options rather than uploading the private-key file. Both export detail views cancel the model on disappearance.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/KeyExportModel.swift#L210-L328",
+          "version": "repo-lines-v1:sha256:bafefe6b76a0da31071b2811f02a84513283c92f915df5c787c499ade54b6ed4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2NDc0OTY4NDU4ZGZjMTQ3MTU1MTI0MWE2YzRhZTJhZTc1MThlYTI2MDg1MmZhNzcwMDk4NzdhOWI1ZTEwOTg3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyYzAzZjIyMjI4YTk3MGM4NjA2YzJjOTU4M2MxNTUzMmUxNzA3YjIwZjM2MDRkMWE4M2M5NmZmZjk1MmZlZTRmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzNGRlMTA5YmIzOThmZTZlZDJlMTFlZTJjOGI5NGM5NTE3ZjNiMDIwNmJlZWVlNGQ5NzJhOGMxNDg4NjgwNWNiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2MGEyYjgzN2M3ZDE4ZWY1Nzk5YWJjYmE5NzM2MDE4ZWMyYTJmZTg1MzZhOGVlZWY5MTBkNzEzZThhYmIzMmY4In0"
+        },
+        {
+          "resource": "repo://TFI/Features/Keychain/MobileKeyExportDetailView.swift#L10-L35",
+          "version": "repo-lines-v1:sha256:a5cd4fe70fb20944277e9049da82b4ae7b359e58f7f6f7ebd2678fdd49832ab6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YmY0M2UwZmNkYThhZWY0Y2M1ZjQ3MmQ4NTcxZGI2MzczNTE0Yzc3OWE5Yjc4ZjY2YjNkODdjNTk1NjU5YWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYzU4NWU2NDJkMTNjY2I0NWU3ZDMzODBiNDM2ZGY0YTE0NGM4NGJjYTNmNDQ1NjFlZTdiMDkxOTY5Y2Q1YTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3NjY5MmQ1YzZhNGI2ZGMxMTJjNDNjNTBiMTc5ZjY3NWZiOGYyYjM3ODA0ZjFmM2RlZjFlZWQ5N2MzNTEwZmIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Keychain/KeyExportDetailView.swift#L15-L51",
+          "version": "repo-lines-v1:sha256:16b09805089deac4e86b85e53e8eba576b6ab1f18bc7d0c6976ff333dd55a367:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMjBhMzkzNmY3ZDgxMmU1OWQ3OTIxZWE4ZTVhNDQ0MjI1Y2ZiM2E3ZTVhN2ExMjg2M2M4NDg4ZTU0NTEzMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3NjZmZjkzODNiYjk1NGViZmQ5NGY5ZDk4MmE4NzkwZTI3NjMxN2ZkYzg5MmQ4NDNlZmVhOTg1YjIxNmQ4YTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjOTFjYmQ0MDkyMDY2M2I5MjY3ZDMxMDZjNmM3N2FiMGI2NDBmMWQ0NDZlOGVkZGI1NzhjYzEwY2Q4YjcwNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwOTVlZmFjMWI3NmVhYzAzYjllZTYyMDVjNDM5NmMxZGIxMmMyYWUyYzA4NGNjZDg0MDBhOTI4ZTgzZjA5ZDgifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

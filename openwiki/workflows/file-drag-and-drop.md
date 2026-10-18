@@ -1,6 +1,6 @@
 ---
 type: interaction workflow
-title: File Drops and Terminal Uploads
+title: File Drag and Drop
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
 sources:
@@ -8,6 +8,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
+  - id: openwiki-source-a10662c84687c7293d31e81f
+    resource: repo://Frameworks/TermindApplication/FeatureModels/KeyExportModel.swift
   - id: openwiki-source-1f7e305d10685aa880c0abea
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift
   - id: openwiki-source-9f901321faf927c1696ac6e6
@@ -34,6 +36,8 @@ sources:
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-3dfad0e95bb7d66f292c20c9
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
+  - id: openwiki-source-fdd3aa93bd12f2660083ef3f
+    resource: repo://TFI/Features/Keychain/MobileKeyExportDetailView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
@@ -56,6 +60,8 @@ sources:
     resource: repo://TFM/Features/AI/ConversationTranscriptView.swift
   - id: openwiki-source-16bb1a92866262b0d20f24e4
     resource: repo://TFM/Features/Keychain/KeychainPageView.swift
+  - id: openwiki-source-a216cc6d87fb99d3311219e3
+    resource: repo://TFM/Features/Keychain/KeyExportDetailView.swift
   - id: openwiki-source-61a7b49f0fef771653753f14
     resource: repo://TFM/Features/SFTP/SFTPBrowserView.swift
   - id: openwiki-source-959c55c879956237ad156bda
@@ -78,13 +84,13 @@ sources:
     resource: repo://TFMTests/FileURLDropTargetTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# File Drops and Terminal Uploads
+# File Drag and Drop
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
@@ -257,7 +263,7 @@ A saved transfer snapshot is not a permanent access grant. Before an independent
 
 Local filesystem access is separate again: the shared planner starts security-scoped access while enumerating each selected root and records that root with its jobs; the transfer coordinator reacquires scoped access when running the upload. Mobile provider staging additionally coordinates the read before UIKit releases the provider URL. These checks do not substitute for server-side SFTP permission checks; preparation or transfer errors must still be reported.
 
-Evidence: [fresh access and credential resolution](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L318-L335), [silent authentication failure test](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L666-L699), [root scope and enumeration](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L44-L89), [upload scope](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L493-L525).
+Evidence: [fresh access and credential resolution](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L318-L335), [silent authentication failure test](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L721-L754), [root scope and enumeration](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L44-L89), [upload scope](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L493-L525).
 
 ### Upload admission decision flow
 
@@ -298,7 +304,7 @@ Dropping local files or private remote items uploads/copies them but does **not*
 
 Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path.
 
-Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1411-L1494), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L71), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L392-L447), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L597-L610), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L722-L735), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1662-L1768), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1918-L2035), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
+Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1411-L1494), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L71), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L392-L447), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L658-L671), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L798-L812), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2048-L2154), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2304-L2403), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
 
 ## SFTP uploads and desktop remote-file dragging
 
@@ -322,9 +328,26 @@ Evidence: [local receive and remote decoding](../../TFM/Features/SFTP/SFTPBrowse
 
 The Key editor mounts a `.files` native receiver only while private-key editing is permitted and the form is neither loading nor saving. In software mode, `receive(urls:)` calls shared `SoftwareKeyFileImporter.read` and applies the returned private key, certificate, and optional inferred name to form state. A private key can infer the complete filename only when the current name is blank; a certificate does not infer a name. Multiple private-key files resolve to the final one in the supplied order. In Security Key mode, the first dropped file is read as a `termind-fido2-v1:` reference; the reader requires a regular UTF-8 file of at most 1 MiB and validates the decoded credential before filling the reference field.
 
-The importer reads security-scoped UTF-8 regular files up to 8 MiB, recognizing private-key text and OpenSSH user certificates. If any supplied file fails, the view receives an error before applying the result. This initial classification is not cryptographic validation or a save: background inspection derives public material, and explicit Save inspects changed key material, validates certificate matching, and calls the existing persistence path.
+The importer reads security-scoped UTF-8 regular files up to 8 MiB, recognizing private-key text and OpenSSH user certificates. If any supplied file fails, the view receives an error before applying the result. This initial classification is not cryptographic validation or a save: `refreshPublicMaterial` uses `SSHKeyMaterial.imported` to refresh editor material, and explicit Save imports the software key material, validates certificate matching, and calls the existing persistence path. Metadata-only editing has a separate certificate-validation and metadata-save branch.
 
-Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L678-L686), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L1006-L1025), [software importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [Security Key reference reader](../../Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L86-L109), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L805-L830).
+Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L686-L692), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L992-L1013), [software importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [Security Key reference reader](../../Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L86-L109), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L819-L864).
+
+### Key export is a separate explicit operation
+
+Desktop and mobile **Export to Host** use `KeyExportModel` and `KeyExportForm`, not the file-drop upload queue. The model obtains or derives public key material, validates an attached certificate against it, authenticates a separate connection, and calls `install(publicKey:options:)`; it does not upload the private-key file dropped into the editor. Both export detail views cancel their model on disappearance. For storage and secret ownership, see [Persistence and Secrets](../concepts/persistence-and-secrets.md).
+
+```mermaid
+flowchart TD
+    Editor["Dropped key file"] --> Buffer["Editor buffer"]
+    Buffer --> Save["Explicit Save validates and persists"]
+    Saved["Saved key selected for Export to Host"] --> Public["Obtain or derive public key"]
+    Public --> Authenticate["Authenticate export connection"]
+    Authenticate --> Install["Install public key with selected options"]
+```
+
+Key-file intake and public-key export are separate user operations, not a private-key transfer pipeline.
+
+Evidence: [export model](../../Frameworks/TermindApplication/FeatureModels/KeyExportModel.swift#L221-L328), [desktop export lifecycle](../../TFM/Features/Keychain/KeyExportDetailView.swift#L38-L51), [mobile export lifecycle](../../TFI/Features/Keychain/MobileKeyExportDetailView.swift#L15-L35).
 
 ## Shared Overlay UI
 

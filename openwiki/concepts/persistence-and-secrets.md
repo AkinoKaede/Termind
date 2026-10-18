@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistence, Compatibility and Secrets
+title: Persistence and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -46,6 +46,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-85b30c7ff8f6f034b2bc980f
+    resource: repo://Frameworks/TermindPersistence/AgentPersistenceRedactor.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
     resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
   - id: openwiki-source-33d69cea4b24d60ab000a0cc
@@ -136,10 +138,18 @@ sources:
     resource: repo://TFI/App/MobileStartupView.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-9c78befae6b387426c603305
+    resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-350d4a794cfef67e406ddf9b
+    resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-28243bbeecc381626d39eeb6
+    resource: repo://TFITests/MobileTerminalRestorationTests.swift
+  - id: openwiki-source-72e61dbb0cab28991fe07481
+    resource: repo://TFITests/MobileWorkspacePersistenceTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -152,13 +162,13 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# Persistence, Compatibility and Secrets
+# Persistence and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -212,6 +222,10 @@ Agent conversations use a separate SwiftData repository with similarly deliberat
 ### Assistant history edits: one message boundary, one transaction
 
 Replay is backing for the original turn, not a fresh reconstruction from current Host or skill configuration. `PersistentAgentMessageReplay` stores a redacted captured `contextSnapshot` and optional frozen `modelText`; attachment backing is keyed separately by message ID. Snapshot saves deduplicate messages across runs and can add missing replay backing to an already-stored user row when preparation finally freezes its context, without rewriting that historical row. Existing replay backing is not overwritten by later snapshots. Restore rejoins backing by message ID and recovers durable tool output, including its frozen model preview, before compaction projection.
+
+This backing is additive: historical message schemas remain frozen, and missing legacy context is not reconstructed from today's configuration. `AgentReplayPersistenceTests.v15MigratesWithoutInventingHistoricalContext` opens a V15 disk store through the production factory and verifies the legacy message survives with no context snapshot or invented replay row.
+
+Tool replay also preserves structured presentation. `AgentPersistenceRedactor.toolResultText` first applies `AgentSecretLifecycle` persistence policy, then redacts decoded JSON structurally and preserves untrusted-data envelope markers; tool/runtime policy, not arbitrary serialized-text truncation, owns the result's size. Non-JSON results take the visible-text redaction path. On restore, malformed JSON-looking or wrapped legacy text can use a valid structured fallback from durable result content or frozen model content. If no valid fallback exists, it retains the text rather than guessing a repair. Tool-role frozen `modelText` uses the same tool-result redaction path; other roles use visible-text redaction.
 
 Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
 
@@ -292,7 +306,11 @@ The selected local schema is `TermindSchemaV58`, but the migration contract is t
 
 Remote-session recovery is a separate capability boundary. `RemoteSessionReference` carries a version, backend, opaque backend identity, Host ID, endpoint, username and optional ownership token; only the backend interprets its identity, never as an arbitrary command. `RemoteSessionCoordinator` validates an existing attachment against the current route and the backend's session inventory before reattaching. A missing or mismatched session requires selection rather than silently applying the create policy. This recovery does not restore authentication material: a connection still uses the runtime secret-resolution boundary. Only explicit-close teardown is eligible to end a managed remote session; suspension, application termination and detach are not. A failed termination does not authorize workspace removal unless the user explicitly chooses disconnect-only. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection handling.
 
-Mobile's old defaults snapshots are **retired**, not migrated into a replacement persistence layer. At app initialization `MobileWorkspaceStore.retire(in:)` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`. Do not use those snapshots as the durable owner of Host preferences, credentials, or recovery capabilities.
+Mobile's old defaults keys are **retired**, but local workspace restoration now has a separate owner. At app initialization `MobileWorkspaceStore.retire(in:)` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`. `MobileWorkspaceStore` reads and writes a version-1 JSON snapshot at `mobile.restorableWorkspaces.v1`, mapping scene-session IDs to workspace descriptors. Each descriptor carries its ID, Host ID, title, connection kind and optional `RemoteSessionReference`: connection intent and recovery identity, not credentials, transport checkpoint bytes or one-shot commands. Live composition uses supplied defaults or `.standard`; memory/injected-host composition uses only explicitly supplied defaults, allowing restoration tests without writing the live snapshot.
+
+Loading validates the version, nonempty session keys and globally unique workspace IDs. A corrupt or unsupported snapshot disables subsequent saves on that store instance rather than allowing an empty projection to overwrite it. `MobileAppModel` reports the read error and does not treat it as an authoritative empty list for Live Activities. Successful loading creates session models from descriptors; orphan-session recovery saves the complete descriptor handoff before releasing source ownership. Missing Hosts can leave dormant, closable descriptors until discovery, rather than forcing their deletion.
+
+[MobileWorkspacePersistenceTests](../../TFITests/MobileWorkspacePersistenceTests.swift) verifies that cold launch neither persists nor replays a one-shot Snippet command, and that an undiscovered Host's descriptor survives until discovery or explicit close. [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift) verifies unsupported snapshot bytes cannot be overwritten. This defaults-backed intent is distinct from both SwiftData Host policy and encrypted transport recovery. See [Session Persistence](session-persistence.md).
 
 ```mermaid
 flowchart TD
@@ -305,6 +323,9 @@ flowchart TD
     Secrets["SecretStoring and runtime credentials"] --> SSH["Authenticated SSH connection"]
     SSH --> Coordinator
     Retire["Mobile startup"] --> Remove["Remove retired defaults snapshots"]
+    Retire --> Intent["Load local restorable workspace descriptors"]
+    Intent --> Reference
+    Intent --> Invalid["Invalid snapshot blocks later saves"]
 ```
 
 Durable configuration selects behavior; recovery references identify remote sessions, while credentials remain on their own channel.

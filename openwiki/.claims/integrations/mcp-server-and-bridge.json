@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a8e8ca1b8b302ba0d35ba6b4882241df99c900ba5728e8ab3df165ca7bac7502",
+  "pageVersion": "sha256:02724aec9eaab3ac9fd59e57f22593c434f9aede56bda46148fb6a943aa57564",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         },
         {
           "resource": "repo://TFM/App/DesktopSettingsKey.swift",
@@ -94,11 +94,15 @@
     },
     {
       "id": "claim_755f3f0d25bc4b3780a51e04427ac7f7",
-      "statement": "Stopping, deleting, or expiring an MCP context cancels its copies, transfer capabilities, external authentication requests, and brokered secrets.",
+      "statement": "Stopping, deleting, or expiring an MCP context cancels its tracked calls, transfer capabilities, external prompts and secrets; endSession closes that run's background-command scope before draining transfers and again after joining cancelled calls to catch late registrations, without closing other scopes.",
       "evidence": [
         {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift",
+          "version": "repo-file-v1:sha256:3f48112d2107b5781ac81c3f98ff006b8511c8d50ffab03d3432043befc6c0ab"
+        },
+        {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         },
         {
           "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
@@ -116,7 +120,7 @@
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         },
         {
           "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
@@ -129,24 +133,16 @@
       "statement": "External SSH authentication, host-key confirmation, and command-secret requests are queued through ExternalAuthCoordinator with client and session identity; MCP shutdown cancels external requests without cancelling Termind-origin authentication.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L149-L154",
-          "version": "repo-lines-v1:sha256:a8295d5e8afb783b7eec46a70804f67a18db9f0bee1bc0f40c95d4964a7a87ea:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTU1YzAwMmVmYzg3OGUyOGNkMjg4YmM3YmY3ODg0YjU1YTI5MmZiNTk0ZDY5NTM5OGJhZjEwNmZkMzUwZjdjZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBhOTJjMzljNzhiNmU4ZmUzOGI0ZGQyOTExZTA1ODAzN2ExYWVhMzllNzYxNjllNzBhM2UwYmEwNDc5MzkxNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmI2NDY3NmU5OGYwYzUxNTQ2Mzg4ZTc1ZmQ0MmQ5NjBhNTI2YTYzNjZmNTEwNWYzMzI5ZDQ2YmVkZTkxODBhMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTI4ZjcwYjQ3ZWYyODg2OGM3MjIzNWM0MjM2ZDZlYWQ2NjkxMDRkY2UxNmUzYzUzN2JlYmQ2NGEwYjNkNmE3OCJ9"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:f19563fb21c38d36aa248cd3f02f8f210a6b43bf375bb33673a067e99f3fa306"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L141-L149",
-          "version": "repo-lines-v1:sha256:3c60dee9829d7c3e4e12366ce209e6f75677a778ca73c1a48846adbadc56de6f:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0ZDcwNDA3ZTNkNzRkMGZiNzA0ZTI4NGJkMjBiYjlmMmRmMmUyNDhmNGJlOTc3NjM3MTI2ZWFiNzYwMjRkMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWY3NWQ5MjQ1ZWM4MjU5YTA0MWJhZTM1YjUzYTgwYjU0NjdmMWM1MmFmM2E5Mzc3M2IzYjViMWI3ZTM0NTlkNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTdmZmNmMDQxZDYwZGY4OWI2MWJhNDgwMWZkZTEyYTRkMjQxMGJmMmJmYmJmNGJmNzdhNzE5ZDgxM2FjODg1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2JkNzQwNjllNTUxZDNlZjViZWM2ODRmMDY1OWVlNzAxMjczMTJlNDkyMzY4YzgzMTI4NzVjNGQ5ZmQ4ZjdmYSJ9"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         },
         {
-          "resource": "repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift#L115-L122",
-          "version": "repo-lines-v1:sha256:f63dec9591ff289cb478d0e7a3a9ef342c04397df4e73ede634323638c4abdd0:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2E2YTI4NThhZjRhNTE3MDViYTkzOWI4Mzk0ODI0YTdiY2I1NTNhMjdkYTQ0NzRlM2IwYmRhMTEwNzM3YTgzNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWU2YTdhODEzNzBkNTdiOGQyODMwOTRlZDI4ZGMxMDAzMDliYjhkMGIxNjY0MjJmYzQyNjQ0NzJkNjFkMWQ5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGMwYmQ4NzJiMjQ3OWFmNzQzMDcxZWQxNzQ1NzQyZmNlOWEzYmFmMjdkNTUyZTI0N2UwMjkzYzY0ZmY4ZTUzOCJ9"
-        },
-        {
-          "resource": "repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift#L234-L256",
-          "version": "repo-lines-v1:sha256:e8221631a58a47118f21fd5070d10334248f32a4409e6c0b6801bacf76e6914f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxZWY4MzFhNmFkNWEyOTAxYjI1ZjY3NjM5OTIyZTkzMzJkOGRhMjY5ZjhlMjgwNGZiMDEzMjlmZTMzMjkyODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1NmU0NDBkMWIzMmJkZDNjZWFiMjRmMDdjOTQzYjQ1YmI1ZTA1MTZmODAyMmJlZGJjNmRjNTA3YzExNDE0YzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyNzgwZjc5MThiNWIzNzk1NGRhYjMwYmQ0NzRjYmQ0ZWUxMzkyZjUxNmE5NzI5NjE5NzdiYTFlMGE3OWVkNTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MDRmMDE0MzUzZDY3ZTlkMWIwYTU2OTkxYWMyZGFiMDY5YzAxMTRkY2RlNWZjNGRjMjRjNjJjYTFkZDU5NzIifQ"
-        },
-        {
-          "resource": "repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift#L43-L68",
-          "version": "repo-lines-v1:sha256:75bf711f2f0a811c485387403656e1ab2a650a37b834592192b092a5d7c53291:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzMjkxMWJiZTk2YTk0YjdjMDQ1Yzg3Y2I4OWIzMjdmNDU4ZDEyYjQ2MjgyYjA1Y2Q4Mzk3ODZiNTQ1NjI2MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0Y2RiMjAwNTk2ZTMxMWNlNTU5Y2U4MDQ0OWEzM2UwZjQ3MDkyY2RlYzUzYTk4YmMzNzhmMjA5ODZjYTE1ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlYzA0YzQ1ZTlmNDc2NjQ1NmRiNDRlYzVmNzc4ZDg1NmNhZWYwMmVlZGJmZjRmNWQ0MjUxN2E3MmRjZGUzZjUifQ"
+          "resource": "repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift",
+          "version": "repo-file-v1:sha256:3825eebd5ab4c88a4d1afc59c9fa18a84cc04b0f81f6215bbe82912e945bc4ae"
         }
       ]
     },
@@ -155,7 +151,7 @@
       "statement": "request_user_secret returns a broker-owned one-shot handle rather than plaintext; ssh_exec_stdin consumes it with type=secret for a context-scoped background command. The current request schema does not include host/tool binding fields.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift#L62-L155",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift#L78-L171",
           "version": "repo-lines-v1:sha256:cdf68a0f8b289bf54127360507c75a30f4bef258aa1bcf4e871a07bad01a5c88:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiNDgxYzliNjFiZWFhNmFlYjhjYTI0NGNhYTBiMTczZTAwMjg5YjA1NzNlZTAyMzZiNDc1OThlZDQ5ZjM1MjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwMGI5MTIxYmNhZDczOTUzODhjZDcxNjIwNmQyMDFlZDkxNDQwOWFmZDFmMDM2NjQ1ZTExMTQwNWIyNzg1ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlZmRjYjcxMmNiZjk2NmM0ZTM4NjBlMjAyMDkwMTllZTUzNTBiNGE4NWZhZDMxZjFlYmIyYzBhZWYyZTY2YmUifQ"
         },
         {
@@ -264,11 +260,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:9a4ff603cf8726d3e8c928de04efbf3dffa075f1a262fb49360b020d027c79bb"
+          "version": "repo-file-v1:sha256:a6b97760ff200296071fdf87ad5a7cc6dc14a5561ce9db82ce319ad8a52fb22a"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         },
         {
           "resource": "repo://TFMTests/MCPServerToolsTests.swift",
@@ -285,11 +281,11 @@
           "version": "repo-lines-v1:sha256:eb2a39006615cd5a8a1fdaade987228391d290f66be00e9c2f400df780e6dfa5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0YjIxZWI5Yzc4ZDQ4NjU4ZTYzOWZhMzFiYjRhN2YxYjYyNmIzNjExZDcxZDc1YzgzODg3YzA5ZDQ5ZjgzNjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwY2QzYjZhMGYwNzk0NjI4MWEwMWJjOTA0NDNlZTIxNzgzMTRmZGNjMmMzN2UyZjQ4N2Q1OGZjOTRhNWExNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L335-L367",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L356-L388",
           "version": "repo-lines-v1:sha256:7430f773081d8241c5b3a8fa3461531cb771967ae89866bd13f3493c0d9f0539:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYjcyYmE0ZDk2NDBkOTI2M2JlMzcwZWJiNzJlMzVlZDA4MGY2ZTM1NjU1MjAxOGRhZWJiMmFmZmI3YWY3NWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4N2FlNDIzYzRkMDk3ZjBiZDU4ZDVkMjMwMDI5ODRiZTMzMDhhMzQxMDExMjc4MWFmYTA3YWZkYTIxNjk1ZGEifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L305-L359",
+          "resource": "repo://TFM/App/AppModel.swift#L310-L364",
           "version": "repo-lines-v1:sha256:64d2cd7039231305130f7779d7f3ec34112fe4e72e108b476528a4c87bcf9aa7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0ZTE0MTY4NjY3OGFjYWM5MjJiZjk3YzBmNjY0MDIxNjIwZTU2MDEzNzFmZTIyNzA5MTViZThkMDhhZmY1MWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
         },
         {
@@ -374,7 +370,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift",
@@ -405,7 +401,7 @@
       "statement": "macOS AppModel separates ordinary SFTP transfers from MCP tickets and revokes MCP host tickets on local/outbox or remote host removal. Termination fences Assistant admission, cancels pending preparations (joining captured failure saves even for unstored conversations), and stops all stored conversations before awaiting their drains. MCP stop and ordinary SFTP cancellation waiting run concurrently; preparation persistence, conversation drains and both stops finish before shared background commands, then connections, then Tailscale close. Repeated termination reuses the cleanup task; AppTerminationTests guard these admission, persistence and ordering boundaries. MCPServerController.stop drains transfers, stops protocol and HTTP, and cancels external MCP prompts without closing the app-owned connection pool. The app delegate hands cleanup to a bounded termination reply coordinator.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L813-L851",
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L812-L850",
           "version": "repo-lines-v1:sha256:89bb691c6db21c8701b079243ffe0b84e409027a6e6b858009e87416431b7620:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MDJkNjgzYmY5M2Q2MzYxODAyZTY3ODljZTM4NzViNzgwMmFjOTcxZTZiZGM3OGQ0YmM2YmJkNGI3YWY3ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOGYyMDc4MzdmY2FhYWQyNTUzZmRkYWJjNGM5MWI5MTdhZTE4MzEwMjA1ZmUzMWE4ZjAyYWM3N2NiMDMxMjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiMGQzZjE0ZTM2MzJiYTlmMGUzYjlhMmFhMzgzZTA2NWFhMGFjZTE5YzUxNTg1MDZhOWIxYmM3NDUyMTFhZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNDE2NjE0M2NiNTMyNGZkMmNhMmM4NTE3MjQxZTYwZTJlZTEyNzI1N2RmM2JmYzI1ZTE0NGNhMmQ3NDRmMjQifQ"
         },
         {
@@ -413,24 +409,24 @@
           "version": "repo-lines-v1:sha256:67bedae5915d7f6a4ba3a785219f82320187368632bd179ce1d31a2c45ade07e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxOTY1OWM4ZDM4MWNhY2NmMDg0NjZiNzc4NTk4M2E4Zjc2OWE1MjU0MjA5ODYyODA4ZWRhNTkzNDQ2ZTIzYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmNWY2ZGIwODM0YjM4NzEyNGRlZWVmZGZhMjFhOGIwN2UwN2FiYTM0OWFiMWRkZTNlMDg3Yzg0ZGE5NmEyYTIifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L309-L359",
+          "resource": "repo://TFM/App/AppModel.swift#L314-L364",
           "version": "repo-lines-v1:sha256:ad2008fc89ccaaea043cebd1aae563ce3dba573fc48b7c21b391721436a69321:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwMWNlMzA3NzIyZTVhMzE0MjRmZGIzOGUzOTkxYjI3M2EzNGNjMDQxMjFjMzgzNzdmNGQzOTU1NmMzMGUwZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhYjMyNmFmMzE3MTllYWI0N2UyNDYyNmNhYjAwYjNiNzk4ZTEzN2E3NjQyNzcyZjc3MDRlYjQ3OWQyMTI0ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L366-L375",
+          "resource": "repo://TFM/App/AppModel.swift#L371-L380",
           "version": "repo-lines-v1:sha256:06da4067f794c25f9a85af51c7012e9d36e5aaf94e1cad0c064da4a1a4ce6e2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4M2E2MjQ1ZDczOTAzYzVmOWVlNzdjNjFlMjllMGIzYmZiMzNmM2Y3MmVlZTIwNDVlMWI4MWE5MjZhMGYxYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNzYzYmQ2YTJkM2UwMjQ0YzBmMDMwZTI0YzFlMjQzOTA1MTM5MTkzMWE1ODBlNWNiY2YwN2Q2YjBiOWYxZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5YTVjNDU4ZWJhZGU4ODY2N2VlMTE3OTczZTEyMWViMmM1YmExOGMxNTFlYWIyZGUzOTRmMzhhOGMzOWZkMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwY2MwZGE1YmRiNmYxYmUyYTFiYmIwMzNlOWE4YWY1ZTJjMWE2NGM3Y2UwZTQ0MzU4MjM0Mjc4YTlmOTdlN2MifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L413-L429",
+          "resource": "repo://TFM/App/AppModel.swift#L418-L434",
           "version": "repo-lines-v1:sha256:2ff10708aaad6d89300562e49efe6ccf1616388f82fc934e1cff9a7956404e89:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyOTZiMzVhOTYwOTBjNDBhMjQxNjljODI1NTBkN2M4NWY1ZDI4N2I0ODJmYWExOTlkZDA1NDRjYjk3N2FiNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxOWI3MGIyZmViMTE5YTZkZmIwYTAwYzdjNWM1Y2QzNmNkZWU4NGVmZjdhNjAyYWIzMjBlOGVjM2RiYmYzN2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZjdhYWQzY2U0ZWRlZTg1ZDJiOGYwYzA4Y2MwNTQ0M2VjM2YwN2IyMDA2YWQ3OTRkMGFlOGQwNWViNjQ0NzYifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L551-L562",
+          "resource": "repo://TFM/App/AppModel.swift#L556-L567",
           "version": "repo-lines-v1:sha256:f931d190fe71956803ae65ce36d34596d6b9efe6ca8c8b8b85491a050bc0eaa4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0ZTBmOGRkODVmMjNhMDhiOTc2N2I5YzBiMGQxODQ4N2FmY2I3MWQ5OWNmNjEyMTc2ZDZiMDExMDEyMTdmNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzMDEyZTgzYTcxZjI0ZTVlZjRhZGM5ZTY1YzcyYTViYjgxZTY0MTkzZjI0OTViMThlOGY4MDEyMjUwZGI2YjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5OTllNjE2OThkZTE2ODU1ZDc5MDViNTk2MzNhMmFmODZiODI4N2MxZTg4OGQxYjBkNmMyYzBmODg5MjJhNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjZDgxNTUwNzlmZTA2NTc5ZmViNmVjZTVhMTdmNWM0Zjk5Y2U0ZWYyZmNiZmE4ZGJlODVlOWNlZGI4MWVjYjcifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L996-L1056",
-          "version": "repo-lines-v1:sha256:c1845e5daf0de17cb8b8094ddc297fe42938b3e7cd958c43a8c78e4ce98300ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
+          "resource": "repo://TFM/App/AppModel.swift#L1002-L1063",
+          "version": "repo-lines-v1:sha256:378169d2169ef9a6672c2902bbfbc016f5f1be3396e36ef1d055d5974ec19d98:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift#L149-L155",
@@ -451,11 +447,11 @@
       "statement": "MobileAppModel handles host deletion by cancelling ordinary SFTP transfers and does not compose the desktop MCP server or its ticket routes; its assistant receives AgentHostServices independently of the mobile SFTPTransferCoordinator.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L335-L368",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L356-L389",
           "version": "repo-lines-v1:sha256:3652414aed57c0d741afdb04a5ec1f243c25ade725f252a0b93405864cc7abbf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYWQ3ODk2ZGU0ODk4MzU0ODAyMGEwYzY5YmQxNDVjN2VjMTlhOTBkZTRhMGYxMjQyZWIwMWE3ZjMzZDVjOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNmQyZWJjNGFjZWE5ZDk0YWMyOGU0ZWJhMmQwNzA2MDQzODU2Y2Q4YmFmZTk4YzdmYzQ3NGJmYTdhYTk5N2QifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L383-L400",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L404-L421",
           "version": "repo-lines-v1:sha256:a53b823b1fa9f07ec6891012487c6f0af33213a786cfa9438b106a2401a0f7e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwM2M0NWRiMmQ0ZTMyMDIzOGNmOTkzMWJjMDJlMTg3NzZlMjVmNmNmNGZhY2MwZjcwYmE4M2Q3MzYxYmJmYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MDAzMDk2ZDkzZTMyMmY3NDZlMWZhZjQxZjY1NTcyMWY3ZDc5MmRkYWM3NDIyNzA5ZTMwOTg2MTgzZDA4MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwYjU0YTBjNDQ2NzcyZDJlYzkwNzZhZmEwMGY2NTAyNmJhZDZhZDFjODk0MzMxMTEwMzYxMDU5NjEwN2ZiYTAifQ"
         },
         {
@@ -516,23 +512,19 @@
     },
     {
       "id": "claim_1d617d837344443da983c456155fef40",
-      "statement": "The Assistant's embedded AgentKit MCPClient is an outbound, per-Assistant tool-catalog integration of configured remote servers and credentials with a conversation-scoped scratch workspace; the desktop MCP server instead builds its own restricted inbound registry, and iOS does not host its listener.",
+      "statement": "The Assistant integrates configured remote MCP servers and credentials through an outbound AgentKit MCPClient; the desktop MCP server builds a separate restricted inbound registry with no scratch workspace or remote-server catalog, and iOS does not compose that listener.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
+          "version": "repo-file-v1:sha256:db7004434c270182d531bb9c47aaf1be35bcdd7e8ca1926c6ac2646d0d04c5f9"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
-        },
-        {
-          "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:c8cb123df7e8dcf86ce766516eac3ff6e512decf38f57e160f6439cc503ab20a"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         }
       ]
     },
@@ -552,11 +544,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
+          "version": "repo-file-v1:sha256:db7004434c270182d531bb9c47aaf1be35bcdd7e8ca1926c6ac2646d0d04c5f9"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:402cc46c8c11d07c65916472eabcbe339b236cf474f3978c4413ae7c051c6a0f"
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
         }
       ]
     },
@@ -580,19 +572,19 @@
     },
     {
       "id": "claim_ab3581029d4b459ebd9b633bbcd0499b",
-      "statement": "AssistantToolRegistry builds the Assistant catalog only for tool-call-capable models, admitting enabled remote MCP servers with nonconflicting namespaces and supplying each server's manual Bearer credential and OAuth-capable MCPClient; its conversation-keyed scratch workspace persists across runs without being shared across conversations.",
+      "statement": "AssistantToolRegistry builds a catalog only for tool-call-capable models, supplies enabled nonconflicting remote servers with manual Bearer credentials and the OAuth-capable MCPClient, and uses an application-shared scratch workspace rather than a conversation-keyed workspace; background commands instead receive conversation.id as scope.",
       "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace%2BShared.swift",
+          "version": "repo-file-v1:sha256:60e5beddf314bfb6cf14417bcf8cac390fc2064c5a294996680d6381dd75ac68"
+        },
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift",
           "version": "repo-file-v1:sha256:753668e7464caccd3d4f17a81a65fbe1e02f9a69013335772ccc8096b3da937d"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift",
-          "version": "repo-file-v1:sha256:7b263d917defcac8eab095bb1f6c8e1487cce8661eec14550396d3da8f6cd617"
-        },
-        {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
+          "version": "repo-file-v1:sha256:db7004434c270182d531bb9c47aaf1be35bcdd7e8ca1926c6ac2646d0d04c5f9"
         }
       ]
     },
@@ -602,7 +594,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:dbd14ecfd4e257d79a8910d48b3469936b5d9e75d66a01a96ffe47624b53697f"
+          "version": "repo-file-v1:sha256:db7004434c270182d531bb9c47aaf1be35bcdd7e8ca1926c6ac2646d0d04c5f9"
         }
       ]
     },
@@ -691,10 +683,38 @@
           "version": "repo-lines-v1:sha256:0e72a1bf91959cdce48ae262164fbda7d025a60490cb028dbad15e4bcdbe85e2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMzNzE2Y2U1YjJlZjU4ZDU0MThmMzM1MDRlMjgxZTZmMjcyZmYzMWVlOGQwNTYxMmQzMzI1YmRjZDQ2YWYzNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkMzY5MzdhNTE0Zjc4YmVhMjRkOTEzZjAxZDhmYmM3MzE4OTI1ZjlhYjI5Y2I3OGI3MzAxZDdjNjkzODhlOGQifQ"
         }
       ]
+    },
+    {
+      "id": "claim_063ee51b97de45438af8805082b8e054",
+      "statement": "MCP calls build the executable registry with their context runID as background-command scope; command lookup and listing enforce this scope, and unfinished scoped background commands keep the context alive during the protocol idle sweep alongside tracked calls and transfer activity.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift",
+          "version": "repo-file-v1:sha256:3f48112d2107b5781ac81c3f98ff006b8511c8d50ffab03d3432043befc6c0ab"
+        },
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:e7b7707d04b7b0ed4c8b061c557c43bdccd957103ec1365aadb2a92da629c35e"
+        },
+        {
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
+        }
+      ]
+    },
+    {
+      "id": "claim_1bb6f24420be4719bbe28ef5f1136842",
+      "statement": "Modern calls retain and return operation_handle for supplied handles, successful secret/transfer/ssh_exec_run calls, or ssh_exec_run results carrying a command handle; the operation handle and SSH command handle are distinct capabilities needed for related command-control calls.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift",
+          "version": "repo-file-v1:sha256:66be2c765b0dced450045dee31456201d74720955605e7b9c7f78b9feac7ddfe"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

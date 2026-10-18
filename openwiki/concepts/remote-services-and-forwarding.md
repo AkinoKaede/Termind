@@ -1,9 +1,13 @@
 ---
 type: Remote service ownership
-title: Remote Services and Forwarding Boundaries
+title: Remote Services and Forwarding
 description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 sources:
+  - id: openwiki-source-223c5dfa7c31d1600e490d1a
+    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentOutputAccumulator.swift
+  - id: openwiki-source-dfa48d89c2a9237db894392c
+    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace%2BShared.swift
   - id: openwiki-source-0dba6aaa3f80b8ef8e74ebe9
     resource: repo://Frameworks/TermindApplication/Connections/HostOperationAccess.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
@@ -20,6 +24,10 @@ sources:
     resource: repo://Frameworks/TermindDomain/Metrics/ServerMetrics.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
+  - id: openwiki-source-ee4e94c8b189e0881ec4fd15
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
+  - id: openwiki-source-8ab3e5be1d52833b4112f520
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentCommandOutputStream.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
@@ -80,6 +88,8 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-9e75ae93f5450c1993472c5d
     resource: repo://TFM/Features/Metrics/MetricsView.swift
+  - id: openwiki-source-f37e94b15a9d2f74bcbe83bc
+    resource: repo://TFMTests/AgentBackgroundCommandTests.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-23ab3fe73660b171f78763a4
@@ -90,10 +100,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 
@@ -215,7 +225,7 @@ Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that frami
 
 ## Agent tools: host services, not terminal or forwarding sessions
 
-The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH execution/control tools, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Plans are emitted through the ordered Agent event channel; `ssh_exec_stdin` consumes one-shot secret handles for an existing background command, **not** SSH login.
+The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH execution/control tools, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is application-shared across runs and conversations, not a conversation isolation boundary; SSH output capture paths are namespaced by conversation ID. Plans are emitted through the ordered Agent event channel; `ssh_exec_stdin` consumes one-shot secret handles for an existing background command, **not** SSH login.
 
 ```mermaid
 sequenceDiagram
@@ -242,6 +252,38 @@ This shows why an Agent metrics read does not start a sampler and why Agent SSH/
 `get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec_run` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. Concurrent cold opens for the same Host and route join one pending open; if the route changes, a cached transport is retired. A lost connection may be retried once **only before an exec channel opens**; a rejected channel or a command that already started is not replayed. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. Do not confuse TCP port forwarding with the Host's **SSH agent forwarding** switch: when that switch is enabled, Agent exec opens an isolated connection per call instead of reusing the Host pool and closes it after its exec lease, so the forwarded agent capability cannot persist across commands. The authentication registry also avoids sharing the temporary context in this mode. The ordinary pooled Agent exec path explicitly disables agent forwarding, as does the Metrics sampler. The per-connection `VaultSSHAgent` capability checks that the Host still permits forwarding, resolves keys only when used, and refuses signing that needs interaction when the connection policy forbids it. See [Agent runtime and assistant](agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](ssh-multiplexing-and-scheduling.md) for worker internals.
 
 When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics. `TFMTests/AgentConnectionPoolTests.swift` covers reuse, concurrent opens, and agent-forwarded connection isolation; `TFMTests/SSHAgentForwardingWireTests.swift` exercises the shared host-services exec path and capability revocation on a live SSH connection.
+
+### Exec handles, waiting, and output ownership
+
+`AgentBackgroundCommands` owns command tasks independently of the tool's wait. `ssh_exec_run` defaults to foreground execution with stdin closed and no runtime timeout; background mode keeps stdin open and returns only after confirmed startup. Startup failure leaves no usable handle. When SSH interjection is enabled, a user interjection ends the foreground wait and returns a running snapshot without cancelling the command; cancellation of the wait instead requests local cleanup. Handles are scoped to the conversation/session, even though the connection pool and scratch workspace are shared. Running commands do not expire; finished results expire ten minutes after completion, and reads do not extend retention. Cancel removes the local handle and cancels its work but explicitly reports `remote_termination_confirmed: false`.
+
+Output is not accumulated by blocking the SSH pump on filesystem writes. `AgentCommandOutputStream` merges stdout and stderr in callback-arrival order into AgentKit's `AgentOutputAccumulator`, which owns capture and whole-line truncation. Model-visible output retains the latest complete lines within 64 KiB / 2000 lines; truncated output is captured under `<conversationID>/outputs/ssh-exec-<UUID>.txt` in shared scratch, with explicit capture failure reporting rather than a guarantee of unlimited archival. `ssh_exec_output` can capture a full snapshot under a fresh `ssh-exec-output-<UUID>.txt` path. Snapshots carry a capture ID, revision, truncation flag, total line count and line offset so consumers can distinguish cumulative output from newly received bytes.
+
+```mermaid
+sequenceDiagram
+    participant Tool as SSHExecRunTool
+    participant Commands as AgentBackgroundCommands
+    participant SSH as Agent SSH connection
+    participant Output as AgentOutputAccumulator
+    Tool->>Commands: start scoped command
+    Commands->>SSH: execute session through exec lease
+    SSH-->>Commands: startup confirmed
+    Commands-->>Tool: handle
+    SSH->>Output: enqueue combined output bytes
+    alt background mode
+        Tool->>Commands: read running snapshot
+    else foreground mode
+        Tool->>Commands: wait for completion or enabled interjection
+        Commands-->>Tool: wait ends without implicit remote termination
+    end
+    Tool->>Commands: output snapshot
+    Commands->>Output: snapshot and optional scratch capture
+    Output-->>Tool: bounded output and capture metadata
+```
+
+Exec task ownership outlives an interjected wait; output capture is separate from SSH transport pumping. Sources: [exec entrypoint](../../Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift), [command owner](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift), and [output adapter](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentCommandOutputStream.swift).
+
+Focused regression coverage in `TFMTests/AgentBackgroundCommandTests.swift` checks failed and cancelled startup, cumulative snapshots, fresh capture paths, scope isolation, completion-based retention, exact stdin/EOF behavior, and interjection without command cancellation.
 
 ## Forwarding: explicit intent and host-scoped runtime
 
@@ -289,5 +331,3 @@ A route/Host configuration edit, deleted/replaced rule, or explicit stop invalid
 - Test lifecycle changes with the focused forwarding suites. `TFMTests/PortForwardingReconnectTests.swift` covers shared-context reconnect, capped backoff, generation rejection, silent recovery, remembered versus temporary trust, and cleanup ordering. `TFMTests/PortForwardingFeatureTests.swift` covers rule normalization/validation, Host-route constraints, deletion cleanup, persistence behavior, and command rendering.
 
 Tailscale-managed targets use a group-bound `SSHNetworkDialing` connection. A failed Tailnet dial does not fall back to the system network, and managed targets cannot be jump Hosts. Metrics retains Tailscale group identity in its selection and treats unavailable peers separately from durable monitor intent. `MultiConnectionPolicy` resolves saved SFTP/forwarding preferences against runtime availability: channels-only and one physical forwarding connection are the fallback, without changing saved preferences.
-nd one physical forwarding connection are the fallback, without changing saved preferences.
-s-only and one physical forwarding connection are the fallback, without changing saved preferences.

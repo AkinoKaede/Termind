@@ -82,6 +82,8 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
+  - id: openwiki-source-e43a0da5ab77c2fc3554244d
+    resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-c1f5a86747a33d4e8472672c
     resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-13f2deff6904678799b19444
@@ -106,6 +108,8 @@ sources:
     resource: repo://TFITests/MobileAppReviewTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-8d34d9ba6456e86e57933569
+    resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
   - id: openwiki-source-205304536d13b39bf2e7e666
     resource: repo://TFITests/Screenshots/MobileCardRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
@@ -132,10 +136,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 ## Commerce ownership and configuration
@@ -278,7 +282,7 @@ The available checker is **`python3 Scripts/check-localization.py`**, not `Scrip
 
 `AppLanguage` offers Follow System first, then canonical choices sorted by tag: German (`de`), English (`en`), French (`fr`), Japanese (`ja`), Korean (`ko`), Simplified Chinese (`zh-Hans`) and Traditional Chinese (`zh-Hant`). Explicit choices are persisted in `SettingsKey.appLanguage` and as a one-element canonical `AppleLanguages` array. Follow System stores `system` but **removes** `AppleLanguages`, restoring Bundle negotiation rather than writing a system-language array.
 
-Reading a legacy preference migrates only Chinese identifiers whose resolved script is `Hans` (tested examples include `zh`, `zh-CN`, `zh_CN` and regional `zh-Hans` tags). Unsupported preferences, including noncanonical regional Traditional Chinese stored values, return `.system` without rewriting the stored value. This preference migration differs from **catalog lookup**: `AppLocalization` resolves Chinese by script (`Hant` selects `zh-Hant`, otherwise `zh-Hans`), maps regional English, German, French, Japanese and Korean identifiers to `en`, `de`, `fr`, `ja` and `ko` respectively. It loads that main-bundle `.lproj` when available and otherwise falls back to the main bundle. Tests cover Traditional Chinese system locales such as `zh-TW`, `zh-HK` and `zh-MO`, and ensure Simplified and Traditional catalogs do not cross-fallback. The Traditional Chinese picker label becomes `正體中文` only for device region `TW` when the Taiwan flag can be displayed; otherwise it remains `繁體中文`.
+Reading a legacy preference migrates only Chinese identifiers whose resolved script is `Hans` (tested examples include `zh`, `zh-CN`, `zh_CN` and regional `zh-Hans` tags). Unsupported preferences, including noncanonical regional Traditional Chinese stored values, return `.system` without rewriting the stored value. This preference migration differs from **catalog lookup**: `AppLocalization` resolves Chinese by script (`Hant` selects `zh-Hant`, otherwise `zh-Hans`), maps regional English, German, French, Japanese and Korean identifiers to `en`, `de`, `fr`, `ja` and `ko` respectively. It loads that main-bundle `.lproj` when available and otherwise falls back to the main bundle. Tests cover Traditional Chinese system locales such as `zh-TW`, `zh-HK` and `zh-MO`, comparing their Settings label with the Traditional catalog and distinguishing it from Simplified Chinese. The Traditional Chinese picker label becomes `正體中文` only for device region `TW` when the Taiwan flag can be displayed; otherwise it remains `繁體中文`.
 
 On desktop, `TermindApp` captures the stored language at initialization and injects its locale into scene content; Settings does not replace that launch-time locale. The picker writes the preference without automatically relaunching. When its selected language differs from the Settings view's captured `launchLanguage`, it shows “The new language will be used after Termind relaunches.” resolved explicitly in the **selected** language (Follow System uses `.autoupdatingCurrent`). Normal UI adopts the new explicit choice on a subsequent launch, not an immediate whole-app language refresh.
 
@@ -306,17 +310,20 @@ On mobile, the persisted `mobile.compactCards` preference selects reduced card c
 
 ## Other product surfaces and public disclosures
 
-`TermindWidgets` contains only a workspace Live Activity, not another workspace engine. The app serializes starts, updates and ends, restores at most one active/stale activity and ends duplicates before updating. Ordinary updates cannot resurrect a dismissed activity; a new explicit workspace-open intent can start one when the app can request it. Restored version-1 recoverable sessions remain as **disconnected summaries**, so an empty in-memory workspace array does not by itself mean the activity must end. Explicit removal prevents stale system content from recovering a closed workspace.
+`TermindWidgets` contains only a workspace Live Activity, not another workspace engine. The app serializes starts, updates and ends, restores at most one active/stale activity and ends duplicates before updating. Ordinary updates cannot resurrect a dismissed activity; a new explicit workspace-open intent can start one when the app can request it. **The local workspace snapshot is authoritative, not the system activity's recovery payload.** After a successful load, saved descriptors publish disconnected summaries even before live workspaces are constructed; orphaned system entries are dropped, and an empty authoritative snapshot ends the activity. A failed snapshot read does not authorize updating or ending system cards, including duplicates.
 
-The payload excludes credentials and terminal output, but can carry a versioned host/kind recovery descriptor and an opaque encoded `RemoteSessionReference`. Snapshots order the focused session first (falling back to the last session), cap summaries at six, truncate titles and drop whole trailing entries until the encoded state fits 3,500 bytes. Do not truncate identity/reference data to meet the budget. Links address `termind://workspaces` or a UUID workspace; recoverable workspace links may carry exactly `v=1`, a host UUID and `kind` (`ssh`, `sftp` or `telnet`). The remote-session reference stays out of URLs, and extra query parameters are rejected. The app can rebuild a missing workspace from retained recovery or the validated link fallback only when its saved host and protocol remain usable; recovered sessions require session selection. [Restoration tests](../../TFITests/MobileLiveActivityRestorationTests.swift) cover cold launch without connecting, duplicate cleanup, dismissal, explicit close and close/open races; [payload tests](../../TFITests/MobileWorkspaceStoreTests.swift) cover whole-entry budgeting and link rejection.
+The payload excludes credentials and terminal output, but can carry a versioned host/kind recovery descriptor and an opaque encoded `RemoteSessionReference`. Snapshots order the focused session first (falling back to the last session), cap summaries at six, truncate titles and drop whole trailing entries until the encoded state fits 3,500 bytes. Do not truncate identity/reference data to meet the budget. Generated links address `termind://workspaces` or a UUID workspace without recovery queries. The parser still accepts exactly `v=1`, a host UUID and `kind` (`ssh`, `mosh`, `eternalTerminal`, `sftp` or `telnet`) on legacy workspace links, but the scene uses only the workspace ID to find its local owner. The remote-session reference stays out of URLs, and extra query parameters are rejected. Missing local ownership shows an unavailable workspace rather than rebuilding it from the link or system card. An existing owner in another scene is activated; a local saved descriptor can construct a workspace only while its host and protocol remain usable. SSH restoration can retain its remote-session attachment without forcing selection; resumable transports are marked as requiring transport recovery rather than silently recreating a session. [Restoration tests](../../TFITests/MobileLiveActivityRestorationTests.swift) cover cold launch without connecting, authoritative removal of orphaned entries, failed snapshot reads, duplicate cleanup, dismissal, explicit close and close/open races; [payload tests](../../TFITests/MobileWorkspaceStoreTests.swift) cover whole-entry budgeting and link rejection.
 
 ```mermaid
 flowchart TD
-    Restore["Restore active or stale activity"] --> Retain["Retain version-1 recovery as disconnected summaries"]
-    Retain --> Queue["Serialize next snapshot update"]
+    Load["Load local workspace snapshot"] --> Valid{"Read succeeded"}
+    Valid -->|no| Preserve["Preserve system cards unchanged"]
+    Valid -->|yes| Restore["Restore one active or stale activity"]
+    Restore --> Retain["Publish local live and saved workspace summaries"]
+    Retain --> Queue["Serialize snapshot and end duplicates on restore"]
     Explicit["Explicit workspace open"] --> Pending["Record start intent"]
     Pending --> Queue
-    Queue --> Empty{"No live or retained summaries"}
+    Queue --> Empty{"Authoritative workspace count is zero"}
     Empty -->|yes| Finish["End activity"]
     Empty -->|no| Existing{"Active or stale activity exists"}
     Existing -->|yes| Update["Update bounded snapshot"]
@@ -324,7 +331,7 @@ flowchart TD
     Allowed -->|yes| Request["Request activity"]
     Allowed -->|no| Wait["Do not create activity"]
 ```
-The Live Activity queue distinguishes restoring recoverable summaries from starting a new activity after explicit user intent.
+The Live Activity queue reconciles authoritative local records only after a successful read and requires explicit user intent to create an activity.
 
 DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` or `fr` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
@@ -345,4 +352,3 @@ Once source is available, follow the documented website workflow (`cd com.akinok
 - Mobile cards and Live Activity: check both card densities and run `MobileCardTests`, opt-in `MobileCardRenderingTests`, `MobileLiveActivityRestorationTests` and `MobileWorkspaceStoreTests`. Keep recovery references out of URLs and preserve whole-entry payload budgeting.
 - App catalogs: run `python3 Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `python3 Scripts/check-localization.py`, `python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md). Language preferences and sync ownership are discussed in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md); visual copy checks complement [UI Design Principles](ui-design-principles.md).
 - Independently authored website claims: obtain the website source and inspect the deployed site before comparing its FAQ, offers, prices, privacy/security disclosures and localized routes with native entitlement and sync behavior. Build and visually check the routes actually present in that checkout. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.
-. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.

@@ -1,6 +1,6 @@
 ---
 type: architecture map
-title: Module and Dependency Map
+title: Module Map
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
@@ -94,13 +94,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
-# Module and Dependency Map
+# Module Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -172,7 +172,7 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `1.20.0`, and `Package.resolved` pins version `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `2.1.0`, and `Package.resolved` pins the released version `2.1.0` at revision `0bf0b12dcb3b17e52f2157a260a86faddc748b41`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
 **Maintenance versus remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate from maintenance checkout HEADs:
 

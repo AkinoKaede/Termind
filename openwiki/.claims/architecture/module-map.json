@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:33f8ee30074bc9907ea6bbcb39248026a5fccb6174dacb6333bbaf75b471b245",
+  "pageVersion": "sha256:5b886adf25df4f1186b5640ff548a8ba147754ad37722f2bf95d235bc8a3e596",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -32,19 +32,19 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:106b68a97b73ea0bdbb1bb10845d4a41a95c4901676d8f78b1d054d789e39ff1"
+          "version": "repo-file-v1:sha256:a803efcf0b16e3c7ec2b128361db43c6d40181dd1c24c11d9b6cedcfdc024641"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
-          "version": "repo-file-v1:sha256:9f32cc04cd93c3d40105b29f68d77ae02d3af39695806826abb586a4ae9ca465"
+          "version": "repo-file-v1:sha256:3bb029c79da5c78ef739bd3851ec5223d6c41419a3217d3706e019b5921cb4b5"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:db35f942522b0503352a788473da785dfe34e9fc7e2411c8148702af77a12a98"
+          "version": "repo-file-v1:sha256:326234790112db748fbd968cfd811fd350a3d24d78bd4744729a712ad0450781"
         }
       ]
     },
@@ -88,7 +88,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -98,7 +98,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:ac456e7f8a1407800cd338d05b1454511bde9713979963d1bc6eda49d99af16f"
+          "version": "repo-file-v1:sha256:3127f463d2e9004635bd43ca39431cba7bc7a4f4e812a303becff23b2e7822a7"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift",
@@ -114,11 +114,11 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:c8cb123df7e8dcf86ce766516eac3ff6e512decf38f57e160f6439cc503ab20a"
+          "version": "repo-file-v1:sha256:ccc9a8bd2a680ca85e664aa274bf833ac863196500d91220d8b3335a7736a31e"
         }
       ]
     },
@@ -127,7 +127,7 @@
       "statement": "The reusable device directory follows shared-module ownership: Domain owns DeviceRecord, Application owns the repository port and observable model, and Persistence owns the SwiftData implementation. Native composition supplies the installation ID from VaultSyncJournal and platform-specific display-name acquisition: desktop MacDeviceName prefers trimmed nonempty kern.hostname with Device.current.safeDescription fallback, while mobile supplies Device.current.safeDescription directly; MacDeviceNameTests covers priority and nil, empty, and whitespace fallback.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L247-L258",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L264-L275",
           "version": "repo-lines-v1:sha256:ba16dd982874ef1a6a4a6db41454133db4741a73f68951521a340ab54ca2ccb8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhNWM1ZWQxNTlkYWMxNWJkZmQzNzM1YWZhYmJhNTEzOWQwN2EzOGFkNzBhYmZjNmM5NTg1YjcwOTVmYzFlOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlODRkMTQ0ZGU1YjZlY2NlODY0MWZmMDQxODBmOWEwZWQ3MjkwYTRiOTU3ZWZhNDVlM2U1YzkzNGI5ZWU3YWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwMTNjNjUxZTFjODc3NGU1NWNlOWVmZmFjNmFkN2U5MTk5YmY3ZDAwYjgwZDMyOTE3NWNmMTc4M2U3MWMxNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1MDNhZTlmZWY1YTRiZjM5ZDIzZmQ0MDRmYWFiYTkyMDY2MmY0ZmEzODUzMjkxOGVlMGI2MmE0OWNhY2EwZjIifQ"
         },
         {
@@ -184,7 +184,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         }
       ]
     },
@@ -244,7 +244,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppDependencies.swift",
-          "version": "repo-file-v1:sha256:1bfb70ac15bb8f267195f137ba256c3f5f9d133b20fbad79ba46895ac014819f"
+          "version": "repo-file-v1:sha256:aaf541621bdfc744432fbc648f411dc8a0a12f35e5dca0e0bc664961151e03ef"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -252,7 +252,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a677a478b332e6f0b2c37d5ea7e7ff168faf04aeca68f9d987f14e1971bd507f"
+          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
         }
       ]
     },
@@ -298,11 +298,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:9a4ff603cf8726d3e8c928de04efbf3dffa075f1a262fb49360b020d027c79bb"
+          "version": "repo-file-v1:sha256:a6b97760ff200296071fdf87ad5a7cc6dc14a5561ce9db82ce319ad8a52fb22a"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:db35f942522b0503352a788473da785dfe34e9fc7e2411c8148702af77a12a98"
+          "version": "repo-file-v1:sha256:326234790112db748fbd968cfd811fd350a3d24d78bd4744729a712ad0450781"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -328,11 +328,11 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:c8cb123df7e8dcf86ce766516eac3ff6e512decf38f57e160f6439cc503ab20a"
+          "version": "repo-file-v1:sha256:ccc9a8bd2a680ca85e664aa274bf833ac863196500d91220d8b3335a7736a31e"
         }
       ]
     },
@@ -341,7 +341,7 @@
       "statement": "The device directory model registers the current installation on creation, caches ID-to-name lookups and tracks storage errors; the SwiftData implementation does not resurrect a remotely deleted device on launch registration, though explicit upsert can recreate it.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L1094-L1108",
+          "resource": "repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L1079-L1093",
           "version": "repo-lines-v1:sha256:c302519c27b6057fad8e2c523f74a5d1b07fb135e1e17d6aff90f366840b581b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3NDA3NjEzNGZkOTU1ZWI1YzgzYzkxYWU2MDBkODQ1ZjM0ZDViMjZlMjlmYjY0MTY3NDcyYjNjNGViMDFjYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMGRjNDEwOTY2N2NmOWMzMWJmNWFjMzA2YTA4Y2IyYzg5N2U5MTMzNmY1YTgxYTQ3NzNhODc1NTU4MGQ3MWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
         },
         {
@@ -367,11 +367,11 @@
           "version": "repo-lines-v1:sha256:f51d87f8ea97693742fb16ae3e4d7b7ac9086e3f11f2a63547971c0d5a4400b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1NGEwN2M4MWU4OGRlMGMwMzBlZjQ4ODUyNDJhOGEyMjY0ZDAyNjQ2ZDRiNTVkNTM2ODk0NzRmZWI4OWM3MjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNDEzOTNjODU0MWVjYzQwZTdjMzZiM2Y2MmQ0YTFmMDY5MWRmOTI3NzZkM2E1YzRhYWU2OWQ4OWFhYTZhOWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxZWM4ZDg3Njk4MjhkZGY2OGM3ZDc3Y2U1NGMyNWM3Zjk0MDkzZDY1Y2EzMDRmMTRjYTQ4ZmFhNTZkYTNjNDMifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L408-L410",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L429-L431",
           "version": "repo-lines-v1:sha256:7745f04b3ae9d77c299f8d2440f93f2ef0fae6883447537cf3cb95331a267b2b:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWQwM2UzMzA5NTU3MmU0MWQxNDc4OTRhNzI3MDdhMjI3YWRkMmNmMWEyMWJiMGQ3MjJhMDE4MjljMDIyNmYzOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQ3NTM5YjRhMjFjMDI2YjU1NWViMTQ2YTQxNWQ1ZjJkOWVhNTViNDgzNDdhN2I0MzE5NGE4NWJkNzQ1YjUxMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmE5NGQyODBhNWVjNDFiNTdmYzI5NzZhYWU2YjNjYzhlMGQ1NjMyMGZmZDU0ZDhmZDMxZjc5NjU1MWQ5MGE4ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVmOWJhNGVkMmRmNjUwZmQ3MTU2N2FhZmFjZTY3NWY1Y2JlNWU5Mjk5ZmFjZmRkYmUzNWYyYWJiOWRjMWQ0NCJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L434-L434",
+          "resource": "repo://TFM/App/AppModel.swift#L439-L439",
           "version": "repo-lines-v1:sha256:02863e2c6f87ae951cd24dcc45790e9af500d4c28875ceab5e7aca5a1c372c5c:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDI4NjNlMmM2Zjg3YWU5NTFjZDI0ZGNjNDU3OTBlOWFmNTAwZDRjMjg4NzVjZWFiNWU3YWNhNWExYzM3MmM1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDI4NjNlMmM2Zjg3YWU5NTFjZDI0ZGNjNDU3OTBlOWFmNTAwZDRjMjg4NzVjZWFiNWU3YWNhNWExYzM3MmM1YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQ3MDc2NjBhYjkwMmJkZWRiYWZiZmY5YWYwNGNiYTMzZTVkZTZjNzBmOTRmODdkNTM4MTZmMjYyMTExZGFiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDQxYjUyZTU0ZTdlM2JmZGE5NmQ0ZmFlZTYyMTg1ODc2ZDYwOWJmNDMwNDAyZTg2ZTYwMTE5OWZiMTUyNGI1MSJ9"
         }
       ]
@@ -382,11 +382,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:ac456e7f8a1407800cd338d05b1454511bde9713979963d1bc6eda49d99af16f"
+          "version": "repo-file-v1:sha256:3127f463d2e9004635bd43ca39431cba7bc7a4f4e812a303becff23b2e7822a7"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f89b8cf162e124bc7573f8c1de6b726d3fd50f55e2f9649a84e2554fd7e0b536"
+          "version": "repo-file-v1:sha256:200070fb0fbd68e9eb88080a639f213a33f634d6fd115b8a78f76c81238b2a85"
         }
       ]
     },
@@ -395,8 +395,8 @@
       "statement": "Mobile workspace activity links route to the persistent UIKit session that owns the workspace rather than moving its connection to the receiving window; independent-session and recovery behavior is covered by model tests, while native-window integration tests are opt-in with TERMIND_MOBILE_UI_TESTS=1 and serialized execution.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileSceneModel.swift#L457-L481",
-          "version": "repo-lines-v1:sha256:85c135d63d950a04f5a88577469c3fd4dcba4e0666ba37a95df75d341738f7ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzZDA3YWNiOWVmZjQxMzU2ODA1YTA4MDZjMmYxYzZlNTFiMWM0MjI0NjQ1YThmOWUzZGNhNjMxODM4YmQ0MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NGEwNDQ0YjQ3MWYxNWIwMjhkYjNhZjNhNjFiZWIxNmQxOTQyNjMzZmM5MWE1YWRlMzg2N2NiMDIxZGE3MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxYTMzMmYyM2NhYWQ2ODg5MWM0NTUwZjdjYTlhMDE5ODkyODdmNmVkMjY0ODI4MWQ3ZjY0ZDgzZWQwODFmYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhNjQ5ZDdiMTViNTA5MjZkNDBhNmZmNDhkYTAzOWE1NGIyMWQ4OGFlMjI1NjAyNjcyNThiZWE1MTM1ZjRiYWUifQ"
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L449-L472",
+          "version": "repo-lines-v1:sha256:78a046a85e2d26037b37c8a8e392aab2b0bfeb818bc0ae5003c9bb59a2044027:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzZDA3YWNiOWVmZjQxMzU2ODA1YTA4MDZjMmYxYzZlNTFiMWM0MjI0NjQ1YThmOWUzZGNhNjMxODM4YmQ0MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NGEwNDQ0YjQ3MWYxNWIwMjhkYjNhZjNhNjFiZWIxNmQxOTQyNjMzZmM5MWE1YWRlMzg2N2NiMDIxZGE3MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxYTMzMmYyM2NhYWQ2ODg5MWM0NTUwZjdjYTlhMDE5ODkyODdmNmVkMjY0ODI4MWQ3ZjY0ZDgzZWQwODFmYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhNjQ5ZDdiMTViNTA5MjZkNDBhNmZmNDhkYTAzOWE1NGIyMWQ4OGFlMjI1NjAyNjcyNThiZWE1MTM1ZjRiYWUifQ"
         },
         {
           "resource": "repo://TFITests/KeyWindowTestTrait.swift",
@@ -407,7 +407,7 @@
           "version": "repo-lines-v1:sha256:f426e2e3c6c81c824be47182e454720e7a7ec9a554628729b2b320cf3e81887a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYzI2MzAwZDAzMDVmYTljZDIyNmNlYThiNzdlMjgzNDYzODA2ZGVjZjc3MGZkMTY5MDE3OWVmZTdiMjE0YzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzdmMDZmMGY0NDRkZGIzZGYwZGI1YTZjMmM2ZTRkYTdkYTU0YTZiYjVhZTAzODdjZDcxNWFlZGE1NGE1MGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2ZDRjNjViMTc2YmY5MzRkYjc0ZGRkM2NkOTFiYjMzZDhiZmUyNzljMGY0NTdhMzExY2JjNTE2NDkwMDlmZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiOWM4OTNlNDI2MTIyMDk0NmI4MjIwOWQyZDg2MGE0OGQzYmFmYWJkZGI2NTEzM2Y4NjdjN2Q3ZjkwNWJjZDQifQ"
         },
         {
-          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L843-L869",
+          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift#L995-L1021",
           "version": "repo-lines-v1:sha256:02570ec5e27b18c3367bc17797233485c838afb4e1579860cd4de1007be34170:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkY2JlMjgwM2Y5ZjI1MDRjNWU4NDdkMWU3ZmQ3MjgzZjVlOGRkNzM3YjJlMzlkYjBmYjRlMzc2ZDUyNjU2ZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMGI0ZTgyMDRhM2E0MWQ4MDYxOGI3ODA5ZGQ5OTcyYTFiYWI1ODFiNzI0MzJmNThiODEyYjgzN2U4MjlhZGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhZjkwMzY3NDZjZjkwMmQyZjgyOGU4NjIxYmQyNTk1NTE4YTk2NTMwNGNiYmQ4MmEzYzAwZWIxZGU4MWQ3ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2Yjc2YzAwMGJmZTdjMTYxMGM0M2FjNGFhNjRhN2QxNjM5NGIxZjMyYjk2NDg1OGMzYzRkMTljYmIxZjk3MGYifQ"
         },
         {
@@ -418,37 +418,37 @@
     },
     {
       "id": "claim_c3bfe5ea52534e79a0486def3818c1ba",
-      "statement": "TermindAgentTools composes Termind's host-aware tool catalog from injected host, connection, metrics, authentication, background, and optional scratch/pane services; mutating host tools are acting-only, absent optional capabilities omit their tools, and its presenter registry combines AgentKit built-in and Termind presenters with a closed legacy-name fallback for pre-ID transcript cards.",
+      "statement": "TermindAgentTools composes host-aware tools from injected host, connection, metrics, authentication, background, and optional scratch/pane services. General SSH run/stdin and mutating SFTP tools are acting-only, with separate planning SSH run/stdin registrations; absent optional capabilities omit their tools. Its presenter registry combines AgentKit built-in and Termind presenters with a closed legacy-name fallback for pre-ID transcript cards.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L48-L181",
-          "version": "repo-lines-v1:sha256:00e03ac5fb7e6c5e9795f5b7face75740777096823f1b86732736c4c55ef0104:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNzdhMGM0MDkzMzQyNjViMTdiOTdhNjhjNTJmMDVkMDZjZjBlNGUwMDkzZWViMzUxNDJkM2FhYjFiZDk5Mjk1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhZGQyNDQ1ODJiNmZiMDNkMjNiODQxNWFiZWNkMzQ2YjBjOWY0NjZiNmY3NTJiMDY4MTg5Y2U3ZTlhMmRjMzUwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L45",
-          "version": "repo-lines-v1:sha256:1cec0f29fd494b3fc83619b4643745ed0cf17dbcd06b8d0fafff79c54182b2a1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxNWYzNzg5MWI0ZDRiYzMxOGEwMGY5MmRmZTE0YzVlMDIyYTczMzIwODc4MDYyNTdjOTUwYmZlZWE2NzE3MTcifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L182",
+          "version": "repo-lines-v1:sha256:3ddbb00bfe6c8982af5a3c997f4e014c0e4b7410c09a5016be0ad0e78b0b6953:eyJzZWxlY3RlZExpbmVDb3VudCI6MTc4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNjU4M2FlMWFjNjU1OGE5ZjRkNDE2MmM3MWQyYzE5ODkxNzliNjA5Y2FhNDA4NDkzM2I2ZWNhOWFhM2FlNWQ1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhZGQyNDQ1ODJiNmZiMDNkMjNiODQxNWFiZWNkMzQ2YjBjOWY0NjZiNmY3NTJiMDY4MTg5Y2U3ZTlhMmRjMzUwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjNDZmOGNkZDAwNDQ5ODFmZDcyNDdhMGM4OTMxNjgzNGQzZWRhYzllNTEwMDU4ZDRjMDRjYTNkZDg3M2MxYWE2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
         }
       ]
     },
     {
       "id": "claim_76ecaf638c9543ee8d55054467083018",
-      "statement": "Xcode declares AgentKit as a remote upToNextMinorVersion package from 1.20.0 and resolution pins 1.20.0 at a4fd480cdff40ee793b0ca3b239beba4d18d858d. Resolved-only builds cannot silently advance that pin; sibling/reference checkout edits alone are not Xcode dependency changes.",
+      "statement": "Xcode declares AgentKit as a remote upToNextMinorVersion package from 2.1.0 and resolution pins released version 2.1.0 at 0bf0b12dcb3b17e52f2157a260a86faddc748b41. Resolved-only builds cannot silently advance that pin; sibling/reference checkout edits alone are not Xcode dependency changes.",
       "evidence": [
         {
           "resource": "repo://.gitmodules#L1-L3",
           "version": "repo-lines-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0MjljMjJjMWYxZWM0YzE3YTg2ZjkzYWI3ZjcyNDdlODQxMDAwNjlkNWUxZTM4N2VlNjczOWMxN2Y1ZjFjMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY3Njg4YWQ1NzBiZjg1NTkxZGIzZjg1MTI2ODJhZjlmMjViYjY2MWQ1NDM0YzMyMWEyYjA2NzA0YzExYjQ2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjdlNGRkNTI4YTUwNmI4NjllMzk1MmNiZDljNGVkYzFlZWU1OGJlODhjMWY3MzFkMGNjYzgzN2U2YzZjZmE3NCJ9"
         },
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "resource": "repo://AGENTS.md#L23-L25",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjU2YjI1YzRlNDI3ZWRlYmI0ZDMxM2YwNmU4YzRjNTYxMGMyYjY1ZmRmYzQ2NzE1MDkzZTA5MTAxZjAyMmNjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2NjYTNiMWEwMzQxZTFiZWY1NWRmODEyMDE2NDkxNzcxNjc4NzBjZGRlZjM5ZGRmYzVhMGJhYmJjODQ1MGM1YSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L54-L54",
+          "version": "repo-lines-v1:sha256:dff46c2d37808978a83720880238a32133e799d2be4d01d3b527b168658b1b13:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjAxZmU3OGFhMzBmMTNhMWI5YjY1OTI5NjMyNTNjZTkzMTE5MDFhZjYxMGE1ZTIwNDE5ZTJlMDRhMWU4YjZmZiJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3026",
-          "version": "repo-lines-v1:sha256:e142bf691e695d19800e661dea723f5d46a9578192df44bd15287153625d6e7f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "version": "repo-lines-v1:sha256:6ff91e04adba1140708d8e2631596aa36d56966b04d5eba30799319239516d2b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L13-L21",
-          "version": "repo-lines-v1:sha256:8c33f0a9f8ba480f798b6f134a1b43d668729189960931a6014595953bf501e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2I0YjBlOGY4M2ZlMjRlYTU1MDViMjMwM2E1ZDMyY2EyNzcxM2U5ZWMzOWU5MDA1OGIwNmMyM2E1OTI5MzI5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzUxMDkxMDkxYzJmOWFmNGM0ZTkzZGMyYTk4MTEyZDllOTQ2YmQ5NGI5NmY0ZmNlODdhZTIxMjc0ODk0ZTRjZCJ9"
+          "version": "repo-lines-v1:sha256:7448e70b2115b0cc5b7dd84682f77f4496888ed6ab5dab77b9c0d1af627aede6:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2I0YjBlOGY4M2ZlMjRlYTU1MDViMjMwM2E1ZDMyY2EyNzcxM2U5ZWMzOWU5MDA1OGIwNmMyM2E1OTI5MzI5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzUxMDkxMDkxYzJmOWFmNGM0ZTkzZGMyYTk4MTEyZDllOTQ2YmQ5NGI5NmY0ZmNlODdhZTIxMjc0ODk0ZTRjZCJ9"
         }
       ]
     },
@@ -515,7 +515,7 @@
           "version": "repo-file-v1:sha256:0798e8403877f68ac70bebeb70830ea2e03db6e574643231a1a473265cd410c4"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L131-L138",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L132-L139",
           "version": "repo-lines-v1:sha256:29c7ec1d6ed3f75bfecf928d85722ce35af1a4fc999003db5ad2fa84240148e2:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTNkZmJlMDQxMzZmZGEzZTE1MTQxNGU3ODdjYzQyMTdjZjUyYTk3Y2RlNDhmNzNlYzQ1N2Q3MTg4OGIxMDA3NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FjZjA1YWRhMWJiZTdkOWFiNTQ5NzM2OTBmNmUwMWRjMzEwYzJmMDkxMWVhN2UwMzJmYjY0MDYwYjQzMGQxMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDBkM2NlNDRmMjhlYTE4NzVkNWU0N2FjNTA5YTg0YTU5M2EwMGM3Y2VjYWIwOTYwZWM2MmYzNzUxY2U3NzUwMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjM2ZGY1YmYxYjkxMjM0YWQ5MWYzMjFlODIzYzc1OGE2YTNmZTRlNDc0MDI5NzdlMmZkZDNiZWNhYjlkMzI3OSJ9"
         },
         {
@@ -553,7 +553,7 @@
           "version": "repo-file-v1:sha256:fe8344b3d0333a9a8affda98df839434614eb888518d8f8b1b8b56dd6e0fa052"
         },
         {
-          "resource": "repo://TFITests/MobileShortcutTests.swift#L374-L419",
+          "resource": "repo://TFITests/MobileShortcutTests.swift#L403-L448",
           "version": "repo-lines-v1:sha256:69ab356f4594716e4fafc37fce1d24e301e6f2be89b23e200c70b01ed1f2336a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MzI0YmJlZjJiMjE4YTg0NzA1MzE5NTRiZjYyODM5ZGYxZjA5ZmMzYmZjYWNhZGUzMzFlZTRkOTY0MTU3NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OWRiMGEwYjBlMzljM2QwMmEyMTU3ZWJhODA5MWU0MjdlZjI5MTViOWRiOTMzMTM5ZmJjY2M2MzFlNzBmN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwNzJhOTQxZjUzYWRiZTRjNjEzZGRjYmZhMGYyMmNhNjE5OWRjOTg3MjRlNDI0NGFhMDg5OTBhODFiY2VmZDUifQ"
         }
       ]
@@ -561,6 +561,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-17T17:19:40.811Z"
   }
 }

@@ -10,8 +10,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
-  - id: openwiki-source-44f3b562f3c7b739d591cf92
-    resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-247755d873c5d94b0a364217
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-ffc9054d578eba7be684b885
@@ -50,6 +48,8 @@ sources:
     resource: repo://TFMTests/AssistantConversationListDropTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0ce84eda65c7f30273adfaa1
     resource: repo://TFMTests/WorkspaceDragCancellationTests.swift
   - id: openwiki-source-9a16ecbd92b03f0bdf831159
@@ -62,10 +62,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 # Desktop Workspace and Pane Drag-and-Drop
@@ -206,7 +206,6 @@ sequenceDiagram
     Bridge->>Native: Establish full-size content coordinates
     Bridge->>Coordinator: register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
-    Source->>Source: Cancel pending persistent-close attempt
     Source-->>Coordinator: Existing workspace or pane wrapped in workspace
     Coordinator->>Target: open and install lifecycle router
     Coordinator->>Coordinator: Size and fit destination frame
@@ -221,9 +220,9 @@ Request-to-registration transfer keeps the live session in its source until the 
 
 `TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`. On the normal workspace scene path (after the diagnosis-consent gate), `TermindApp.makeWindow` creates a fresh `WindowModel` and applies the request's sidebar presentation and preferred width before constructing `RootView`. Its `MainWindowRegistration` bridge calls `register` only after AppKit attaches the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
 
-On native attachment, `MainWindowRegistrationView` installs its retained `WorkspaceWindowCloseDelegate` and observes `NSWindow.isDocumentEdited` with initial and new-value delivery, clearing it whenever it becomes true. Workspaces are not documents: suppressing edited decoration does **not** bypass close confirmation. Each registration attempt reattaches the proxy if needed before calling the coordinator. The proxy forwards other delegate callbacks to the existing delegate, honors that delegate's close veto first, and asks for window-scoped confirmation only when the model is still open and owns workspaces. Detaching restores the forwarded delegate only if the proxy is still installed. This native dismissal guard does not change window-local drag ownership, stable Workspace/Pane identity, or move lifecycle semantics; an empty source after its last transfer needs no workspace confirmation.
+On native attachment, `MainWindowRegistrationView` installs its retained `WorkspaceWindowCloseDelegate` and observes `NSWindow.isDocumentEdited` with initial and new-value delivery, clearing it whenever it becomes true. Workspaces are not documents. Each registration attempt reattaches the proxy if needed before calling the coordinator. The proxy forwards other delegate callbacks and honors the existing delegate's close veto first. Live connections no longer require confirmation: it saves terminal theme changes and prompts for discard only if unsaved theme changes remain, even in an empty window. Detaching restores the forwarded delegate only if the proxy is still installed. This native dismissal guard does not change window-local drag ownership, stable Workspace/Pane identity, or move lifecycle semantics.
 
-Evidence: [native attachment and edited decoration](../../TFM/Platform/MainWindowCoordinator.swift#L589-L628), [forwarding close delegate](../../TFM/Platform/WorkspaceCloseConfirmation.swift#L33-L77), [close veto and forwarding tests](../../TFMTests/WorkspaceCloseConfirmationTests.swift#L56-L109).
+Evidence: [native attachment and edited decoration](../../TFM/Platform/MainWindowCoordinator.swift#L589-L628), [forwarding close delegate](../../TFM/Platform/WorkspaceCloseConfirmation.swift#L33-L77), [close veto, forwarding and recovery tests](../../TFMTests/WorkspaceCloseConfirmationTests.swift#L96-L188).
 
 Live layout ownership changes only when the requested destination window registers.
 
@@ -233,11 +232,13 @@ Registration consumes the request once. A whole Workspace moves as the same obje
 
 The extraction paths deliberately bypass `WindowModel.close` and `closePane` teardown. `takeWorkspaceForMove` uses `removeWorkspaceForMove` and clears the transferred workspace's `lifecycleRouter`; destination `open` assigns the target window as router. For a split-pane extraction, `Workspace.closePane` only rewrites the source layout: the source workspace keeps its router, and the new wrapper receives the destination router on `open`. The wrapper uses `automaticallyNamedWorkspace`, so its workspace name is allocated from the saved host name or SSH/Telnet session title when available, subject to workspace naming preferences and occupied source-window names. It does not inherit the split group's name or template identity; the moved pane's own custom title survives.
 
-Both extraction entrypoints call `persistentClose.cancel()` after validating the live source and before removing ownership. Cancellation changes the close coordinator's generation: an outstanding batch stops before its next termination and cannot grant close authorization afterward. `authorizePersistentClose` also checks workspace/pane ID snapshots and verifies live session ownership; `SSHSessionModel.terminatePersistentSession` rechecks ownership, channel and attachment after listing remote sessions and before termination. Cancellation is **not rollback**: it cannot undo a completed termination or guarantee that an already-running termination has not affected the moved session.
+Neither extraction entrypoint enqueues or cancels persistent-session cleanup. Moving transfers live layout ownership, not cleanup ownership; there is no persistent-close authorization generation to invalidate.
 
-Explicit pane/workspace close is different from moving or dismissing a window. `RemoteSessionCloseCoordinator.close` defaults to `.explicitClose`, attempts each distinct managed session identity once, and treats ordinary termination failures as best-effort: it continues the batch and permits local close/disconnection without marking the failed session ended or discarding its recovery identity. It does not display a termination-failure prompt. `CancellationError`, task cancellation or a changed generation instead deny authorization. Intents whose `endsManagedSession` is false (`.applicationTermination`, `.suspension`, `.remoteExit`, `.detach`) skip remote termination. `closeForWindow` likewise cancels outstanding close authorization and disconnects only still-owned panes while preserving remote sessions and recovery references. See [SSH Session Lifecycle](ssh-session-lifecycle.md) for transport and persistent-session teardown semantics.
+Explicit pane/workspace close is different from moving or dismissing a window. With a host store and app-owned `persistentSessionCloser`, `WindowModel` captures managed-session close requests, enqueues them and removes/disconnects the local layout without waiting for remote termination. `SSHSessionModel.takePersistentSessionCloseRequest` validates the snapshot's host and endpoint and can hand its SSH channel to a one-shot cleanup owner, clearing the session's channel reference. Without a cleanup owner, local close retains the recovery reference.
 
-Evidence: [live extraction and close authorization](../../TFM/Features/Workspaces/WindowModel.swift#L1490-L1569), [move-only removal](../../TFM/Features/Workspaces/WindowModel.swift#L1350-L1369), [best-effort close and generation cancellation](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift#L13-L42), [teardown intents](../../Frameworks/TermindDomain/Sessions/SessionPersistence.swift#L74-L77), [ownership recheck before termination](../../TFM/Features/Terminal/SSHSessionModel.swift#L1124-L1144).
+`RemoteSessionCloseCoordinator.enqueue` defaults to `.explicitClose`, deduplicates identities **while pending**, and runs best-effort background cleanup without retry or a termination-failure prompt. Its default 30-second deadline cancels the operation; completion or cancellation releases any transferred connection exactly once. Rejected passive-intent requests and duplicate requests also release their supplied connection. Cancellation is cooperative, not rollback or an authorization gate for local closure. `closeForWindow` records and disconnects only still-owned workspaces while preserving remote sessions and recovery references; it does not cancel app-owned cleanup. See [SSH Session Lifecycle](ssh-session-lifecycle.md) and [Session Persistence](../concepts/session-persistence.md) for persistent-session teardown semantics.
+
+Evidence: [live extraction and close paths](../../TFM/Features/Workspaces/WindowModel.swift#L1490-L1558), [move-only removal](../../TFM/Features/Workspaces/WindowModel.swift#L1361-L1369), [background cleanup ownership](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift#L19-L110), [close request capture](../../TFM/Features/Terminal/SSHSessionModel.swift#L1127-L1145), [app-owned coordinator](../../TFM/App/AppModel.swift#L298-L301).
 
 These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate app-owned recently-closed history. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
 
@@ -270,8 +271,8 @@ Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift
 | Return animation or data-source forwarding/replacement | `WorkspaceNavigatorDragAnimationTests`; native split-workspace tear-off also asserts the animation flag at session start. |
 | Whole split Workspace fails to tear off | `WorkspaceNavigatorDropTests.draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout()`: release over another window, one request, original Workspace and pane IDs. |
 | Ownership loss, reconnect, changed history or late request | `WorkspaceWindowMoveTests`: destination delay, duplicate requests, lone-pane identity, closed sources, reversed arrival order and window placement. |
-| Persistent close races with transfer | Inspect both extraction entrypoints' `persistentClose.cancel()` and ownership/snapshot checks; `SessionPersistenceTests.cancellationDuringBatchCloseDoesNotEndAdditionalSessions()` covers coordinator cancellation, not an end-to-end drag during remote termination. The same suite covers passive teardown, best-effort failure, identity deduplication and `CancellationError` denial of authorization. |
-| Native close veto or lost delegate callbacks after registration | `WorkspaceCloseConfirmationTests`: veto preserves the same workspace, retry, forwarded veto/callbacks, delegate restoration and empty-window dismissal. These tests exercise the proxy directly; the move tests register through the coordinator, not the registration view's edited-state observation. |
+| Move versus remote cleanup ownership | `WorkspaceWindowMoveTests` verifies source close leaves transferred connections/history active until destination close. `SessionPersistenceTests` separately covers best-effort failure, passive intents, pending-identity deduplication, cancellation before background work and timeout without retry—not an end-to-end drag during termination. |
+| Native close veto or lost delegate callbacks after registration | `WorkspaceCloseConfirmationTests`: populated windows close without a connection prompt, forwarded veto/callbacks, delegate restoration, theme-edit protection even in empty windows, and recovery-reference preservation on window close or close without a cleanup owner. These tests exercise the proxy directly; move tests register through the coordinator, not the registration view's edited-state observation. |
 | Assistant hidden receiver or active-row eligibility | `AssistantConversationListDropTests`; `AssistantConversationOperationsTests` covers persistence failure and preserved activity; `WindowStateTests` covers stable manual order. |
 
 Run the offscreen policy, geometry and lifecycle cases without visible-window opt-in first, keeping dependency resolution pinned. The suite selection below also includes three `WorkspaceNavigatorDropTests` mouse/session cases that will be skipped by default; an `NSWindow` fixture alone does not require the gate if it stays offscreen.

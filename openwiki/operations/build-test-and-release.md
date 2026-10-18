@@ -74,10 +74,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-17T17:19:40.811Z
 ---
 
 # Build, Test, and Release
@@ -135,10 +135,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.16.6` | `58` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.16.6` | `95` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.16.6` | `84` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.16.6` | `84` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.17.0` | `65` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.17.0` | `102` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.17.0` | `91` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.0` | `91` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -273,9 +273,9 @@ This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, an
 
 ### Focused language and presentation regression tests
 
-Use the resolved-package `AppLanguageTests` command for language-selection behavior: preferences and migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations and Host-access error presentation.
+Use the resolved-package `AppLanguageTests` command for language-selection behavior: preferences and migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations and Host-access error presentation. It also checks that the Traditional Chinese display name switches to `正體中文` only for Taiwan when the flag is displayable, and tests colored, grayscale and missing flag pixels.
 
-For resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging:
+For resource/formatting behavior also target `PresentationCopyTests`, which exercises resources in `en`, `ja`, `zh-Hans`, and `zh-Hant`, nested native menus, count-sensitive copy and SwiftUI resource bridging. This is focused four-locale coverage, not proof of every supported translation:
 
 ```sh
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/PresentationCopyTests
@@ -302,7 +302,7 @@ The parent repository's `AGENTS.md` supports locked `npm ci`, `npm run dev` for 
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `1.20.0`; the workspace `Package.resolved` selects AgentKit `1.20.0` at revision `a4fd480cdff40ee793b0ca3b239beba4d18d858d`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `2.1.0`; the workspace `Package.resolved` selects AgentKit `2.1.0` at revision `0bf0b12dcb3b17e52f2157a260a86faddc748b41`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -354,7 +354,7 @@ A maintenance gitlink and a released remote pin are different state. Initializin
 
 | Dependency | Maintenance checkout | Current Xcode requirement and resolved release |
 | --- | --- | --- |
-| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `1.20.0`, resolved `1.20.0` |
+| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `2.1.0`, resolved `2.1.0` |
 | libssh2 | `libssh2-spm/`, branch `termind` | `upToNextMinorVersion` from `2.0.3-termind-4`, resolved `2.0.3-termind-4` |
 | Tailscale | `libtailscale-spm/`, branch `main` | `upToNextMinorVersion` from `1.0.3`, resolved `1.0.3` at `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
 | Ghostty | No local maintenance submodule | Direct upstream remote package described above |
