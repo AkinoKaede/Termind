@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:70ffe1d666a78b2e87f3bda08af2d43bd99091e6054b9830e737741bdf9bd87e",
+  "pageVersion": "sha256:26549556869bfb94ffbd51beb2fb1d6709c0f8ae1cc7d334cf8e7f1dd70863f1",
   "claims": [
     {
       "id": "claim_087530130d624a98880e87a0958576ae",
@@ -14,25 +14,25 @@
     },
     {
       "id": "claim_6e59fb9952af44c2ba6b290d68ae93d2",
-      "statement": "ET obtains credentials through SSH bootstrap and connects the vendor session through a local TCP bridge whose socket factory preserves Termind routing; checkpoints restore credentials and protocol state.",
+      "statement": "ET obtains credentials through SSH bootstrap and connects its vendor session through a local TCP bridge preserving Termind routing; restoration reuses saved credentials and protocol state.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L38-L73",
-          "version": "repo-lines-v1:sha256:54c1055f90a3bb27d1e6a1e90e82695ea4f09b6608de8eb0504547010ad3ab58:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyOTYwMWM0ZTc3NGRmMDBhOGJhYjFhYjlhMjAxODI2N2I1M2RhNjk5ZmI5MDE2OTNmMGZjMWNlZWU0YzE1ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZjg0M2RkNWFlOTVjMDk0NWYxMGNlNjI4MmNhZjg0MzlmNmRjYWY0MDFkNTEzYzc0MGJmNzJjNGY2MGNhN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjM2NjNTVjNWRiNjA5ZTEyYTk1ZmZlOWQxMjVhZjcxMWZjZjM5MDBhZGNjNDYzYTBjODc1MDc1YmEyNGI5ZjAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift",
-          "version": "repo-file-v1:sha256:360cd41f6a5044dfde6df80714486f374080429cbb22be49c47ab448e2adc8cc"
+          "version": "repo-file-v1:sha256:1faeb985180a742569cfa445c58ba89d572db3a81f2c40eb60d4090cfa16977a"
         }
       ]
     },
     {
       "id": "claim_be3bba6c81674601ae75d740bfa38742",
-      "statement": "The resumable client rejects unavailable engines before connection side effects, skips startup preparation for checkpoint restoration and rolls back engine preparation on failure.",
+      "statement": "The resumable client rejects unavailable engines before connection side effects, skips startup preparation for checkpoint restoration, and rolls back engine preparation on startup failure.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L94-L167",
-          "version": "repo-lines-v1:sha256:932f76b19ea8a28e356ba6e63dc17c3250713a64bf6606de3681d17e1dac5105:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhOWYwNmJjYWEyYmNhZGZkN2FjMWZkZjk1ZjMzNDdkZTE2NzY1MmI2MDU1ODEwMmIyZWI1ZmFjZDFkN2JiZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZWNkMDQ0NWJmNGEzYTg5NTcwNTczNGE0YmEyYjFjYzQxMjRiNzM1NzYyYWY0ZWYxYzQyODcyNTkyMThlNzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyYmU0Mjg2NjJiNGYzMTMwZjk3YmI2ZDUwMjc1OTA5NjE5MGU0ZWUyNGNiNmNmN2Y5NThhZWUzNzczMWJjYjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
@@ -45,7 +45,7 @@
       "statement": "Mobile foreground resume waits for suspension to finish and invalidates the disk recovery record before resuming the retained transport, with generation guards and failure reporting.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1610-L1649",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1614-L1653",
           "version": "repo-lines-v1:sha256:19fc36b4158df0d4858610ae14325680bc513ab0bcc0b9abdfe6c5745dd64073:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyYTUwMGM2ZWQ4NmVlMDExYzE5OGQ3NTRhZjcyNzVjNTMxMzA1MmRmYjljZGIyMDNhNzcxM2I5ZTM0NWQwOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMTk2YjYyMDAxNzdiNmRjYWU3MGIxYzE5N2Q1MzBmNDlkZTM1MGI4MGJjY2U3MzU5NTEyNjZjNDA2MDY3OWEifQ"
         }
       ]
@@ -55,62 +55,62 @@
       "statement": "The resumable client publishes recovering before engine resume; EternalTerminalEngine confirms foreground recovery without a new vendor event only when its latest retained vendor state is connected, checking local closure before and after vendor resume.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift#L10-L68",
+          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift#L41-L99",
           "version": "repo-lines-v1:sha256:660884b9575ba7397f22ecc0e2519756b0cb673ec490b0ed146fafed0919dafb:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMzMyZDA1OWE4MDU0Y2Q2ZjQ3MDJjMGRjZjQ0Yjk1YTE2MmY5MmQ2NzRmNzczNjk3MzVhM2RmNGRlZTk1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMzU5MWEwOTYwNzQ1ZjYxN2Y4MTM2Y2ViMTg3ODlkZDkzNTM5OTNiZGU0ZDI5NTVhMDYyZTU3ZWUzOGIwNjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NTkxOTljNzk2OTI1ZmVjZmQ1MGM0YjdmY2M0ZmQ0NjM4MzY4ZDM1MTkwZmQ5ZmMwNmFlYjk4ZjdmMmM4NGQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L108-L121",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L132-L145",
           "version": "repo-lines-v1:sha256:2f7a097a59f4f0734ed32cf26f26a152f498392d1028d4bd029ac44c14c461bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYzI3YjlkZGNkMjI5OTc5MWUxMGZkZjlkNTUxMjFmZTljZjQwMjM4ODEzNWNlYjU5ZDBlMWJmYmZlM2E5NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2OTNjOTgzN2JjMjI5YmFhYjUyYzZlZjU2YzJhYjMxNTE5ZjYzYjM5Y2EyZWI3NjYzNmY4ZDEzOGRlN2MwNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiNGJlMTFmZmIzNzkxY2ZmMWFmNzhjYWRlZTAxNGJkOTNiZmQzMzYxYTViY2ExYTk5MWNkMTkxYmJiYjE4YjAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L146-L152",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L170-L176",
           "version": "repo-lines-v1:sha256:40e319ef1947f3d3f2aa1316b9cb3ab44c5eec86c419218bae22b49d0dd69517:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2RhMTgwZWYxZWIyNGNlYzI4YmI1ZjcyODMyNTA0YWU5ZTcwZTgzZDMwMjdhZjZlNzRiYmQ0ZTFkMTYwNmY5NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDVmZjljZWQ0MWQ5YmE1ZDE0Y2RiZGE3ZWEyNjZjNzU1MjhiN2E4YjBmOWUyYzJkMDU0NjFmMDdlY2IwMGE5OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTdlNmM1NDQxMTQ2ZGYzMTQwYjdjMzAyMWU0ZDFjOWMzZTMxYjZmYWYyZmI3NDc2YzBlOWViNThlNDRmNTY4OCJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L300-L318",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L335-L353",
           "version": "repo-lines-v1:sha256:2fd794ac700415cc71687b9ec18ddad7f14ea61b61f3225c4a946968b6e7dabb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MWY3N2NkZTZmZjVlNTkzNzlkMTNiOWI5ZmE4NTZkMTE3NWU5MzA2NzE1ZjA4NGI4YTRlODg5ZjNlYzM1NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NmQ5ZDI5NTI0OGQ2MmM3YmJlMWRhYWIyMTJkNDE1MWJkYjNiMmZlZDhjYTk2MThhOWMwZWE4MTNkYjA3MTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5YTA2OGUyYzljNjU3N2I2ZmJkYmRhNTk4ZTUxYjRkZWJmNzQ2ZDMzMzQzN2VlZmRmNjM3NzgyMmVjOGNiYzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3MDgyYWExOGE3NDQzYzY1NDU0ZjJmZDVhNzBiYTU1YWZlMzFjZTBkMjU2OThjMjk4NDFmMmU4MjBiM2I2NWIifQ"
         }
       ]
     },
     {
       "id": "claim_16ed3f9961f447279e2a8296593e82dd",
-      "statement": "ET foreground resume does not synthesize connectivity for lost, never-connected, or ended sessions; lost connections need a subsequent vendor connected event, and resuming a locally closed engine throws CancellationError.",
+      "statement": "ET foreground resume confirms only retained connected state, not lost, never-connected or ended sessions; lost connections require a later vendor connected event and local closure makes resume throw CancellationError.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift#L24-L68",
-          "version": "repo-lines-v1:sha256:1b28548b6b6c4be9afb475104222e84a1cdf806bdd366034d42efc68fd04d9af:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3YmY1YzY3ZDgxZTA3NGNhMTJlYzRiNzYzMjI1Y2NhNWZmNjhkNmEyNWMzMGY3ZWQ1ZTkxYjFkM2U3ZGQ2ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4ODUzMjM4NDE5YzRhMGNhYTdmNDUxMTQxMTk4YjVhNTMzNGIwOWZmZThhNWQyOTRlMjE5OGQ2Zjc5MzJlMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NTkxOTljNzk2OTI1ZmVjZmQ1MGM0YjdmY2M0ZmQ0NjM4MzY4ZDM1MTkwZmQ5ZmMwNmFlYjk4ZjdmMmM4NGQifQ"
+          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift",
+          "version": "repo-file-v1:sha256:3981b40abddff2417ce1bab0c131a0ef24c0872958608ef92270593b6ae7f7d2"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L146-L181",
-          "version": "repo-lines-v1:sha256:cdc1e9b58ae2a4c85902f8b0930ccaf365f0f88bebaa37b34b80c135322c2f1d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYTE4MGVmMWViMjRjZWMyOGJiNWY3MjgzMjUwNGFlOWU3MGU4M2QzMDI3YWY2ZTc0YmJkNGUxZDE2MDZmOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllM2VkYzA3OGYxNmRkNWVlMzdhYmZmMDczY2I3ZWM4MmU3YTQ0NjczNTZhODU2OWMyYjJlY2FmYjY3M2I4MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1ZmY5Y2VkNDFkOWJhNWQxNGNkYmRhN2VhMjY2Yzc1NTI4YjdhOGIwZjllMmMyZDA1NDYxZjA3ZWNiMDBhOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
         }
       ]
     },
     {
       "id": "claim_ea3887fe5b3f4daf962aa083ce613c5b",
-      "statement": "ET maps disconnected/reconnecting to recovery and failed to failure, drains output before reporting sessionEnded as ended, and the resumable client closes resources while preserving ended as its terminal state.",
+      "statement": "ET maps disconnected/reconnecting to recovery and failed to failure, drains output before emitting ended for sessionEnded, and the client closes resources without replacing ended with closed.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L108-L121",
-          "version": "repo-lines-v1:sha256:2f7a097a59f4f0734ed32cf26f26a152f498392d1028d4bd029ac44c14c461bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYzI3YjlkZGNkMjI5OTc5MWUxMGZkZjlkNTUxMjFmZTljZjQwMjM4ODEzNWNlYjU5ZDBlMWJmYmZlM2E5NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2OTNjOTgzN2JjMjI5YmFhYjUyYzZlZjU2YzJhYjMxNTE5ZjYzYjM5Y2EyZWI3NjYzNmY4ZDEzOGRlN2MwNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiNGJlMTFmZmIzNzkxY2ZmMWFmNzhjYWRlZTAxNGJkOTNiZmQzMzYxYTViY2ExYTk5MWNkMTkxYmJiYjE4YjAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L344-L408",
-          "version": "repo-lines-v1:sha256:bd7dbec1c60f7b96ceb1a7b1c6a7a8a56e8cd8c7ec6a05ee990f0813e3552d71:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwNjk1NzliMTA0ZjI5YzMzMjZkY2U2YWUzN2JmNTE4NWU5M2NhNGM3MTAzZTY4OWM5OWE3YjAxMDA1MmJhMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwYWE5ODM1YjRmZTAyYWUzNDdiMmRiYWJiZGM4NmMxZjE4ZDQ5ZjFjNDRiN2ZhODIwODRhMDUzMTg3ZjZhYjgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
         }
       ]
     },
     {
       "id": "claim_016697aee01e4b5e9f22cbc24ebfa1ea",
-      "statement": "Mobile transport recovery retains the terminal without ordinary SSH reconnect and completes its journey on connected confirmation without duplicate-event effects; terminal end clears resume intent and recovery ownership, cancels suspension, discards saved state and handles remote exit, while ended/closed workspaces reject later state events and recovery/failure alone do not close them.",
+      "statement": "Mobile recovery retains the terminal and completes on connected confirmation without duplicate effects; terminal end clears resume intent and lease, cancels suspension, discards saved recovery and handles remote exit. Ended/closed workspaces reject later events; recovery/failure alone do not close them.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1652-L1683",
-          "version": "repo-lines-v1:sha256:c4a125b5f30529679cac4bfb4f09a4957ed5d259eeb782b82a1ff660744387a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYjVhYTc0ZDkyYzg4NzUwNWIxNjllMDIxMWVlYWY2MDA1YjAxNzQwNzQ1NjRjNGM4ZjkxYzI5YmYyYmFkZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyOTc2NWY5NzJkOTVlNjExYTJkYjc1NjNhY2MzZTBjOWU1OWE1Zjc4ZTRiZjkxYzJjM2NlMzQ5OThkNGFlMzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmZjI0N2E3MWQxZDZmNWU5MWZlYzAxNTI5ZTg3Y2RmN2QxNzI4OGQwMzQ3NTQ0Nzg2M2M2ODZhNTY3OTVlNTQifQ"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
+          "version": "repo-file-v1:sha256:2396ae943e1aea2fc51fa8d95d7b83634e4ab58e17fb57961f9a1afbf6bc79ce"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L118-L178",
-          "version": "repo-lines-v1:sha256:3ec7aced490178d6e57e9bc06997e092769df8fe40c50fb0c09f249083f50efb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGNiYzIxYzZkNzFhZDZkZDU1YmU5M2ZhZjA4M2Y5NjRlNzQ5YjdiMWRmZTVkNGVhNjBjOTgyYjM4MWYxZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0YTQ3NjE1NTQ2MDA3ZWNjNDk3NTZjYWRlZjY1MjM5OTFlZWNlODZhY2E4YjRhNDM2MDQ2NjhhMThmNzg3YTAifQ"
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift",
+          "version": "repo-file-v1:sha256:220f7c09d799943271636fb15309f3cd0ec52295a746891510327cd7f71540ef"
         }
       ]
     },
@@ -119,14 +119,84 @@
       "statement": "Mobile restoration regression tests cover missing or incompatible transport checkpoints failing recovery without opening a new shell for both Mosh and Eternal Terminal.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L83-L116",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L107-L140",
           "version": "repo-lines-v1:sha256:cad628a4d27706077a2f6fd39fcb8745b8093d3f82f14485aa64959ff0bb0b06:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGNiYzIxYzZkNzFhZDZkZDU1YmU5M2ZhZjA4M2Y5NjRlNzQ5YjdiMWRmZTVkNGVhNjBjOTgyYjM4MWYxZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2MzdiODdjNDcyNTdiYzMyMzc2YzM4NzY5Y2Q5MGZiOWFjZTg3OTc3MTlkMGY4ODkyZjc4YmM2ZjBmYmIwMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2ZDQyMTFmZmMxM2JmMjcyNmJmYWZlNmY2MThhOGY1ZmY3NDI2ZWJhNzQ3NjhmMGU3ZTE0YzhiYjVjNzYxZTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f533ff825dfe40bc87eb55374eabd30e",
+      "statement": "ET opens its initial data route before fresh credential bootstrap; initial route failure retires the attempt and preserves the original error. Cold restoration opens a route and bridge using saved credentials and checkpoint.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift",
+          "version": "repo-file-v1:sha256:3981b40abddff2417ce1bab0c131a0ef24c0872958608ef92270593b6ae7f7d2"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
+        }
+      ]
+    },
+    {
+      "id": "claim_3c09a3573ff54519aefb2649a34fcbe4",
+      "statement": "Route readiness is independent of protocol readiness: increasing route revisions pass during frozen recovery, older revisions are ignored, and closed clients ignore engine events.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
+          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+        }
+      ]
+    },
+    {
+      "id": "claim_081489727721424c891a51ad298b739c",
+      "statement": "The client validates checkpoint envelopes before engine construction, accepts latest viewport changes during preparation, and drains resize and startup/integration work across awaits before releasing startup admission and publishing retained engine state.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
+          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+        }
+      ]
+    },
+    {
+      "id": "claim_84822c033bbe46e8b1e0bfa7d3554bc6",
+      "statement": "Startup permits early terminal protocol replies while the host gates interactive input on connected; lifecycle freezing rejects writes, frozen integration commands buffer, and startup drain cancellation rolls back and closes without publishing connected.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
+          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+        }
+      ]
+    },
+    {
+      "id": "claim_3c3fa6f639ef41c3aa8f86e51da0836c",
+      "statement": "Lifecycle coordination serializes suspend/resume/retry with adjacent-only coalescing, waits for sends, captures shell state after protocol preparation, and flushes viewport and integration commands before reopening recovery admission. Waiter cancellation does not cancel admitted work and recovery failures keep admission frozen.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
+          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
+          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T17:19:40.811Z"
+    "at": "2026-10-18T12:28:54.264Z"
   }
 }

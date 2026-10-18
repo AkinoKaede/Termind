@@ -38,8 +38,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
   - id: openwiki-source-30e2d23210ae2fee41669d43
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift
-  - id: openwiki-source-7af926dee6b2a002e8d5a6c8
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerService.swift
+  - id: openwiki-source-4dbe1ff26dab4785a94e279b
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift
+  - id: openwiki-source-3109840ad21c82d203dadc0a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift
   - id: openwiki-source-7eb829787bc4ad0035265082
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift
   - id: openwiki-source-87578184203e3ea98a721632
@@ -62,6 +64,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYActivationState.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-bd1b82abbe2264ea6ac0a3a0
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYStartupSizing.swift
   - id: openwiki-source-04973e11e30eed9faa5cb86b
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHRoutedSocket.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
@@ -142,14 +146,16 @@ sources:
     resource: repo://TFMTests/RemoteSessionWireTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
+  - id: openwiki-source-08395f8821f47c31185889c5
+    resource: repo://TFMTests/SSHPTYResizeTests.swift
   - id: openwiki-source-1d87844fd1fb42edbca2065d
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # SSH Session Lifecycle
@@ -341,7 +347,7 @@ sequenceDiagram
 
 ## Managed remote sessions: selection, ownership, and PTY startup
 
-Session persistence is opt-in per Host (also supported by Tailscale host preferences): defaults are disabled, backend `.tmux`, and `onConnect: .ask`. Enabled policies are Ask, Create Managed, and Plain Shell. These settings are not transport persistence: reconnect still authenticates a new SSH connection. The live registry registers **tmux, Zellij, zmx and herdr** through `RemoteMultiplexerService`. The service delegates to registered dialects instead of flattening their native identity contracts. `RemoteSessionBackend` supplies probe, listing, validation/matching, creation, launch and termination; `RemoteMultiplexerDialect` additionally binds runtime inspection and pane identity. Unknown registrations fail as unsupported rather than selecting tmux. Socket-backed references validate their backend/version, absolute socket/root paths, fingerprints and backend-specific identity fields; they are not portable names.
+Session persistence is opt-in per Host (also supported by Tailscale host preferences): defaults are disabled, backend `.tmux`, and `onConnect: .ask`. Enabled policies are Ask, Create Managed, and Plain Shell. These settings are not transport persistence: reconnect still authenticates a new SSH connection. `RemoteSessionBackendRegistry.live` builds backend factories from `RemoteMultiplexerRegistry`'s **tmux, Zellij, zmx and herdr** dialects. Each dialect constructs its backend and runtime adapter instead of flattening native identity contracts into one service. `RemoteSessionBackend` supplies probe, listing, validation/matching, creation, launch and termination; `RemoteMultiplexerDialect` additionally binds runtime inspection and pane identity. Unknown registrations fail as unsupported rather than selecting tmux. Socket-backed references validate their backend/version, absolute socket/root paths, fingerprints and backend-specific identity fields; they are not portable names.
 
 Both platforms configure the PTY startup callback before connecting. After SSH authentication, `SSHPTYChannel.connectPrepared` exposes a generation-bound command executor. The coordinator probes and lists through serial control exec operations **before acquiring the terminal channel lease**, allowing startup with `MaxSessions=1`. A returned `SSHPTYStartupPlan` becomes a PTY exec startup command; a nil plan selects the ordinary shell path. Terminal size, environment and optional runtime integration are configured by the transport, rather than typing attach commands into an already-running foreground application.
 
@@ -425,7 +431,7 @@ sequenceDiagram
 
 On a successful PTY exit with an attachment, both feature models inspect the backend before deciding whether the session ended. Inspection failure is unknown, not absence. Transport failure after prior success instead uses scheduled reconnect, which validates the reference on the next physical connection.
 
-Sources: [coordinator and backend contract](../../Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift), [close coordinator](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift), [multiplexer service](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerService.swift), [tmux dialect](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift), and [behavioral tests](../../FrameworkTests/SessionPersistenceTests.swift).
+Sources: [coordinator and backend contract](../../Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift), [close coordinator](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift), [backend registry](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift) and [dialect contract](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift), [tmux dialect](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift), and [behavioral tests](../../FrameworkTests/SessionPersistenceTests.swift).
 
 ## Resumable transports: recovery is not shell persistence
 
@@ -457,6 +463,14 @@ stateDiagram-v2
 ```
 
 *Resumable engine recovery preserves the protocol session; a backend reference separately identifies a persistent remote shell.*
+
+An ET data-route snapshot is progress, not protocol readiness. A `.ready` route does not finish recovery, unblock terminal input, or start ordinary SSH reconnect scheduling; the engine's connected state completes recovery. Desktop tests retain the same terminal surface, block interactive and broadcast input while recovering, and reject route events after disconnect. Shared Journey tests also keep route/protocol updates from dismissing pending authentication. See [TransportRecoveryJourneyTests](../../FrameworkTests/TransportRecoveryJourneyTests.swift), [TerminalTransportJourneyTests](../../TFMTests/TerminalTransportJourneyTests.swift), and [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift).
+
+## Latest viewport at startup
+
+PTY size belongs to the current connection generation, not the configuration captured before a trust or authentication prompt. Desktop primes a new ordinary SSH channel with `latestViewport`, including pixel dimensions, before connect. `SSHPTYResizeState` preserves a valid pre-connect viewport for the first attempt, coalesces updates during authentication, ignores zero dimensions, and discards old requests when an attempt is replaced or disconnected. The initial PTY uses the latest requested size. Prepared startup uses `SSHPTYStartupSizing` to synchronize pending window changes before starting the remote process; libssh2 retries remain queue-confined. See [SSHPTYResizeTests](../../TFMTests/SSHPTYResizeTests.swift) and the [PTY worker](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
+
+Resumable startup has a related ordering barrier: after engine start, `ResumableTerminalClient` repeatedly reconciles the latest viewport across awaits, sends startup/integration input once, and disconnects bootstrap SSH before publishing startup completion. A resize received while startup is suspended cannot be overwritten by a stale initial size. Protocol-specific mechanics belong to [Mosh + Eternal Terminal](../integrations/mosh-and-eternal-terminal.md).
 
 ## PTY activation after connection
 

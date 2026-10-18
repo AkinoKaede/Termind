@@ -1,6 +1,6 @@
 ---
 type: implementation guide
-title: Shell Integration
+title: Shell Integration and Terminal Context
 description: "SSH shell startup, multiplexer context inspection, display-only native directories, context-bound history and capability-gated drafts. Explains active-context authority, replay protection, command notifications and separate Telnet semantics."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
 sources:
@@ -12,8 +12,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
   - id: openwiki-source-1b008d375c28ace3a9684717
     resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
-  - id: openwiki-source-86eb75ab2f7e6931267a0dea
-    resource: repo://Frameworks/TermindDomain/Sessions/SSHShellIntegrationEvent.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
@@ -60,13 +58,13 @@ sources:
     resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
-# Shell Integration
+# Shell Integration and Terminal Context
 
 ## Ownership and entrypoint
 
@@ -139,6 +137,10 @@ Tickets capture coordinator **generation, revision and context identity**, and r
 Per-context sequence high-water marks suppress duplicate/replayed events. On first joining a multiplexer, snapshot sequences are installed **before** replaying the journal, so past commands do not notify again. Other snapshots establish a high-water mark after processing their event tail, without inventing a command start. A gap clears that context's running-command eligibility; a completion is accepted only after a capability-authorized start and a contiguous event sequence. Old active snapshots are rejected. Independent panes retain separate running state, and an unknown foreground does not forget the outer ordinary shell's pending command (for example manual tmux attach/detach).
 
 Desktop and mobile route runtime updates through the coordinator, then send only accepted events to history and `TerminalCommandMonitor`. They derive cwd, shell, lifecycle availability and prompt readiness from the active snapshot. A revision change cancels draft reads, pending uploads and command generation. Once runtime ownership is established, legacy shell events are ignored; desktop's Ghostty cwd observation is also gated off. Directory-sensitive operations capture and revalidate a `.directory` ticket and use `confirmContext` before committing; see [File Drag and Drop](../workflows/file-drag-and-drop.md).
+
+### Desktop resize policy follows interactive context
+
+Desktop `SSHSessionModel.synchronizeResizeThrottle` also consumes shell state: it uses **35 ms** when disconnected, integration is disabled, or lifecycle integration is unavailable; **0 ms** at an interactive prompt; and **128 ms** otherwise. For runtime-owned ordinary and multiplexer sessions, prompt readiness alone is insufficient: a current `.readDraft` ticket is required for the zero-delay policy. This avoids treating a stale prompt snapshot in copy/prefix mode or under another foreground process as interactive. Resize does not require `.replaceDraft`, unlike command generation. Legacy command completion alone does not restore desktop prompt readiness, and reconnect resets the policy until fresh shell state arrives. `HostShellIntegrationSessionTests` covers these distinctions; this is a desktop policy, not a shared mobile readiness rule.
 
 ### Safe draft read and replace
 
@@ -235,7 +237,7 @@ The installer defines functions and bindings in the **current shell session**. P
 
 | Shell | Command/prompt hooks | Compose bindings and compatibility details |
 | --- | --- | --- |
-| Bash | Uses `bash-preexec` arrays when present; otherwise composes the existing DEBUG trap and prepends its prompt function to array/string `PROMPT_COMMAND`. | Reads `READLINE_LINE`; supports emacs-standard, vi-insertion, and vi-command maps. Internal `__termind_*` calls are excluded from command-start reporting. |
+| Bash | Uses `bash-preexec` arrays when present; otherwise composes the existing DEBUG trap and brackets array/string `PROMPT_COMMAND` with `__termind_prompt_begin` and `__termind_prompt_end`. | Reads `READLINE_LINE`; supports emacs-standard, vi-insertion, and vi-command maps. Internal `__termind_*` calls are excluded from command-start reporting. |
 | Zsh | Adds `preexec` and `chpwd` hooks and prepends its prompt function to `precmd_functions` while retaining peers. | Reads `BUFFER`; binds emacs, viins, and vicmd. Uses `command_status`, not Zsh's read-only special parameter `status`, and returns the previous exit status. |
 | Fish | Uses `fish_preexec`, `fish_postexec`, `fish_prompt`, and PWD-variable events. | Reads `commandline`; binds default, insert, and visual maps. Completion uses `$status` and `$CMD_DURATION`. |
 
@@ -272,7 +274,21 @@ The following legacy client behavior applies **only before runtime context takes
 
 ### Startup fallback is not shell capability or transport recovery
 
-`SSHShellIntegrationEvent` separates `.runtime` context updates from legacy hook events and `.ordinaryStartupUnavailable(ticket:)`. The latter can release a pending ordinary startup command without granting cwd, lifecycle, or draft capabilities. Both platform consumers handle it before the legacy-event gate, refuse it for managed attachments, and discard pending startup work when its ticket is nil. A valid `SSHOrdinaryStartupTicket` binds fallback submission to a transport generation and input revision; the worker revalidates that epoch before writing. A later prompt must not replay a rejected startup command. See `HostShellIntegrationSessionTests.ordinaryStartupFallbackSubmitsOnceButNeverIntoManagedAttachments` and `rejectedOrdinaryStartupDoesNotReplayAtALaterPrompt`.
+`SSHShellIntegrationEvent` separates `.runtime` context updates from legacy hook events and `.ordinaryStartupUnavailable(ticket:)`. The latter can release a pending ordinary startup command without granting cwd, lifecycle, or draft capabilities. Both platform consumers handle it before the legacy-event gate, refuse it for managed attachments, and discard pending startup work when its ticket is nil. A valid `SSHOrdinaryStartupTicket` binds fallback submission to a transport generation and input revision. The worker consumes the ticket, probes the discovered tty with `RemoteTerminalProcessProbe.isOrdinaryShell` over runtime exec, then rechecks generation, input and runtime revisions, tty identity, attachment absence and the absence of a detected multiplexer before writing. Missing tty discovery or intervening user input yields no ticket; probe failure skips submission rather than typing into an unverified foreground. A later prompt must not replay a rejected startup command. See `HostShellIntegrationSessionTests.ordinaryStartupFallbackSubmitsOnceButNeverIntoManagedAttachments` and `rejectedOrdinaryStartupDoesNotReplayAtALaterPrompt`.
+
+```mermaid
+flowchart TD
+    Timeout["Ordinary startup readiness deadline"] --> Ticket{"TTY known and input epoch unchanged?"}
+    Ticket -->|No| Discard["Discard pending startup command"]
+    Ticket -->|Yes| Consumer{"No managed attachment?"}
+    Consumer -->|No| Ignore["Ignore fallback"]
+    Consumer -->|Yes| Probe["Consume ticket and probe foreground shell over exec"]
+    Probe --> Verify{"Ordinary shell and local epoch still valid?"}
+    Verify -->|No| Skip["Skip without replay"]
+    Verify -->|Yes| Write["Encode and queue startup command once"]
+```
+
+Ordinary startup fallback verifies foreground ownership without granting runtime capabilities.
 
 This startup signal does not reconnect a transport or restore a remote session. Those responsibilities remain in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
 

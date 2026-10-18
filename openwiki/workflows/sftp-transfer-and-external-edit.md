@@ -60,6 +60,8 @@ sources:
     resource: repo://FrameworkTests/HostOperationAdmissionTests.swift
   - id: openwiki-source-d92ce4bb378fe3506b55c85a
     resource: repo://FrameworkTests/SFTPRemoteConflictResolverTests.swift
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -74,6 +76,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
+  - id: openwiki-source-1d8dcc1fdf14c37b90cc9e07
+    resource: repo://TFMTests/AgentScratchTests.swift
   - id: openwiki-source-f03189e6e6c7053e3bf09597
     resource: repo://TFMTests/SFTPChannelTests.swift
   - id: openwiki-source-83498f1ebb2addd4dded3bc1
@@ -82,10 +86,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 ## Scope and operating model
@@ -94,7 +98,7 @@ For native drag events, mobile provider staging, SSH versus SFTP drop destinatio
 
 SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^client-channel]
 
-The important safety boundary is **no durable staging and no silent replay**. Checkpoints—temporary path, source identity, acknowledged offset, and SHA-256 state—live only in `SFTPResumeState` in the running process. A recoverable connection failure pauses instead of retrying; a user must explicitly resume, at which point the source and already-written prefix are verified. A restart therefore cannot recover or replay work. [^resume-state] [^coordinator-outcomes] [^channel-prefix]
+For queued transfer recovery, the important safety boundary is **no durable checkpoints and no silent replay**. This does not prohibit the separately managed, persistent Agent scratch workspace described below. Checkpoints—temporary path, source identity, acknowledged offset, and SHA-256 state—live only in `SFTPResumeState` in the running process. A recoverable connection failure pauses instead of retrying; a user must explicitly resume, at which point the source and already-written prefix are verified. A restart therefore cannot recover or replay work. [^resume-state] [^coordinator-outcomes] [^channel-prefix]
 
 A transfer uses one of two connection forms:
 
@@ -287,11 +291,54 @@ MCP uploads are a separate HTTP ticket workflow, **not** browser queue rows or s
 
 Do not copy browser-context assumptions wholesale into the Agent pool: browser auxiliaries are operation-scoped, Agent auxiliaries remain eligible for reuse, and MCP's HTTP budget/tickets are not scheduler permits. Focused pool tests verify one handshake across repeated execs, concurrent primary opens and exec/SFTP sharing, cancellation of one or the last connection opener, route retirement, idle sweeps and no replay of a command that already started. These tests cover primary reuse rather than exhaustively asserting every SFTP auxiliary-mode branch. [^agent-pool-tests] [^agent-lease]
 
+### Scratch exchange: staged bytes, not an external-editor session
+
+The consumed AgentKit pin is **3.0.1**. Its scratch workspace is a device-local directory shared across conversations, normally under Application Support at `<applicationName>/Scratch`, not a conversation-scoped cache. `copyScope` and `removeScope` are compatibility no-ops: deleting or forking a conversation does not delete or duplicate these files. Relative paths are contained in the workspace and symlinks are refused. Do not confuse this persistent staging with process-local transfer checkpoints. [^scratch-storage]
+
+`scratch_pull` validates the remote and scratch paths in preflight, reads the whole remote file with `maximumBytes: .max`, releases its authenticated SFTP operation, and then atomically writes the bytes to scratch (creating parent directories). It returns paths, size, SHA-256, UTF-8 status and line count, **not file contents**. It has no former 8-MiB file ceiling and is not a streaming download into the workspace; whole-file memory and local write failures still matter. [^scratch-roundtrip]
+
+`scratch_push` declares `.ask`. Preflight reads the staged bytes and supplies size/hash plus a redacted text preview (or binary summary) to approval, binding the SHA-256 in execution metadata. Execution rereads the file and rejects a mismatch with that approved digest before remote I/O. It sends the captured bytes through `writeFile`, defaults `overwrite` to false, and returns metadata rather than contents. It neither consumes nor deletes the staged file; remote temporary-file cleanup is the inline channel's best-effort failure cleanup, not resumable queue cleanup. [^scratch-push]
+
+```mermaid
+sequenceDiagram
+    participant Assistant
+    participant Tools as Scratch tools
+    participant Pool as Authenticated SFTP lease
+    participant Scratch as Shared local workspace
+    participant Remote
+    Assistant->>Tools: scratch_pull
+    Tools->>Pool: admit data operation and lease channel
+    Pool->>Remote: read whole file
+    Remote-->>Tools: bytes
+    Tools->>Scratch: atomic local write
+    Tools-->>Assistant: metadata only
+    Assistant->>Scratch: local read or edit tools
+    Assistant->>Tools: scratch_push preflight
+    Tools->>Scratch: read bytes and approval digest
+    Tools-->>Assistant: request approval with evidence
+    Assistant->>Tools: execute approved push
+    Tools->>Scratch: reread and check digest
+    Tools->>Pool: admit data operation and lease channel
+    Pool->>Remote: temporary write then rename
+    Tools-->>Assistant: metadata only
+```
+
+*Assistant scratch exchange retains local staged bytes; it does not create a browser queue row or a managed external-edit record.*
+
+The UI edit service below tracks remote versions and explicit upload snapshots; assistant scratch push binds local approved bytes, not an external-edit remote baseline. MCP HTTP upload tickets are a third entrypoint with their own lifetime and budget. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) and [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+
+Focused `AgentScratchTests` cover containment and symlink refusal, conversation-independent storage, metadata-only pull, files above the former ceiling, preflight validation before host access, redacted approval evidence, refusal of substituted approved bytes, and binary round trips. These use a stub SFTP client; they do not establish streaming memory bounds. [^scratch-tests]
+
+[^scratch-storage]: [consumed pin](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20); [workspace ownership](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L238-L306); [lifecycle hook](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L713-L716).
+[^scratch-roundtrip]: [pull implementation](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L41-L72); [atomic staging](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L436-L447).
+[^scratch-push]: [push approval and execution](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L93-L170); [inline write cleanup](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L264-L281).
+[^scratch-tests]: [storage and containment tests](../../TFMTests/AgentScratchTests.swift#L17-L79); [transfer tests](../../TFMTests/AgentScratchTests.swift#L651-L835).
+
 ### Bounded Agent reads and writes
 
 `sftp_read` is a **line-paged UTF-8 tool**, not a byte-range download. Its schema accepts a 1-based `offset` (1–10,000,000) and `limit` (1–2,000); defaults are offset 1 and 2,000 lines. A source page contains at most 64 KiB of text and returns `path`, `content`, `bytes`, `offset`, `returned_lines`, `next_offset`, and `eof`. Continue using `next_offset`, not a guessed byte position. The reader returns whole lines, normalizes CRLF to LF, and reports invalid selected UTF-8, an offset past EOF, or an oversized line as errors. [^agent-page]
 
-The page limit is **not a network-read limit**. The current default `SFTPChannelProtocol.readTextPage` first calls `readFile` with the scratch-file ceiling of 8 MiB, then feeds that data to `AgentTextPageReader`. The concrete channel reads in chunks of up to 64 KiB and probes one byte beyond the ceiling to reject oversized files. Thus requesting a small page does not make a larger-than-8-MiB file readable through this implementation. The scheduler estimate for `sftp_read` is 64 KiB, not the actual bytes fetched. [^agent-page-io]
+The page limit is **not a network-read or memory limit**. The current default `SFTPChannelProtocol.readTextPage` calls `readFile(maximumBytes: .max)` and accumulates the whole file before feeding it to `AgentTextPageReader`; the former 8-MiB scratch ceiling no longer applies. The concrete channel reads in chunks of up to 64 KiB, with an overflow probe when a finite limit is supplied. Requesting a small page therefore does not bound the download or whole-file allocation. The scheduler estimate for `sftp_read` remains 64 KiB, not the actual bytes fetched. [^agent-page-io]
 
 Read results set `hasBoundedModelContent`, which selects page-aware model projection rather than exempting the result from output limits. Projection redacts decoded fields and accounts for JSON escaping and envelope size; if fewer whole lines fit, it updates `returned_lines`, `next_offset`, and `eof` accordingly. Raw results and external-client responses are not changed by this model projection. Use the continuation in the response actually received. [^agent-page-projection]
 
@@ -300,7 +347,7 @@ Read results set `hasBoundedModelContent`, which selects page-aware model projec
 Focused reader tests cover split multibyte characters, CRLF, whole-line byte limits, continuation offsets, empty files, invalid offsets, oversized lines, and invalid UTF-8. These are reader-level tests, not proof that SFTP pages use streaming network reads. [^agent-page-tests]
 
 [^agent-page]: [read tool contract](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170); [line reader](../../AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift#L13-L108).
-[^agent-page-io]: [default page implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L173-L178); [inline reads](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L240-L263); [scratch ceiling](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L287).
+[^agent-page-io]: [default page implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L173-L178); [inline reads](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L240-L261).
 [^agent-page-projection]: [projection dispatch](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L22-L50); [page projection](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L129-L175).
 [^agent-inline-write]: [tool policies and concurrency](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L32); [read and write tools](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208); [atomic inline write](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L265-L282).
 [^agent-page-tests]: [AgentTextPageTests](../../AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift#L8-L46).

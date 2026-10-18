@@ -1,11 +1,8 @@
 ---
 type: Lifecycle concept
-title: Session Persistence and Recovery Identity
+title: Remote Session Persistence
 description: Remote managed-session identity, local restoration descriptors, and teardown intent define what can be recovered and who owns cleanup. Explicit close hands off best-effort termination independently of workspace removal.
 tags: [sessions, persistence, recovery, lifecycle]
-verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
 sources:
   - id: openwiki-source-e67e20bc76b0da7e73bb5fac
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift
@@ -13,12 +10,26 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
   - id: openwiki-source-44f3b562f3c7b739d591cf92
     resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
+  - id: openwiki-source-06534039643af6f27e293241
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteHerdrCommands.swift
+  - id: openwiki-source-4dbe1ff26dab4785a94e279b
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift
+  - id: openwiki-source-3109840ad21c82d203dadc0a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift
   - id: openwiki-source-7eb829787bc4ad0035265082
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift
+  - id: openwiki-source-e6fdb898fc2071c1afc227aa
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift
+  - id: openwiki-source-eb631d1df131a9121c932c3c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteZellijCommands.swift
+  - id: openwiki-source-be38a878489acdf43442ea09
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteZmxCommands.swift
   - id: openwiki-source-e4058ef2da4718e60a7a042d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift
   - id: openwiki-source-284da037986b0ecba2efe7bb
     resource: repo://FrameworkTests/RemoteSessionTerminatorTests.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c1f5a86747a33d4e8472672c
@@ -31,37 +42,56 @@ sources:
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-18T12:28:54.264Z
 ---
 
-# Session Persistence and Recovery Identity
+# Remote Session Persistence
 
 Session Persistence keeps a remote shell session independently of a terminal connection. It is separate from [Mosh + Eternal Terminal](../integrations/mosh-and-eternal-terminal.md), which recover a transport and its PTY, and from local workspace restoration, which remembers what the app should reopen. None of these alone guarantees that a remote process survives server restart.
 
 ## Preferences and backend ownership
 
-Preferences select an enabled flag, backend and on-connect policy: ask, create a managed session, or use a plain shell. Supported backend identifiers are tmux, zellij, zmx and herdr; unknown registry identifiers fail as unsupported rather than selecting another backend. The live registry constructs a multiplexer service from each registered dialect.
+Preferences select an enabled flag, backend and on-connect policy: ask, create a managed session, or use a plain shell. Supported backend identifiers are tmux, zellij, zmx and herdr; unknown registry identifiers fail as unsupported rather than selecting another backend. The live registry constructs the backend supplied by each registered dialect.
 
-The backend contract covers capability probing, listing sessions, validating references, matching identity, creation, launch and termination. Optional window/client counts are capabilities, not universal fields. Native views consume the coordinator and descriptors instead of interpreting backend identity bytes or assembling shell commands.
+The backend contract covers capability probing, listing sessions, validating references, matching identity, creation, launch and termination. Capabilities explicitly declare window counts, client counts and shell integration; all default to false. Native views consume the coordinator and descriptors instead of interpreting backend identity bytes or assembling shell commands.
+
+| Backend | Window count | Client count | Shell integration |
+| --- | --- | --- | --- |
+| tmux | Yes | Yes | Yes |
+| zellij | No | No | Yes |
+| zmx | No | Yes | Yes |
+| herdr | No | No | Yes |
+
+These are declared backend capabilities, not a guarantee that an installed version is supported: probing discovers the executable and validates its version. Managed creation enables [shell integration](shell-integration.md) only when both the request and probed capability allow it. The live dialect registry supplies a dedicated tmux backend and a shared socket-multiplexer backend for the other dialects.
 
 ## Selection and startup
 
 ```mermaid
-flowchart TD
-    Connect[Prepare terminal connection] --> Policy[Resolve persistence policy]
-    Policy --> Plain[Plain shell]
-    Policy --> Prompt[Select existing session or create]
-    Prompt --> Existing[Attach without managed ownership]
-    Prompt --> Create[Create with ownership token]
-    Existing --> Plan[Build PTY startup plan]
-    Create --> Plan
-    Plan --> Transport[SSH, Mosh or ET terminal]
+stateDiagram-v2
+    [*] --> Preparing
+    Preparing --> PlainShell: Plain policy without recovery intent
+    Preparing --> Attached: Saved reference validates and matches
+    Preparing --> Selecting: Ask policy or recovery failure
+    Preparing --> Creating: Create policy and successful probe
+    Selecting --> Creating: Create
+    Selecting --> Attached: Select existing without ownership
+    Selecting --> PlainShell: Explicit plain shell choice
+    Selecting --> Preparing: Retry
+    Selecting --> Cancelled: Cancel current prompt
+    Creating --> Attached: Store managed reference
+    Creating --> Selecting: Creation failure
+    Attached --> StartupPlan
+    StartupPlan --> Transport
+    PlainShell --> Transport
 ```
 Selection separates attachment from managed creation before transport startup.
 
 Selection prompts are generation-bound. Choosing against an obsolete prompt ID does nothing; cancellation clears the pending attachment and closes the connection synchronously before preparation reports cancellation. Creation intent includes backend, Host, endpoint, username, command, shell-integration choice and environment. This scopes managed creation to the actual request rather than only a display name.
 
-The startup plan carries a command, optional shell-event token and runtime attachment. A restored Mosh/ET transport skips startup preparation because its PTY already exists. Fresh attachment and restored transport must not both execute the startup command.
+`SSHPTYStartupPlan` carries a command and optional runtime attachment, not a shell-event token. A restored Mosh/ET transport skips startup preparation because its PTY already exists. Fresh attachment and restored transport must not both execute the startup command.
 
 ## References are capabilities
 
@@ -84,17 +114,24 @@ The app-owned coordinator survives workspace removal. Each operation has a defau
 `RemoteSessionCloseConnection` is the exactly-once release boundary: its actor sets `released` before awaiting the release closure, making repeated disconnect calls harmless and rejecting executor acquisition after release. Thus both the terminator and coordinator may request release safely, including cancellation before execution.
 
 ```mermaid
-flowchart TD
-    Close[Explicit workspace close] --> Capture[Capture reference and snapshot]
-    Capture --> Transfer[Transfer ordinary SSH channel if available]
-    Transfer --> Queue[Enqueue app-owned cleanup]
-    Queue --> Remove[Remove local workspace immediately]
-    Queue --> Gate{Managed explicit intent?}
-    Gate -->|No| Release[Release transferred connection]
-    Gate -->|Yes| Duplicate{Identity already pending?}
-    Duplicate -->|Yes| Release
-    Duplicate -->|No| Run[Run terminator with cancellation deadline]
-    Run --> Finish[Release connection and remove pending entry]
+sequenceDiagram
+    participant W as Workspace
+    participant C as App close coordinator
+    participant T as Remote terminator
+    participant R as Remote backend
+    W->>C: Enqueue reference, snapshot and optional SSH transfer
+    C-->>W: Accepted or rejected without awaiting cleanup
+    Note over W: Local workspace can be removed
+    alt Rejected intent or duplicate identity
+        C->>C: Release extra transferred connection
+    else New managed explicit close
+        C->>T: Terminate with cancellation deadline
+        T->>R: Validate reference and list matching identity
+        Note over T: Eligible preflight failure permits one silent replacement
+        T->>R: Attempt termination once
+        T-->>C: Success or error
+        C->>C: Release transfer and remove pending entry
+    end
 ```
 Explicit close separates local removal from one-shot remote cleanup ownership.
 
@@ -108,7 +145,15 @@ Passive window dismissal preserves mobile reopen references and skips managed te
 
 Implementation: [close coordinator](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift), [terminator](../../Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift), and [mobile workspace session](../../TFI/App/MobileWorkspaceSessionModel.swift).
 
-A remote command exit alone is not proof of session loss. The coordinator marks a session ended only when inspection says it no longer exists; a successful exit then permits local terminal closure. Unknown or failed inspection preserves the reference as detached.
+A remote command exit alone is not proof of session loss. `RemoteSessionBackendRegistry.sessionExists` lists sessions and matches backend identity; it throws on lookup failure rather than converting failure to `false`. Native exit handlers retain an unknown (`nil`) result on error and ignore results belonging to an obsolete connection attempt or changed attachment.
+
+| Inspection result | Recovery state | Close local terminal? |
+| --- | --- | --- |
+| Matching session exists | Preserve reference, mark detached | No |
+| Lookup failed or unknown | Preserve reference, mark detached | No |
+| Successful lookup confirms no match | Clear reference and require selection | Only if exit code is zero |
+
+Thus a confirmed absence with a nonzero exit still clears recovery identity but leaves the failure visible. An ended session requires an explicit choice rather than automatic replacement, even under `createManaged` policy.
 
 ## Local restoration
 

@@ -4,6 +4,8 @@ title: MCP Server and Bridge
 description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
 tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
 sources:
+  - id: openwiki-source-9e41b4dad085bd7548570d6e
+    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift
   - id: openwiki-source-dfa48d89c2a9237db894392c
     resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace%2BShared.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -76,10 +78,10 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # MCP Server and Bridge
@@ -229,6 +231,10 @@ Disabled tools are removed from discovery **and** invocation, not merely hidden.
 Calls execute with `permissionMode: .fullAccess`, but this is not a bypass of system safety boundaries: tool schemas, path validation, host key checks, SSH/SFTP authentication, one-shot secret handling, and capability rules still apply. The MCP executor uses an approval broker whose manual fallback denies external calls; individual tool preflight policy still classifies safe/read-only versus changing operations.
 
 When SSH credentials, keyboard-interactive answers, host-key trust, or a command’s secret stdin are needed, the tool creates a request in `ExternalAuthCoordinator`. Its handler is labeled with the MCP client name and session run ID and presents through the desktop UI. External requests are queued and independently cancelable by session; stopping MCP cancels external requests while preserving app-origin authentication requests. This is a critical boundary: `request_user_secret` is for secret standard input through `ssh_exec_stdin` with `type=secret`, not SSH login. It returns a one-shot handle from the context’s secret broker, never plaintext to the MCP client. The current request schema contains prompt, purpose and timeout, not host/tool binding fields.
+
+### External result projection
+
+MCP calls explicitly use `AgentToolOutputProjection(audience: .externalClient)`, rather than the Assistant's model-facing output projection. That projection returns the tool result unchanged: it does not apply the model projection's redaction, truncation, or scratch-continuation envelope. This is not a promise of unlimited output—individual tools can still return bounded or truncated data. `MCPServerProtocol` serializes `untrustedPayload` when available (otherwise `content`) as text, adds `structuredContent` when that text parses as JSON, and emits `_meta["termind/truncated"]` when the result is marked truncated. Clients should treat returned host data as untrusted and must not assume the Assistant's display/model sanitization applies to inbound MCP responses. See [output projection](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift) and [protocol serialization](../../TFM/Infrastructure/MCP/MCPServerProtocol.swift).
 
 Tool audit records are registered per MCP session. The UI can show client, tool, host, summarized arguments, duration and byte counts, but deliberately excludes file bodies, stdin, stdout, and stderr.
 

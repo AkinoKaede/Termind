@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e182495bd1be040e6b0a3a1756fe3df7114b85bad4dcc37ab6a0ff9f2153cfe6",
+  "pageVersion": "sha256:2bc89eb45c0a24f252dcf9b6355a8ab968bc10090020793e0476a14767077eae",
   "claims": [
     {
       "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
@@ -55,7 +55,7 @@
           "version": "repo-lines-v1:sha256:62f390924f44268c3fc8dee94f24d4f5c7cfcbf3e1325d6fb9f21de394895c82:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExZDAzOWMxOWVlMTcyOTFlMTYyYzdmMDlhODY1ZjkyMjIyOGJlOWU0Nzg5N2QwYzlkYjk3YTM4ZWE1OWUwYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1MThhOTljMzRjYmNjOTVhYTlkNmY5NGRjNzUwYjFhYmY5ZmJjM2IwNDcyNzZiYzNmYThkZTkyNzE4Y2I3NmIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1660-L1687",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1672-L1699",
           "version": "repo-lines-v1:sha256:bb8feb4645d374040cd03f0c30bce114c01ddfea878e58bd1b7eef90e571acd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNGI2NDQ1NTEwOGFmZmVjMzA1OTNiZWJhNzQ5YTk5M2ZjMzNlMzYzMWY5NzlkYTMxMDU0Y2FlMTliYjg4NjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlNzFkZDcyNGFmMWNmYzgyYjM0OWU4OGQwYzFkMzEwOWIxNDQzN2NlNTU0YzQ5ZDM2NTI3ZDBlYjU2NGE4YjcifQ"
         },
         {
@@ -84,19 +84,23 @@
     },
     {
       "id": "claim_10d4494edd1f40148ccb80aeb908b643",
-      "statement": "The SSH Security Key libssh2 callback offers the public blob, obtains an asynchronous native WebAuthn assertion through a connection-owned signing exchange, and returns an OpenSSH WebAuthn signature; server rejection at the public-key offer stage does not invoke signing. SSHPTYChannel.authenticate uses libssh2_userauth_publickey_signed for this path, distinct from keyboard-interactive string answers and post-authentication shell integration; native signing errors propagate immediately. The callback extends a positive timeout by elapsed signing time and the authentication branch restores it afterward.",
+      "statement": "SSHPTYChannel.authenticate offers the Security Key public blob through libssh2_userauth_publickey_signed; its callback delegates asynchronous assertion signing through the connection exchange and returns a validated OpenSSH WebAuthn signature. Public-offer rejection does not invoke signing, native signing errors propagate immediately, and signing remains distinct from keyboard-interactive string answers. The callback extends a positive timeout by elapsed signing time and the authentication branch restores it. Shell integration is post-authentication, but connectPrepared runs preparation and optional integration probing/helper installation before PTY channel and shell startup.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L130-L205",
-          "version": "repo-lines-v1:sha256:f1baca98a8da219159e0d97295696f57118ff3c5d69c4dc87c491325406f677b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2OGRlODE5YzhjMzdhNmU4ZDc5NTM2NzQ4M2NlOGUzZDBjY2EyYTIzZThiYjY0OWZiODgzYWQwNjkxODk3OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmNDhmZDlkYjkwMDJkMmQ4OWEyMGU2MjRmZDM1ZTc5N2IxZWY4ZmI4NmM0NjVjODgwMzZmZGVlZDQwOTYyNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwMjdlNGMyMTdmOGUzOTg3YmEzMjFiYTU1NGVlYWVhYTU2YWIzMGRlZGVkZWQ1NTA5NjMwMDFjZTliNTI4YzcifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L130-L214",
+          "version": "repo-lines-v1:sha256:1e3bb28da8989264e636ce0208b85ae0844a7b60c6a2a787600178ca8d1a30f1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2OGRlODE5YzhjMzdhNmU4ZDc5NTM2NzQ4M2NlOGUzZDBjY2EyYTIzZThiYjY0OWZiODgzYWQwNjkxODk3OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNjA4MTg4MjA4ODYxNGZmZWVlZGNkMjQ2Y2MyNGUxYjY4NTZkYThiNjk5YmUzNzg0ZDkxMTIwOTllYWQzMmUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1344-L1355",
-          "version": "repo-lines-v1:sha256:251a127a36aadbcdf81acc70733c5686d9a553e58dce5f06fea9ccea1c17a8cb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwNTNkMmFiYTViNmY5ZWQ5ZGM0OWVjYzM4Nzc3OTU1MmEzNDc1OTc1NTUxNTY3MDJmNGNlYWJiYzMxOWE2NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1YWZhZTllZjAzMWM2ZDI0OTZlMDc2MDA4ZTY4ZTA4OWEyOWE3ZjhjOTA3NzdiYjI4YjA4MWRjMDg4NWQzZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkZjM4NmM4NTk4OTUyOGUzNmY4M2JiZmFiM2ZlOTQ3YTZlODYxOWUwOTQxZjAxNjNmYTNkNjE5YWZiZjYwZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzYThjMGFkMGU0ZjdmN2ExZjgxZTFhZThhNjRjNDA5NDYwOGM0ZjkwMDQ5NDY4NDZkNWQ0ZWNmNjdhN2VmMDgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1528-L1699",
+          "version": "repo-lines-v1:sha256:4bb2f9436502899e9f31b4c345c6dc9f40965b46fb395ee8ef95c1c7c05ca453:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkODM2ZTU5ZjUxMWJlMjQ0NWMyMGU4YTE1ZTlkODMwYTFhODVjOGEyMzgyYzY2ODZmM2ZhZmY3MjIxMTdlYzhjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4MDU4ODI1YTJjM2U2NDczZGQxYzM3OWRiOWQ4YzkxNjJkMTQ1NjhhMzkyZWE4YjJjYjE5MmEyNmRiN2MyNDliIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1445-L1900",
-          "version": "repo-lines-v1:sha256:035acfa0b4aca3699f5a6c1dfb394320ff146f25fbcf610db0ef38ecf02f5c83:eyJzZWxlY3RlZExpbmVDb3VudCI6NDU2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhYjc2ZTUwNmI3NjFjY2IwYzVhMjcyMmJiN2NhYTM5Y2RiYTZmMGVlZjYxNDFlZjg1NjUyNDZkM2Q0ZmVjN2UwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiMDhiYzg3OGEzYzU2MTM5NDMzZGIwM2MzNTY4YTY1NmYwMDg4NTZmM2MzMTZlYjg2MzQ1NmMyZTM2ZmZhMjQzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1OTI0MDgzMWQ5MTIzZWI3NmRkNzNlMDI0ODNmODljNTA3NjdiZjk2ZjYyZjkxODVmZDQ4NjlmMzc3NGM5OThhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0NGYxYTFiZWQzNGNjNGRhYWUyMmVjYzZkMGQ5YmM5MDA0OTQ4NDI2YTQ1ZGQ3ZTMzMWMzNDgzN2VmMjQ5OGIxIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1765-L1898",
+          "version": "repo-lines-v1:sha256:999fda849874f6a4c214048b0d0a9740bade6caa6d346456742529ec1857ae99:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNGQ5ZGVlMWU2YWQ5ZWUwYjY1YzRlOWU4NWYwZDlmNTg3ZWZlNTExNDY1ZWM2NmIwMTg5OWVmNzE3NTBkMmFjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwYzY0NzljYzIzMDQ0MGZkNDFlODIyNDIxODY3OTY5ODU1OWQyODkzYmQ2N2I0MzgwYWZhYjgxMWIzOGE1NWFhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyZWE5NTI3NjliOTE5Zjk4ODM2ZWRjZTkxNDk4NGIzOWFmMjEwZTc3ODAxODY0MDNiZGMyZTdjODNkY2E2NmYxIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift#L24-L60",
+          "version": "repo-lines-v1:sha256:f144f7400d120188dc7c47db87ccb86f90b775583d95bbdfee0f94787feba138:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExMGVjYjg5OTAyMDgwYWJkNjY2NDg2NjMxYzZhMzc1YTMzMDU0MGUwMmEwOWQ2NTMzMjRmMWNjY2E0ZWJlZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     },
@@ -293,11 +297,11 @@
           "version": "repo-lines-v1:sha256:355627c38bac793a84f27aeb10f7bea76d00b940a723f44262835a1683fecb3f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3MDgxMGUzYTlhOTk5Yzk1ZGFjMzE3NmQyNThiMGFiOGJlMWJhMTdlNzY3MzdiOWVkZmNiZTc3YjUxYWVmMmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmMzM3N2JjMDNlZDk2ODc0NDM3NzYxNGY3ZDc5YmEyY2FkYmQ0NTZhYzk5YzlmODExZjc4MDU3M2ZiNjcwZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzZTBlMzEwZDdjY2JhY2U3Yjc4NTYxNzI3ZWFkZjdhNTcwZDc4ZTNkMWZiOTA2MDdkYzc0MDEzMTgyN2I3MDcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1660-L1687",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1672-L1699",
           "version": "repo-lines-v1:sha256:bb8feb4645d374040cd03f0c30bce114c01ddfea878e58bd1b7eef90e571acd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNGI2NDQ1NTEwOGFmZmVjMzA1OTNiZWJhNzQ5YTk5M2ZjMzNlMzYzMWY5NzlkYTMxMDU0Y2FlMTliYjg4NjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlNzFkZDcyNGFmMWNmYzgyYjM0OWU4OGQwYzFkMzEwOWIxNDQzN2NlNTU0YzQ5ZDM2NTI3ZDBlYjU2NGE4YjcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1800-L1856",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1812-L1868",
           "version": "repo-lines-v1:sha256:4f20dbfaee2b13514125b825819cf0675b1f023b82b561502460dad0912b3e74:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5MzUwOGFhMDFhZWM2ZGViYjI5YWU1MTlhY2UyZjg3YWU4NDU3NWMzNmVjNDU3Y2UxOGMwZWY4NTgwMTdiODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzYmJlYzlmMDE0YWM2MmNkODlhNTMyMWU0OTA2ZWQ0YTRlMWVkNTg2MmYwYjE5NzYxYTkwMDUwYTZiZGZkNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlYWQ4ZmEzNTg3M2I1MTg5ZDg1ODZhNmJmNjE5MTk2ODBkM2EwNTZiMGVlOTk0ZTU4ZjY0MDMzOGRkYTViZjkifQ"
         }
       ]
@@ -311,7 +315,7 @@
           "version": "repo-lines-v1:sha256:3f37836df40052ec6f56e476ea52beb986903d793e54866722bada927244efb1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1ZmVjNWU1NjFlYTIwMWQ2YWE4OTM1OTQ2ZTQ1YzI3ODJiZjRmOTcwM2E1YTE5NmFmMjg0YjlmYjliOWY2OTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyYWM1NjQwNmQ3ZDNkNTU2ZDk0ZTMxZmJkNDQ2MjMxNjNmYmViMGE1NDIyZjhiMzZmNzNjN2RhODI4NTRjMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5ODA3ZGIyZTA1YzFhN2ZkMzJlMjk4OTA5MGE5NWNhMjFlYzkzNjFiMjcwODMyNjY1M2EzOGE0Yzg3NTg2ZjUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1664-L1689",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1676-L1701",
           "version": "repo-lines-v1:sha256:0b64db2ae64c88bf1c9d9cac4fd12461f9a02a4d3aec87695208e206af1fb041:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3NGVkMjNjOGM1YzAxZDk4OGI3NDM3NGVkZjFiNDM5NGEwODliN2ZjNDgxOGM2NzYyMDczZDI3NjAxMDkzZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YmViYTU5YWI2NmI3Nzc2MmU5MDMyNjc5YjZkOWUyMDI5YzExYTlmOTY4NDA3YjQ2ZWNkODhiNDFiM2E0ZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjYWU4ZjEzNDk5MzU2ZTY3MmYxMjJmZDcxMDIwMzFiOTIwNDU4MTE0M2JkZDhkNjEwYzJhNTIyMDM4MjU4ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5NmUzYTMyYzM3N2Q3ZGU0ZDg4YWQwZmFlOTlmZjYwMTU3YjU4NTlhMzAwNDgwOTRlZGUwNjZlYjhjNTczNzQifQ"
         },
         {
@@ -319,10 +323,46 @@
           "version": "repo-lines-v1:sha256:685da075405540cf0faf6e4d64f5818f723695ca2fc3a78df11f4fdfd3176c12:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1YzA5ZGIyMjE2OGYzNDJkN2RkNmJhODRmYTE1ZDI4ZDM2ZTcwZTRmZmRkNGM2NjI4YjY5ZDcyY2Y3MWEwODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkYmViZjI0NDYzYzhlOTUyZjFhMGJmMzgwYmQ2MTNlZDMzZWY5NGJlNzA3Y2RjNGUyOTVlNDcxMDBkZjJkNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxMzU4ZDVhZTczMTg5M2M1NjcyOTMxY2E3MWUwZDVkZTMzYTkyYWUwYTA0NzgzMjE5ZjZhMDU3ZjQ1YWFiZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2MGUyZjdhNmYyNGM5MzcwNzljNWZhYzEzYmZmZWIyYWE5MGQzZDYwNTI3NmMwNTA1YzI4ZjlmNGFjNzlkZjUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_e4da123dce5b48049db969c4628372dc",
+      "statement": "RemoteSessionConnectionController keeps supplied identity/proxy authentication per Host separately from signing; continuation makes saving explicit and does not reconnect after a failed save, while disconnect clears submissions and cancels the signing coordinator.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift#L14-L85",
+          "version": "repo-lines-v1:sha256:11e9caffb22c58042c01655de370e0de2ee1e1e6bb1320a3a26a5f1afdf10278:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkYTVjNzk0YTdhMzc1MDY4NDMxZDk1MzExNGI4NWYwNjVjYTNiN2Q3YjIwNDVlYzhiNzYzZjVhMzU1OTZkZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczMmRiN2I3YjQxM2E0ODYxZGI2ZjE0NjU4M2RlMGFmM2IxYWU1NWZhZWFmMTUyNDAzY2IwYTEyNmRiZDZiNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhOTkwM2YzZTMwZGU5MzcyNzQ3ZGFiMjQ0OTJmMWMyMzYyM2ZhZjFmOTNmMjgyMWYxNGIzYzkzNmUxN2M5OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L140-L151",
+          "version": "repo-lines-v1:sha256:4b7857e11ac4cb1fb65245b9748ab7f8efd8a31612f4d3a258a3502564339955:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlYmZjNjAxZTMwMzZlNjIyNjk1NGFjN2M5YTBmNTU1Zjk3OWJhNGRiMTExMDUxODJiZTQ0NmI5MTJhNzhiZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwZmI2ZTAwODc5ZjExOGE4MGZkZjQ4ZmU3YjQ4MWM5MTUxN2U3NmUxNmE0N2ZkMDIyMzA3NjVjZTY4MDg1NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlMDA0Y2VhODA5MmVlN2ZiZmUyNWJiYWI4MTYyMGMzMDIzNDFhOTI5NzY2OWNiZDVmMTIwZDM5YTNlMjNjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f540b11908d94b8bb03e757cbba36d79",
+      "statement": "The connection controller pauses reconnect and marks the requesting Host waiting during Security Key signing, resumes after assertion and cancellation checking, and fails a still-waiting journey on signing failure or cancellation. Authenticated-opening cancellation cancels the signing exchange and opening state and schedules cleanup; exchange cancellation wakes the callback and rejects late results.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L245-L263",
+          "version": "repo-lines-v1:sha256:8267bcafa34d0ccfbced8eac31655cb6060b290883bf2f0c7045bcbe360e5419:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0ZjUxZTM2MjNkYzFlYWM2MTk3Y2E3YzZjODRjYjBmYjc3NGVmNmRjZjY4ZGM1MGRkNjRhYjFkNWE3YjU3NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwNzBlZmY4YTk5ZjA5NzdhMGI0NDFkZjI1MTQyNjgyMDYxZmNhMGM0NDVkMGZlM2VmOThhNjEzMjkxMjM5MjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L179-L214",
+          "version": "repo-lines-v1:sha256:7de028915675188600b2f1db79edf271895423cd1798e4566bfb70a0f7097b95:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMGRkMGM0OGZhMWYxZmM1ODAzYmJkOTZlOWRkZWViYTJmNzFhMjliNzNkMGJiNTA3YmNlYjE3MTQ4ZWJjZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2YWUyYzhhYWE5NjliOTliNWIxNWQyNzk1MjE0MmI2YWI5OWYwY2FmM2MxNmYxZDM1NjljYmM1YTVmMjY2NDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNjA4MTg4MjA4ODYxNGZmZWVlZGNkMjQ2Y2MyNGUxYjY4NTZkYThiNjk5YmUzNzg0ZDkxMTIwOTllYWQzMmUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L53-L70",
+          "version": "repo-lines-v1:sha256:6a0c8ba2763be40d3b5a6c1188f3571aaccd65851ef94a3e203c1ee4a2c91448:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZmRkN2YwOWI0YWRmYWU5YzU0YjRmY2ZhOWVhOGE2YTE4ZTE5ZTFjYzZmYzdhZGY1ODk5ZGI0OGIyZmNkMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzOTg5MjJkZjNkM2I1NGQwMTYxODk4NDc4MmU4MGQ5OGNkYWIzMDZkNGMzOGZlNTRmZWJhZDc2Mjk1ZjJmNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4YTZmMzQ2YTdjMGUxZGQzMWI1MzkzZjY1MTBhZGJiNDBhMTg3YjY5MGJiYWRkYmE2YWZhYWYyZjFjNzE0ODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzYzFmNDdmYjQyODA1YTg5Yzk2YjM1MDFhZDNhNTBmODgwZDg1YTRjZGVlZTA2MGE1NTY3ZTRmODA4MmY2MjkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1203-L1206",
+          "version": "repo-lines-v1:sha256:388b25ad70985de23d3321b0b926aef34f0b513ee83ee97d941e6119d21bdacd:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JkNjZmYTU1Y2QyMzA3NTQzMWE1YzkyMTE4N2M4NWRlOTgyYTBjZjAzZGU3ZGIxMTU1MzdiYjFjNWJjMzY5ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Q3NzYyOTQ2YTdmNzk4MzNmNzI3YWVhYTRjZGZmYjQ4YjZlZjAyNjExNDNiYWNkYmM5MmM3OTgwNDlkNTAwOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2Y5MWZmNzM3ZDE1ZDYxMDBjNzBmN2I3MWNmNjU3M2RmYjJhN2I1YzUxYWU0OGU3ZmFmYjhhZTFhOWJkNTUxZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T05:01:23.054Z"
+    "at": "2026-10-18T12:28:54.264Z"
   }
 }

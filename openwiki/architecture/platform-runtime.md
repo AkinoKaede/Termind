@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Service Lifetimes
+title: Platform Runtime and Composition
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -28,8 +28,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
-  - id: openwiki-source-ecede91560d27caa3ae01d3e
-    resource: repo://Frameworks/TermindPresentation/DiagnosisConsentView.swift
   - id: openwiki-source-6256aeada274ebb6ce422d82
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-ad1a1eea0aea739f2004d93a
@@ -124,13 +122,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
-# Platform Runtime and Service Lifetimes
+# Platform Runtime and Composition
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -327,12 +325,13 @@ The same bridge observes `NSWindow.isDocumentEdited` with initial and new values
 ```mermaid
 flowchart TD
     Launch["TermindIOSApp init"] --> Deps["MobileAppDependencies live or testing"]
-    Deps --> MobileApp["MobileAppModel app-wide runtime"]
+    Deps --> Result["Startup Result"]
+    Result -->|"Success"| MobileApp["MobileAppModel app-wide runtime"]
+    Result -->|"Failure"| Unavailable["Unavailable data store view"]
     MobileApp --> Container["SwiftData ModelContainer"]
     MobileApp --> Services["Libraries sync transfer forwarding assistant metrics"]
     MobileApp --> Sessions["Workspace session registry keyed by UIKit session ID"]
     MobileApp --> Group["WindowGroup"]
-    Group -->|"Startup failure"| Unavailable["Unavailable data store view"]
     Group --> Startup["MobileStartupView success or unavailable store"]
     Startup -->|"Needs consent"| Consent["Diagnosis consent view"]
     Startup -->|"Successful and consent resolved"| Bound["Bound scene root keyed by UIKit session ID"]
@@ -442,7 +441,7 @@ Scene phases are aggregated by scene ID. The app only enters global background b
 
 `MobileBackgroundController` owns one UIKit background-task lease. Beginning another lease finishes the old one; foreground `finish()` and expiration retire a valid identifier at most once. Expiration calls its cancellation callback synchronously before ending the task, even when UIKit expires during `begin`; a late callback for a retired lease is ignored. If UIKit returns `.invalid`, the controller expires immediately without trying to end an invalid identifier. Async disconnects started by the callback are best effort, not a guarantee that every drain completed before the lease ends.
 
-When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, History, Device, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all five. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and any applicable optional preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling the global iCloud switch, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those five coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy non-resumable connections; resumable transports resume after their entry-time suspension. After expiration, ordinary workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, History, Device, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all five. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and any applicable optional preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling the global iCloud switch, then reconciles. The app-owned `pro.accessDidChange` callback reconciles sync, Tailscale, metrics and connection preferences when entitlement changes; this wiring does not depend on a particular `MobileRootView` remaining mounted. Desktop `AppModel` starts/reconciles those five coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy non-resumable connections; resumable transports resume after their entry-time suspension. After expiration, ordinary workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
 
 ```mermaid
 stateDiagram-v2

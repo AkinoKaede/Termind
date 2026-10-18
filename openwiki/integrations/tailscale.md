@@ -16,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift
   - id: openwiki-source-4607fdaa71e267d28a7dfe6a
     resource: repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift
+  - id: openwiki-source-7c8b13176a0eed2c71ad89e0
+    resource: repo://Frameworks/TermindDomain/Hosts/HostTerminalTransports.swift
   - id: openwiki-source-c1950c6d5e869c2eb1db0e69
     resource: repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -32,8 +34,12 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Tailscale/TailscaleExitNodeField.swift
   - id: openwiki-source-18c028915e161c02ce996ee2
     resource: repo://Frameworks/TermindPresentation/Tailscale/TailscalePeerForm.swift
+  - id: openwiki-source-87a3a38f6388c572528dc8c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-c3e78c77c1cce563f5c2da91
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift
   - id: openwiki-source-23be2440342b8fbbefe69214
     resource: repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift
   - id: openwiki-source-b41ffbd407a598b50512e10b
@@ -54,10 +60,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Tailscale Integration
@@ -161,7 +167,7 @@ The implementation hashes namespace bytes plus `nameBytes` with SHA-1, takes the
 
 `hostIdentityVersion: groupScopedV2` is explicitly encoded in group configuration. `hostPreferences` wire keys use lowercase UUID strings and decoding rejects invalid or noncanonical keys. Changing the UUID algorithm or its input set can orphan saved preferences, Metrics references and history associations, so it requires deliberate compatibility work rather than a cosmetic refactor. `TailscaleHostIdentityTests` checks independently generated vectors, UTF-8 length framing, excluded control URLs and rename/rebinding behavior. Its network-switch test preserves the old event but excludes it from current Recents until the original identity is projected again; it never attaches that event to the replacement network.
 
-Managed Hosts are rebuilt from discovery and group preferences, not persisted as ordinary Vault Host rows. Their address, name, port 22, authentication and trust remain managed. Saving allows username, tags, color, artwork override, charset, initial SFTP path, session persistence, shell integration, startup snippet and environment preferences through the group. It rejects ordinary Identity, proxy, jump, Telnet and agent-forwarding configuration. Managed Hosts cannot be duplicated or directly deleted and are unavailable for jump-host, key-export and port-forwarding use cases. Group removal/disablement owns their retirement.
+Managed Hosts are rebuilt from discovery and group preferences, not persisted as ordinary Vault Host rows. Their address, name, port 22, authentication and trust remain managed. Saving allows username, tags, color, artwork override, charset, initial SFTP path, Wake-on-LAN, terminal transport options, session persistence, shell integration, startup snippet and environment preferences through the group. Terminal transport options survive projection rebuilding; managed peers exclude Mosh from available transports but can enable Eternal Terminal. An unavailable preferred transport falls back to SSH. These options do not change auxiliary SSH services; see [Mosh and Eternal Terminal](mosh-and-eternal-terminal.md). It rejects ordinary Identity, proxy, jump, Telnet and agent-forwarding configuration. Managed Hosts cannot be duplicated or directly deleted and are unavailable for jump-host, key-export and port-forwarding use cases. Group removal/disablement owns their retirement.
 
 ### Detected artwork is a preference, not a transport capability
 
@@ -177,19 +183,44 @@ Managed peers are exempt from `HostAccessPolicy`'s ordinary three-host free limi
 
 Embedded discovery is not the physical LAN scanner. `LANHostDiscovery` uses local IPv4 candidates and Bonjour on physical-network interfaces; `LocalDiscoveryModel` owns a cancellable scan with distinct unavailable, permission-denied and failed states. Tailnet managed peers instead come from the enrolled node's network map and are rebuilt under their bound group. A MagicDNS name or advertised SSH key is not a discovered MAC address.
 
-<!-- openwiki: broken internal link [../workflows/local-network-discovery-and-wake.md] file "../workflows/local-network-discovery-and-wake.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-A managed peer can nevertheless save an explicit MAC address and automatic-wake choice in its group preference. `LocalNetworkTests.tailscaleWakePreferencesSurviveProjectionSavingAndWireRoundtrip` verifies these survive rediscovery and sync and that V6 encoding rejects them. Wake uses `WakeOnLANController` and the current **physical LAN**, not the group's Tailnet dialer or Exit Node. `requestWake` checks Host access before configuration and transmission, and a sent packet is not confirmation that the peer woke or SSH is available. See [Local network discovery and wake](../workflows/local-network-discovery-and-wake.md) for that separate workflow.
+A managed peer can nevertheless save an explicit MAC address and automatic-wake choice in its group preference. `LocalNetworkTests.tailscaleWakePreferencesSurviveProjectionSavingAndWireRoundtrip` verifies these survive rediscovery and sync and that V6 encoding rejects them. Wake uses `WakeOnLANController` and the current **physical LAN**, not the group's Tailnet dialer or Exit Node. `requestWake` checks Host access before configuration and transmission, and a sent packet is not confirmation that the peer woke or SSH is available.
 
-## Two connection paths
+## Routing and authentication are separate decisions
 
 | Target | Network route | SSH authentication and trust |
 | --- | --- | --- |
 | Ordinary Host under a Tailscale group | Nearest Tailscale-configured ancestor supplies the dialer; a nearer configured subgroup overrides its parent. | Ordinary username/Identity/key and Known Hosts rules still apply. Tailscale membership alone does not make this Tailscale SSH. |
 | Discovered managed peer | Its bound group supplies the dialer and stable node ID. | Selected remote username, an empty ordinary credential list, and host keys obtained from the node's current peer status. |
+| Ordinary Host without an embedded group binding | Ordinary configured network route. | Ordinary Known Hosts and Identity rules apply, but a Tailscale SSH server can still require browser approval. No embedded enrollment is required for this authentication protocol. |
+
+An ordinary SSH endpoint advertising `SSH-2.0-Tailscale` or `SSH-2.0-Tailscale_...` uses the Tailscale-aware authentication-method query. This does **not** turn the Host into a managed peer or replace Known Hosts trust with network-map keys. A username-only Identity can authenticate using `none`, including without an embedded Tailnet. The same approval handling applies to ordinary jump endpoints; the prohibition on jumps concerns **managed Hosts**, not every server running Tailscale SSH.
+
+```mermaid
+flowchart TD
+    Target["SSH target"] --> Kind{"Managed peer?"}
+    Kind -->|Yes| Bound["Bound group dialer and fresh peer keys"]
+    Bound --> Match{"Handshake key matches?"}
+    Match -->|No| Fail["Fail without Known Hosts override"]
+    Match -->|Yes| None["Tailscale none query"]
+    Kind -->|No| Route["Nearest group dialer or ordinary route"]
+    Route --> Trust["Ordinary Known Hosts authorization"]
+    Trust --> Banner{"Tailscale server banner?"}
+    Banner -->|Yes| None
+    Banner -->|No| Standard["Ordinary method query"]
+    None --> Approval{"Approval banner while pending?"}
+    Approval -->|Yes| Policy{"Interaction allowed?"}
+    Policy -->|No| Refuse["SSHInteractionRequired"]
+    Policy -->|Yes| Poll["Show once and continue polling same transport"]
+    Approval -->|No| Result["Authentication result"]
+    Poll --> Result
+```
+Routing determines the network path, managed identity determines trust, and server authentication determines whether browser approval is needed.
 
 `connection(for:)` checks Pro access, a running node, matching group network/profile and applied Exit Node. Its returned `AccessDialer` rechecks those conditions on every dial and host-key lookup. Pending Exit Node application reports `settingsPending`; missing enrollment reports `loginRequired`. Failed Tailnet dialing never retries through the system network. Additional ordinary SSH connections must retain their required Tailnet route; managed additional connections do not resolve ordinary credentials.
 
 For a managed peer, `SSHConnectionOpener` refreshes expected host keys before dialing and requires the handshake key to match them. An absent advertised key reports `peerSSHUnavailable`; a mismatch fails rather than offering an ordinary Known Hosts override. Managed peers cannot be jumps. Authentication uses Tailscale SSH's username-based `none` exchange. If the server requires browser approval, a nonempty banner becomes an explicit `isTailscaleApproval` challenge even though it has no credential prompts. The UI may open a credential-free HTTPS approval link; it does not treat this as an informational round and auto-dismiss it. New banners are presented once, authentication polls at 50 ms intervals with a 600-second deadline, and cancellation retires the exchange. A forbidden-interaction additional connection fails if browser approval is needed.
+
+Approval runs asynchronously while authentication continues on the same transport. A UI acknowledgement is not proof of server acceptance: server completion ends the approval task, and the opener waits for its dismissal on both success and failure. The nonblocking query temporarily raises the packet read timeout to at least 601 seconds so the application’s 600-second deadline owns expiry, then restores the previous settings. Failure messages omit approval banners, which may contain one-time URLs.
 
 Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant username requests use the Tailscale prompt and can save a group preference without creating an ordinary Identity. Workspace and transfer lifetimes still belong to their existing owners; an embedded node is not a shared terminal session.
 
@@ -197,7 +228,7 @@ Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant us
 
 | Data | Location and replication |
 | --- | --- |
-| Network binding, group/peer username, Exit Node and per-peer preferences, including detection and artwork override | Public HostGroup configuration, synchronized through the current Vault HostGroup V5 writer. |
+| Network binding, group/peer username, Exit Node and per-peer preferences, including detection and artwork override | Public HostGroup configuration, synchronized through the current Vault HostGroup V7 writer. |
 | Profile UUID, local hostname, discovered peer cache | Device-local SwiftData enrollment row; not a Vault envelope. |
 | Native node state | Application Support `Termind/Tailscale/<profile UUID>` with the native Keychain service namespace `com.akinokaede.termind.tailscale.<profile UUID>` passed consistently to node creation and erasure. |
 | Pending erasure | Device-local durable `PersistentTailscaleProfileCleanup`; never synchronized. |
@@ -222,7 +253,6 @@ When debugging, first distinguish Pro denial, device enrollment, pending Exit No
 - `HostIconTests.tailscaleChoicesSurviveRediscoveryAndWireRoundTrips`: manual/automatic artwork and detected macOS survive managed projection rebuilding and HostGroup sync. `TailscaleIntegrationTests.tagsAndColorSyncBeforeAnotherDeviceDiscoversTheHost` additionally verifies detected distribution arrives before discovery, survives incomplete Linux metadata, and clears on a resolved unsupported OS.
 - `TailscaleProfileCleanupTests`: durable erasure retry, orphan discovery, active-profile protection and cleanup without Pro. `TailscaleSyncSafetyTests`: reader-capability refetch/unblock for independent same-Tailnet groups and Metrics selections (the historically named `v3ReplayAcceptsIndependentConnectionsToTheSameTailnet` helper constructs envelopes using the current writer).
 - `TailscaleMultiConnectionTests` and `TailscaleMetricsAvailabilityTests`: additional-connection routing, access revocation and availability/recovery boundaries. `MetricsSyncTests` also checks historical V1 records and preservation of pending local edits during refetch.
-- `TailscaleSSHWireTests`: real SSH/SFTP fixture through an injected loopback Tailnet dialer, gated by `TERMIND_SSH_FIXTURE` or `TERMIND_SSH_FIXTURE_JSON`. This does not exercise live control-service enrollment, WireGuard/DERP, browser policy approval or a physical multi-device Tailnet.
+- `TailscaleSSHWireTests`: opt-in real SSH/SFTP fixture, gated by `TERMIND_SSH_FIXTURE` or `TERMIND_SSH_FIXTURE_JSON`. It covers managed connections through an injected loopback dialer, a free ordinary username-only Host without an embedded Tailnet, automatic approval continuation for ordinary and managed connections, PTY/jump approval, and prompt cleanup after rejection, disconnect or cancellation. Fixture-controlled approval exercises the SSH exchange, not a live browser policy service, control-service enrollment, WireGuard/DERP or a physical multi-device Tailnet.
 
 Use resolved-only Xcode builds/tests from [Build, Test, and Release](../operations/build-test-and-release.md). This documentation update checks source and evidence; it does not claim the wire suite or a live Tailnet test ran. Pair connection/authentication changes with actual macOS and iOS enrollment, policy approval and SFTP checks.
-ds/tests from [Build, Test, and Release](../operations/build-test-and-release.md). This documentation update checks source and evidence; it does not claim the wire suite or a live Tailnet test ran. Pair connection/authentication changes with actual macOS and iOS enrollment, policy approval and SFTP checks.

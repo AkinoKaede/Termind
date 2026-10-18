@@ -90,8 +90,14 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-3476c075c0a89fef4b1cecf4
+    resource: repo://Frameworks/TermindPresentation/AgentToolDetailPreview.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-0f9033d291acb89c4894acb9
+    resource: repo://Frameworks/TermindPresentation/AssistantCompactToolDetails.swift
+  - id: openwiki-source-0d8bc8948aed7b3cc4944dbf
+    resource: repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
@@ -116,8 +122,6 @@ sources:
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-e1f030139039cf085fdbfce0
     resource: repo://FrameworkTests/AssistantNotificationTests.swift
-  - id: openwiki-source-aec5af6c3be13b44140585c2
-    resource: repo://FrameworkTests/AssistantTranscriptPresentationTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -150,6 +154,8 @@ sources:
     resource: repo://Scripts/Tests/test_localization.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-dc9295278cc250ed20567540
+    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -192,6 +198,8 @@ sources:
     resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
+  - id: openwiki-source-c52cd56852d12b2dee153082
+    resource: repo://TFM/App/AppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -214,6 +222,8 @@ sources:
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-29722107a3a9d938ca19ebb4
     resource: repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift
+  - id: openwiki-source-6b422a5b70cf5532c58c730e
+    resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-73c75477db0674192248aa00
@@ -224,14 +234,16 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
+  - id: openwiki-source-ce3f85319052412b85aca9dc
+    resource: repo://TFMTests/RemoteOutputToolPresentationTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Engineering Invariants
@@ -399,7 +411,8 @@ Keep the full runtime contract in [Assistant Runtime](../concepts/agent-runtime-
 - Preparing cancellation invalidates identity synchronously, joins tracked edit/history/preparation work, then attempts interrupted persistence before projection. `stop()` alone does not wait; drain callers await `stopAndWait()` or cancellation task. Failed save reports error. In `savingFailure`, cancellation joins the existing failed-snapshot save rather than replacing it with interruption. Archive/delete wait; manual compaction refuses preparation; selection alone does not cancel.
 - History edits commit truncation before live replacement at the selected canonical user-message boundary. Preserve same-run prefix/tool ownership, neutral completed summary, title and relevant compacted display history; remove suffix/later runs and prune compactions by removed message IDs. Executed suffix tool invocation/result/review rows can be removed; legacy unowned cards belong to the suffix. Agent-provenance user messages remain uneditable. Editing history does not undo remote effects.
 - Edited replacement initially owns a same-message-ID staging run. The first real saved snapshot adopts only that staged row and removes staging while preserving chronology and historical replay ownership. Missing-model/credential preparation failures project only after save; failed saves do not adopt staging. Repository-instance retired IDs reject late writes.
-- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail uses a dedicated SSH execution projection before generic fallbacks, and can use injected built-in presenters for other tools; MCP keeps remote JSON. Failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay. Batch summaries preserve mixed tool/state/action outcomes; head/tail previews use `AgentTruncateResult` with a UTF-8 byte budget (`AgentTruncateLimits.maximumBytes`) and 120 lines, not an 8,192-character cap, while Copy retains the full transformed output. Tests: [AssistantTranscriptPresentationTests](../../FrameworkTests/AssistantTranscriptPresentationTests.swift).
+- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail decodes JSON and uses an injected presenter or generic formatting; both app composition roots register localized SSH result presenters through `SSHExecToolPresentation.registering(in:)`, preserving tool-owned layout and approval argument policy. Only result-less SSH cards take the dedicated pending-detail path. MCP keeps remote JSON and ignores injected presenters. Failure state is passed to built-in presenters so failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay.
+- Batch summaries preserve mixed tool/state/knowledge-action outcomes. `AgentToolDetailPreview` shares a five-row and `AgentTruncateLimits.maximumBytes` UTF-8 budget across collapsible text and list bodies, using the presenter's truncation strategy; `.none` bypasses folding. Fields, notices and noncollapsible text are outside that body budget. Full projected items remain available for expansion—not a promised Copy control. Display folding does not invent an output-truncation notice; actual result markers are reused verbatim. Tests: [AssistantTranscriptPresentationTests](../../FrameworkTests/AssistantTranscriptPresentationTests.swift), [AgentKnowledgeToolPresentationTests](../../TFMTests/AgentKnowledgeToolPresentationTests.swift), and [RemoteOutputToolPresentationTests](../../TFMTests/RemoteOutputToolPresentationTests.swift).
 
 ## Notifications, preferences and copy
 

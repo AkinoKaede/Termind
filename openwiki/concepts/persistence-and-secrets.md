@@ -4,6 +4,8 @@ title: Persistence and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
+  - id: openwiki-source-92e389a568d1e3229a544e04
+    resource: repo://AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -162,10 +164,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Persistence and Secrets
@@ -225,7 +227,7 @@ Replay is backing for the original turn, not a fresh reconstruction from current
 
 This backing is additive: historical message schemas remain frozen, and missing legacy context is not reconstructed from today's configuration. `AgentReplayPersistenceTests.v15MigratesWithoutInventingHistoricalContext` opens a V15 disk store through the production factory and verifies the legacy message survives with no context snapshot or invented replay row.
 
-Tool replay also preserves structured presentation. `AgentPersistenceRedactor.toolResultText` first applies `AgentSecretLifecycle` persistence policy, then redacts decoded JSON structurally and preserves untrusted-data envelope markers; tool/runtime policy, not arbitrary serialized-text truncation, owns the result's size. Non-JSON results take the visible-text redaction path. On restore, malformed JSON-looking or wrapped legacy text can use a valid structured fallback from durable result content or frozen model content. If no valid fallback exists, it retains the text rather than guessing a repair. Tool-role frozen `modelText` uses the same tool-result redaction path; other roles use visible-text redaction.
+Tool replay also preserves structured presentation. [`AgentPersistenceRedactor.toolResultText`](../../Frameworks/TermindPersistence/AgentPersistenceRedactor.swift) first applies `AgentSecretLifecycle` persistence policy: a `request_user_secret` result becomes an expired, single-use status envelope, not a durable secret handle. Only then does it delegate to `AgentSensitiveDataRedactor.toolResultText` to redact decoded JSON structurally and preserve untrusted-data envelope markers. Structural redaction is not a substitute for expiring runtime capabilities. Tool/runtime policy, not arbitrary truncation of serialized JSON, owns structured result sizing; non-JSON results take the visible-text redaction path. On restore, malformed JSON-looking or wrapped legacy text can use a valid structured fallback from durable result content or frozen model content. If no valid fallback exists, it retains the text rather than guessing a repair. Tool-role frozen `modelText` uses the same tool-result redaction path; other roles use visible-text redaction. The shared implementation is in [AgentSensitiveDataRedactor](../../AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift), while the repository chooses the recovery fallbacks.
 
 Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
 

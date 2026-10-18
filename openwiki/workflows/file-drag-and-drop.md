@@ -80,14 +80,18 @@ sources:
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-fbce742d07f4b9d43aaf149d
     resource: repo://TFM/UI/Components/FileURLDropTarget.swift
+  - id: openwiki-source-30dbebc610403e4d23f723fc
+    resource: repo://TFMTests/DeferredKeyMaterialTests.swift
   - id: openwiki-source-23478c0f7b58a7222e2025d1
     resource: repo://TFMTests/FileURLDropTargetTests.swift
+  - id: openwiki-source-b4e9dee6fa785efb802f54cf
+    resource: repo://TFMTests/SoftwareKeyFileImporterTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # File Drag and Drop
@@ -218,7 +222,7 @@ The displayed cwd is deliberately retained while a command runs: `TerminalContex
 
 Desktop native menu actions recheck `canUploadFiles` or `canOpenSFTP` when invoked, rather than trusting the enabled state captured when a menu was built. Status-bar Open with SFTP is a different operation from dragging its path: it calls `confirmDisplayedDirectory`, checking live session state and path equality, then confirming the active runtime context and rechecking it after the await. That display-context check is not the prompt-ready upload-ticket gate. A status-bar path drag remains escaped text insertion only.
 
-Evidence: [display versus capability](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L36-L71), [desktop running-command tests](../../TFMTests/HostShellIntegrationSessionTests.swift#L12-L44), [mobile running-command tests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L97-L132), [menu action rechecks](../../TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L284-L296), [status-bar open](../../TFM/Features/StatusBar/StatusBarView.swift#L357-L371), [displayed-directory confirmation](../../TFM/Features/Terminal/SSHSessionModel.swift#L396-L427).
+Evidence: [display versus capability](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L36-L71), [desktop running-command tests](../../TFMTests/HostShellIntegrationSessionTests.swift#L159-L194), [mobile running-command tests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L159-L194), [menu action rechecks](../../TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L284-L296), [status-bar open](../../TFM/Features/StatusBar/StatusBarView.swift#L357-L371), [displayed-directory confirmation](../../TFM/Features/Terminal/SSHSessionModel.swift#L396-L427).
 
 Runtime uploads capture a directory ticket containing coordinator generation, revision and active shell identity. A ticket requires a prompt-ready context with the directory capability. Both platforms confirm that context through the existing SSH transport **before opening the transfer client, after preflight, and before enqueueing**. A failed confirmation invalidates a still-current context to unknown. Runtime revision changes cancel pending upload work, including conflict state, even if a newly selected shell has the same directory string. Once runtime mode is active, missing tickets fail closed; legacy mode's confirmation is a no-op, so it must not be described as providing the same identity guarantee.
 
@@ -328,9 +332,9 @@ Evidence: [local receive and remote decoding](../../TFM/Features/SFTP/SFTPBrowse
 
 The Key editor mounts a `.files` native receiver only while private-key editing is permitted and the form is neither loading nor saving. In software mode, `receive(urls:)` calls shared `SoftwareKeyFileImporter.read` and applies the returned private key, certificate, and optional inferred name to form state. A private key can infer the complete filename only when the current name is blank; a certificate does not infer a name. Multiple private-key files resolve to the final one in the supplied order. In Security Key mode, the first dropped file is read as a `termind-fido2-v1:` reference; the reader requires a regular UTF-8 file of at most 1 MiB and validates the decoded credential before filling the reference field.
 
-The importer reads security-scoped UTF-8 regular files up to 8 MiB, recognizing private-key text and OpenSSH user certificates. If any supplied file fails, the view receives an error before applying the result. This initial classification is not cryptographic validation or a save: `refreshPublicMaterial` uses `SSHKeyMaterial.imported` to refresh editor material, and explicit Save imports the software key material, validates certificate matching, and calls the existing persistence path. Metadata-only editing has a separate certificate-validation and metadata-save branch.
+The importer reads security-scoped UTF-8 regular files up to 8 MiB, recognizing private-key text and OpenSSH user certificates. If any supplied file fails, the view receives an error before applying the result. This initial classification is not cryptographic validation or a save. Both `refreshPublicMaterial` and explicit Save use `SSHKeyMaterial.analyzeImport`: refresh retains encryption metadata even if public-material validation fails, while Save requires `analysis.material.get()` to succeed. Save retains a passphrase only for encrypted material and only marks it for storage when a nonempty passphrase is present and saving was requested. It validates any certificate against the inspected public key when available before calling persistence. Metadata-only editing has a separate certificate-validation and metadata-save branch.
 
-Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L686-L692), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L992-L1013), [software importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [Security Key reference reader](../../Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L86-L109), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L819-L864).
+Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L686-L692), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L1010-L1031), [software importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [Security Key reference reader](../../Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L86-L109), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L825-L872), [editor analysis](../../TFM/Features/Keychain/KeychainPageView.swift#L950-L954), [deferred material validation tests](../../TFMTests/DeferredKeyMaterialTests.swift#L52-L72).
 
 ### Key export is a separate explicit operation
 
@@ -363,7 +367,7 @@ Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTar
 | Desktop connection fallback and transfer ownership | [SFTPTransferContextTests](../../TFMTests/SFTPTransferContextTests.swift); cancellation cannot fall back, releasing a UI owner cannot invalidate retained transfers. |
 | Remote manifests, conflicts, streaming without a temporary file | [SFTPFeatureTests](../../TFMTests/SFTPFeatureTests.swift) and [SFTPRemoteConflictResolverTests](../../FrameworkTests/SFTPRemoteConflictResolverTests.swift). |
 | Attachment formats and pending-import/send lifetimes | [ContextAttachmentImporterTests](../../TFMTests/ContextAttachmentImporterTests.swift), [AssistantConversationOperationsTests](../../FrameworkTests/AssistantConversationOperationsTests.swift), [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift). |
-| Key classification and name inference | [SoftwareKeyFileImporterTests](../../TFMTests/SoftwareKeyFileImporterTests.swift). |
+| Key classification, name inference and material validation | [SoftwareKeyFileImporterTests](../../TFMTests/SoftwareKeyFileImporterTests.swift) covers filename inference, last-private-key precedence and unrecognized text. [DeferredKeyMaterialTests](../../TFMTests/DeferredKeyMaterialTests.swift#L52-L72) checks that import analysis retains encryption metadata when public material is invalid and rejects a mismatched public algorithm. These are importer/material tests, not end-to-end editor-drop tests. |
 | Upload availability and focus-preserving feedback | [WorkspaceUploadNoticeTests](../../FrameworkTests/WorkspaceUploadNoticeTests.swift), mobile upload tests, and [TerminalUploadNoticeTests](../../TFMTests/TerminalUploadNoticeTests.swift). The last suite requires visible-window opt-in and `TERMIND_SSH_FIXTURE`. |
 
 When changing a drag entrypoint, preserve the existing receiver's private SFTP → private path → file/image representation priority, visibility gates and teardown behavior before changing feature dispatch. A generic text or Finder file URL must not become a terminal-path paste; a path-only drag must not become an upload. Keep staging alive until its consumers no longer need it, and distinguish cancelling a pending preparation from cancelling an admitted transfer. Extend the specific importer/planner for new semantics; a new Overlay label alone does not implement a drop operation. File-drop work does not require replacing the native Workspace List drag source described in the layout guide.

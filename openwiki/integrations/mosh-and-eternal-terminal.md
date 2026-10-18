@@ -3,9 +3,6 @@ type: Reference
 title: Mosh and Eternal Terminal
 description: SSH-bootstrapped resumable terminal transports, checkpoint ownership, and foreground recovery. Explains Eternal Terminal connection confirmation and terminal-end safeguards.
 tags: [terminal, mosh, eternal-terminal, recovery, ssh]
-verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
 sources:
   - id: openwiki-source-f009a1e2645a074589550c44
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
@@ -19,11 +16,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift
   - id: openwiki-source-95fa11ff59d3a38d49da5c6f
     resource: repo://FrameworkTests/EternalTerminalResumeTests.swift
+  - id: openwiki-source-79b6bc8e02ca55053bd497fa
+    resource: repo://FrameworkTests/ResumableTerminalEngineTests.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-28243bbeecc381626d39eeb6
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Mosh and Eternal Terminal
@@ -38,6 +40,27 @@ Mosh bootstraps `mosh-server` through SSH, parses the returned UDP port and key,
 
 ET uses an SSH bootstrap executor to acquire credentials and a local TCP bridge to reach a routed socket. The socket route carries the configured proxy, jumps, network adapter, host-key constraints and authentication interaction policy. The vendor session connects to the local bridge rather than bypassing Termind routing.
 
+```mermaid
+flowchart TD
+    Fresh[Fresh SSH bootstrap] --> Protocol{Transport}
+    Protocol -->|Mosh| Server[Launch mosh-server and parse port and key]
+    Server --> UDP[Direct UDP session]
+    UDP --> Ops[Wait for server operations]
+    Protocol -->|ET| Route[Open routed TCP socket]
+    Route --> Credentials[Acquire ET credentials through SSH]
+    Credentials --> Bridge[Vendor session connects to loopback bridge]
+    Bridge --> Routed[Bridge forwards over routed socket]
+    Saved[Cold checkpoint restore] --> Kind{Transport}
+    Kind -->|Mosh| Snapshot[Restore vendor snapshot]
+    Snapshot --> UDP
+    Kind -->|ET| RestoreRoute[Open route and bridge]
+    RestoreRoute --> RestoreET[Restore credentials and vendor checkpoint]
+    RestoreET --> Bridge
+```
+Fresh bootstrap creates protocol state; cold restoration reuses saved state without rerunning remote startup or attaching another multiplexer client.
+
+ET opens its initial data route before acquiring fresh bootstrap credentials. Initial route failure retires that route attempt and preserves the original error. Route snapshots are separate from protocol readiness: `.ready` means the socket route is ready, not that the terminal is connected. The client forwards increasing route revisions even while recovery is frozen, ignores reordered older revisions, and ignores all engine events after close. See [Tailscale](tailscale.md) for the network integration boundary.
+
 ## Connection lifecycle
 
 ```mermaid
@@ -48,7 +71,8 @@ flowchart TD
     Restore -->|yes| Recover[Restore existing protocol state]
     SSH --> Engine[Prepare and start engine]
     Recover --> Engine
-    Engine --> Live[Publish output and connection state]
+    Engine --> Flush[Drain latest viewport and startup commands]
+    Flush --> Live[Publish retained engine state]
     Live --> Suspend[Suspend and checkpoint]
     Suspend --> Recover
 ```
@@ -57,6 +81,16 @@ The resumable transport lifecycle separates fresh SSH bootstrap from recovery of
 The resumable client owns transport state, queued lifecycle requests, maintenance and network monitoring. Engines own protocol-specific state. Engine availability is checked before wake, routing or bootstrap side effects. Failed preparation invokes engine rollback, disconnects bootstrap SSH and closes the client. Network recovery reuses protocol state rather than bootstrapping another shell.
 
 A fresh startup may receive a backend-neutral PTY startup plan. Mosh appends its quoted shell command to server startup; ET sends a quoted `exec /bin/sh -c` command to its terminal. Restoration skips startup preparation because the restored transport already owns its PTY and attached remote session. Replaying startup would risk duplicate commands or duplicate sessions.
+
+### Startup acceptance and publication ordering
+
+`ResumableTerminalClient.connect` validates the checkpoint envelope before constructing an engine. Both fresh start and cold restore hold `startupNeedsCompletion` while preparation and start run. `resize` still accepts the latest viewport during this interval but does not concurrently send it to the engine. Start uses the latest dimensions accepted during preparation; afterward a drain loop rechecks dimensions across every await, sends startup input and shell-integration commands, disconnects bootstrap SSH, and only then releases the startup barrier and publishes the retained engine state. An early `.connected` or `.activity` event is therefore not permission to publish connected before the latest viewport has been applied.
+
+Startup is not a blanket write freeze: `write` permits early terminal protocol replies (for example, a cursor-position report) while the host gates interactive input on connected state. Queued lifecycle work, suspension and incomplete recovery still reject writes with `TerminalTransportError.suspended`. Shell-integration commands generated while frozen are buffered for the drain rather than sent concurrently. Cancellation during startup draining rolls back and closes without admitting connected.
+
+### Shared lifecycle barrier
+
+Suspend, resume and retry are serialized, coalescing only adjacent matching requests so a checkpoint remains an ordering barrier. Admitted operations wait for in-flight sends, including startup, to finish. Suspension prepares protocol state before capturing shell state; resume/retry flush the latest viewport and pending integration command before reopening admission and publishing retained engine state. Cancelling one waiter does not cancel already-admitted session work. A failed recovery keeps admission frozen until recovery succeeds or the client closes.
 
 ## Recovery and security
 
@@ -100,6 +134,8 @@ Domain owns Host options and recovery descriptors; Application owns startup plan
 Review `ResumableTerminalEngineTests`, `TerminalTransportTests` and mobile restoration tests for startup, rollback, checkpoint validation and stale-owner behavior. These are test entrypoints, not a claim that this documentation update ran them. Real-server validation should separately exercise blocked UDP, ET route reconnection, foreground/background transitions and server-side session loss.
 
 Focused regression coverage:
+
+- [ResumableTerminalEngineTests](../../FrameworkTests/ResumableTerminalEngineTests.swift) gates preparation, start, resize and integration writes to verify latest-viewport acceptance, early protocol replies, connected publication ordering and cancellation rollback. It also checks route revisions independent of readiness, lifecycle coalescing, send barriers and recovery failure admission.
 
 - [EternalTerminalResumeTests](../../FrameworkTests/EternalTerminalResumeTests.swift) checks retained-connection confirmation without a new vendor event, no confirmation after connection loss or before initial connection, and no revival after terminal end or local close.
 - [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift) checks recovery journey completion while retaining the terminal, duplicate-event handling, missing/incompatible checkpoint failure without opening a new shell, and exactly-once workspace closure on remote end for both transports.

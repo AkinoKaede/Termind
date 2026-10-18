@@ -136,10 +136,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 ## Commerce ownership and configuration
@@ -201,7 +201,7 @@ Connection admission includes the target and jump-host route. Prepared configura
 
 Metrics no longer has an independent three-card cap or `.unlimitedMetrics` gate. The shared model retains selections outside the edited picker, deduplicates additions and persists the replacement in one operation. Collection instead follows Host access: locked Hosts surface a locked monitoring state, and the mobile locked card opens Pro rather than detail. Picker save failures report storage errors, not an automatic unlimited-Metrics paywall.
 
-Status changes update Host policy, reconcile Tailscale and Metrics, and recompute connection acceleration preferences through the controller's app-owned `accessDidChange` callback, without requiring a visible paywall. Losing Vault sync access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data. Desktop reconciles these coordinators directly; mobile sync additionally requires an active foreground scene and is reconciled by `MobileRootView` access observation and scene activity. The built-in MCP server is not suspended merely because Pro expires.
+Status changes update Host policy, reconcile Tailscale and Metrics, and recompute connection acceleration preferences through the controller's app-owned `accessDidChange` callback, without requiring a visible paywall. Losing Vault sync access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data. Both app-owned access-change callbacks reconcile these coordinators directly; mobile sync additionally requires an active foreground scene and is also reconciled on scene activity. The built-in MCP server is not suspended merely because Pro expires.
 
 ## Paywall presentation and copy boundary
 
@@ -217,17 +217,17 @@ sequenceDiagram
     Gate->>Controller: require feature
     Controller->>Native: present if denied
     Native->>UI: show with status variables
-    UI->>Controller: operation started
+    UI->>Controller: check access before purchase
     UI->>Service: purchase or restore via SDK
     Service-->>Controller: CustomerInfo update
     UI->>Controller: operation completed
     Controller->>Service: refresh current status
-    Controller-->>Native: updated access and processing
+    Controller-->>Native: updated access
 ```
 
 The native sheet delegates purchase and restore operations to RevenueCatUI and refreshes controller access on completion.
 
-The platform views observe purchase/restore start, completion, cancellation and failure to update `isProcessing`; purchase initiation is refused if access already exists. Completion refreshes access but **does not close** the paywall: after purchase the first SDK dismissal request is ignored so the account variant can be displayed; subsequent dismissal or the close control dismisses it. Disappearing cancels the processing indicator. `ProPaywallStateTests` covers mapping of subscription phases, ownership, missing date and failed verification; `RevenueCatCommerceTests` covers remote-completion behavior, streamed grants and revocations, racing/coalesced refreshes, deadline resolution, configuration rejection and recovery from fetch errors. The old `ProOfferPresentationTests` and `ProPaywallPresentationTests` are absent. A purchase, Restore Purchase or remote layout is not integration-tested by these unit tests.
+The platform views refuse purchase initiation if access already exists and refresh access on purchase or restore completion. Purchase progress, cancellation and failure UI belong to RevenueCatUI; the controller has no app-owned `isProcessing` state. Completion **does not close** the paywall: after purchase the first SDK dismissal request is ignored so the account variant can be displayed; subsequent dismissal or the close control dismisses it. `ProPaywallStateTests` covers mapping of subscription phases, ownership, missing date and failed verification; `RevenueCatCommerceTests` covers remote-completion behavior, streamed grants and revocations, racing/coalesced refreshes, deadline resolution, configuration rejection and recovery from fetch errors. The old `ProOfferPresentationTests` and `ProPaywallPresentationTests` are absent. A purchase, Restore Purchase or remote layout is not integration-tested by these unit tests.
 
 ## Review invitation lifecycle
 
@@ -269,7 +269,7 @@ App UI copy, including platform-specific strings and the native paywall **fallba
 
 `AppStrings` is the hand-authored Swift API shared by TFM and TFI; its resources are created on demand and each app compiles the catalog into its main bundle. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO` rather than generating competing symbols for manual English keys. Every shared catalog entry uses `extractionState: "manual"`. A single target's stale extraction is not evidence of an unused key: check both apps and shared modules before removal.
 
-The available checker is **`python3 Scripts/check-localization.py`**, not `Scripts/check-zh-localization.sh`. [Repository guidelines](../../AGENTS.md) still refer to that older shell script and a `jq` requirement; those instructions are stale. The Python checker imports the catalog normalizer and defaults to `Localizable.xcstrings` and `InfoPlist.xcstrings`, as does the current [localization CI workflow](../../.github/workflows/localization.yml).
+The available checker is **`python3 Scripts/check-localization.py`**, not `Scripts/check-zh-localization.sh`. [Repository guidelines](../../AGENTS.md) name the current Python checker and require finished Simplified and Traditional Chinese translations in the same commit as changed English copy. Their `jq` prerequisite is stale; the checker uses Python and generic `jq -S` catalog formatting is explicitly prohibited. The Python checker imports the catalog normalizer and defaults to `Localizable.xcstrings` and `InfoPlist.xcstrings`, as does the current [localization CI workflow](../../.github/workflows/localization.yml).
 
 - Entries marked `shouldTranslate: false` are exempt. Otherwise all six supported non-English languages must contain finished, nonempty translation units (an empty key may have an empty value).
 - Interpolation must preserve the **position, type and multiplicity** of format arguments, including literal `%%`. Reordered translations need positional specifiers: `%lld on %@` may become `%2$@で%1$lld件`, but changing types or reordering implicit arguments fails. For metadata keys, the English localized value supplies the format contract rather than the key name.

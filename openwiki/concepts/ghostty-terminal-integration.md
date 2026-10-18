@@ -6,6 +6,10 @@ tags: [ghostty, terminal, menus, macos, ios, integration]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
+  - id: openwiki-source-1635d0be12e44ef9134ffabc
+    resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
+  - id: openwiki-source-4289985c376325d896ad80cc
+    resource: repo://Frameworks/TermindApplication/Terminal/ResumableTerminalSession.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e4f5ea9b30063cdc7d027956
@@ -18,6 +22,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
+  - id: openwiki-source-8c4abf5c09db535e2818e3c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -50,18 +56,24 @@ sources:
     resource: repo://TFM/Features/Terminal/DesktopTerminalSurface.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-e2a181897da756060494e573
+    resource: repo://TFMTests/TerminalActivationWireTests.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
+  - id: openwiki-source-ea7d1283d8d8c82074ebca85
+    resource: repo://TFMTests/TerminalResizeThrottleTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Ghostty Terminal Integration
@@ -178,13 +190,42 @@ The retained surface bridges terminal bytes and geometry to host-owned transport
 
 Keeping a local surface alive does not itself keep an SSH connection or managed remote shell alive. Connection coordination, shell context and remote-session selection remain separate host responsibilities; see [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Shell Integration](shell-integration.md).
 
+### Viewport policy and transport activation
+
+Both host backends set `suppressesPixelOnlyResizes: true` and start with a 35 ms resize throttle. Desktop `SSHSessionModel` adjusts the live throttle to 0 ms at an integrated, interactive prompt, 128 ms otherwise when integration is available, and 35 ms when disconnected or integration is unavailable. A runtime-context prompt needs a current `.readDraft` ticket before taking the 0 ms path. `PersistentTerminalViewOwner.setResizeThrottle` changes the native coalescing policy idempotently without replacing configuration, controller, backend or surface. See [SSHSessionModel](../../TFM/Features/Terminal/SSHSessionModel.swift).
+
+Transport activation is a different operation from resizing Ghostty or typing into a shell. `SSHPTYChannel.setTerminalActive` queues activation-state updates and cancels stale activation work; runtime control execution validates connection generation, activation request and synchronized PTY geometry. The opt-in wire tests exercise tmux activation without typing, including duplicate activation, concurrent viewport changes, manual window sizing, identity revalidation and preserved shell drafts. This is a host transport/runtime boundary, not a renderer persistence guarantee.
+
 ### Recovery is not surface creation
 
 Mobile distinguishes an existing resumable transport (Mosh or Eternal Terminal) from a new connection attempt. With an existing SSH channel, `connect()` retries that transport rather than starting a new connection generation. Background suspension saves a checkpoint; foreground resume waits for suspension, invalidates the stored recovery record and resumes the existing channel, guarded by the connection generation. Non-resumable background expiration instead detaches the transport and advances the generation, then reconnects on foreground return. Neither path recreates the workspace's backend or native view. See [MobileWorkspace](../../TFI/Features/Workspaces/MobileWorkspace.swift).
 
-For resumable transports, recovering or suspended state presents a transport-recovery Journey and clears `connected`; returning to connected completes that Journey through the workspace's ready boundary. Interactive input is blocked during recovery, suspension, failure, termination or a presented Journey. The backend write callback is deliberately not the same gate: it also carries terminal protocol replies that must still reach the existing transport. Retaining a surface therefore means preserving local presentation, not allowing user input through recovery or replaying transport startup.
+For resumable transports, recovering or suspended state clears `connected` and delegates recovery presentation to `ConnectionJourney.receiveTransportState`. On returning to connected, the workspace marks the connection ready if a recovery Journey exists, and the Journey succeeds; initial connection readiness still belongs to the connection attempt after startup. Interactive input is blocked during recovery, suspension, failure, termination or a presented Journey. The backend write callback is deliberately not the same gate: it also carries terminal protocol replies that must still reach the existing transport. Retaining a surface therefore means preserving local presentation, not allowing user input through recovery or replaying transport startup.
 
 When restoring from a stored checkpoint, the workspace validates transport and username before consuming it and clears pending startup commands. If checkpoint recovery fails but a managed remote-session attachment exists, it discards the checkpoint and requests remote-session selection over a new transport rather than silently launching a replacement shell. Without that fallback, invalid recovery presents a failed Journey.
+
+Keep three kinds of state separate:
+
+| State | Owner and lifetime | What it does not guarantee |
+| --- | --- | --- |
+| Local grid, selection and scrollback | Retained Ghostty backend/state/native view within the session or workspace | Survival after that owner is recreated or the app process exits |
+| Transport checkpoint | `TerminalTransportCheckpoint`, an opaque protocol payload consumed by mobile recovery | A serialized Ghostty surface or permission to replay startup commands |
+| Remote-session attachment | `RemoteSessionCoordinator.attachment`, also carried in the restoration descriptor | A live local transport or renderer; recovery must validate the server-side session |
+
+```mermaid
+flowchart TD
+    Live["Workspace with retained surface"] --> Suspend["Suspend existing Mosh or ET channel"]
+    Suspend --> Save["Save transport checkpoint"]
+    Save --> Foreground["Foreground waits for suspension"]
+    Foreground --> Resume["Invalidate recovery record and resume channel"]
+    Stored["Stored recovery record"] --> Validate["Validate transport and username"]
+    Validate --> Consume["Consume checkpoint and clear startup commands"]
+    Consume --> Connect["Connect using checkpoint"]
+    Validate -->|Recovery failure with attachment| Select["Discard checkpoint and request remote-session selection"]
+    Validate -->|No usable fallback| Failed["Failed recovery Journey"]
+    Select --> NewTransport["Validate remote session over new transport"]
+```
+The in-process suspend/resume path retains the local surface; checkpoint restoration and server-side attachment validation are separate recovery mechanisms. See [Session Persistence](session-persistence.md) for remote-session ownership.
 
 Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. `TerminalThemeOptions` resolves library selections, falling back to legacy preference fields when no library selection exists. Built-in names missing from the catalog or of the wrong appearance render the Termind fallback without repairing stored preferences. Saved custom themes resolve their own base and configuration. The host then applies:
 
@@ -199,6 +240,9 @@ Theme-editor previews are separate, noninteractive in-memory surfaces with sampl
 The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
 
 ## Focused checks
+
+- [TerminalResizeThrottleTests](../../TFMTests/TerminalResizeThrottleTests.swift) runs offscreen by default. It checks idempotent live throttle changes, retained surface/controller/backend and transcript after remount, final viewport convergence for 0/35/128 ms bursts, and no duplicate callbacks for unchanged layout.
+- [TerminalActivationWireTests](../../TFMTests/TerminalActivationWireTests.swift) requires `TERMIND_TMUX_FIXTURE`. It checks real tmux size restoration, stale client rejection, manual sizing and split-layout preservation, draft/prefix/copy-mode preservation, Vim continuity, and usable input when integration or runtime control-channel capacity is unavailable. These fixture tests are not substitutes for the offscreen renderer tests.
 
 - [MobileTerminalBackgroundTests](../../TFITests/MobileTerminalBackgroundTests.swift) checks Mosh/ET recovery with a real key window: native interaction and first responder are disabled without replacing the Ghostty surface, and recovery restores focus only in the foreground. These are simulated transport-state transitions, not a network-resumption test.
 - [MobileTerminalExperienceTests](../../TFITests/MobileTerminalExperienceTests.swift) checks that the workspace's Mosh/ET recovery-ready boundary produces one success feedback per recovery, not another for a repeated connected event, and none after observation stops.

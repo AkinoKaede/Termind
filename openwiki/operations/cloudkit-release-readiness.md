@@ -54,6 +54,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-e6dff91a0024d952d88a2b56
     resource: repo://Frameworks/TermindPersistence/VaultWireV5.swift
+  - id: openwiki-source-b8eae581ee8d4d73aa45f827
+    resource: repo://FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-d785833dd230253fdc4946d7
@@ -106,10 +108,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # CloudKit Release Readiness
@@ -327,6 +329,10 @@ Older-format writes must not silently lose these fields: formats below V5 reject
 ### Focused repository checks
 
 These are inspected test contracts, **not a report that the tests were executed or that a release is ready**:
+
+For destructive reset coverage, [CloudSyncPhysicalDeletionTests](../../FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L13-L54) explicitly checks both `.purged` and `.encryptedDataReset` across categories: the observer sees the cleared projection, another account's quarantine bytes survive, and restarting cannot schedule the old record IDs—even if supplied stale save/delete queue entries. Its [asset-cleanup failure check](../../FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L93-L170) reopens a disk store and requires cleanup to finish before sync can resume. Keep these automated assertions separate from a manual reset on signed devices.
+
+Also retain the Settings acknowledgement race in [CloudSyncCoordinatorLifecycleTests](../../FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift#L105-L155): after a theme selection changes locally or through legacy reconciliation, acknowledgement of the earlier record must leave the current selection pending and queued. The provider returns the current selection, and only its acknowledgement clears pending work. The legacy-reconciliation variant deliberately permits the same logical version with a changed payload, so checking the version alone is not sufficient release coverage.
 
 | Check | Repository assertion and boundary |
 | --- | --- |

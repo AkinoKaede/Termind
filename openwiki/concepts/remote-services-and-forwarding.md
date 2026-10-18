@@ -92,18 +92,16 @@ sources:
     resource: repo://TFMTests/AgentBackgroundCommandTests.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
-  - id: openwiki-source-23ab3fe73660b171f78763a4
-    resource: repo://TFMTests/AgentToolPresentationTests.swift
   - id: openwiki-source-7cc9fc3d79582cde4157ce7a
     resource: repo://TFMTests/GetMetricsToolTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 
@@ -255,9 +253,9 @@ When changing this integration, check `TFITests/MobileAssistantTests.swift` for 
 
 ### Exec handles, waiting, and output ownership
 
-`AgentBackgroundCommands` owns command tasks independently of the tool's wait. `ssh_exec_run` defaults to foreground execution with stdin closed and no runtime timeout; background mode keeps stdin open and returns only after confirmed startup. Startup failure leaves no usable handle. When SSH interjection is enabled, a user interjection ends the foreground wait and returns a running snapshot without cancelling the command; cancellation of the wait instead requests local cleanup. Handles are scoped to the conversation/session, even though the connection pool and scratch workspace are shared. Running commands do not expire; finished results expire ten minutes after completion, and reads do not extend retention. Cancel removes the local handle and cancels its work but explicitly reports `remote_termination_confirmed: false`.
+`AgentBackgroundCommands` owns command tasks independently of the tool's wait. `ssh_exec_run` defaults to foreground execution with stdin closed and no runtime timeout; background mode keeps stdin open and returns only after confirmed startup. Startup failure leaves no usable handle. When SSH interjection is enabled, a user interjection ends the foreground wait and returns a running snapshot without cancelling the command; cancellation of the wait instead requests local cleanup. Handles are scoped to the conversation/session, even though the connection pool and scratch workspace are shared. Running commands do not expire; finished results expire ten minutes after completion, and reads do not extend retention. Cancel removes the local handle and cancels its work but explicitly reports `remote_termination_confirmed: false`; it does not send TERM/KILL. Read any needed output before cancelling, because the retired handle cannot be read afterward.
 
-Output is not accumulated by blocking the SSH pump on filesystem writes. `AgentCommandOutputStream` merges stdout and stderr in callback-arrival order into AgentKit's `AgentOutputAccumulator`, which owns capture and whole-line truncation. Model-visible output retains the latest complete lines within 64 KiB / 2000 lines; truncated output is captured under `<conversationID>/outputs/ssh-exec-<UUID>.txt` in shared scratch, with explicit capture failure reporting rather than a guarantee of unlimited archival. `ssh_exec_output` can capture a full snapshot under a fresh `ssh-exec-output-<UUID>.txt` path. Snapshots carry a capture ID, revision, truncation flag, total line count and line offset so consumers can distinguish cumulative output from newly received bytes.
+Output is not accumulated by blocking the SSH pump on filesystem writes. `AgentCommandOutputStream` merges stdout and stderr in callback-arrival order into AgentKit's `AgentOutputAccumulator`, which owns capture and whole-line truncation. Model-visible output retains the latest complete lines within 64 KiB / 2000 lines; truncated output is captured under `<conversationID>/outputs/ssh-exec-<UUID>.txt` in shared scratch, with explicit capture failure reporting rather than a guarantee of unlimited archival. `ssh_exec_output` can capture a full snapshot under a fresh `ssh-exec-output-<UUID>.txt` path. Snapshots carry a capture ID, revision, truncation flag, total line count and line offset so consumers can distinguish cumulative output from newly received bytes. Model snapshots redact the complete decoded output before capture and tail selection, including sensitive text split across callbacks. The 64 KiB / 2000-line limit is a model-presentation limit, not a command memory cap: the accumulator retains full bytes in memory. Its external-client audience returns full decoded output without this model truncation or redaction path.
 
 ```mermaid
 sequenceDiagram
@@ -267,14 +265,24 @@ sequenceDiagram
     participant Output as AgentOutputAccumulator
     Tool->>Commands: start scoped command
     Commands->>SSH: execute session through exec lease
-    SSH-->>Commands: startup confirmed
-    Commands-->>Tool: handle
+    alt startup fails or is cancelled
+        SSH-->>Commands: error
+        Commands-->>Tool: throw and remove pending handle
+    else startup confirmed
+        SSH-->>Commands: started
+        Commands-->>Tool: handle
+    end
     SSH->>Output: enqueue combined output bytes
     alt background mode
         Tool->>Commands: read running snapshot
     else foreground mode
         Tool->>Commands: wait for completion or enabled interjection
-        Commands-->>Tool: wait ends without implicit remote termination
+        alt completion or user interjection
+            Commands-->>Tool: wait ends without cancelling command
+        else wait task cancelled
+            Tool->>Commands: cancel local task and retire handle
+            Commands-->>Tool: no remote termination confirmation
+        end
     end
     Tool->>Commands: output snapshot
     Commands->>Output: snapshot and optional scratch capture

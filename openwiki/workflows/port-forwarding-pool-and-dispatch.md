@@ -12,6 +12,10 @@ sources:
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
+  - id: openwiki-source-8687c653b94feaa9885e1286
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHAuthenticatedConnection.swift
+  - id: openwiki-source-ab74624bdc6b7046d91bcbac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
   - id: openwiki-source-079b35134aa7d0dc22681651
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift
   - id: openwiki-source-20118197848107cfa8e87aa9
@@ -28,10 +32,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Port Forwarding Pool and Dispatch
@@ -68,7 +72,7 @@ The pool checks that closure when starting a rule and assigning a newly accepted
 
 macOS `AppModel` selects `.hostConfigured`; Host values normalize to `1...64`, default `1`, and the controller caps that saved value by an app-supplied connection limit. Without Pro multi-connection access the effective limit is one; entitlement changes update the limit on existing contexts without changing the saved Host preference. The `.hostConfigured` factory uses `SSHForwardingConnectionPool` even when its current target is one. Mobile composition uses the controller's default `.singleConnection` policy, so a synchronized Host setting can remain stored on mobile without producing the desktop multi-connection topology.
 
-**Live SSH preferences are a separate path, not forwarding pool configuration.** `AppModel` applies initial `sshSettings.preferences` to `RemoteConnectionCoordinator` and forwards subsequent `sshSettings.didChange` values to it. That updates the shared `SSHMaxSessionsPolicy` and its existing per-connection session-channel budgets. Forwarding is constructed separately: its workers use `.channelsOnly`, and its physical-connection target is controlled by the Host setting and `updateConnectionLimit`, not by the coordinator's MaxSessions policy. Keep this boundary when adding settings: propagating a preference through the coordinator does not by itself configure forwarding or transfer ownership of forwarding authentication/reconnect to it.
+**Live SSH preferences are a separate path, not forwarding pool configuration.** `AppModel` applies initial `sshSettings.preferences` to `RemoteConnectionCoordinator` and forwards subsequent `sshSettings.didChange` values to it. That updates the shared `SSHMaxSessionsPolicy` and its existing per-connection session-channel budgets. Forwarding is constructed separately: its workers open an `SSHAuthenticatedConnection` through `SSHConnectionOpener` and own their forwarding channels directly, without the multiplexed worker's session-channel budget. Its physical-connection target is controlled by the Host setting and `updateConnectionLimit`, not by the coordinator's MaxSessions policy. Keep this boundary when adding settings: propagating a preference through the coordinator does not by itself configure forwarding or transfer ownership of forwarding authentication/reconnect to it.
 
 Lowering a live limit does not evict streams already using excess published auxiliaries. The pool marks excess auxiliaries draining, excludes them from new assignments, and disconnects them only after the worker reports no active flows and no assignment is in flight. Pending auxiliary opens/installations can be cancelled immediately. Increasing the limit can retain a draining slot again before it becomes idle. If a retained auxiliary fails while other slots are draining, `rebalanceSlots` immediately retains a healthy auxiliary again: otherwise the still-published draining slots could count toward capacity while none admitted new flows.
 
@@ -95,7 +99,7 @@ Three runtime numbers must be read separately:
 
 ## Pool warm-up and publication
 
-The pool actor owns `slots`, `primaryID`, rule `registrations`, `opening`, `installing`, per-slot/per-rule `counts`, retry state, and one local-listener manager. Each slot contains an independent `SSHForwardingConnection` and the rule IDs installed on that worker. Each worker has its own authenticated libssh2 session and serial queue.
+The pool actor owns `slots`, `primaryID`, rule `registrations`, `opening`, `installing`, per-slot/per-rule `counts`, retry state, and one local-listener manager. Each slot contains an independent `SSHForwardingConnection` and the rule IDs installed on that worker. Each worker has its own authenticated libssh2 session and serial queue. `SSHConnectionOpener` is the shared authentication/routing boundary, not a shared forwarding scheduler: the returned `SSHAuthenticatedConnection` owns the routed byte transport, libssh2 session, and installed encrypted buffer. The forwarding worker retains that owner and performs channel work on its own queue. Connect first disconnects prior state, installs the returned owner's buffer and events, then checks cancellation; failure or cancellation runs disconnect before propagating the error. The actor's `connect` clears request configuration secrets on exit.
 
 ```mermaid
 sequenceDiagram
@@ -103,12 +107,16 @@ sequenceDiagram
     participant Access as Host access and request preparation
     participant Pool
     participant Primary
+    participant Opener as SSHConnectionOpener
     participant Listener as Pool local listener
     participant Auxiliary
     Controller->>Access: wait for old cleanup then resolve Host access
     Access-->>Controller: prepared interactive request
     Controller->>Pool: connect initial request
-    Pool->>Primary: authenticate
+    Pool->>Primary: connect
+    Primary->>Opener: open authenticated connection
+    Opener-->>Primary: owned connection and routed byte transport
+    Primary->>Primary: install buffer and socket events
     Controller->>Pool: configure additional request resolver
     Controller->>Pool: start local or dynamic rule
     Pool->>Primary: registerShared rule and generation
@@ -214,7 +222,7 @@ There are several different tokens, none interchangeable:
 - Controller/pool/worker **rule generation** rejects counts, accepted descriptors and listener-start completions from an old start of the same rule ID.
 - Worker **generation** invalidates already scheduled pump/timer/socket callbacks after transport cleanup.
 
-`stop` waits for the worker's rule-close completion. Stopping an in-flight remote-listen request retains its completion until the request resolves and the resulting listener is cancelled; otherwise an immediate replacement could race the old remote bind. `reap` retries listener cancellation/channel freeing across EAGAIN. Full disconnect shuts down the transport, retires resources, and waits for socket cancellation completions before returning. Local listeners use `SO_REUSEADDR` for rebinding after closure, not `SO_REUSEPORT` to share a live bind.
+`stop` waits for the worker's rule-close completion. Stopping an in-flight remote-listen request retains its completion until the request resolves and the resulting listener is cancelled; otherwise an immediate replacement could race the old remote bind. `reap` retries listener cancellation/channel freeing across EAGAIN. Full disconnect shuts down the transport, retires resources, and waits for socket cancellation completions before returning. Cleanup detaches the authenticated connection from worker state, shuts down its byte socket to unblock disposal, and retains the owner until the transport event cancellation callback calls `connection.close()`. That idempotent close disposes the buffered libssh2 session (or frees it directly if no buffer was installed), then closes the routed byte transport. Failure reporting follows worker cleanup; it does not transfer the failed connection's channels to a surviving slot. Local listeners use `SO_REUSEADDR` for rebinding after closure, not `SO_REUSEPORT` to share a live bind.
 
 This is not stream failover: recovery restores listeners and future connection opportunities, not application protocol state or bytes already sent on failed TCP streams.
 
@@ -253,6 +261,6 @@ The cleanup task waits for preparation cancellation and conversation drains, joi
 - `AppTerminationTests` checks conversation drains before agent resource closure, background-command closure before connection closure, and reuse of termination cleanup. Forwarding retirement placement is established by `AppModel` and controller source, not by a forwarding-drain assertion in that suite.
 - `SSHForwardingPumpTests` is the deterministic low-level seam: short writes, stable retry bytes, ready-queue order, watermarks, half-close, zero-window wakeups, encrypted-buffer allowance and source cancellation.
 - `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering. Its numeric-limit test also checks live limit changes, preservation of the saved Host maximum, and reuse of the effective limit after recovery.
-- `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. It also checks shrink-without-stream-loss, re-expansion, and admission restoration after a retained auxiliary fails while peers drain. That last test closes the real connection and injects the failure callback, so it tests pool recovery rather than network-loss detection. Source presence or a default suite pass does not mean these wire tests ran.
+- `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. It also checks shrink-without-stream-loss, re-expansion, and admission restoration after a retained auxiliary fails while peers drain. That last test closes the real connection and injects the failure callback, so it tests pool recovery rather than network-loss detection. `disconnectReleasesThePortBeforeReturningEvenWithEstablishedStreams` repeatedly checks local/dynamic listener rebinding after disconnect with an accepted flow; separate tests cover backpressured disconnect and stopping an in-flight remote listen before rebinding. These verify cleanup behavior, not live entitlement admission, which is established by the controller, pool, and worker checks above. Source presence or a default suite pass does not mean these wire tests ran.
 
 When investigating low throughput, first inspect whether the pool is actually above one connected slot, whether the rule is local/dynamic, and whether silent extra opens can authenticate. Then inspect stream backpressure and pump progress; increasing the target cannot make one stream span workers. For benchmark fixture setup and interpretation, use [Port Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md). The pool code and current test seams do not establish an exhaustive actor-interleaving proof or a WAN performance guarantee.

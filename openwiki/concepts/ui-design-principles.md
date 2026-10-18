@@ -4,6 +4,12 @@ title: UI Design Principles
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
+  - id: openwiki-source-adcb8f7b3a14118f32d7d0fd
+    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/MemoryTool%2BPresentation.swift
+  - id: openwiki-source-bb1e200e9ef38a93ca29c9de
+    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/SkillReadFileTool%2BPresentation.swift
+  - id: openwiki-source-2867e18bf56b8d157f5966ab
+    resource: repo://AgentKit/Tests/AgentKitTests/AgentKnowledgePresentationTests.swift
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
@@ -102,6 +108,8 @@ sources:
     resource: repo://TFI/UI/Managed/MobileCompactCardContent.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-7b4fb63b477bd12a15ae65d6
+    resource: repo://TFITests/MobileAssistantTranscriptTests.swift
   - id: openwiki-source-192476341e5997fa80bb12fa
     resource: repo://TFITests/MobileCardLayoutTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
@@ -180,10 +188,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # UI Design Principles
@@ -331,11 +339,15 @@ flowchart TD
 
 Selection is a persisted user action; a missing stored theme is a display-time fallback, not a migration.
 
-`AgentToolPresentation` projects localized Assistant tool summaries and details from original execution data without owning approval or replay. Live approval shows reviewable request arguments from memory, not a durable tool card or model transcript; sensitive chat collaboration arguments use a restricted presenter. MCP output keeps its remote-defined JSON presentation. Failed or denied knowledge results bypass success-shaped presenters. The string preview helper bounds head/tail output while retaining full transformed text, but desktop tool details use `AgentToolDetailPreview`: Show More/Show Less switches between compact and full typed items with disclosure state keyed by tool-card ID. Native detail labels are selectable; do not infer a dedicated full-output Copy action from the preview helper. Local `read_pane` details expose terminal name and pane ID, never terminal output, before raw/error fallbacks; `list_panes` renders terminal rows. Extend presentation metadata/projectors and test failure and disclosure behavior rather than changing protocol payloads.
+`AgentToolPresentation` projects localized Assistant tool summaries and details from original execution data without owning approval or replay. Live approval shows reviewable request arguments from memory, not a durable tool card or model transcript; sensitive chat collaboration arguments use a restricted presenter. MCP output keeps its remote-defined JSON presentation. Failed, denied or interrupted results carry failure state into registered presenters; knowledge presenters use failure-safe generic details rather than success-shaped output. The string preview helper bounds head/tail output while retaining full transformed text, but desktop tool details use `AgentToolDetailPreview`: Show More/Show Less switches between compact and full typed items with disclosure state keyed by tool-card ID. Native detail labels are selectable; do not infer a dedicated full-output Copy action from the preview helper. Local `read_pane` details expose terminal name and pane ID, never terminal output, before raw/error fallbacks; `list_panes` renders terminal rows. Extend presentation metadata/projectors and test failure and disclosure behavior rather than changing protocol payloads.
 
 ## Native rendering, accessibility and continuity
 
 `AssistantTranscriptEntry` shares timeline-derived typed rows with stable IDs and caller-supplied edit/fork eligibility, not mounted native views. Desktop caches surface-aware AppKit transcript owners and LRU-trims unmounted owners. Mobile `MobileNativeList` supplies locale, Dynamic Type, appearance, motion/scene state, row revisions and viewport callbacks to its UIKit adapter. Extract row policy first; keep focus, scrolling, mounting and lifecycle in the platform adapter.
+
+Distinguish **interaction changes from geometry changes**. `MobileNativeList.rowRevision` invalidates row layout for content/disclosure changes; `interactionRevision` refreshes mounted content without replacing its host or invalidating measured geometry. Assistant uses the latter for streaming-dependent interaction state. Mixed changes configure each affected row once, and later-mounted rows receive the latest interaction renderer. `MobileAssistantTranscriptTests` verifies host identity, unchanged measurements/content size and history anchor for interaction-only updates, plus mixed updates and offscreen reinsertion. This is a continuity contract, not permission to skip layout invalidation when visible content changes. See [Agent Runtime and Assistant](agent-runtime-and-assistant.md) for execution and conversation ownership.
+
+Sources: [native update reconciliation](../../TFI/UI/Components/MobileNativeList.swift), [Assistant caller](../../TFI/Features/AI/MobileAssistantConversation.swift), [native transcript regressions](../../TFITests/MobileAssistantTranscriptTests.swift).
 
 Hidden content must stop receiving input and accessibility focus: parked desktop panes and covered mobile panels gate hit testing and accessibility with visibility. Mobile layout subtracts active divisions/occlusions, chooses the largest continuous usable region and splits only if both regions fit. `MobilePaneLayout` retains native children and their cached usable sizes under occlusion; Assistant allocates transcript and composer regions and Metrics presents two panels when feasible or its selected panel otherwise. Adaptive tests assert *the same* native transcript scroll view, marked input/composer focus, Metrics list and offset, Vault search controller, editor draft and in-flight save/alert across folds and width changes, not just final strings.
 

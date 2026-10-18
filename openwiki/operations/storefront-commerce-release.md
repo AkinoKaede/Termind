@@ -58,10 +58,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Storefront and Commerce Release
@@ -89,7 +89,7 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ### Inspect the release artifact, not just the project
 
-The current native release settings use marketing version `1.17.0` for both apps, but separate build numbers: Mac `TFM` is `102` and mobile `TFI` is `91`. The project-level `CURRENT_PROJECT_VERSION` is `65`, so it is not the app artifact's build number: the app targets override it. Match the resolved version and build number to the intended App Store Connect submission for each platform rather than copying the project-level value. These are source settings, not evidence that either build has been uploaded. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2378) and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2628-L2668).
+The current native release settings use marketing version `1.17.1` for both apps, but separate build numbers: Mac `TFM` is `105` and mobile `TFI` is `94`. The project-level `CURRENT_PROJECT_VERSION` is `68`, so it is not the app artifact's build number: the app targets override it. Match the resolved version and build number to the intended App Store Connect submission for each platform rather than copying the project-level value. These are source settings, not evidence that either build has been uploaded. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2378) and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2628-L2668).
 
 For each platform, retain the build-settings output for the actual archive invocation and inspect the app that will be delivered (again after export if signing changes). Check:
 
@@ -156,7 +156,8 @@ sequenceDiagram
     Feature->>Gate: require feature
     Gate->>Native: present if denied
     Native->>UI: render with status variables
-    UI->>Gate: purchase or restore started
+    UI->>Gate: check access before purchase
+    Gate-->>UI: proceed only without Pro access
     UI->>RC: SDK purchase or restore
     RC-->>Gate: CustomerInfo update
     UI->>Gate: operation completed
@@ -166,7 +167,7 @@ sequenceDiagram
 
 Purchase and restore callbacks refresh the controller's entitlement status while the native sheet can remain open on the account variant.
 
-Both wrappers refuse purchase initiation if access already exists, mark operations processing on purchase/restore start and clear processing on completion, cancellation or failure. Completion refreshes entitlement without closing the sheet: the first RevenueCat dismissal request after purchase is suppressed so the account variant remains visible; the close button or subsequent dismissal can close it. Disappearance clears the processing flag. Mac chooses one owner window for the sheet; iOS presents it from `MobileRootView`. Confirm purchase/restore failures and recovery in real UI rather than assuming controller unit tests exercise SDK purchases.
+Both wrappers refuse purchase initiation if access already exists. They do not maintain an app-owned processing flag or register start, cancellation, failure or disappearance callbacks to clear one; transaction UI is delegated to RevenueCatUI. Completion calls `completePaywallOperation()`, which only awaits entitlement refresh without closing the sheet. The first RevenueCat dismissal request after purchase is suppressed so the account variant remains visible; a subsequent dismissal can close it. Mac chooses one owner window for the sheet; iOS presents it from `MobileRootView`. Confirm purchase/restore failures and recovery in real UI rather than assuming controller unit tests exercise SDK purchases.
 
 ## Language changes are presentation changes
 

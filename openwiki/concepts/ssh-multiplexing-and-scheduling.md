@@ -6,6 +6,8 @@ tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
 sources:
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-28e148e03a224714293643b8
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-f45e107ba4ae15ff23a99333
@@ -22,6 +24,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift
   - id: openwiki-source-f3c300fe43c8f1ceb0906ed3
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
+  - id: openwiki-source-d8bc0efcb5555ff3769c3b61
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYActivationState.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
@@ -30,6 +34,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift
   - id: openwiki-source-6f2f3aed2218602847085f4d
     resource: repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift
+  - id: openwiki-source-9f14a8dcd5198f8cf8a704b5
+    resource: repo://FrameworkTests/SSHPTYActivationTests.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
@@ -40,10 +48,12 @@ sources:
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "pi", at: "2026-10-17T05:01:23.054Z" }
+  - id: openwiki-source-e2a181897da756060494e573
+    resource: repo://TFMTests/TerminalActivationWireTests.swift
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # SSH Multiplexing and Scheduling
@@ -108,6 +118,14 @@ The PTY's `runtimeCommandExecutor()` uses the already-authenticated worker, not 
 
 If immediate admission fails, exec throws `TerminalRuntimeError.capacityUnavailable` rather than waiting behind the shell or queued work. A server channel rejection marks runtime control unavailable for that terminal lifecycle. Runtime publication then hides multiplexer availability or removes draft read/replace capabilities; the same capability restriction applies when the configured ceiling is one. This distinguishes **configured concurrency**, **currently free capacity**, and **server acceptance**. Inspection errors publish unavailable state and back off; they do not initiate authentication. See [Shell Integration](shell-integration.md) for the context and draft semantics.
 
+### Terminal activation is a runtime client, not another multiplexer
+
+Terminal focus can request optional tmux sizing assistance through the same runtime exec path. `SSHSessionModel` publishes activity only when the surface is focused, visible, and has active native keyboard focus; `setTerminalActive` forwards it only for SSH transport. The PTY worker waits for a detected tmux client and synchronized PTY resize state, requires runtime control and configured concurrent capacity, and permits only one activation task at a time. It does not open another authenticated connection.
+
+`SSHPTYActivationState` consumes an activation intent once per focus transition or changed client identity. Duplicate activity notifications and runtime polls do not repeatedly claim the remote window. Viewport changes invalidate pending/in-flight work so the latest applied resize wins, but ordinary live resizing after completion does not add an exec for every grid change. Blur, input, detach, and reset invalidate old requests. The runtime executor additionally validates the activation request, live PTY, resize synchronization, generation, and input revision during command progression.
+
+The remote operation revalidates the tmux client identity and eligible flags before sending `SIGWINCH` to that client process. This is remote terminal-multiplexer behavior **carried by** an SSH exec channel, not SSH channel scheduling itself. It never types a fallback key into the PTY. Missing capacity, stale context, or other assistance failures are best-effort failures: they do not disconnect an otherwise usable terminal. The normal two-second runtime deadline and immediate-admission policy still apply.
+
 ## Exec: opening → starting → running → closing → freeing
 
 `SSHConnectionWorker.execute` delegates to `SSHMultiplexedExecChannelOwner`, which rejects an empty command, gets the current budget, acquires a lease, and checks on the queue that the connection still uses that same budget. It then creates `SSHExecChannel` and enqueues its ID in `pendingOpens`. The post-acquire identity check prevents admission on an old budget from attaching to a replacement connection.
@@ -126,7 +144,9 @@ The main pump and its admission boundary can be read as this reduced scheduling 
 
 ```mermaid
 flowchart TD
-    Request["Exec request on authenticated owner"] --> Immediate{"Immediate capacity required?"}
+    Activation["Current activation intent and synchronized PTY resize"] --> Runtime["Best-effort runtime exec with two-second deadline"]
+    Runtime --> Request["Exec request on authenticated owner"]
+    Request --> Immediate{"Immediate capacity required?"}
     Immediate -->|yes| Try["tryAcquire without bypassing waiters"]
     Try --> Available{"Lease obtained?"}
     Available -->|no| Refuse["Return capacityUnavailable"]
@@ -268,6 +288,7 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Why is the eleventh session channel waiting? | `SSHMaxSessionsPolicyTests`: default capacity, FIFO, live decrease/increase, cancellation, independent transport budgets. |
 | Is a worker safe to release from its own queue? | `SSHConnectionWorkerLifecycleTests` and `SSHPTYChannelWorkerLifecycleTests`: last reference released on the owner queue and from outside it; guards against synchronous self-reentry during cleanup. |
 | Can cancelled exec close strand a PTY transport? | `SSHPTYChannelLifecycleWireTests`: explicit disconnect, dropping the PTY, and SFTP sibling survival until last close against a peer that never acknowledges exec CLOSE. Opt in with `TERMIND_PTY_LIFECYCLE_FIXTURE` and `Scripts/ssh-pty-lifecycle-fixture.py`. |
+| Does terminal activation compete safely with other channels? | `SSHPTYActivationTests`: resize synchronization, one-shot intent, and invalidation by blur/input/detach/reset. `TerminalActivationWireTests` (opt in with `TERMIND_TMUX_FIXTURE`): duplicate focus, identity revalidation, preserved drafts/layouts, and usable input with missing integration or ceiling one. |
 | Are file permits fair or identical to channel leases? | `SFTPConcurrencySchedulerTests`: host/source rotation, five slots split across two workspaces, cross-host copy accounting and the 64,000,000-byte smart boundary. |
 | Does EAGAIN preserve bytes and pointers? | `SSHForwardingPumpTests`: blocked write stability, partial writes, encrypted packet buffering and shared flush allowance. |
 | Can a busy/slow flow starve or corrupt a peer? | `SSHForwardingPumpTests`: ready-queue rotation, watermarks, window updates, half-close; `SSHForwardingWireTests`: concurrent streams and slow consumer. |

@@ -172,10 +172,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Behavioral Boundaries and Fixtures
@@ -267,6 +267,8 @@ sequenceDiagram
 The two desktop startup checks precede database access; in-memory containers bypass the file lease.
 
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider. Replay tests additionally verify that a queued cancellation adopts an edited staging turn with its authored text, images, attachments and frozen context in a fresh SwiftData context; a captured configuration failure adopts only after the failed snapshot saves. A synthetic V15 store reloads without inventing historical context or replay rows.
+
+Two narrower replay fixtures protect result recovery and secret lifetime. `crashRecoveryUsesFrozenStructuredFallbackOnlyForMalformedEnvelopes` simulates a historical truncated structured envelope: recovery uses the frozen structured projection for malformed content but retains ordinary plain output, preserving result identity and error state. `secretResultPersistenceExpiresHandlesBeforeStructuralRedaction` checks that persisted `request_user_secret` output marks the handle expired and contains neither the `secret_handle` field nor its UUID. These are constructed recovery/writer checks, not a process-crash or live secret-service test.
 
 Hardware-key compatibility belongs at both the shared and mobile seams. `WebAuthnVaultMetadataTests` uses a `NoKeychain` that throws on secret access: connection preparation resolves destination and jump security-key metadata without Keychain reads; an in-memory Vault save and V2 envelope round-trip apply into a **second** in-memory container, retaining external storage and editable verification preference. Legacy hardware storage decodes as external, while a software key cannot claim external storage. A throwing persistence port verifies failed upserts/deletes leave the prior key untouched; a synthetic V44 disk software-key store migrates through V45 to the current schema and reopens twice. These tests do not exercise a physical authenticator or CloudKit delivery. `MobileVaultFeatureTests` covers the actual mobile editor and app assembly: WebAuthn generation/import, invalid reference rejection, Keychain-independent metadata versus software-key private material and saved passphrases, host duplicate/group cleanup and forwarding edit behavior. Use its in-memory app fixtures for mobile editor semantics, the shared metadata suite for wire/schema/security invariants, and `MobileHardwareKeyEditorRenderingTests` for a deliberately opted-in key-window check.
 
@@ -559,7 +561,7 @@ Keep capture/frame commands and template requirements in [Marketing Assets and A
 
 ### Pro paywall: distinguish entitlement state, SDK adapter, and rendering gaps
 
-The desktop `ProPaywallView` and mobile `MobileProView` mount RevenueCatUI `PaywallView` when `ProAccessController.usesRevenueCat` is true, show loading and unavailable alternatives, and pass data-only `ProPaywallState` fields (`pro`, `manage`, `state`, `family`, `dated`, localized `date`) as remote paywall custom variables. They forward purchase/restore start, completion, cancellation and failure to the controller; purchase completion refreshes access while suppressing RevenueCat's immediate dismissal so the account variant remains visible. Neither view renders a shared `ProPaywallContent` or builds a shared offer presentation. The RevenueCatUI dashboard owns the appearance; changing its actual mobile/desktop layout requires new targeted rendering coverage.
+The desktop `ProPaywallView` and mobile `MobileProView` mount RevenueCatUI `PaywallView` when `ProAccessController.usesRevenueCat` is true, show loading and unavailable alternatives, and pass data-only `ProPaywallState` fields (`pro`, `manage`, `state`, `family`, `dated`, localized `date`) as remote paywall custom variables. Purchase initiation resumes only when the controller reports no Pro access. Purchase and restore completion refresh access; purchase completion also suppresses the next RevenueCat dismissal request so the account variant remains visible. The views do not forward start, cancellation or failure events to the controller. Neither view renders a shared `ProPaywallContent` or builds a shared offer presentation. The RevenueCatUI dashboard owns the appearance; changing its actual mobile/desktop layout requires new targeted rendering coverage.
 
 `FrameworkTests/ProPaywallStateTests.swift` verifies the shared data contract: lifetime access has no expiry or manage action; purchased versus family-shared subscription ownership and renewal flags determine management and remote state codes; trial and grace retain access, retry/expired/revoked do not; unverified access does not unlock. `FrameworkTests/RevenueCatCommerceTests.swift` constructs synthetic decoded `CustomerInfo` and a fake `ProPurchaseService`. It checks the configured entitlement alone grants access, a stale cached active flag cannot prolong expiry, grace has its own deadline, refunds/unverified information cannot unlock, and test-store keys cannot silently enable production. Controller tests drive update streams, overlapping refreshes, errors and remote paywall completion: a newer update must beat an older response, concurrent refreshes share a request, and completion updates access without dismissing the paywall. These are not RevenueCatUI layout or live checkout tests.
 

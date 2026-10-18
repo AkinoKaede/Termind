@@ -4,6 +4,10 @@ title: SSH Security-Key Authentication
 description: How Termind registers an RP-bound FIDO2/WebAuthn Security Key, stores its public reference, and turns a local authenticator assertion into an OpenSSH SSH signature across macOS and iOS.
 tags: [ssh, security-key, fido2, webauthn, authentication, vault]
 sources:
+  - id: openwiki-source-b7659044185b653107841c20
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift
+  - id: openwiki-source-cb178f0d078ab3218679c80e
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
@@ -26,6 +30,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-5a6536c30ad78ac55f3ec629
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift
+  - id: openwiki-source-a815be001e9eea337ea895b0
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift
   - id: openwiki-source-87a3a38f6388c572528dc8c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -54,10 +60,10 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # SSH Security-Key Authentication
@@ -100,7 +106,25 @@ sequenceDiagram
 
 Signing flow: a server-accepted public-key offer leads to a local assertion, which is verified before SSH wire bytes are returned.
 
-`SSHPTYChannel.authenticate` is the shared authentication entrypoint: its `.securityKey` branch derives the public blob and calls `libssh2_userauth_publickey_signed` with `securityKeySignCallback`. The exchange's name does **not** make this keyboard-interactive login: signing uses the separate `SecurityKeySigningHandler` and returns an assertion, whereas keyboard-interactive uses server-supplied questions and string answers. The authentication loop filters credentials against the server's advertised methods and refreshes those methods after unsuccessful attempts, allowing additional factors or an available fallback. Native signing errors are thrown immediately rather than falling through to another credential. Shell integration starts only after authentication and shell-channel startup; it does not participate in hardware signing.
+`SSHPTYChannel.authenticate` is the shared authentication entrypoint: its `.securityKey` branch derives the public blob and calls `libssh2_userauth_publickey_signed` with `securityKeySignCallback`. The exchange's name does **not** make this keyboard-interactive login: signing uses the separate `SecurityKeySigningHandler` and returns an assertion, whereas keyboard-interactive uses server-supplied questions and string answers. The authentication loop filters credentials against the server's advertised methods and refreshes those methods after unsuccessful attempts, allowing additional factors or an available fallback. Native signing errors are thrown immediately rather than falling through to another credential. Shell integration is post-authentication, not part of hardware signing. `connectPrepared` first obtains an authenticated connection, then runs preparation and optional shell-integration probing/helper installation through the session command executor before opening the PTY and starting its shell or command. Do not treat shell-channel startup as a prerequisite for all integration work.
+
+```mermaid
+sequenceDiagram
+    participant Owner as PTY connection owner
+    participant Auth as Authenticated opening
+    participant Sign as Signing exchange
+    participant Exec as Session command executor
+    participant PTY as PTY channel
+    Owner->>Auth: Open routed transport and authorize host key
+    Auth->>Sign: Authenticate with delegated signing
+    Sign-->>Auth: Validated signature
+    Auth-->>Owner: Authenticated connection
+    Owner->>Exec: Prepare launch and optional integration helpers
+    Owner->>PTY: Open channel and request PTY
+    Owner->>PTY: Start shell or command
+```
+
+The ordinary SSH startup boundary: signing completes before preparation commands, while optional integration preparation can precede PTY startup. Source: [`connectPrepared`](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
 
 The signing callback extends a positive libssh2 timeout by the elapsed callback time so waiting for local authorization does not consume the transport's normal timeout budget; the `.securityKey` branch restores the original timeout afterward.
 
@@ -113,6 +137,8 @@ For `webauthn.get`, conversion checks matching credential ID, challenge encoded 
 ## Connection owners and interaction policy
 
 `SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata directly into `.securityKey` instead of resolving an account in Keychain; `SSHConnectionPreparation` then resolves the same credential for destination and jump Hosts on a detached worker before opening transport. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses [`SSHInteractionPolicy.forbidden`](../../Frameworks/TermindApplication/SSHConnectionTypes.swift), which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
+
+Temporary login submissions and hardware signing are separate state. `RemoteSessionConnectionController` keeps supplied identity/proxy authentication per Host for retries; saving is an explicit continuation choice, and a failed save does not start another attempt. Its `disconnect()` clears those submissions and cancels the signing coordinator. `signWithSecurityKey` pauses reconnect and marks the requesting Host as waiting, resumes only after an assertion and a cancellation check, and fails a still-waiting journey on cancellation or signing error. At the transport boundary, cancellation cancels the exchange, cancels the opening state, and schedules cleanup; the exchange wakes its blocked callback and discards late assertion results. Sources: [authentication continuation](../../Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift), [connection controller](../../Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift), and [authenticated opening](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
 
 When SSH agent forwarding is enabled, `VaultSSHAgent` can advertise the Vault public key and sign a matching forwarded request. It requires an allowed interaction policy and an active interaction surface, then rechecks key-library revision and availability after the assertion before releasing the SSH signature. A forwarded request with unsupported flags or a nonmatching public blob is rejected. Forwarding never exports the authenticator private key.
 

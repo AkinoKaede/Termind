@@ -62,6 +62,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-6df73854db20ee83905a634c
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
@@ -106,6 +108,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift
   - id: openwiki-source-6256aeada274ebb6ce422d82
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
+  - id: openwiki-source-b8eae581ee8d4d73aa45f827
+    resource: repo://FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-d785833dd230253fdc4946d7
@@ -154,10 +158,10 @@ sources:
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Settings and Cloud Sync
@@ -268,17 +272,30 @@ The diagram shows one owner's fetch-before-send and scoped recovery gate; Histor
 A disabled master/category preference makes `start` pause the owner; disabled `retry` and account-merge confirmation do nothing. `pause` (also used by app Pro/background reconciliation), account sign-out or switch, and fatal delegate persistence failure retire an active engine: `retireEngine` changes the operation ID, cancels the operation task, clears readiness, Settings secret-upload authorization, scope and in-flight state, removes the engine synchronously, then schedules its `cancel()` in a **detached MainActor task**. This matters inside a CloudKit delegate callback: cancellation must not inherit its task-local callback context. Starting, retrying and scheduling local-change sends likewise use detached MainActor tasks. An old operation's late completion cannot change replacement status or authorize sends, and delegate events or batches for the old engine fail the identity check. A fatal delegate error rolls back, retires and reports failure; a normal cancellation (`CancellationError` or CloudKit `.operationCancelled`) is not logged or made a red failure. [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L218-L314), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L621-L689), [CloudSyncEventHandling](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift#L85-L130), [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecycleTests.swift#L11-L74), [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecycleTests.swift#L383-L435).
 
 ```mermaid
-flowchart TD
-    Active["Active owner"] -->|"Preference disabled or app pauses"| Paused["Retire and report paused"]
-    Active -->|"Account sign out"| SignIn["Retire and require sign in"]
-    Active -->|"Account switch"| Confirm["Retire and await merge confirmation"]
-    Active -->|"Delegate persistence failure"| Failed["Rollback and retire then report failure"]
-    Active -->|"Retryable fetch failure"| Fenced["Keep engine and recovery fence with uploads closed"]
-    Fenced -->|"Successful retry fetch"| Active
-    Active -->|"Expected cancellation"| Unchanged["Do not report failure"]
-    Paused -->|"Enabled start"| Prepare["Check account and fetch before send"]
-    Confirm -->|"Confirm while enabled"| Prepare
-    Failed -->|"Retry while enabled"| Prepare
+stateDiagram-v2
+    state "Retired and paused" as Paused
+    state "Account and scoped recovery preparation" as Prepare
+    state "Fetch pending with uploads closed" as Fenced
+    state "Ready for eligible sends" as Ready
+    state "Sign in required" as SignIn
+    state "Account merge confirmation required" as Confirm
+    state "Retired after persistence failure" as Failed
+    Paused --> Prepare: Enabled start
+    Prepare --> SignIn: Account unavailable
+    Prepare --> Confirm: Account mismatch
+    Prepare --> Fenced: Commit fence and create engine
+    Fenced --> Fenced: Retryable fetch failure
+    Fenced --> Ready: All fetches succeed and inventory commits
+    Ready --> Fenced: New fetch begins
+    Ready --> Paused: Disable or app pause
+    Fenced --> Paused: Disable or app pause
+    Ready --> SignIn: Sign out and retire
+    Ready --> Confirm: Account switch and retire
+    Ready --> Failed: Delegate persistence failure
+    Fenced --> Failed: Delegate persistence failure
+    Confirm --> Prepare: Confirm while enabled
+    Failed --> Prepare: Retry while enabled
+    SignIn --> Prepare: Enabled retry
 ```
 Retirement changes engine identity immediately; asynchronous cancellation and late completions cannot reopen the retired upload gate. A retryable fetch failure, unlike retirement, keeps the same engine for retry. [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L238-L251), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L390-L403), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L645-L689).
 
@@ -289,6 +306,8 @@ A retryable zone-fetch failure keeps the engine but does **not** reopen uploadin
 An account mismatch records a pending user and requires explicit merge confirmation **before** any new-account engine exists. Confirmation resets the *owner's* journal before binding the new user, drops old-account tombstones and system fields, and requeues surviving local records. Old-scoped safety rows remain scoped to the old account; no legacy-quarantine preparation runs on confirmation. A changed `TermindCloudKitEnvironment` resets that owner's engine state and system fields and requeues envelopes without moving old-scoped restrictions. A missing zone or ordinary zone deletion recreates and requeues the corresponding replica; Device and History must not reset one another despite sharing a zone. By contrast CloudKit `.purged` or `.encryptedDataReset` retires the owner and purges that scope's local cloud cache and safety/replica state **without recreating the zone or uploading old local data**. Category asset-cache cleanup is tracked durably and finished on restart. [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L284-L386), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L695-L720), [HistorySyncStore](../../Frameworks/TermindPersistence/HistorySyncStore.swift#L35-L64).
 
 ### Destructive purge and live projection invalidation
+
+Settings prevents restart bootstrap from undoing a destructive reset: `SettingsSyncJournal.purgeCloudCache()` replaces its journal with non-uploadable baseline tombstone sentinels for web search, terminal, SSH, SFTP, workspace and notifications, marks bootstrap complete and clears engine state. The purge transaction records those deletions in the scoped replica sidecar. Consequently `prepare()` sees existing singleton envelopes instead of seeding the cleared defaults as new uploads. This is suppression of the old replica, not a ban on later intentional edits. [Journal purge](../../Frameworks/TermindPersistence/SettingsSyncJournalStore.swift#L92-L118), [Purge transaction and preparation](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L80-L129).
 
 A destructive zone notification is deliberately stronger than an ordinary record deletion or missing zone. The lifecycle retires the engine **before** persistence is touched. The category purge commits the cleared/materialized projection, journal suppression, active-scope safety/replica cleanup and a durable asset-cleanup marker. Settings then mirrors the committed defaults and publishes the replacement snapshot through `didApplyRemote`, not through a local Save action. This keeps live models from retaining and later resending the pre-purge snapshot. Other-account safety rows remain intact, and History/Device retain their category boundary despite sharing a zone. [Settings purge](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L106-L129), [Coordinator purge](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L109-L119), [Physical deletion tests](../../FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L13-L91).
 
@@ -384,6 +403,8 @@ Snippet color is an explicit per-kind wire upgrade, not a consequence of local s
 
 ## Host session persistence and icon preferences
 
+Local schema history is separate from the Vault wire contract: V28 stores SSH values as `port`, `identityID` and `charset`. The V28→V30 lightweight migration retains those property names for SSH and adds disabled-by-default Telnet settings. `TermindSchemaV29HostModels` is the historical namespace of the model actually shipped in V30, not evidence of a separate live V29 projection. Its adapter maps the retained fields to the domain's separate SSH and Telnet profiles. [Historical Host shape](../../Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift#L7-L69), [Migration plan](../../Frameworks/TermindPersistence/HostPersistence.swift#L1038-L1039).
+
 These are **Vault Host/HostGroup configuration**, not Settings singleton records. Both desktop and mobile Host editors bind `HostSessionSection` to the draft's session-persistence value; the shared section exposes enablement, backend (tmux, Zellij, zmx or Herdr, preserving unknown backend IDs), and on-connect choices Ask, Create, or Normal Shell. New and legacy Hosts default to disabled persistence with tmux and Ask. The shared `HostOrganizationSection` binds `HostIconPicker` to `iconOverrideID`. These controls change saved host configuration rather than the global terminal preferences. [HostIntegrationSection](../../Frameworks/TermindPresentation/HostIntegrationSection.swift#L4-L30), [Desktop editor](../../TFM/Features/HostEditor/HostEditorView.swift#L296-L307), [Mobile editor](../../TFI/Features/HostEditor/MobileHostEditor.swift#L212-L224), [HostConnectionFields](../../Frameworks/TermindPresentation/HostConnectionFields.swift#L6-L31), [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L13-L47).
 
 Ordinary Host edits go through `HostLibraryModel.saveHost` and `HostPersistence.save`: projection and changed Vault envelopes are saved together, with context rollback and restoration of the previous library on failure. The V53 local Host shape introduced session-persistence columns; V54 retains those columns and adds `iconOverrideID`. Those schema steps do not select CloudKit wire versions. For Tailscale-managed Hosts, `saveTailscaleHost` stores both choices in the parent group's `tailscale.hostPreferences` keyed by stable Host UUID, then rebuilds the discovered Host projection. Managed peers are not standalone uploaded Host rows. [HostLibraryModel](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L961-L1002), [Tailscale preference projection](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2485-L2546), [HostPersistence](../../Frameworks/TermindPersistence/SwiftDataVaultStore.swift#L44-L94), [V53 Host](../../Frameworks/TermindPersistence/TermindSchemaV53HostModels.swift), [V54 Host](../../Frameworks/TermindPersistence/TermindSchemaV54HostModels.swift#L35-L115).
@@ -446,7 +467,7 @@ Custom-theme content and selection share the Settings transaction and lifecycle,
 
 `NotificationPreferences` is a synced Settings singleton, not a device-local authorization grant. It carries enabled state, independent assistant/terminal/SFTP delivery modes (`never`, `unfocused`, `always`), terminal system-notification versus bell delivery and a nonnegative terminal minimum duration. The defaults enable notifications, use `unfocused` for all three modes, system delivery and a five-second minimum. `usesSystemNotifications` excludes bell-only terminal delivery and disabled categories; the terminal duration threshold still applies to bell delivery. The decoder defaults a missing SFTP mode to `unfocused` for older payloads, but validates the nonnegative duration. [NotificationPreferences](../../Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L3-L57), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L55-L75).
 
-`SettingsSyncPersistence.prepare()` bootstraps a missing notifications envelope even for stores already bootstrapped before this preference existed. `saveNotificationPreferences` validates then commits its SwiftData singleton and changed journal envelope together; `materialize()` restores default preferences on a winning remote tombstone. Settings uses `NotificationPreferencesItem` in the existing Settings zone rather than the older `AIConfigurationItem` record type; decoding verifies the envelope kind agrees with the record type. A supported remote winner updates persistence without invoking the local-change callback, then the coordinator notifies the app after commit; both platform composition roots apply the snapshot to their shared `NotificationSettingsModel`. The V40→V41 lightweight schema step adds `PersistentNotificationPreferences`, and the migration/reopen test verifies both the saved notification row and an older workspace setting survive. [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L76-L102), [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L172-L235), [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L368-L382), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L95-L185), [MobileAppModel](../../TFI/App/MobileAppModel.swift#L410-L418), [AppModel](../../TFM/App/AppModel.swift#L393-L401).
+`SettingsSyncPersistence.prepare()` bootstraps a missing notifications envelope even for stores already bootstrapped before this preference existed. `saveNotificationPreferences` validates then commits its SwiftData singleton and changed journal envelope together; `materialize()` restores default preferences on a winning remote tombstone. Settings uses `NotificationPreferencesItem` in the existing Settings zone rather than the older `AIConfigurationItem` record type; decoding verifies the envelope kind agrees with the record type. A supported remote winner updates persistence without invoking the local-change callback, then the coordinator notifies the app after commit; both platform composition roots apply the snapshot to their shared `NotificationSettingsModel`. The V40→V41 lightweight schema step adds `PersistentNotificationPreferences`, and the migration/reopen test verifies both the saved notification row and an older workspace setting survive. [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L76-L102), [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L172-L235), [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L368-L382), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L95-L185), [MobileAppModel](../../TFI/App/MobileAppModel.swift#L470-L478), [AppModel](../../TFM/App/AppModel.swift#L497-L505).
 
 Terminal keyword highlighting is **retired**, not another active Settings singleton. V52 removes its historical local model; preparation discards inactive envelopes and excludes it from active bootstrap/capability/upload state. The legacy `TerminalHighlightPreferencesItem` type and `v1/terminalHighlighting/default` key are recognized only to ignore fetched/conflict/deletion records **before** reconciliation and payload validation. Even malformed retired records cannot replace other preferences or create quarantine through that path. Historical server types and old clients require separate rollout review; do not recreate the deleted live models or editor. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and the retirement regression fixtures.
 
@@ -463,6 +484,8 @@ Settings synchronizes credential **references**, not secret bytes. After accepti
 Deploy and verify category record types, zones and subscriptions in both CloudKit environments, especially active `SFTPPreferencesItem` and `NotificationPreferencesItem`; treat legacy highlighting as a separate mixed-version retirement check rather than a new-feature deployment requirement, and run signed multi-device checks for offline edits, master/optional switches, Pro expiration, account change, zone deletion, and delayed Keychain delivery. See [CloudKit Schema Deployment and Signed-Device Release Readiness](../operations/cloudkit-release-readiness.md). When adding an owner, create an independent journal/state, subscription and safety consumer scope (and normally a zone), wire its own lifecycle/delegate and platform Pro/scene gating, and preserve every outbound fence. Do not reuse a sibling's system fields or cursor even if sharing a zone. For persistence and secrets see [Persistent Data, Migrations, and Secret Boundaries](../concepts/persistence-and-secrets.md); for app composition see [Platform Runtime, App Composition, and Lifetimes](../architecture/platform-runtime.md).
 
 ## Focused verification
+
+- `CloudSyncCoordinatorLifecycleTests` verifies independent Vault/Settings/Metrics bindings, engines and environment markers, Settings secret authorization after successful fetch and its revocation on retirement, and stale save acknowledgements preserving a newer theme selection—even when legacy migration retains the same baseline clock. These are adapter tests with fake transport, not CloudKit delivery tests. [Coordinator lifecycle tests](../../FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift#L15-L155).
 
 - `SettingsPortTests` exercises the typed boundary: failed terminal saves retain applied preferences, remote terminal application skips the local-write callback, mobile provider edits preserve MCP servers/skills/unresolved roles, and migration preserves optional Settings selection while master is paused. New Vault credential storage requires master selection **and** Pro capability regardless of the legacy Vault toggle. [SettingsPortTests](../../FrameworkTests/SettingsPortTests.swift#L45-L147).
 - Migration fixtures in `SettingsSyncTests` reopen a V12 store with the current migration plan and retain providers/endpoints/models, skills, web search and terminal custom text without materializing an optional sync choice or changing local font size. A completed-bootstrap fixture adds a missing terminal baseline without rewriting existing envelopes; the terminal round-trip checks defaults mirroring without a remote echo. These are local migration/merge tests, not signed-device CloudKit tests. [SettingsSyncTests](../../TFMTests/SettingsSyncTests.swift#L89-L181).

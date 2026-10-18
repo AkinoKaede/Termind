@@ -22,10 +22,10 @@ sources:
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Ghostty Dependency Maintenance
@@ -76,7 +76,7 @@ There is **no Termind Ghostty gitlink to advance** and no Termind-owned binary U
 
 Ghostty owns rendering, parsing, baseline input and its native menu entry points. Termind owns grouping, localization, commands, upload authorization and view/session lifetimes:
 
-- iOS uses separate `touchMenuItems(for:)` and `touchSelectionMenuItems(for:)` overrides. Each calls the matching superclass hook, localizes recognized action identifiers, groups editing actions first, adds an SSH Upload File group and preserves unrelated inherited items.
+- iOS uses separate `touchMenuItems(for:)` and `touchSelectionMenuItems(for:)` overrides in [MobileTerminalView](../../TFI/Platform/MobileTerminalSurface.swift). Each calls the matching superclass hook, localizes recognized action identifiers, groups editing actions first, adds an SSH Upload File group and preserves unrelated inherited items.
 - macOS independently overrides `selectionContextMenu()` and `selectionMenuPoint(at:)` to offer a default menu even without a selection, but suppresses menus during captured mouse input. It retains the superclass selection menu only when the superclass reports a selection, localizes Copy, and appends localized Paste and Select All. Paste availability follows clipboard contents. Bound Upload File and Open with SFTP actions are app-owned additions; the SFTP submenu offers current/new workspace placement and rechecks availability on invocation. Paste-on-right-click and Option bypass remain host preferences, not an iOS hook contract.
 - Upload availability is checked again on invocation; a stale menu is not permission to send a file to a disconnected or changed destination.
 - Native surfaces remain session/workspace-owned across SwiftUI mount changes. App Find state, native search dismissal and resize coordination must not be collapsed into package menu behavior.

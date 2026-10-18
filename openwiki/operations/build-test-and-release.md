@@ -12,8 +12,16 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-a2cca747926cafc62fde5fb2
     resource: repo://.swift-format
+  - id: openwiki-source-82dc2a330fa464405febe5a2
+    resource: repo://AgentKit/Package.swift
+  - id: openwiki-source-7d407889e0fdf98a8da45d51
+    resource: repo://AgentKit/Scripts/build-localizations.sh
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-6c477adbd17d240038ac8d60
+    resource: repo://com.akinokaede.termind/package.json
+  - id: openwiki-source-fcca55af6fa67b76822099ae
+    resource: repo://com.akinokaede.termind/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
@@ -74,10 +82,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
 # Build, Test, and Release
@@ -135,10 +143,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.17.0` | `65` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.17.0` | `102` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.17.0` | `91` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.0` | `91` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.17.1` | `68` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.17.1` | `105` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.17.1` | `94` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.1` | `94` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -283,26 +291,26 @@ xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' 
 
 The Python gates validate catalog structure and translation invariants; native tests exercise the narrower presentation behaviors described above.
 
-AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
+AgentKit owns its separate runtime catalog at `AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 
 ```sh
-../AgentKit/Scripts/build-localizations.sh
+AgentKit/Scripts/build-localizations.sh
 ```
 
 ## Public website validation and asset publishing
 
-Initialize `com.akinokaede.termind` only for website/asset work; native app builds do not require it. The submodule is empty in this checkout, so its README, manifest and Astro image sources cannot be inspected here. Before website or asset verification, initialize the independent project and inspect its own manifest and guidance for runtime requirements, script definitions, image handling and current routes. Do not infer a Node minimum, exact npm-script implementation, generated image formats or route inventory from the parent repository.
+Initialize `com.akinokaede.termind` only for website/asset work; native app builds do not require it. Its checked-out README requires Node.js 22.12 or newer. The manifest defines `dev` as `astro dev` and `build` as `astro check && astro build`; run `npm run test:locales` after the build for the site's documented locale, metadata, link and asset checks.
 
 ```sh
 git submodule update --init com.akinokaede.termind
-(cd com.akinokaede.termind && npm ci && npm run build)
+(cd com.akinokaede.termind && npm ci && npm run build && npm run test:locales)
 ```
 
-The parent repository's `AGENTS.md` supports locked `npm ci`, `npm run dev` for local Astro iteration, and `npm run build` for type-checking and production output to `com.akinokaede.termind/dist/`. These are the locally documented entrypoints, not an audit of the unavailable submodule's scripts. Web changes must pass the separate production build and visual review of English and `/zh/` routes as directed by `AGENTS.md`; confirm current route behavior and any additional locale/image checks against the initialized site's guidance. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`.
+The parent repository's `AGENTS.md` requires the separate production build and visual review of English and `/zh/`. The site's current guidance documents `/`, `/de/`, `/fr/`, `/ja/`, `/ko/`, `/zh-hans/`, and `/zh-hant/`, with legacy `/zh/` redirects to Simplified Chinese. Review the affected localized routes as well as the legacy redirect; the parent guidance is not a complete route inventory. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`.
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `2.1.0`; the workspace `Package.resolved` selects AgentKit `2.1.0` at revision `0bf0b12dcb3b17e52f2157a260a86faddc748b41`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `3.0.1`; the workspace `Package.resolved` selects AgentKit `3.0.1` at revision `3661d156202e9da8d59e5e36ac461913c8bd8536`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The local maintenance manifest declares a dependency-free `AgentKit` core target and an opt-in `AgentKitScrubber` target depending on both `AgentKit` and `ScrubberKit`; this checkout is not itself proof of the shipped remote revision's internals. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in the repository-root `AgentKit/` maintenance submodule (declared in `.gitmodules`). Run `cd AgentKit && swift build && swift test` from the repository root to validate an unreleased package change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -316,17 +324,17 @@ flowchart TD
 
 This shows the required ordering from a host-neutral package change through Termind consumption.
 
-1. **Release AgentKit first.** In `../AgentKit`, make the host-neutral change and validate it there:
+1. **Release AgentKit first.** In `AgentKit`, make the host-neutral change and validate it there:
 
    ```sh
-   cd ../AgentKit && swift build && swift test
+   cd AgentKit && swift build && swift test
    ```
 
    Format its `Sources` and `Tests`, then tag and push the package release. Do not add Termind names, SSH/SFTP behavior, or UI to AgentKit; those stay on the Termind side of the integration boundary.
 2. **Bump the app requirement.** Update AgentKit’s `minimumVersion` in `Termind.xcodeproj/project.pbxproj` to the released version.
-3. **Re-resolve and commit the lock result.** Re-resolve Swift packages so `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` records the released version and exact revision. Commit both the project requirement and resolved file with the Termind-side code that requires them, then validate with the resolved-package build/test commands above.
+3. **Re-resolve and commit the release state.** Re-resolve Swift packages so `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` records the released version and exact revision. Update the `AgentKit/` maintenance gitlink to that released revision. Commit the gitlink, project requirement and resolved file with the Termind-side code that requires them, then validate with the resolved-package build/test commands above.
 
-Do not skip the release or resolve steps: a project-file bump alone does not establish the exact revision used in ordinary builds, and local sibling edits are invisible to that build. Likewise, do not casually refresh the lock file during unrelated work—the resolved graph is a reproducibility boundary.
+Do not skip the release or resolve steps: a project-file bump alone does not establish the exact revision used in ordinary builds, and local maintenance edits are invisible to that build. Likewise, do not casually refresh the lock file during unrelated work—the resolved graph is a reproducibility boundary.
 
 ### Ghostty direct upstream dependency
 
@@ -343,23 +351,23 @@ Update the upstream requirement and `Package.resolved` together, then use resolv
 5. For website changes, initialize the submodule and inspect its own manifest and guidance, then run `cd com.akinokaede.termind && npm ci && npm run build`. Visually review English and `/zh/` as required by `AGENTS.md`, plus any current routes required by the site's own guidance.
 6. Keep visible-window and mobile key-window gates off routinely. For affected native UI cases, opt in with the exact flags above, disable mobile parallel testing and narrow the suite; adaptive key-window cases and Metrics Journey are not default coverage.
 7. Regenerate changed native captures through scan, then matching frameit outputs and Figma layers/final JPGs; follow the asset guide's licenses, dimensions, localized visual review and SSH-first publication.
-8. For AgentKit work, complete release → minimum-version bump → re-resolve and commit both dependency files. For direct Ghostty updates, align the upstream requirement and lockfile and validate both native adapters.
+8. For AgentKit work, complete release → minimum-version bump → re-resolve and commit the released maintenance gitlink with both dependency files. For direct Ghostty updates, align the upstream requirement and lockfile and validate both native adapters.
 9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing. A green build or test run is not proof of StoreKit purchase/restore or deployed storefront configuration: record the actual executed suites and follow the separate commerce release verification.
 
 CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](port-forwarding-benchmarks.md).
 
 ## Maintenance checkouts and tool ownership
 
-A maintenance gitlink and a released remote pin are different state. Initializing or editing `AgentKit/`, `libssh2-spm/`, or `libtailscale-spm/` does not redirect the ordinary Xcode package graph. Inspect the package's own manifest and CI before changing native internals; these checkout directories are empty in this snapshot.
+A maintenance gitlink and a released remote pin are different state. Initializing or editing `AgentKit/`, `libssh2-spm/`, or `libtailscale-spm/` does not redirect the ordinary Xcode package graph. Inspect the package's own manifest and CI before changing native internals; these maintenance checkouts are populated, but their working trees are not the remote package selections.
 
 | Dependency | Maintenance checkout | Current Xcode requirement and resolved release |
 | --- | --- | --- |
-| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `2.1.0`, resolved `2.1.0` |
+| AgentKit | `AgentKit/`, the documented repository-root development checkout | `upToNextMinorVersion` from `3.0.1`, resolved `3.0.1` |
 | libssh2 | `libssh2-spm/`, branch `termind` | `upToNextMinorVersion` from `2.0.3-termind-4`, resolved `2.0.3-termind-4` |
 | Tailscale | `libtailscale-spm/`, branch `main` | `upToNextMinorVersion` from `1.0.3`, resolved `1.0.3` at `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
 | Ghostty | No local maintenance submodule | Direct upstream remote package described above |
 
-Despite the “exact-version” wording in `AGENTS.md`, libssh2's current Xcode requirement is `upToNextMinorVersion`, not `exactVersion`. The lockfile supplies the selected revision. Repository policy describes clean upstream `Vendor/libssh2` source plus numbered patches applied to ignored `.build/patched-native`; the handwritten exports preserve `CSSH2`. For a native change, initialize the package, run its `python3 Script/test-source.py` and native CMake/CTest checks, then dispatch its Release XCFramework workflow. Only after the package publishes the binary, checksum/manifest and tag should the app advance its maintenance gitlink, Xcode requirement and resolution together. Preserve external-signature regressions and never commit generated native snapshots. This is the documented maintenance contract, not an audit of the unavailable package CI.
+Despite the “exact-version” wording in `AGENTS.md`, libssh2's current Xcode requirement is `upToNextMinorVersion`, not `exactVersion`. The lockfile supplies the selected revision. Repository policy describes clean upstream `Vendor/libssh2` source plus numbered patches applied to ignored `.build/patched-native`; the handwritten exports preserve `CSSH2`. For a native change, initialize the package, run its `python3 Script/test-source.py` and native CMake/CTest checks, then dispatch its Release XCFramework workflow. Only after the package publishes the binary, checksum/manifest and tag should the app advance its maintenance gitlink, Xcode requirement and resolution together. Preserve external-signature regressions and never commit generated native snapshots. This is the parent repository's documented maintenance contract; inspect the package CI before performing a binary release.
 
 Development tools stay in the parent repository, not the optional website:
 

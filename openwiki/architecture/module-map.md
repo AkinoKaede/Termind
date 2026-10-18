@@ -1,13 +1,11 @@
 ---
 type: architecture map
-title: Module Map
+title: Module and Dependency Map
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
-  - id: openwiki-source-8037e2358a2c4f9b2c722a11
-    resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -34,8 +32,12 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-739f64e0e0f22dee6b791bc4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift
+  - id: openwiki-source-4dbe1ff26dab4785a94e279b
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift
   - id: openwiki-source-3109840ad21c82d203dadc0a
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift
+  - id: openwiki-source-e6fdb898fc2071c1afc227aa
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift
   - id: openwiki-source-7f83ab23ea7d4eb08dabc616
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift
   - id: openwiki-source-e8ecc74af3010141a19f60ac
@@ -94,13 +96,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 ---
 
-# Module Map
+# Module and Dependency Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -172,7 +174,7 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `2.1.0`, and `Package.resolved` pins the released version `2.1.0` at revision `0bf0b12dcb3b17e52f2157a260a86faddc748b41`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** `.gitmodules` names the repository-root `AgentKit/` maintenance submodule. It is not wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `3.0.1`, and `Package.resolved` pins the released version `3.0.1` at revision `3661d156202e9da8d59e5e36ac461913c8bd8536`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
 **Maintenance versus remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate from maintenance checkout HEADs:
 
@@ -199,7 +201,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 
 `RemoteConnectionCoordinator` lives in Remote Infrastructure but is supplied by native composition. It constructs PTY, SSH and SFTP clients with shared logging and max-session policy; its one-shot SSH/SFTP connect helpers disconnect the newly created client before rethrowing a connection failure. `MobileAppDependencies.live()` shares one coordinator across workspace connections, metrics and app assembly. Its testing factory selects in-memory composition and test metrics, but defaults workspace connections to `.live`: in-memory storage alone is not a guarantee of transport isolation. Inject workspace connection services when a test must not connect.
 
-Resumable terminal protocols extend Remote Infrastructure, not native feature switches over engine classes. The coordinator injects an immutable `ResumableTerminalEngineRegistry` into PTY channels; its live registrations select Mosh and Eternal Terminal engines. Engines own protocol resources while `ResumableTerminalClient` owns the shared lifecycle and serialization boundary; it rejects an unregistered transport before wake, route or bootstrap side effects. Persistent remote-session backends use a separate seam: `RemoteSessionBackendRegistry.live` wraps registered multiplexer dialects in `RemoteMultiplexerService`. Application policy consumes backend contracts rather than tmux/Zellij command dialects. Architecture tests explicitly keep engine and dialect implementation names out of Domain, Application, Presentation and both native feature trees, and guard PTY/client code against bypassing registration. `FrameworkTests/ResumableTerminalEngineTests.swift` exercises injected engines, missing-registration failure before side effects, restore without startup replay, and recovery retry on the existing engine.
+Resumable terminal protocols extend Remote Infrastructure, not native feature switches over engine classes. The coordinator injects an immutable `ResumableTerminalEngineRegistry` into PTY channels; its live registrations select Mosh and Eternal Terminal engines. Engines own protocol resources while `ResumableTerminalClient` owns the shared lifecycle and serialization boundary; it rejects an unregistered transport before wake, route or bootstrap side effects. Persistent remote-session backends use a separate seam: `RemoteSessionBackendRegistry.live` obtains backend factories from registered multiplexer dialects. Each dialect supplies its backend: tmux uses `RemoteTmuxBackend`, while socket dialects use `RemoteMultiplexerBackend`. Application policy consumes backend contracts rather than tmux/Zellij command dialects. Architecture tests explicitly keep engine and dialect implementation names out of Domain, Application, Presentation and both native feature trees, and guard PTY/client code against bypassing registration. `FrameworkTests/ResumableTerminalEngineTests.swift` exercises injected engines, missing-registration failure before side effects, restore without startup replay, and recovery retry on the existing engine.
 
 The Assistant is a useful change-placement example: `AssistantExecutionController` accepts an injected registry factory, authorization callback, run repository, and title generator; app-specific host services provide tools without making the Application framework construct SSH machinery. On mobile the app model wires `AgentHostServices.live` with its connection coordinator and SFTP scheduler. For speech it supplies `IOSSpeechAudioInput` to the shared transcription service and cancels speech on interruption. The remote-filesystem port similarly separates file policy from the SFTP transfer coordinator; Vault sync reads Persistence-owned journals rather than moving CloudKit policy into the app.
 

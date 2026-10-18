@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cbe521424228d8b8d5c11875117887b099fd20aa56e24406ef3e35dde8390ba3",
+  "pageVersion": "sha256:a802d5311ba01a12ed52b1a6fb06e250847e6e32990b437d11ea6f9fa89b98e9",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L54-L61",
-          "version": "repo-lines-v1:sha256:6c6217992cf4e9be307fff4d09e8f55fa50088f3dd6e3bab1175cb1f591d49a2:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIxNTRiY2VlOGZlZGY1N2QwN2ZiYzc3YjJjYzM4YmI3NmJkMmRmODdjNWMxYmUwOTVmODM2YThjZDZlMmZmNSJ9"
+          "version": "repo-lines-v1:sha256:e7ff71f6f3b61eb7bdcef0677d010cda130bd31c940af4888cde4a5d0f7cc7a4:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIxNTRiY2VlOGZlZGY1N2QwN2ZiYzc3YjJjYzM4YmI3NmJkMmRmODdjNWMxYmUwOTVmODM2YThjZDZlMmZmNSJ9"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb#L116-L132",
@@ -18,21 +18,21 @@
     },
     {
       "id": "claim_65fcfe9af8eb41a3967800a39eb84530",
-      "statement": "The project’s primary native build entrypoints are the `TFM` macOS scheme and the `TFI` generic iOS Simulator scheme; the TFM build also builds the MCP bridge and AgentKit, while TFI builds the mobile app and shared frameworks.",
+      "statement": "The primary native build entrypoints are TFM on macOS and TFI on generic iOS Simulator; TFM builds the app, MCP bridge and AgentKit, while TFI builds the mobile app and shared frameworks.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L52-L57",
-          "version": "repo-lines-v1:sha256:388a61ace4d6d2e8a6a9fe6a9a2b0ee6a67122ab831f7d0a49eba6d9e9cd10e5:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczYmEyNjc2YzMzZGE1MjMyNTFkNWNjZjUzNjViODFhMGEwMjMyZWU3MGI3OTFlNmJjMTNmYTIyNTFhMGQ4MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzE4ODJlOTJlMDU3MTI0MDRlN2M4MWQ2Mjc2NTIzMWQ5Y2VkZjg5MGNlNmUwZTVlMDBhZDk2NzIzOTA5YzA3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         }
       ]
     },
     {
       "id": "claim_1a9166d8adfa413f8574be310dec6512",
-      "statement": "The default resolved-package `TFM` test command runs macOS and shared Swift tests, while an available iPhone or iPad simulator destination is required for TFI tests.",
+      "statement": "The default resolved-package TFM test command runs macOS and shared Swift tests; TFI tests require an available iPhone or iPad simulator destination.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L55-L57",
-          "version": "repo-lines-v1:sha256:b01fe78aa30f13a1b9b6592963253ce9311901af610a5e20419e2e04a1e8b6ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDVhM2YxNTdmNDc0Zjc4OTI2NzY0MjhmMTE0NWE5YjBlZDU5OTg4NDNmNTU0YTAzNzNiMmIxMjFhN2E2Mjg0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWY0MzVkMzdiNmYzMWNjNmFhZjdjOTFmZGY3Zjg0Nzc5Nzg2NDgyZWE0MGI4N2I4ZTIzMWFlOGQ3OWY4ZmUwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         }
       ]
     },
@@ -70,7 +70,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -80,11 +80,19 @@
     },
     {
       "id": "claim_289bc88ffb654cb89575cee5856f3436",
-      "statement": "App-facing text belongs in `Frameworks/Resources/Localizable.xcstrings` and metadata in `InfoPlist.xcstrings`; changed English strings require finished Simplified and Traditional Chinese translations in the same commit, while AgentKit’s catalog must be built with `../AgentKit/Scripts/build-localizations.sh`.",
+      "statement": "App-facing text belongs in Frameworks/Resources/Localizable.xcstrings and metadata in InfoPlist.xcstrings; changed English requires finished Chinese translations under repository guidance and all six non-English locales under the checker. AgentKit's separate catalog is compiled with AgentKit/Scripts/build-localizations.sh from the repository root.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+        },
+        {
+          "resource": "repo://AgentKit/Scripts/build-localizations.sh",
+          "version": "repo-file-v1:sha256:4aa30ad6ba5f603cb6a9273caff26c795dd289b3975f073135aec9bb0dfbd7b4"
+        },
+        {
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         }
       ]
     },
@@ -100,15 +108,19 @@
     },
     {
       "id": "claim_9001476115de4dc3a10921fa323b9f08",
-      "statement": "AGENTS.md documents the independent public Astro submodule's locked npm ci, npm run dev and npm run build entrypoints, describing the build as type-checking and emitting com.akinokaede.termind/dist/; website/asset work requires initialization, while native builds do not require the submodule. Its unavailable manifest must be inspected after initialization before relying on runtime requirements or exact script implementation.",
+      "statement": "The independent website submodule is optional for native builds; its README requires Node.js 22.12 or newer and its manifest defines dev as astro dev, build as astro check && astro build, and test:locales as the locale-check script to run after building.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L14-L21",
-          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
-          "resource": "repo://AGENTS.md#L59-L60",
-          "version": "repo-lines-v1:sha256:d504b70e9953b1673814e4a03529f8f9eaa4802dc7b5f6a97452cca5f1da8b38:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0OGEwZDI3OGNhZGI2NDA1NzY1ZDYxYTY1OTljOTUzODZmZGQ3OWRiMGUyOGM5ZDY2N2MwNDdjNWIwNTJhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
+          "resource": "repo://com.akinokaede.termind/README.md",
+          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
+        },
+        {
+          "resource": "repo://com.akinokaede.termind/package.json",
+          "version": "repo-file-v1:sha256:a30aca1b31ece28759f8773d1646c87ab554579516d785d90d2225320684ae7f"
         }
       ]
     },
@@ -150,21 +162,21 @@
     },
     {
       "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
-      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 2.1.0; resolved builds use the lockfile selection.",
+      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 3.0.1; resolved builds use the lockfile selection.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3025",
-          "version": "repo-lines-v1:sha256:c8b601384f86243f135d5675db78aa34d8a4c02b39fbcd8fc8d7aedbd1bac748:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         }
       ]
     },
     {
       "id": "claim_4210116e410941d98e7d962dcd708ce2",
-      "statement": "A Termind change that depends on AgentKit must follow the release/bump/re-resolve sequence: test and release the sibling package, bump `minimumVersion` in `project.pbxproj`, then re-resolve so `Package.resolved` records the new revision; both files belong with the app-side change.",
+      "statement": "Cross-repository AgentKit changes are tested and released from the repository-root AgentKit maintenance submodule before bumping minimumVersion and re-resolving; the released maintenance gitlink, both dependency files and dependent app changes are committed together.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L23-L25",
-          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYxZjNmMTg5YTBiZTIyMGIzYjA0YmIwYzc0MTI2OGE5MzE4OGU1YzY0OTMzZGUyNzU0YzI3ZTZkYzRmZTE0NSJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         }
       ]
     },
@@ -243,8 +255,8 @@
           "version": "repo-file-v1:sha256:36a5f6ffd71826d882e92420b5fdfb862322786348311b6dd0d5a80485942e80"
         },
         {
-          "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift#L10-L139",
-          "version": "repo-lines-v1:sha256:cb6596d3920cb1aaa450886d1a261176f4f4b8daebd2508d76bcd2131990398c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MTcxN2I0ZjY1MWU3NTQ5ZTUzN2QxZDg3ZGNmODNhNWRiYjkxODAzNmJjZDExMDRkYWM4M2QxMmNkNzZlNTYzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmMmM0MTdiNGY3NDJiYzk5ZTcxMjNmMmEzMjllZDUzNjJiYzJjNjk2Yjg4OWYyZTIyNzRkNGZiMzlmNTA3NDRhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmOTkxMjI3OTEwNmVkODU2MTUyMmJmMjUwMTlkZTA4MzJjMTdiM2M3MzdiZmNkMzZjOGIzZWVjNjY4ODU0OGFiIn0"
+          "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift#L10-L149",
+          "version": "repo-lines-v1:sha256:43b96a5094f5791a5e5a5248eea1b860edb3110138aece2ae7af260e3994e6bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MTcxN2I0ZjY1MWU3NTQ5ZTUzN2QxZDg3ZGNmODNhNWRiYjkxODAzNmJjZDExMDRkYWM4M2QxMmNkNzZlNTYzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmMmM0MTdiNGY3NDJiYzk5ZTcxMjNmMmEzMjllZDUzNjJiYzJjNjk2Yjg4OWYyZTIyNzRkNGZiMzlmNTA3NDRhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmOTkxMjI3OTEwNmVkODU2MTUyMmJmMjUwMTlkZTA4MzJjMTdiM2M3MzdiZmNkMzZjOGIzZWVjNjY4ODU0OGFiIn0"
         }
       ]
     },
@@ -268,11 +280,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         }
       ]
     },
@@ -282,7 +294,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
           "resource": "repo://Scripts/normalize-string-catalogs.py",
@@ -320,39 +332,35 @@
     },
     {
       "id": "claim_05e037f933284f2b99410ac9b9c4f1be",
-      "statement": "Resolved-package Termind Xcode builds consume the remote AgentKit release pinned by Package.resolved, not uncommitted changes in the sibling ../AgentKit checkout; unreleased package changes must be tested in that sibling repository before tagging and bumping the app dependency.",
+      "statement": "Resolved Termind builds consume the remote AgentKit release rather than uncommitted maintenance changes; unreleased package changes must be validated separately with cd AgentKit && swift build && swift test before release and app dependency updates.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         }
       ]
     },
     {
       "id": "claim_1d18ebdbb19e44bab019e980841c9d6e",
-      "statement": "The Xcode project references both `AgentKit` and `AgentKitScrubber` products from the remote AgentKit package and the resolved graph includes ScrubberKit; because the remote package manifest is absent from this checkout, neither the products' internal target dependencies nor whether the core depends on ScrubberKit can be verified from the local project and lockfile alone.",
+      "statement": "The project references AgentKit and AgentKitScrubber products and resolves ScrubberKit. The populated maintenance manifest declares a dependency-free core target and AgentKitScrubber depending on AgentKit and ScrubberKit, but that local manifest is not proof of the shipped remote revision's internals.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules#L1-L3",
-          "version": "repo-lines-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0MjljMjJjMWYxZWM0YzE3YTg2ZjkzYWI3ZjcyNDdlODQxMDAwNjlkNWUxZTM4N2VlNjczOWMxN2Y1ZjFjMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY3Njg4YWQ1NzBiZjg1NTkxZGIzZjg1MTI2ODJhZjlmMjViYjY2MWQ1NDM0YzMyMWEyYjA2NzA0YzExYjQ2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://AgentKit/Package.swift",
+          "version": "repo-file-v1:sha256:1c36e29cab099a934aefdd13b4b69aa25d2d1112ceebe79814bf76f82a8119eb"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3135-L3144",
-          "version": "repo-lines-v1:sha256:f22fbfa4d5570d9fe8bf74baf50551b7bfd6f451a59d19c595a7b0f212353726:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYjQ1NmZhZTIzNTk4ZGIzZDdlMzFlMjc4YjI5MjFiMjhkNzMyNDQ0YWVhNjg3MWJhNmEzYWVlYjZhNzE2NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjZTY5Njc0MzFiNGQwZmEwMTVjNDJiYTc0M2JkNDljYWZlMzU0M2JiY2M2OWI4ZTZkOGZjOGFkMjFlMjQwNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRjMDQ0NzBmNTdjMjg5ZTUwOTA2ZDk5M2EwOWFhZDc2YTY1MGZiODdmYmQ2ODBiNWM0OGE4ZTRiMTM2N2MxMDgifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L265-L272",
-          "version": "repo-lines-v1:sha256:0d6bb0b37fb554e8b9302d093a9af0fa520208839a95725d345524f93da30995:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTFkM2Q5N2NmMzcxYzJjNjRmMzIxNTczOTk0MDgyNmNlNTE4YzZlMmZiMjVmNWY4ZjAzZWM3YWExNDgyMDJhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWJlMWZhODIzNjNlN2Y1MDhhNmU4YzdiZWU4ODg4OTlkZWVmZGZiNTI4MjQyMDM3NjBmN2NmMWEwMzY3MjQxZSJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
         }
       ]
     },
     {
       "id": "claim_4ab312c798a449a4974a5fe0efafea3c",
-      "statement": "The repository also has an `AgentKit/` submodule, but Xcode's declared AgentKit dependency is a remote Swift package; ordinary resolved builds do not consume local edits in that submodule or in the separately developed sibling checkout.",
+      "statement": "AgentKit/ is the repository-root maintenance submodule, while Xcode declares AgentKit as a remote Swift package; initializing or editing the maintenance checkout does not redirect ordinary resolved builds.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
@@ -360,11 +368,11 @@
         },
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:17c054b90204bda78cc9266ce7a122352931040e9978f22c5e16c01b02af86e1"
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         }
       ]
     },
@@ -380,15 +388,15 @@
     },
     {
       "id": "claim_69843718608d4e2c81ad7d770de060cf",
-      "statement": "AGENTS.md requires web changes to pass npm run build and visual review of English and /zh/ routes. The parent guidance does not establish an image pipeline, output formats or complete locale-route inventory; those verification details require inspecting the initialized independent website's own guidance and sources.",
+      "statement": "Parent guidance requires web production builds and English and /zh/ visual review; the website README documents seven current locale roots and legacy /zh/ redirects to Simplified Chinese, so parent guidance is not the complete current route inventory.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L14-L21",
-          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
         },
         {
-          "resource": "repo://AGENTS.md#L66-L68",
-          "version": "repo-lines-v1:sha256:6997a1a7c8b75f5e00768cec37c6a6baf7027c2733ed3a9a1a5cb3e483809e4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjBlZjRjY2FhNGI0NTRlNjA4YTJkMmI1YzIyOTk4OThlMjQ1MGE5OTJlMWI3MmI4M2EzMGI3ZjFlMWJhMjE5MCJ9"
+          "resource": "repo://com.akinokaede.termind/README.md",
+          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
         }
       ]
     },
@@ -404,11 +412,11 @@
     },
     {
       "id": "claim_348ab37b5d7b44e98dd3ce5abde91d18",
-      "statement": "Package.resolved selects AgentKit 2.1.0 at 0bf0b12dcb3b17e52f2157a260a86faddc748b41; the minimum requirement is not itself the selected revision.",
+      "statement": "Package.resolved selects AgentKit 3.0.1 at 3661d156202e9da8d59e5e36ac461913c8bd8536; the minimum requirement is not itself the selected revision.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L13-L20",
-          "version": "repo-lines-v1:sha256:f340f73cfdd52530b936e236d1e40aa97bd542f1936b8a182e506a8663d3844c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2I0YjBlOGY4M2ZlMjRlYTU1MDViMjMwM2E1ZDMyY2EyNzcxM2U5ZWMzOWU5MDA1OGIwNmMyM2E1OTI5MzI5OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
         }
       ]
     },
@@ -470,11 +478,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:fbaaaca27c726d8313c8afb1ee437ad3f02c44de93bd931eedc8ef4d3c6b8e44"
+          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
         }
       ]
     },
@@ -498,7 +506,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L54-L78",
-          "version": "repo-lines-v1:sha256:80a24debc63abf8b7f3f90d0e962ba16ebb4d08bad7a4a7be74b12dfe6de41c6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjQ2YzJkMzc4MDg5NzhhODM3MjA4ODAyMzhhMzIxMzNlNzk5ZDJiZTRkMDFkM2I1MjdiMTY4NjU4YjFiMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MmNlZmUxNGFjNWEwZjU2YzQ0MDM0MTI5OTVhMDIwZmJiMWZjZWI5MTczNGViZjllNjJiZWEyYzQ1NWNiMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
+          "version": "repo-lines-v1:sha256:baf6726fb22c224b151c95e9869415cc98fa0e096b1cabdce4a91046455a7e0a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjQ2YzJkMzc4MDg5NzhhODM3MjA4ODAyMzhhMzIxMzNlNzk5ZDJiZTRkMDFkM2I1MjdiMTY4NjU4YjFiMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MmNlZmUxNGFjNWEwZjU2YzQ0MDM0MTI5OTVhMDIwZmJiMWZjZWI5MTczNGViZjllNjJiZWEyYzQ1NWNiMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L99",
@@ -564,17 +572,17 @@
     },
     {
       "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
-      "statement": "Committed Debug and Release settings use marketing version 1.17.0, with project build 65, TFM build 102, and TFI and TermindWidgets build 91; explicit app and extension overrides mean changing only project defaults does not update their build numbers.",
+      "statement": "Committed Debug and Release settings use marketing version 1.17.1 with project build 68, TFM build 105, and TFI and Widgets build 94; explicit target overrides mean changing only project defaults does not update app build numbers.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2d23f9eddd51bc301487b6904f0ef2292a727fded499b1e6f24625be85799476"
+          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-17T17:19:40.811Z"
+    "at": "2026-10-18T12:28:54.264Z"
   }
 }

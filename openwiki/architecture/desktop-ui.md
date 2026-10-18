@@ -5,7 +5,7 @@ description: How macOS navigation divides shared app services, per-window routes
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+    at: 2026-10-18T12:28:54.264Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -95,7 +95,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
 ---
 
 # Desktop UI and Window Ownership
@@ -256,6 +256,28 @@ Keep the following coordinates distinct:
 - **Presentation route**: an editor, chooser, sheet, or other transient interaction.
 
 They influence one another, but they are not interchangeable selections. A workspace drag adds a fifth, temporary distinction: `selectedWorkspace` remains the command/selection owner, but `displayedWorkspace` can show the next (or previous) merge-capable neighbour when the selected combinable workspace is being dragged. This is a derived preview, not a selection or session transfer; clearing the drag restores the selected workspace, and a drag without an eligible neighbour leaves it displayed. `RootView` uses the derived workspace to decide which deck child is active, while Navigator highlights the displayed row. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Settings navigation uses a window-local `SettingsRoute` hierarchy: toolbar Back walks to the parent, then restores the prior destination, falling back to Vault if its workspace was removed. `SettingsPageView` cleans up incomplete provider, MCP and skill drafts on route changes or disappearance rather than treating a hidden Settings page as a persistent editor. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection lives in its `WorkspaceDeckModel`; recoverable close records are app-owned and populated by window callbacks; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
+
+```mermaid
+flowchart TD
+    Intent[User navigation intent] --> Rail{Assistant mode selected}
+    Rail -->|Workspace in front| Compact[Show contextual sidebar and retain workspace]
+    Rail -->|Other destination| Full[Open full Assistant and remember return destination]
+    Full --> Navigator[User selects Navigator mode]
+    Navigator --> Restore[Restore remembered destination or Vault if workspace is gone]
+    Intent --> Settings[Open window-local Settings route]
+    Settings --> Back{Back destination}
+    Back -->|Parent exists| Parent[Request parent Settings route]
+    Back -->|At root| Previous[Request previous destination or Vault fallback]
+    Parent --> Guard[Attempt theme autosave when leaving custom-theme editor]
+    Previous --> Guard
+    Guard --> Dirty{Unsaved changes remain}
+    Dirty -->|No| Navigate[Complete navigation]
+    Dirty -->|Yes| Decision{Discard or cancel}
+    Decision -->|Discard| Clear[Clear draft then run deferred navigation]
+    Decision -->|Cancel| Stay[Keep editor and draft]
+```
+
+Assistant and Settings return routes belong to the window; unsaved theme drafts gate Settings departures independently of live sessions.
 
 ### Settings edits are not live-session confirmation
 
