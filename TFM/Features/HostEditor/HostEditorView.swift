@@ -260,7 +260,9 @@ struct HostEditorView: View {
                     Section(AppStrings.Vault.routing.swiftUIKey) {
                         Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
                             Text(AppStrings.Common.none).tag(Host.ID?.none)
-                            Divider()
+                            if !jumpHostSections.isEmpty {
+                                Divider()
+                            }
                             ForEach(jumpHostSections) { section in
                                 Section(section.title) {
                                     ForEach(section.hosts) { host in

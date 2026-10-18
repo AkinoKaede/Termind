@@ -141,8 +141,12 @@ struct MobileHostEditor: View {
                         HostTransportSection(host: $draft)
                         Section(AppStrings.Vault.routing.swiftUIKey) {
                             Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
+                                let jumpHosts = library.hosts.filter { $0.id != draft.id && $0.sshEnabled }
                                 Text(AppStrings.Common.none).tag(UUID?.none)
-                                ForEach(library.hosts.filter { $0.id != draft.id && $0.sshEnabled }) {
+                                if !jumpHosts.isEmpty {
+                                    Divider()
+                                }
+                                ForEach(jumpHosts) {
                                     Text($0.name).tag(Optional($0.id))
                                 }
                             }
