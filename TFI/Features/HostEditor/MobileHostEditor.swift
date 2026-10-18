@@ -134,6 +134,9 @@ struct MobileHostEditor: View {
                                 }
                                 Picker(AppStrings.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
                                     Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
+                                    if !library.keys.isEmpty {
+                                        Divider()
+                                    }
                                     ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
                                 }
                             }

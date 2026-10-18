@@ -246,6 +246,9 @@ struct HostEditorView: View {
                             .disabled(!customIdentity.sshPasswordIsEditable)
                             Picker(AppStrings.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
                                 Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
+                                if !app.hostLibrary.keys.isEmpty {
+                                    Divider()
+                                }
                                 ForEach(app.hostLibrary.keys) { key in
                                     Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                                 }

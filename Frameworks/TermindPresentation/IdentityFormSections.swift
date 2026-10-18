@@ -82,6 +82,9 @@ public struct IdentityFormSections: View {
             if showsKey {
                 Picker(AppStrings.Vault.key.swiftUIKey, selection: $keyID) {
                     Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
+                    if !keys.isEmpty {
+                        Divider()
+                    }
                     ForEach(keys) { key in
                         Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                     }
