@@ -795,6 +795,22 @@ public final class ConversationModel: Identifiable {
         .compactMap { $0 }
         .min { $0.createdAt < $1.createdAt }
     }
+    public enum PendingInteraction {
+        case approval(AgentApprovalRequest)
+        case userInteraction(PendingUserInteraction)
+    }
+
+    /// Presents the earliest checkpoint across queues, with approvals winning ties.
+    public var pendingInteraction: PendingInteraction? {
+        let interaction = pendingUserInteraction
+        if let approval = pendingApproval,
+            interaction.map({ approval.invocation.createdAt <= $0.createdAt }) ?? true
+        {
+            return .approval(approval)
+        }
+        return interaction.map(PendingInteraction.userInteraction)
+    }
+
     /// What has been filled in so far, keyed by question. One request can now
     /// carry several questions, so the drafts are per question rather than one
     /// pair of fields shared by whichever one happened to be on screen.
@@ -3181,10 +3197,8 @@ public final class ConversationModel: Identifiable {
             // result the provider has no matching call for — which it rejects
             // on the *next* request. See `AgentToolResult.isProviderNative`.
             guard !result.isProviderNative else { break }
-            let message = AgentTranscriptMessage(
-                id: AgentTranscriptMessage.toolResultID(runID: invocation.runID, callID: result.callID),
-                role: .tool, text: result.content, toolCallID: result.callID,
-                toolName: invocation.call.name, isError: result.isError, modelText: result.modelContent
+            let message = AgentTranscriptMessage.toolResult(
+                result, runID: invocation.runID, toolName: invocation.call.name
             )
             messageRunIDs[message.id] = invocation.runID
             transcript.append(message)

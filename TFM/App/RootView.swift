@@ -267,7 +267,6 @@ struct RootView: View {
             considerOnboarding()
         }
         .modifier(ExternalConnectionURLPresenter(app: app, window: window))
-        .onChange(of: app.proAccess.status) { app.reconcileProAccess() }
         .onChange(of: onboardingContext) { considerOnboarding() }
         .onChange(of: app.onboarding.revision) { considerOnboarding() }
         .task {

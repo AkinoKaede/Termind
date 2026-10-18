@@ -38,6 +38,47 @@ struct ConnectionJourneyTests {
     }
 
     @Test
+    func contentSelectionPrioritizesLogsAndPromptsOverRecoveryAndFailure() {
+        let host = Host(name: "Server", host: "example.invalid")
+        let journey = ConnectionJourney()
+        journey.begin(host: host, route: [host], purpose: .moshSession, username: "user")
+        journey.updateTransportRecovery(.failed, message: "Resume failed")
+        var prompt: SSHAuthenticationPrompt? = .init(host: host, username: "user")
+        let reconnect = ReconnectState(attempt: 1, nextRetry: .now, lastError: "Offline")
+        func content() -> ConnectionJourneyContent {
+            .init(journey: journey, authenticationPrompt: prompt, reconnectState: reconnect)
+        }
+
+        journey.showsLogs = true
+        guard case .logs = content() else {
+            Issue.record("Logs must take precedence over pending interaction")
+            return
+        }
+        journey.showsLogs = false
+        guard case .authentication(let selected) = content() else {
+            Issue.record("Authentication must take precedence over transport recovery")
+            return
+        }
+        #expect(selected.id == prompt?.id)
+        prompt = nil
+        guard case .transportRecovery = content() else {
+            Issue.record("Transport failure must retain recovery-specific actions")
+            return
+        }
+        journey.fail("Bootstrap failed")
+        guard case .failure(let message) = content() else {
+            Issue.record("Ordinary failure must take precedence over scheduled reconnect")
+            return
+        }
+        #expect(message == "Bootstrap failed")
+        journey.hide()
+        guard case .reconnect = content() else {
+            Issue.record("An eligible reconnect is shown when no higher-priority content remains")
+            return
+        }
+    }
+
+    @Test
     func telnetUsesItsOwnSymbolThroughoutTheConnectionJourney() {
         #expect(ConnectionPurpose.telnetSession.symbol(for: .header) == "text.rectangle.fill")
         #expect(ConnectionPurpose.telnetSession.symbol(for: .routeDestination) == "text.rectangle.fill")

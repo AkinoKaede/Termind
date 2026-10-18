@@ -63,10 +63,12 @@ nonisolated public enum TermindAgentTools {
     public static let presenterRegistry = AgentToolPresenterRegistry(
         AgentToolCatalog.builtInPresenters + definitions.map(\.presenter) + [
             .init(
-                id: "builtin.ssh_exec", present: SSHCommandPresentation.present,
+                id: "builtin.ssh_exec",
+                present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
                 presentArguments: SSHExecRunTool.presentArguments),
             .init(
-                id: "builtin.ssh_wait", present: SSHCommandPresentation.present,
+                id: "builtin.ssh_wait",
+                present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
                 presentArguments: SSHExecResults.handleArguments),
         ]
     )

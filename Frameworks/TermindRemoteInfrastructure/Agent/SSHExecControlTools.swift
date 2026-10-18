@@ -39,7 +39,7 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.ssh_exec_output",
         layout: .init(singleLineHeader: true, boundsApprovalHeight: true, truncateStrategy: .tail),
-        present: SSHCommandPresentation.present,
+        present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
         presentArguments: SSHExecResults.handleArguments)
     public let background: AgentBackgroundCommands
     public let scope: UUID
@@ -74,7 +74,9 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
 
 nonisolated public struct SSHExecStdinTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_exec_stdin", present: present, presentArguments: presentArguments)
+        id: "builtin.ssh_exec_stdin",
+        present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
+        presentArguments: presentArguments)
     public let background: AgentBackgroundCommands
     public let scope: UUID
     private let planning: Bool
@@ -187,16 +189,6 @@ nonisolated public struct SSHExecStdinTool: AgentToolDefinition, AgentToolSchema
         return items
     }
 
-    public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
-        typealias F = AgentToolDetailFormatting
-        return F.objectItems(input) { object in
-            var items = SSHCommandPresentation.present(input)
-            if let count = object["bytes_written"]?.integerValue {
-                items.append(F.field("Bytes", String(count), locale: input.locale, monospaced: true))
-            }
-            return items
-        }
-    }
 }
 
 nonisolated public struct PlanningSSHExecStdinTool: AgentToolDefinition {
@@ -218,7 +210,8 @@ nonisolated public struct PlanningSSHExecStdinTool: AgentToolDefinition {
 
 nonisolated public struct SSHExecCancelTool: AgentToolDefinition, AgentToolSchemaBuilding {
     public static let presenter = AgentToolDetailPresenter(
-        id: "builtin.ssh_exec_cancel", present: SSHCommandPresentation.present,
+        id: "builtin.ssh_exec_cancel",
+        present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
         presentArguments: SSHExecResults.handleArguments)
     public let background: AgentBackgroundCommands
     public let scope: UUID
@@ -246,7 +239,9 @@ nonisolated public struct SSHExecCancelTool: AgentToolDefinition, AgentToolSchem
 }
 
 nonisolated public struct SSHExecListTool: AgentToolDefinition, AgentToolSchemaBuilding {
-    public static let presenter = AgentToolDetailPresenter(id: "builtin.ssh_exec_list", present: present)
+    public static let presenter = AgentToolDetailPresenter(
+        id: "builtin.ssh_exec_list",
+        present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) })
     public let background: AgentBackgroundCommands
     public let scope: UUID
     public init(background: AgentBackgroundCommands, scope: UUID) {
@@ -276,21 +271,5 @@ nonisolated public struct SSHExecListTool: AgentToolDefinition, AgentToolSchemaB
             await background.list(
                 scope: scope, hostID: hostID, includeFinished: args.optionalBool("include_finished") ?? false))
     }
-    public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
-        typealias F = AgentToolDetailFormatting
-        return F.objectItems(input) { object in
-            let rows = (object["commands"]?.arrayValue ?? []).compactMap { value -> AgentToolDetail.ListRow? in
-                guard let item = value.objectValue else { return nil }
-                return .init(
-                    title: item["command"]?.stringValue ?? "",
-                    subtitle: [item["host_id"]?.stringValue, item["handle"]?.stringValue].compactMap { $0 }.joined(
-                        separator: " · "),
-                    badges: [F.statusLabel(item["status"]?.stringValue ?? "", locale: input.locale)], symbol: "terminal"
-                )
-            }
-            return rows.isEmpty
-                ? [.message(F.localized("No output", locale: input.locale), .secondary)]
-                : [.list(.init(rows: rows))]
-        }
-    }
+
 }

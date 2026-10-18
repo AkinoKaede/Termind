@@ -2,6 +2,59 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 
+/// Shared precedence only; native shells still own each form and its actions.
+public enum ConnectionJourneyContent {
+    case logs
+    case securityKey(SecurityKeySigningCoordinator, SecurityKeySigningRequest)
+    case keyboardAuthentication(SSHKeyboardInteractiveQueue, SSHKeyboardInteractiveChallenge)
+    case authentication(SSHAuthenticationPrompt)
+    case hostKey(SSHHostKeyPrompt)
+    case remoteSession(RemoteSessionCoordinator)
+    case transportRecovery
+    case failure(String)
+    case reconnect(ReconnectState)
+    case status
+
+    public init(
+        journey: ConnectionJourney, securityKeySigning: SecurityKeySigningCoordinator? = nil,
+        keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil,
+        authenticationPrompt: SSHAuthenticationPrompt? = nil, hostKey: SSHHostKeyPrompt? = nil,
+        remoteSession: RemoteSessionCoordinator? = nil, reconnectState: ReconnectState? = nil
+    ) {
+        if journey.showsLogs {
+            self = .logs
+        } else if let coordinator = securityKeySigning, let request = coordinator.pending {
+            self = .securityKey(coordinator, request)
+        } else if let queue = keyboardAuthentication, let challenge = queue.current {
+            self = .keyboardAuthentication(queue, challenge)
+        } else if let authenticationPrompt {
+            self = .authentication(authenticationPrompt)
+        } else if let hostKey {
+            self = .hostKey(hostKey)
+        } else if let remoteSession, remoteSession.prompt != nil {
+            self = .remoteSession(remoteSession)
+        } else if journey.transportRecovery != nil {
+            self = .transportRecovery
+        } else if case .failed(let message) = journey.phase {
+            self = .failure(message)
+        } else if let reconnectState {
+            self = .reconnect(reconnectState)
+        } else {
+            self = .status
+        }
+    }
+}
+
+extension ConnectionJourney.TransportRecovery {
+    public var statusMessage: String {
+        switch self {
+        case .recovering: String(localized: AppStrings.Transports.recoveringSession)
+        case .suspended: String(localized: AppStrings.Transports.sessionSuspended)
+        case .failed: TerminalTransportError.sessionFailed.localizedDescription
+        }
+    }
+}
+
 nonisolated enum ConnectionJourneySymbolPlacement {
     case header
     case routeDestination

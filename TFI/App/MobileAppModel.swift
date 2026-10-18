@@ -445,6 +445,7 @@ final class MobileAppModel {
         tailscale.start()
         pro.accessDidChange = { [weak self] in
             if let self { self.library.hostAccess.entitlement = self.pro.status }
+            self?.reconcileSync()
             self?.tailscale.reconcile()
             self?.metrics.core.reconcile()
             self?.reconcileConnectionPreferences()

@@ -97,7 +97,7 @@ struct MobileAssistantToolRow: View {
 
     var body: some View {
         let expanded = presentation.isExpanded(.tool(card.id), default: defaultExpanded)
-        let presenter = TermindAgentTools.presenter(for: card.descriptor)
+        let presenter = MobileAppDependencies.toolPresenter(for: card.descriptor)
         MobileAssistantDisclosure(expanded: expanded, toggle: toggle) {
             HStack(spacing: 8) {
                 Image(systemName: AgentToolPresentation.symbol(for: card))
@@ -158,8 +158,8 @@ private struct MobileAssistantToolBatchRow: View {
     @State private var deadline: Date?
     @State private var now = Date.now
 
-    private var unfinished: [AgentToolCard] { batch.cards.filter { !$0.state.isTerminal } }
-    private var reasoning: AgentToolReasoning? { unfinished.isEmpty ? nil : batch.reasoning }
+    private var hasUnfinishedTools: Bool { batch.cards.contains { !$0.state.isTerminal } }
+    private var reasoning: AgentToolReasoning? { hasUnfinishedTools ? batch.reasoning : nil }
     private var showsReasoning: Bool { reasoning != nil && deadline.map { $0 > now } == true }
 
     @ViewBuilder
@@ -187,7 +187,7 @@ private struct MobileAssistantToolBatchRow: View {
                         }
                     }
                     .lineLimit(1).foregroundStyle(.secondary)
-                    .modifier(MobileAssistantScanning(active: !unfinished.isEmpty))
+                    .modifier(MobileAssistantScanning(active: hasUnfinishedTools))
                 }
                 .font(.callout)
             } content: {
@@ -218,9 +218,6 @@ private struct MobileAssistantToolBatchRow: View {
     }
 
     private var fallbackTitle: String {
-        if unfinished.isEmpty { return AgentToolPresentation.batchSummary(for: batch.cards, locale: locale) }
-        return unfinished.map {
-            AgentToolPresentation.summary(for: $0, hostName: $0.invocation.targetHostID.map(hostName), locale: locale)
-        }.joined(separator: "; ")
+        AgentToolPresentation.batchFallbackTitle(for: batch.cards, hostName: hostName, locale: locale)
     }
 }

@@ -63,8 +63,8 @@ struct MobileTerminalRestorationTests {
         #expect(!reopened.sessionPersistence.requiresSelection)
     }
 
-    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
-    func initialFailureRemainsRetryableAfterTransportCleanup(_ transport: HostTerminalProtocol) {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], [false, true])
+    func initialFailureRemainsRetryableAfterTransportCleanup(_ transport: HostTerminalProtocol, hidesJourney: Bool) {
         let host = Host(name: "Server", host: "example.invalid")
         let workspace = MobileWorkspace(
             descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
@@ -73,11 +73,35 @@ struct MobileTerminalRestorationTests {
         workspace.journey.begin(host: host, route: [host], purpose: .terminal(transport), username: "user")
         workspace.receiveTransportState(.connected)
         #expect(workspace.journey.phase == .connecting)
+        if hidesJourney { workspace.journey.hide() }
         workspace.receiveTransportState(.failed, failure: "Bootstrap failed")
         workspace.receiveTransportState(.closed)
         #expect(workspace.journey.phase == .failed("Bootstrap failed"))
         #expect(workspace.journey.transportRecovery == nil)
         #expect(workspace.journey.mode == .connection)
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], [false, true])
+    func restoredFailureBeforeJourneyPresentationKeepsRecoveryActions(
+        _ transport: HostTerminalProtocol, hasCheckpoint: Bool
+    ) {
+        let host = Host(name: "Server", host: "example.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
+            hosts: HostLibraryModel(hosts: [host]))
+        defer { workspace.disconnect() }
+        if hasCheckpoint {
+            workspace.resumeCheckpoint = .init(transport: transport, payload: Data("opaque".utf8))
+        } else {
+            workspace.requiresTransportRecovery = true
+        }
+
+        workspace.receiveTransportState(.failed, failure: "Resume failed")
+
+        #expect(workspace.journey.purpose == .terminal(transport))
+        #expect(workspace.journey.phase == .failed("Resume failed"))
+        #expect(workspace.journey.transportRecovery == .failed)
+        #expect(workspace.journey.mode == .reconnection)
     }
 
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])

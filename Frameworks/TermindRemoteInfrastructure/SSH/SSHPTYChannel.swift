@@ -829,6 +829,25 @@ public actor SSHPTYChannel {
         transportState = stateChanged
     }
 
+    /// Share route/control wiring while the owner supplies its generation-fenced request factory.
+    public func configureTransport(
+        _ kind: HostTerminalProtocol, options: HostTerminalTransports,
+        checkpoint: TerminalTransportCheckpoint? = nil,
+        requestFactory: @escaping @Sendable (_ authenticatingTarget: Bool) async throws -> SSHConnectionRequest,
+        stateChanged: @escaping ResumableTerminalClient.StateHandler
+    ) {
+        configureTransport(
+            kind, options: options, checkpoint: checkpoint,
+            route: {
+                try await TerminalTransportRoute.open(
+                    using: requestFactory(false), port: options.eternalTerminalPort)
+            },
+            control: { command in
+                try await TerminalTransportRoute.execute(command, using: requestFactory(true))
+            },
+            stateChanged: stateChanged)
+    }
+
     public func suspendTransport() async throws -> TerminalTransportCheckpoint {
         guard let resumable else { throw TerminalTransportError.invalidCheckpoint }
         return try await resumable.suspend()

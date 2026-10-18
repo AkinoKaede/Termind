@@ -12,7 +12,7 @@ struct MobileAssistantSpeechTests {
     func speechToolbarKeepsItsHeightOnPhoneAndPad(width: Double, language: String) throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
-        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: assistant.conversation)
+        let composer = MobileAssistantComposer(model: assistant, conversation: assistant.conversation)
         for phase in [SpeechTranscriptionCoordinator.Phase.recording, .transcribing] {
             let controller = UIHostingController(
                 rootView: composer.transcriptionControls(phase: phase)
@@ -32,7 +32,7 @@ struct MobileAssistantSpeechTests {
         let assistant = app.assistant.makeSceneModel()
         let conversation = assistant.conversation
         conversation.composer.draft = "Existing"
-        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: conversation)
+        let composer = MobileAssistantComposer(model: assistant, conversation: conversation)
         let service = MobileComposerSpeechService()
         let speech = SpeechTranscriptionCoordinator(service: service)
         await speech.start(ownerID: conversation.id, completion: composer.applySpeechTranscript)
@@ -59,7 +59,7 @@ struct MobileAssistantSpeechTests {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = assistant.conversation
-        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: conversation)
+        let composer = MobileAssistantComposer(model: assistant, conversation: conversation)
 
         composer.applySpeechTranscript("/plan", sendAfterTranscription: true)
 
@@ -74,7 +74,7 @@ struct MobileAssistantSpeechTests {
         let assistant = app.assistant.makeSceneModel()
         let conversation = assistant.conversation
         conversation.composer.draft = "Original draft"
-        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: conversation)
+        let composer = MobileAssistantComposer(model: assistant, conversation: conversation)
         let service = MobileComposerSpeechService()
         let speech = SpeechTranscriptionCoordinator(service: service)
         await speech.start(ownerID: conversation.id, completion: composer.applySpeechTranscript)

@@ -13,7 +13,6 @@ public final class ProAccessController {
     private var refreshGeneration: UInt64 = 0
 
     public private(set) var status: EntitlementStatus
-    public private(set) var isProcessing = false
     public var isPaywallPresented = false
     /// App-owned runtime reconciliation; does not require a visible SwiftUI surface.
     public var accessDidChange: (() -> Void)?
@@ -104,18 +103,10 @@ public final class ProAccessController {
         refreshGeneration &+= 1
         accessTask?.cancel()
         accessTask = nil
-        if next.hasProAccess { isProcessing = false }
         apply(next)
     }
 
-    public func beginPaywallOperation() {
-        isProcessing = true
-    }
-
-    public func cancelPaywallOperation() { isProcessing = false }
-
     public func completePaywallOperation() async {
-        isProcessing = false
         await refresh()
     }
 

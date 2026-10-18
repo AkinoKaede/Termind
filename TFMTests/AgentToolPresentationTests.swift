@@ -7,6 +7,7 @@ import Testing
 
 import struct TermindDomain.Host
 
+@testable import Termind
 @testable import TermindRemoteInfrastructure
 
 @Suite
@@ -35,6 +36,7 @@ struct AgentToolPresentationTests {
                 presentation: .init(
                     symbol: "terminal",
                     activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                    presenterID: "builtin.ssh_exec_run",
                     actionKind: .run
                 )
             ),
@@ -43,16 +45,18 @@ struct AgentToolPresentationTests {
 
         let presentation = AgentToolPresentation.approval(
             for: request,
-            presenter: SSHExecRunTool.presenter,
+            presenter: AppDependencies.toolPresenter(for: request.descriptor),
             hostName: "Production",
             locale: Locale(identifier: "en")
         )
 
         #expect(!presentation.title.contains(command))
         #expect(!presentation.title.contains(hostID.uuidString))
+        #expect(presentation.detail.layout.singleLineHeader)
+        #expect(presentation.detail.layout.boundsApprovalHeight)
         #expect(
             presentation.detail.items == [
-                .text(.init(title: "Command", text: command, style: .monospaced))
+                .text(.init(title: "Command", text: command, style: .monospaced, isCollapsible: false))
             ]
         )
     }
@@ -125,7 +129,7 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Question", value: "Storage — Which format should we use?")),
@@ -177,7 +181,7 @@ struct AgentToolPresentationTests {
         card.result = AgentToolResult(callID: "call", content: result.encodedString)
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -211,7 +215,7 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -228,7 +232,8 @@ struct AgentToolPresentationTests {
         var builtIn = makeCard(name: "future_tool", target: .local)
         builtIn.result = AgentToolResult(callID: "call", content: payload)
         let builtInDetail = try #require(
-            AgentToolPresentation.detail(for: builtIn, presenter: TermindAgentTools.presenter(for: builtIn.descriptor)))
+            AgentToolPresentation.detail(
+                for: builtIn, presenter: AppDependencies.toolPresenter(for: builtIn.descriptor)))
         #expect(
             builtInDetail.items == [
                 .field(.init(label: "Count", value: "2")),
@@ -244,7 +249,7 @@ struct AgentToolPresentationTests {
         )
         mcp.result = AgentToolResult(callID: "call", content: payload)
         let mcpDetail = try #require(
-            AgentToolPresentation.detail(for: mcp, presenter: TermindAgentTools.presenter(for: mcp.descriptor)))
+            AgentToolPresentation.detail(for: mcp, presenter: AppDependencies.toolPresenter(for: mcp.descriptor)))
         guard case .text(let block) = try #require(mcpDetail.items.first) else {
             Issue.record("Expected MCP JSON text")
             return
@@ -415,7 +420,7 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Status", value: "200")),
@@ -634,10 +639,15 @@ struct AgentToolPresentationTests {
         ]
 
         for (name, target, arguments, result) in cases {
-            var card = makeCard(name: name, target: target, arguments: arguments)
+            var card = makeCard(
+                name: name, target: target, arguments: arguments,
+                presentation: name.hasPrefix("ssh_exec_")
+                    ? .init(
+                        symbol: "terminal", activity: .semanticLabel(.remoteCommand), presenterID: "builtin.\(name)")
+                    : nil)
             card.result = AgentToolResult(callID: "call", content: result.encodedString)
             let detail = try #require(
-                AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)),
+                AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)),
                 "Missing \(name)")
             let rendered = String(describing: detail)
             #expect(!rendered.contains("{"), "\(name) exposed JSON")
@@ -671,7 +681,7 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(!rendered.contains("{"))
         #expect(!rendered.contains("}"))
@@ -708,7 +718,7 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: TermindAgentTools.presenter(for: card.descriptor)))
+            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(rendered.contains("nginx.conf:12"))
         #expect(rendered.contains("listen 443 ssl;"))
@@ -836,49 +846,6 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func longOutputPreviewStaysWithinTheRenderingBudgetAndKeepsFullCopy() {
-        let full = (0..<180).map { "line \($0) " + String(repeating: "x", count: 80) }
-            .joined(separator: "\n")
-
-        let preview = AgentToolPresentation.preview(full)
-
-        #expect(preview.isShortened)
-        #expect(preview.full == full)
-        #expect(preview.displayed.utf8.count <= AgentToolPresentation.displayByteLimit)
-        #expect(
-            preview.displayed.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
-                <= AgentToolPresentation.displayLineLimit
-        )
-        #expect(preview.displayed.hasPrefix("line 0"))
-        #expect(preview.displayed.contains("\n...\n"))
-        #expect(preview.displayed.hasSuffix(String(repeating: "x", count: 80)))
-        #expect(preview.omittedCharacters > 0)
-    }
-
-    @Test
-    func outputPreviewKeepsCompleteUnicodeLinesAtEitherEnd() {
-        let full = "开头🧭\n" + String(repeating: "中\n", count: 200) + "结尾✅"
-        let preview = AgentToolPresentation.preview(full, byteLimit: 80, lineLimit: 120)
-
-        #expect(preview.isShortened)
-        #expect(preview.displayed.utf8.count <= 80)
-        #expect(preview.displayed.hasPrefix("开头🧭"))
-        #expect(preview.displayed.hasSuffix("结尾✅"))
-        #expect(preview.full == full)
-    }
-
-    @Test
-    func shortOutputIsNotProjectedOrMarkedAsShortened() {
-        let full = "one\ntwo\nthree"
-        let preview = AgentToolPresentation.preview(full)
-
-        #expect(preview.displayed == full)
-        #expect(preview.full == full)
-        #expect(!preview.isShortened)
-        #expect(preview.omittedCharacters == 0)
-    }
-
-    @Test
     func presentationRoundTripsThroughExistingResultMetadata() {
         let presentation = AgentToolDescriptor.Presentation(
             symbol: "terminal",
@@ -943,10 +910,10 @@ struct AgentToolPresentationTests {
 
         #expect(
             AgentToolPresentation.detail(
-                for: restored, presenter: TermindAgentTools.presenter(for: restored.descriptor),
+                for: restored, presenter: AppDependencies.toolPresenter(for: restored.descriptor),
                 locale: Locale(identifier: "en"))
                 == AgentToolPresentation.detail(
-                    for: legacy, presenter: TermindAgentTools.presenter(for: legacy.descriptor),
+                    for: legacy, presenter: AppDependencies.toolPresenter(for: legacy.descriptor),
                     locale: Locale(identifier: "en"))
         )
     }
@@ -1352,6 +1319,79 @@ struct AgentToolPresentationTests {
         #expect(
             AgentToolPresentation.batchSummary(for: [custom, custom], locale: Locale(identifier: "en"))
                 == "Pushed artifacts (2 times)")
+    }
+
+    @Test
+    func sshResultsHonorInjectedPresentersAndTheHostTrustBoundary() throws {
+        let registry = SSHExecToolPresentation.registering(
+            in: .init([.init(id: "builtin.ssh_exec", present: { _ in [] })]))
+        let registered = try #require(registry.presenter(id: "builtin.ssh_exec"))
+        #expect(
+            registered.presentArguments(.init(arguments: ["path": .string("/tmp")], locale: Locale(identifier: "en")))
+                == [.field(.init(label: "Path", value: "/tmp"))])
+
+        var card = makeCard(name: "ssh_exec", target: .host, arguments: ["command": .string("pwd")])
+        card.result = .init(callID: "call", content: "{\"stdout\":\"remote output\"}")
+        let injected = AgentToolDetailPresenter(id: "test.ssh") { _ in [.message("Injected", .secondary)] }
+        #expect(
+            AgentToolPresentation.detail(for: card, presenter: injected)?.items == [.message("Injected", .secondary)])
+
+        card.descriptor.presentation = .init(
+            symbol: "terminal", activity: .semanticLabel(.sshCommand), presenterID: "unknown.ssh")
+        #expect(AppDependencies.toolPresenter(for: card.descriptor) == nil)
+        card.descriptor.target = .mcp
+        #expect(AppDependencies.toolPresenter(for: card.descriptor) == nil)
+        let remote = try #require(AgentToolPresentation.detail(for: card, presenter: injected))
+        #expect(remote.items != [.message("Injected", .secondary)])
+        #expect(String(describing: remote).contains("stdout"))
+    }
+
+    @Test
+    func sshPendingAndEmptyResultsRemainDistinctForLegacyAndRegisteredTools() throws {
+        for name in ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"] {
+            var card = makeCard(
+                name: name, target: .host, arguments: ["command": .string("pwd")],
+                presentation: .init(
+                    symbol: "terminal", activity: .semanticLabel(.sshCommand), presenterID: "builtin.\(name)"))
+            let presenter = try #require(AppDependencies.toolPresenter(for: card.descriptor))
+            let locale = Locale(identifier: "zh-Hans")
+            let pending = try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: locale))
+            #expect(pending.items.contains(.message("输出将显示在这里", .secondary)))
+            card.result = .init(callID: "call", content: "{\"output\":\"\",\"note\":\"Still running\"}")
+            let completed = try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: locale))
+            #expect(completed.items.contains(.field(.init(label: "无输出", value: ""))))
+            #expect(completed.items.contains(.message("Still running", .warning)))
+            #expect(!completed.items.contains(.message("输出将显示在这里", .secondary)))
+        }
+    }
+
+    @Test
+    func registeredSSHControlDetailsUseAppCopyWithoutExposingSecretInput() throws {
+        var card = makeCard(
+            name: "renamed_stdin_tool", target: .host,
+            arguments: [
+                "type": .string("secret"), "secret_handle": .string("opaque-secret"), "stdin": .string("hidden"),
+            ],
+            presentation: .init(
+                symbol: "terminal", activity: .semanticLabel(.remoteCommand), presenterID: "builtin.ssh_exec_stdin"))
+        card.result = .init(
+            callID: "call",
+            content: "{\"status\":\"written\",\"handle\":\"command-id\",\"bytes_written\":4,\"stdin_closed\":false}")
+        let presenter = try #require(AppDependencies.toolPresenter(for: card.descriptor))
+        for (language, secret, bytes) in [
+            ("en", "Secret", "Bytes written"),
+            ("zh-Hans", "机密", "已写入字节数"), ("zh-Hant", "機密", "已寫入位元組數"),
+        ] {
+            let detail = try #require(
+                AgentToolPresentation.detail(for: card, presenter: presenter, locale: Locale(identifier: language)))
+            #expect(detail.items.contains(.field(.init(label: bytes, value: "4", isMonospaced: true))))
+            let rendered = String(describing: detail)
+            #expect(rendered.contains(secret))
+            #expect(rendered.contains("command-id"))
+            #expect(!rendered.contains("opaque-secret"))
+            #expect(!rendered.contains("hidden"))
+            #expect(!rendered.contains("No output"))
+        }
     }
 
     private func makeCard(

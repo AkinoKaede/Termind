@@ -60,12 +60,17 @@ struct MobileConnectionJourneyView: View {
 
     @ViewBuilder
     private var content: some View {
-        if journey.showsLogs {
+        switch ConnectionJourneyContent(
+            journey: journey, securityKeySigning: securityKeySigning, keyboardAuthentication: keyboardAuthentication,
+            authenticationPrompt: authenticationPrompt, hostKey: hostKey, remoteSession: remoteSession,
+            reconnectState: reconnectState
+        ) {
+        case .logs:
             logs
-        } else if let coordinator = securityKeySigning, let request = coordinator.pending {
+        case .securityKey(let coordinator, let request):
             SecurityKeySigningCard(request: request, coordinator: coordinator).id(request.id)
                 .connectionFormChrome(isEnabled: true)
-        } else if let queue = keyboardAuthentication, let challenge = queue.current {
+        case .keyboardAuthentication(let queue, let challenge):
             SSHKeyboardInteractiveForm(
                 challenge: challenge, submit: { queue.respond(challenge.id, answers: $0) },
                 cancel: {
@@ -78,27 +83,27 @@ struct MobileConnectionJourneyView: View {
                 }, usesContainerChrome: true
             )
             .id(challenge.id)
-        } else if let authenticationPrompt {
+        case .authentication(let authenticationPrompt):
             SSHAuthenticationForm(
                 prompt: authenticationPrompt, submit: submit, cancel: cancel, library: library
             )
             .id(authenticationPrompt.id)
-        } else if let hostKey {
+        case .hostKey(let hostKey):
             SSHHostKeyConfirmationForm(
                 prompt: hostKey, displayAddress: hostKey.observation.hostname,
                 proceed: { accept(false) }, trust: allowsPersistingHostKey ? { accept(true) } : nil, deny: cancel)
-        } else if let remoteSession, remoteSession.prompt != nil {
+        case .remoteSession(let remoteSession):
             RemoteSessionPromptView(coordinator: remoteSession, cancel: cancel)
                 .connectionFormChrome(isEnabled: true)
-        } else if journey.transportRecovery != nil {
+        case .transportRecovery:
             ConnectionJourneyTransportRecoveryStatus(
                 journey: journey, retryNow: retryReconnectNow, close: cancel, copyLogs: copyLogs)
-        } else if case .failed(let message) = journey.phase {
+        case .failure(let message):
             MobileJourneyFailureCard(message: message, retry: retry, cancel: cancel, copyLogs: copyLogs)
-        } else if let reconnectState {
+        case .reconnect(let reconnectState):
             ConnectionJourneyReconnectStatus(
                 state: reconnectState, retryNow: retryReconnectNow, stop: stopReconnecting)
-        } else {
+        case .status:
             ConnectionJourneyStatus(journey: journey)
         }
     }

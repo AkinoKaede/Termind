@@ -3,6 +3,7 @@ import Foundation
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -17,6 +18,14 @@ struct AppShutdownDependencies {
 
 @MainActor
 struct AppDependencies {
+    private nonisolated static let toolPresenters = SSHExecToolPresentation.registering(
+        in: TermindAgentTools.presenterRegistry)
+
+    nonisolated static func toolPresenter(for descriptor: AgentToolDescriptor) -> AgentToolDetailPresenter? {
+        guard let registered = TermindAgentTools.presenter(for: descriptor) else { return nil }
+        return toolPresenters.presenter(id: registered.id)
+    }
+
     let hostRepository: any HostRepository
     let outboxRunner: OutboxRunner?
     let connectionCoordinator: RemoteConnectionCoordinator

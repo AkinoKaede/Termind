@@ -2,26 +2,54 @@ import AgentKit
 import Foundation
 import TermindApplication
 
-/// Shared by native macOS and iOS cards, including pre-rename transcript records.
-nonisolated enum SSHExecToolPresentation {
-    static let names: Set<String> = [
+/// Localized SSH projections composed into each app's trusted presenter registry.
+nonisolated public enum SSHExecToolPresentation {
+    private static let names: Set<String> = [
         "ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel", "ssh_exec_list",
     ]
 
-    static func detail(for card: AgentToolCard, locale: Locale) -> AgentToolDetail? {
-        guard card.descriptor.target != .mcp, names.contains(card.descriptor.name) else { return nil }
-        let args = card.invocation.call.arguments.objectValue ?? [:]
-        let object: [String: AgentJSONValue]
-        if let result = card.result {
-            guard let parsed = try? AgentJSONValue.decode(Data((result.untrustedPayload ?? result.content).utf8)),
-                let fields = parsed.objectValue
-            else { return nil }
-            object = fields
-        } else {
-            object = [:]
+    /// Replace only the SSH result projections. Tool-owned layout, approval arguments,
+    /// and operation policies remain attached to the same persisted presenter IDs.
+    public static func registering(in registry: AgentToolPresenterRegistry) -> AgentToolPresenterRegistry {
+        AgentToolPresenterRegistry(
+            registry.ids.compactMap { id in
+                guard let original = registry.presenter(id: id) else { return nil }
+                guard let name = names.first(where: { id == "builtin.\($0)" }) else { return original }
+                return AgentToolDetailPresenter(
+                    id: id, layout: original.layout,
+                    present: { present($0, name: name) },
+                    presentArguments: {
+                        original.presentArguments($0)
+                            ?? AgentToolDetailFormatting.genericItems(.object($0.arguments), locale: $0.locale)
+                    },
+                    operation: { original.resolveOperation(arguments: $0) })
+            })
+    }
+
+    /// Result-less historical cards do not have a result projection to invoke yet.
+    static func pendingDetail(for card: AgentToolCard, locale: Locale) -> AgentToolDetail? {
+        guard card.result == nil, card.descriptor.target != .mcp, names.contains(card.descriptor.name),
+            card.descriptor.presentation?.presenterID == nil
+                || card.descriptor.presentation?.presenterID == "builtin.\(card.descriptor.name)"
+        else { return nil }
+        return .init(
+            items: present(
+                .init(
+                    result: .object([:]), arguments: card.invocation.call.arguments.objectValue ?? [:], locale: locale),
+                name: card.descriptor.name, pending: true))
+    }
+
+    private static func present(
+        _ input: AgentToolDetailInput, name: String, pending: Bool = false
+    ) -> [AgentToolDetail.Item] {
+        guard let object = input.result.objectValue else {
+            return AgentToolDetailFormatting.genericItems(input.result, locale: input.locale)
         }
+        let args = input.arguments
         typealias S = AppStrings.SSHExec
-        func text(_ resource: LocalizedStringResource) -> String { AppLocalization.resolve(resource, locale: locale) }
+        func text(_ resource: LocalizedStringResource) -> String {
+            AppLocalization.resolve(resource, locale: input.locale)
+        }
         func field(_ title: LocalizedStringResource, _ value: String = "", mono: Bool = false) -> AgentToolDetail.Item {
             .field(.init(label: text(title), value: value, isMonospaced: mono))
         }
@@ -35,7 +63,7 @@ nonisolated enum SSHExecToolPresentation {
             case "written": text(S.written)
             case "closed": text(S.stdinClosed)
             case "released": text(S.released)
-            default: AgentToolDetailFormatting.statusLabel(value, locale: locale)
+            default: AgentToolDetailFormatting.statusLabel(value, locale: input.locale)
             }
         }
         if let commands = object["commands"]?.arrayValue {
@@ -46,13 +74,13 @@ nonisolated enum SSHExecToolPresentation {
                     title: entry["command"]?.stringValue ?? "", subtitle: subtitle.joined(separator: " · "),
                     badges: [status(entry["status"]?.stringValue ?? "")], symbol: "terminal")
             }
-            return .init(items: rows.isEmpty ? [.message(text(S.noCommands), .secondary)] : [.list(.init(rows: rows))])
+            return rows.isEmpty ? [.message(text(S.noCommands), .secondary)] : [.list(.init(rows: rows))]
         }
         var items: [AgentToolDetail.Item] = []
         if let command = args["command"]?.stringValue {
             items.append(block(S.command, command, isCollapsible: false))
         }
-        if card.descriptor.name == "ssh_exec_run" {
+        if name == "ssh_exec_run" {
             items.append(field(args["run_in_background"]?.boolValue == true ? S.background : S.foreground))
         }
         if let handle = object["handle"]?.stringValue ?? args["handle"]?.stringValue {
@@ -77,12 +105,10 @@ nonisolated enum SSHExecToolPresentation {
         let stderr = object["stderr"]?.stringValue ?? ""
         if !stdout.isEmpty { items.append(block(object["output"] == nil ? S.stdout : S.output, stdout)) }
         if !stderr.isEmpty { items.append(block(S.stderr, stderr)) }
-        if ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(card.descriptor.name),
-            stdout.isEmpty, stderr.isEmpty
-        {
-            items.append(card.result == nil ? .message(text(S.pending), .secondary) : field(S.noOutput))
+        if ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(name), stdout.isEmpty, stderr.isEmpty {
+            items.append(pending ? .message(text(S.pending), .secondary) : field(S.noOutput))
         }
         if let note = object["note"]?.stringValue { items.append(.message(note, .warning)) }
-        return .init(items: items)
+        return items
     }
 }

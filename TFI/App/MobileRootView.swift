@@ -83,7 +83,6 @@ struct MobileRootView: View {
                 guard action != nil, let action = consumePendingQuickAction() else { return }
                 _ = scene.perform(action)
             }
-            .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
             .onChange(of: scene.workspaceSession.workspaces.map(\.id)) { _, workspaceIDs in
                 scene.reconcileWorkspaceIDs(workspaceIDs)
             }

@@ -7,8 +7,7 @@ extension RemoteSessionBackendRegistry {
             Dictionary(
                 uniqueKeysWithValues: RemoteMultiplexerRegistry.dialects.map {
                     dialect -> (SessionPersistenceBackendID, Factory) in
-                    let id = dialect.id
-                    return (id, { execute in RemoteMultiplexerService(backend: id, execute: execute) })
+                    (dialect.id, { execute in dialect.backend(execute: execute) })
                 }))
     }
 }

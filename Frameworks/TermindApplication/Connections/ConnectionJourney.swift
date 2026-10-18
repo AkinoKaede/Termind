@@ -64,6 +64,11 @@ public final class ConnectionJourney {
         case failed(String)
     }
 
+    public enum TransportContext: Equatable {
+        case initialConnection
+        case recovery
+    }
+
     public enum TransportRecovery: Equatable {
         case recovering
         case suspended
@@ -409,6 +414,34 @@ public final class ConnectionJourney {
             completedCheckpoints[checkpoint.endpointIndex] = checkpoint.kind
         }
         checkpoint = nil
+    }
+
+    /// Maps accepted transport facts to presentation only. The owner fences stale events,
+    /// supplies lifecycle context, and retains responsibility for status and cleanup.
+    public func receiveTransportState(
+        _ state: ResumableTerminalState, context: TransportContext, failure: String? = nil,
+        recoveryMessage: (TransportRecovery) -> String, prepareRecovery: () -> Void
+    ) {
+        switch state {
+        case .connected:
+            // Initial readiness belongs to the connection attempt, after startup has finished.
+            if transportRecovery != nil { succeed() }
+        case .recovering, .suspended:
+            prepareRecovery()
+            let recovery: TransportRecovery = state == .recovering ? .recovering : .suspended
+            updateTransportRecovery(recovery, message: recoveryMessage(recovery))
+        case .failed:
+            let message = failure ?? TerminalTransportError.sessionFailed.localizedDescription
+            if context == .initialConnection {
+                fail(message)
+            } else {
+                prepareRecovery()
+                updateTransportRecovery(.failed, message: message)
+            }
+        // Cleanup may follow failure without dismissing the owner's Journey.
+        case .connecting, .ended, .closed:
+            break
+        }
     }
 
     /// Recovery retains the original route and log, but does not replay SSH authentication.

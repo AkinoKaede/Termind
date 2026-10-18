@@ -209,12 +209,17 @@ struct ConnectionJourneyView: View {
 
     @ViewBuilder
     private var content: some View {
-        if journey.showsLogs {
+        switch ConnectionJourneyContent(
+            journey: journey, securityKeySigning: securityKeySigning, keyboardAuthentication: keyboardAuthentication,
+            authenticationPrompt: authenticationPrompt, hostKey: hostKey, remoteSession: remoteSession,
+            reconnectState: journey.mode == .reconnection ? reconnectState : nil
+        ) {
+        case .logs:
             logs
-        } else if let coordinator = securityKeySigning, let request = coordinator.pending {
+        case .securityKey(let coordinator, let request):
             SecurityKeySigningCard(request: request, coordinator: coordinator).id(request.id)
                 .desktopConnectionFormChrome(isEnabled: true)
-        } else if let queue = keyboardAuthentication, let challenge = queue.current {
+        case .keyboardAuthentication(let queue, let challenge):
             SSHKeyboardInteractiveForm(
                 challenge: challenge,
                 submit: { queue.respond(challenge.id, answers: $0) },
@@ -230,27 +235,27 @@ struct ConnectionJourneyView: View {
             )
             .id(challenge.id)
             .desktopConnectionFormChrome(isEnabled: true)
-        } else if let prompt = authenticationPrompt {
+        case .authentication(let prompt):
             DesktopSSHAuthenticationForm(
                 prompt: prompt,
                 submit: submitAuthentication,
                 cancel: cancel
             )
             .id(prompt.id)
-        } else if let hostKey {
+        case .hostKey(let hostKey):
             DesktopSSHHostKeyConfirmationForm(
                 prompt: hostKey,
                 proceed: { continueHostKey(hostKey.observation) },
                 trust: allowsPersistingHostKey ? { trustHostKey(hostKey.observation) } : nil,
                 deny: denyHostKey
             )
-        } else if let remoteSession, remoteSession.prompt != nil {
+        case .remoteSession(let remoteSession):
             RemoteSessionPromptView(coordinator: remoteSession, cancel: cancel)
                 .desktopConnectionFormChrome(isEnabled: true)
-        } else if journey.transportRecovery != nil {
+        case .transportRecovery:
             ConnectionJourneyTransportRecoveryStatus(
                 journey: journey, retryNow: retryReconnectNow ?? retry, close: cancel, copyLogs: copyLogs)
-        } else if case .failed(let message) = journey.phase {
+        case .failure(let message):
             JourneyFailureCard(
                 message: message, retry: retry, cancel: cancel,
                 copyLogs: copyLogs, askAssistant: askAssistant,
@@ -259,14 +264,14 @@ struct ConnectionJourneyView: View {
                 compactActions: compactFailureActions,
                 adaptsActions: isEmbedded
             )
-        } else if journey.mode == .reconnection, let reconnectState {
+        case .reconnect(let reconnectState):
             ConnectionJourneyReconnectStatus(
                 state: reconnectState,
                 accent: TermindColor.accent,
                 retryNow: retryReconnectNow ?? retry,
                 stop: stopReconnecting ?? cancel
             )
-        } else {
+        case .status:
             ConnectionJourneyStatus(
                 journey: journey,
                 accent: TermindColor.accent,

@@ -16,7 +16,6 @@ public struct ChatSlashCommandContext {
     public let compact: (String) -> Void
     public let send: () -> Void
     public let selectModel: ((AIModelRef) -> Bool)?
-    public let authorizeRemoteMCP: () -> Bool
     public let localized: (String.LocalizationValue) -> String
 
     public init(
@@ -29,7 +28,6 @@ public struct ChatSlashCommandContext {
         compact: @escaping (String) -> Void,
         send: @escaping () -> Void,
         selectModel: ((AIModelRef) -> Bool)? = nil,
-        authorizeRemoteMCP: @escaping () -> Bool = { true },
         localized: @escaping (String.LocalizationValue) -> String = { String(localized: $0) }
     ) {
         self.platform = platform
@@ -41,7 +39,6 @@ public struct ChatSlashCommandContext {
         self.compact = compact
         self.send = send
         self.selectModel = selectModel
-        self.authorizeRemoteMCP = authorizeRemoteMCP
         self.localized = localized
     }
 }
@@ -410,8 +407,7 @@ extension ChatSlashCommandRegistry {
             perform: { input, context in
                 guard case .argument(_, _, let argument) = input,
                     let id = UUID(uuidString: argument),
-                    let server = context.configuration.mcpServer(id),
-                    context.authorizeRemoteMCP()
+                    let server = context.configuration.mcpServer(id)
                 else { return false }
                 context.configuration.setServerEnabled(!server.isEnabled, for: id)
                 context.conversation.composer.draft = input.leadingText

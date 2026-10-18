@@ -24,13 +24,11 @@ struct MobileAssistantInteraction: View {
     }
 
     var body: some View {
-        // The earliest checkpoint across both queues is the only visible form.
-        if let approval = conversation.pendingApproval,
-            conversation.pendingUserInteraction.map({ approval.invocation.createdAt <= $0.createdAt }) ?? true
-        {
+        let pending = conversation.pendingInteraction
+        if case .approval(let approval)? = pending {
             approvalCard(approval)
                 .mobileAssistantInteractionSurface()
-        } else if let interaction = conversation.pendingUserInteraction {
+        } else if case .userInteraction(let interaction)? = pending {
             switch interaction {
             case .mcpAuthorization(let prompt):
                 MCPAuthorizationCard(prompt: prompt, conversation: conversation)
@@ -71,7 +69,7 @@ struct MobileAssistantInteraction: View {
     private func approvalCard(_ approval: AgentApprovalRequest) -> some View {
         let presentation = AgentToolPresentation.approval(
             for: approval,
-            presenter: TermindAgentTools.presenter(for: approval.descriptor),
+            presenter: MobileAppDependencies.toolPresenter(for: approval.descriptor),
             hostName: approval.invocation.targetHostID.map(hostName),
             locale: locale
         )

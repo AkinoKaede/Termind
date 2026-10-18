@@ -14,15 +14,8 @@ public nonisolated enum AgentPersistenceRedactor {
 
     static func toolResultText(_ text: String, toolName: String?) -> String {
         let text = AgentSecretLifecycle.persistedResultText(toolName: toolName, original: text)
-        guard let value = decodedToolResult(text) else {
-            return AgentSensitiveDataRedactor.visibleText(text)
-        }
-        // Tool/runtime policies own truncation. Cutting a serialized envelope or
-        // redacting its escape sequences would destroy the retained presentation.
-        let payload = redactedJSON(value).encodedString
-        return text.hasPrefix(AgentToolResult.untrustedDataOpeningMarker)
-            ? AgentToolResult.untrustedDataOpeningMarker + payload + AgentToolResult.untrustedDataClosingMarker
-            : payload
+        // Secret lifecycle policy runs first; structural redaction must not retain handles.
+        return AgentSensitiveDataRedactor.toolResultText(text)
     }
 
     static func restoredToolResultText(_ text: String, fallbacks: [String?]) -> String {
@@ -30,16 +23,11 @@ public nonisolated enum AgentPersistenceRedactor {
         guard
             trimmed.hasPrefix(AgentToolResult.untrustedDataOpeningMarker)
                 || trimmed.hasPrefix("{") || trimmed.hasPrefix("["),
-            decodedToolResult(text) == nil
+            AgentToolResult.decodeStructuredPayload(text) == nil
         else { return text }
         // Earlier writers could corrupt JSON while leaving the frozen model
         // projection intact. Recover only from valid structured data, never guess.
-        return fallbacks.compactMap { $0 }.first { decodedToolResult($0) != nil } ?? text
-    }
-
-    private static func decodedToolResult(_ text: String) -> AgentJSONValue? {
-        let result = AgentToolResult(callID: "", content: text, metadata: ["untrusted": .bool(true)])
-        return try? AgentJSONValue.decode(Data((result.untrustedPayload ?? text).utf8))
+        return fallbacks.compactMap { $0 }.first { AgentToolResult.decodeStructuredPayload($0) != nil } ?? text
     }
 
     public static func encoded<T: Encodable>(_ value: T) -> Data {

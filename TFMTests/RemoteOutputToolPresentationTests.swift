@@ -14,7 +14,7 @@ struct RemoteOutputToolPresentationTests {
     func longOutputExpandsCompletelyWithoutCopyControls(_ name: String, _ width: Double) throws {
         let output = (0..<180).map { "line \($0): " + String(repeating: "output ", count: 8) }.joined(separator: "\n")
         let value = card(name, output: output)
-        let presenter = try #require(TermindAgentTools.presenter(for: value.descriptor))
+        let presenter = try #require(AppDependencies.toolPresenter(for: value.descriptor))
         for language in [AppLanguage.english, .simplifiedChinese] {
             let detail = try #require(
                 AgentToolPresentation.detail(for: value, presenter: presenter, locale: language.locale))
@@ -68,7 +68,7 @@ struct RemoteOutputToolPresentationTests {
     @Test
     func displayFoldingNeverCreatesAMarkerAndActualMarkersAreReusedVerbatim() throws {
         var value = card("ssh_exec_output", output: String(repeating: "line\n", count: 100))
-        let presenter = try #require(TermindAgentTools.presenter(for: value.descriptor))
+        let presenter = try #require(AppDependencies.toolPresenter(for: value.descriptor))
         let detail = try #require(
             AgentToolPresentation.detail(for: value, presenter: presenter, locale: Locale(identifier: "zh-Hans")))
         #expect(AgentToolDetailPreview(detail).isShortened)

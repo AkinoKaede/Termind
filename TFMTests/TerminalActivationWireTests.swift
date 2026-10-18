@@ -292,7 +292,7 @@ final class TmuxActivationFixture {
             try await fixture.control.releaseTerminalForControl()
             fixture.execute = try await fixture.control.sessionCommandExecutor()
             let token = UUID()
-            let session = try await RemoteMultiplexerService(execute: fixture.execute).create(
+            let session = try await RemoteSessionBackendRegistry.live.backend(.tmux, execute: fixture.execute).create(
                 token: token, startupCommand: nil, shellIntegration: true,
                 environment: [.init(variable: "SHELL", value: "/bin/\(shell)")])
             fixture.reference = .init(
@@ -382,7 +382,9 @@ final class TmuxActivationFixture {
 
     func close() async {
         for client in clients { await client.channel.disconnect() }
-        if let reference, let execute { try? await RemoteMultiplexerService(execute: execute).terminate(reference) }
+        if let reference, let execute {
+            try? await RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute).terminate(reference)
+        }
         await control.disconnect()
     }
 }

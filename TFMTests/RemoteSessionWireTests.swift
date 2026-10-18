@@ -62,7 +62,7 @@ struct RemoteSessionWireTests {
 
         let second = SSHPTYChannel(output: { _ in }, exit: { _ in })
         await second.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let before = try await backend.sessions()
             #expect(before.contains { backend.matches(reference, session: $0) && $0.clients == 1 })
             let target = try RemoteTmuxCommands.quote(reference.session.id)
@@ -76,7 +76,7 @@ struct RemoteSessionWireTests {
         try await connect(second, fixture: fixture, hostID: hostID)
         let observer = SSHPTYChannel(output: { _ in }, exit: { _ in })
         await observer.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let sessions = try await backend.sessions()
             #expect(sessions.contains { backend.matches(reference, session: $0) && $0.clients == 2 })
             return nil
@@ -86,7 +86,7 @@ struct RemoteSessionWireTests {
         // Release the first terminal before executing control commands on its MaxSessions=1 transport.
         try await channel.releaseTerminalForControl()
         let execute = try await channel.sessionCommandExecutor()
-        let backend = RemoteMultiplexerService(execute: execute)
+        let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
         let listed = try await backend.sessions()
         #expect(listed.contains { backend.matches(reference, session: $0) && $0.clients == 1 })
         #expect(try await execute("cat '\(marker)'").stdout == "once")
@@ -136,7 +136,7 @@ struct RemoteSessionWireTests {
                 printf '%s\\n' \(contents) > \(quotedDirectory)/.config/fish/config.fish
                 """)
             #expect(setup.exitCode == 0)
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let token = UUID()
             let session = try await backend.create(
                 token: token,
@@ -242,7 +242,7 @@ struct RemoteSessionWireTests {
             await control.disconnect()
             return
         }
-        let backend = RemoteMultiplexerService(execute: execute)
+        let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
         #expect(try await backend.sessions().contains { backend.matches(reference, session: $0) })
         try await connect(channel, fixture: fixture, hostID: hostID)
         #expect(coordinator.attachment?.hasSameIdentity(as: reference) == true)
@@ -260,9 +260,10 @@ struct RemoteSessionWireTests {
         let coordinator = RemoteSessionCoordinator()
         let control = SSHPTYChannel(output: { _ in }, exit: { _ in })
         await control.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let token = UUID()
-            let session = try await backend.create(token: token, startupCommand: nil, shellIntegration: true)
+            let session = try await backend.create(
+                token: token, startupCommand: nil, shellIntegration: true, environment: [])
             let reference = RemoteSessionReference(
                 backend: .tmux, session: session, hostID: hostID, endpoint: "localhost:\(fixture.port)",
                 username: "root", ownershipToken: token)
@@ -294,7 +295,7 @@ struct RemoteSessionWireTests {
         let vimAfter = try await execute("tmux capture-pane -p -t \(target)").stdout
         #expect(vimAfter == vimBefore)
         await client.write(Data([0x02, 0x64]))
-        let backend = RemoteMultiplexerService(execute: execute)
+        let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
         var detached = false
         for _ in 0..<100 {
             detached = try await backend.sessions().contains { $0.id == reference.session.id && $0.clients == 0 }

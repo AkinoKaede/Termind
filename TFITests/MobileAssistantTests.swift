@@ -343,7 +343,7 @@ struct MobileAssistantTests {
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel(messages: [ChatMessage(role: .user, text: "Inspect")])
         assistant.library.insertAndSelect(conversation)
-        let composer = MobileAssistantComposer(pro: app.pro, model: assistant, conversation: conversation)
+        let composer = MobileAssistantComposer(model: assistant, conversation: conversation)
         let commands = composer.availableCommands
         let first = try #require(commands.first)
         #expect(commands.contains { $0.id == "plan" })

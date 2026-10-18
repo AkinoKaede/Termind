@@ -35,7 +35,7 @@ struct ArchitectureBoundaryTests {
             for file in try swiftFiles(in: directory) {
                 let text = try String(contentsOf: file, encoding: .utf8)
                 for symbol in [
-                    "RemoteMultiplexerService", "RemoteMultiplexerRegistry", "RemoteMultiplexerCommands",
+                    "RemoteMultiplexerBackend", "RemoteMultiplexerRegistry", "RemoteMultiplexerCommands",
                     "RemoteMultiplexerDialect", "RemoteSocketMultiplexerDialect", "RemoteMultiplexerRuntime",
                     "RemoteTmuxDialect", "RemoteZellijDialect", "RemoteZmxDialect", "RemoteHerdrDialect",
                     "RemoteTmuxCommands", "RemoteZellijCommands", "RemoteZmxCommands", "RemoteHerdrCommands",
@@ -48,7 +48,7 @@ struct ArchitectureBoundaryTests {
         let channel = try String(
             contentsOf: sourceRoot.appending(path: "../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift"),
             encoding: .utf8)
-        #expect(!containsToken("RemoteMultiplexerService", in: channel))
+        #expect(!containsToken("RemoteMultiplexerBackend", in: channel))
         #expect(!containsToken("RemoteTmuxRuntimeDialect", in: channel))
         #expect(!containsToken("RemoteSocketMultiplexerRuntime", in: channel))
         #expect(containsToken("StartupPreparation", in: channel))

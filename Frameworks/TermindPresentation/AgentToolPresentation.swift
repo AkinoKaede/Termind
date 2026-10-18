@@ -9,19 +9,9 @@ nonisolated public enum AgentToolPresentation {
         case secondary, warning, success, failure
     }
 
-    public static let displayByteLimit = AgentTruncateLimits.maximumBytes
-    public static let displayLineLimit = 120
-
     private static let chatCollaborationToolNames: Set<String> = [
         "list_models", "create_new_chat", "list_chats", "read_chat", "send_to_chat", "wait_chats",
     ]
-
-    nonisolated public struct OutputPreview: Equatable, Sendable {
-        public let displayed: String
-        public let full: String
-        public let isShortened: Bool
-        public let omittedCharacters: Int
-    }
 
     public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
         truncationNotice(for: card) != nil
@@ -249,6 +239,17 @@ nonisolated public enum AgentToolPresentation {
         return action
     }
 
+    /// The title shown when a batch has no transient reasoning title.
+    public static func batchFallbackTitle(
+        for cards: [AgentToolCard], hostName: (UUID) -> String?, locale: Locale = .current
+    ) -> String {
+        let unfinished = cards.filter { !$0.state.isTerminal }
+        guard !unfinished.isEmpty else { return batchSummary(for: cards, locale: locale) }
+        return unfinished.map { card in
+            summary(for: card, hostName: card.invocation.targetHostID.flatMap(hostName), locale: locale)
+        }.joined(separator: "; ")
+    }
+
     /// A finished contiguous batch, phrased from the same presentation
     /// metadata as its individual rows but with repeated activities counted.
     /// Calls in different terminal states stay separate, so one failure can
@@ -334,8 +335,9 @@ nonisolated public enum AgentToolPresentation {
     private static func detailContent(
         for card: AgentToolCard, presenter: AgentToolDetailPresenter?, locale: Locale
     ) -> AgentToolDetail? {
-        if let ssh = SSHExecToolPresentation.detail(for: card, locale: locale) { return ssh }
-        guard let result = card.result else { return nil }
+        guard let result = card.result else {
+            return SSHExecToolPresentation.pendingDetail(for: card, locale: locale)
+        }
 
         // Terminal output belongs to the model result, never the visible card.
         // Handle these names before every raw/error/generic JSON fallback so a
@@ -442,15 +444,11 @@ nonisolated public enum AgentToolPresentation {
             ])
         }
 
-        // A failed/denied historical result may still contain success-shaped fields.
-        // Only successful execution is allowed to select a knowledge success presenter.
-        if let kind = AgentKnowledgeToolPresentation.kind(for: card.descriptor), kind != .legacySkill,
-            result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted
+        let isFailure = result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted
+        if isFailure,
+            detailOutput(from: result, presentation: card.descriptor.presentation, review: card.review) == nil
         {
-            if detailOutput(from: result, presentation: card.descriptor.presentation, review: card.review) == nil {
-                return nil
-            }
-            return AgentToolDetail(items: AgentToolDetailFormatting.genericItems(value, locale: locale))
+            return nil
         }
         guard let presenter else {
             return AgentToolDetail(
@@ -462,7 +460,7 @@ nonisolated public enum AgentToolPresentation {
                 .init(
                     result: value,
                     arguments: card.invocation.call.arguments.objectValue ?? [:],
-                    locale: locale
+                    locale: locale, isFailure: isFailure
                 )))
     }
 
@@ -470,20 +468,6 @@ nonisolated public enum AgentToolPresentation {
         guard let result = card.result else { return nil }
         let raw = result.untrustedPayload ?? result.content
         return (try? AgentJSONValue.decode(Data(raw.utf8)))?.objectValue
-    }
-
-    /// A bounded rendering projection. The full transformed output stays beside
-    /// it for Copy, while the Text view only receives the small preview.
-    public static func preview(
-        _ full: String,
-        byteLimit: Int = displayByteLimit,
-        lineLimit: Int = displayLineLimit
-    ) -> OutputPreview {
-        let selected = AgentTruncateResult.apply(
-            full, strategy: .middle, limits: .init(bytes: byteLimit, lines: lineLimit))
-        return OutputPreview(
-            displayed: selected.content, full: full, isShortened: selected.isTruncated,
-            omittedCharacters: max(0, full.count - selected.content.count))
     }
 
     public static func truncationNotice(for card: AgentToolCard) -> String? {

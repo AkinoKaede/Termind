@@ -7,8 +7,8 @@ import Testing
 
 @Suite @MainActor
 struct TerminalTransportJourneyTests {
-    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
-    func initialConnectedEventDoesNotDismissBootstrapJourney(_ transport: HostTerminalProtocol) {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], [false, true])
+    func initialConnectedEventDoesNotDismissBootstrapJourney(_ transport: HostTerminalProtocol, hidesJourney: Bool) {
         let host = Host(name: "Server", host: "example.invalid")
         let session = SSHSessionModel(host: host)
         session.transport = transport
@@ -17,6 +17,7 @@ struct TerminalTransportJourneyTests {
         session.receiveTransportState(.connected)
         #expect(session.connectionJourney.phase == .connecting)
         #expect(session.connectionJourney.mode == .connection)
+        if hidesJourney { session.connectionJourney.hide() }
         session.receiveTransportState(.failed, failure: "Bootstrap failed")
         #expect(session.connectionJourney.phase == .failed("Bootstrap failed"))
         #expect(session.connectionJourney.transportRecovery == nil)
@@ -55,7 +56,10 @@ struct TerminalTransportJourneyTests {
         let logs = session.connectionJourney.logs
         session.receiveTransportState(.connected)
         #expect(session.connectionJourney.logs == logs)
-        try await Task.sleep(for: .milliseconds(750))
+        // Wait for completion rather than racing the hide task's scheduling against rendering tests.
+        for _ in 0..<100 where !session.acceptsTerminalInput {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(session.acceptsTerminalInput)
         #expect(session.terminalState === surface)
         session.writeInputDirectly(Data("after".utf8))
@@ -66,6 +70,7 @@ struct TerminalTransportJourneyTests {
     func failureKeepsOriginalErrorAndClosedSessionIgnoresLateEvents(_ transport: HostTerminalProtocol) {
         let session = SSHSessionModel(host: Host(name: "Server", host: "example.invalid"))
         session.transport = transport
+        session.connection.markConnected()
         session.receiveTransportState(.failed, failure: "Transport refused resume")
         #expect(session.connectionJourney.phase == .failed("Transport refused resume"))
         #expect(session.connectionJourney.transportRecovery == .failed)

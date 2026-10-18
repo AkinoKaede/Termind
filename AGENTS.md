@@ -20,9 +20,9 @@ and screenshot tooling stay in the main repository; see
 Commit and push asset changes via SSH before updating the main repository's gitlink;
 keep the public HTTPS clone URL in `.gitmodules`.
 
-The agent runtime is `AgentKit`, a separate open-source package developed in the sibling `../AgentKit` repository and consumed as a versioned remote SPM dependency on `github.com/AkinoKaede/AgentKit`, pinned in `Package.resolved`. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package.
+The agent runtime is `AgentKit`, a separate open-source package developed in the repository-root `AgentKit/` maintenance submodule and consumed as a versioned remote SPM dependency on `github.com/AkinoKaede/AgentKit`, pinned in `Package.resolved`. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package.
 
-Xcode builds the pinned tag, not the sibling working tree, so an uncommitted change in `../AgentKit` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `../AgentKit`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Both files belong in the same commit as the app-side change that needs them.
+Xcode builds the pinned tag, not the maintenance submodule working tree, so an uncommitted change in `AgentKit/` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `AgentKit/`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Update the `AgentKit` maintenance gitlink to the released revision and commit it with both dependency files and the app-side change that needs them.
 
 Ghostty is consumed directly from `Lakr233/libghostty-spm` as a remote SPM
 dependency with an up-to-next-major version requirement. `Package.resolved`
@@ -53,7 +53,7 @@ Treat `openwiki/` as durable just-in-time engineering context. Start with `openw
 
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build` builds the app, the MCP bridge, and AgentKit. Keep the flag: resolving without it silently bumps pinned dependencies.
 - `xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build` builds the mobile app and shared frameworks. Run its tests with an available iPhone or iPad simulator destination.
-- `cd ../AgentKit && swift build && swift test` builds and tests the agent package on its own.
+- `cd AgentKit && swift build && swift test` builds and tests the agent package on its own.
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test` runs the default macOS and shared Swift tests. Tests that show windows or take focus are opt-in.
 - `xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge` checks Swift formatting. AgentKit passes the same command over `Sources Tests` and must keep passing it.
 - `cd com.akinokaede.termind && npm ci && npm run dev` installs locked web dependencies and starts Astro locally.
@@ -98,7 +98,7 @@ The normalizer defaults to the two app catalogs and does not touch AgentKit.
 Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`: `AppStrings` owns the Swift API,
 and generating symbols for every manual English key introduces naming collisions.
 
-Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `../AgentKit/Localizations/Localizable.xcstrings`; after editing it run `../AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-localization.py` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.
+Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `AgentKit/Localizations/Localizable.xcstrings`; after editing it run `AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-localization.py` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.
 
 ## Commit & Pull Request Guidelines
 

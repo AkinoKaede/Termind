@@ -163,7 +163,7 @@ struct AssistantTranscriptPresentationTests {
         #expect(conversation.toolCards.first?.state == .denied)
     }
 
-    @Test func resultProjectionUsesTheInjectedPresenterAndRetainsFullCopyOutput() throws {
+    @Test func resultProjectionUsesTheInjectedPresenter() throws {
         var value = card(state: .completed)
         value.result = AgentToolResult(callID: value.invocation.call.id, content: "{\"answer\":42}")
         let presenter = AgentToolDetailPresenter(id: "test.answer") { input in
@@ -171,14 +171,6 @@ struct AssistantTranscriptPresentationTests {
         }
         let detail = try #require(AgentToolPresentation.detail(for: value, presenter: presenter))
         #expect(detail.items == [.field(.init(label: "Answer", value: "42"))])
-        let full = (0..<250).map { "line \($0): " + String(repeating: "日", count: 80) }.joined(separator: "\n")
-        let preview = AgentToolPresentation.preview(full)
-        #expect(preview.isShortened)
-        #expect(preview.full == full)
-        #expect(preview.displayed.hasPrefix("line 0:"))
-        #expect(preview.displayed.contains("line 249:"))
-        #expect(preview.displayed.utf8.count <= AgentToolPresentation.displayByteLimit)
-        #expect(preview.displayed.split(separator: "\n", omittingEmptySubsequences: false).count <= 120)
     }
 
     @Test func reasoningTitlesKeepEmphasisLinksAndImageAltText() {

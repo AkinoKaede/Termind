@@ -379,8 +379,6 @@ nonisolated struct RemoteMultiplexerBackend: RemoteSessionBackend {
         if let existing = try await sessions().first(where: { $0.name == name }) {
             let identity = try RemoteMultiplexerIdentity.decode(existing.identity, kind: kind)
             guard identity.owner == token else { throw RemoteSessionFailure.ownershipMismatch }
-            // An interrupted response may leave a confirmed incarnation without its ready marker.
-            // Only finish that same incarnation; never replay a startup command or adopt by name.
             let reference = RemoteSessionReference(
                 backend: kind, session: existing, hostID: UUID(), endpoint: "", username: "", ownershipToken: token)
             let completion = try await execute(
@@ -391,7 +389,6 @@ nonisolated struct RemoteMultiplexerBackend: RemoteSessionBackend {
                 [ -f "$helper/started" ] && [ ! -L "$helper/started" ] \
                     && [ "$(cat "$helper/started")" = '\(token.uuidString)' ] || exit 81
                 """ : "")
-                : > "$meta/ready"
                 printf 'TERMIND_CREATED\\n'
                 """)
             try Self.check(completion)
@@ -454,7 +451,6 @@ nonisolated struct RemoteMultiplexerBackend: RemoteSessionBackend {
             done
             [ "$(cat "$helper/started")" = '\(token.uuidString)' ] || exit 81
             """ : "")
-            : > "$meta/ready"
             printf 'TERMIND_CREATED\\n'
             """)
         try Self.check(result)

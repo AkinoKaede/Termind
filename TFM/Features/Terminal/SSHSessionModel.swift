@@ -947,7 +947,6 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         do {
             if transport.isResumable {
                 let snapshot = store.additionalConnectionSnapshot(from: configuration)
-                let port = host.terminalTransports.eternalTerminalPort
                 let requestFactory: @Sendable (Bool) async throws -> SSHConnectionRequest = {
                     [weak self, weak store] authenticatingTarget in
                     guard let self, let store, await self.connectionAttemptID == attemptID else {
@@ -972,12 +971,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 }
                 await actor.configureTransport(
                     transport, options: host.terminalTransports,
-                    route: {
-                        try await TerminalTransportRoute.open(using: requestFactory(false), port: port)
-                    },
-                    control: { command in
-                        try await TerminalTransportRoute.execute(command, using: requestFactory(true))
-                    },
+                    requestFactory: requestFactory,
                     stateChanged: { [weak self] state in
                         Task { @MainActor in
                             guard let self, self.connectionAttemptID == attemptID else { return }
@@ -1078,41 +1072,31 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         guard transportState != .ended, transportState != .closed else { return }
         guard state != transportState || failure != nil else { return }
         transportState = state
+        let context = connection.transportJourneyContext()
         switch state {
         case .connected:
             status = .connected
             if connectionJourney.transportRecovery != nil {
                 _ = connection.markConnected()
-                connectionJourney.succeed()
             }
         case .recovering, .suspended:
             status = .reconnecting
-            presentTransportRecovery(
-                state == .recovering ? .recovering : .suspended,
-                message: String(
-                    localized: state == .recovering
-                        ? AppStrings.Transports.recoveringSession : AppStrings.Transports.sessionSuspended))
         case .ended:
             // These protocols report session end, not the remote process's numeric exit status.
             handleRemoteExit(.success(0))
         case .failed:
-            let initialConnection =
-                !connection.hasConnectedOnce && connectionJourney.mode == .connection
-                && connectionJourney.isPresented && connectionJourney.transportRecovery == nil
             connection.resetRecovery()
             let message = failure ?? TerminalTransportError.sessionFailed.localizedDescription
             status = .failed(message)
-            if initialConnection {
-                connectionJourney.fail(message)
-            } else {
-                presentTransportRecovery(.failed, message: message)
-            }
         // Transport cleanup can follow a failure; the pane owns dismissing its Journey.
         case .connecting, .closed: break
         }
+        connectionJourney.receiveTransportState(
+            state, context: context, failure: failure,
+            recoveryMessage: { $0.statusMessage }, prepareRecovery: prepareTransportRecoveryJourney)
     }
 
-    private func presentTransportRecovery(_ state: ConnectionJourney.TransportRecovery, message: String) {
+    private func prepareTransportRecoveryJourney() {
         if connectionJourney.endpoints.isEmpty {
             let host =
                 connectionRoute?.host(hostID) ?? statusStore?.host(hostID) ?? transientHost
@@ -1121,7 +1105,6 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 host: host, route: connectionRoute?.hosts ?? [host], purpose: .terminal(transport),
                 username: connectionRoute?.usernames[hostID] ?? usernameHint, mode: .reconnection)
         }
-        connectionJourney.updateTransportRecovery(state, message: message)
     }
 
     func takePersistentSessionCloseRequest(hosts: any RemoteSessionHostStore) -> RemoteSessionCloseRequest? {
@@ -1158,9 +1141,8 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 var sessionExists: Bool?
                 do {
                     let execute = try await channel.sessionCommandExecutor()
-                    let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
-                    let sessions = try await backend.sessions()
-                    sessionExists = sessions.contains(where: { backend.matches(reference, session: $0) })
+                    sessionExists = try await RemoteSessionBackendRegistry.live.sessionExists(
+                        reference, execute: execute)
                 } catch {
                     // An unverified exit must not erase identity or start a replacement session.
                 }

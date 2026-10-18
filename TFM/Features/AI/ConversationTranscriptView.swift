@@ -134,11 +134,14 @@ struct ConversationView: View {
     private var interactionSurface: some View {
         if conversation.isArchived {
             archivedSurface
-        } else if let interaction = conversation.pendingUserInteraction {
-            blockingSurface { userInteraction(interaction) }
-        } else if let approval = conversation.pendingApproval {
+        } else if let interaction = conversation.pendingInteraction {
             blockingSurface {
-                AgentApprovalCard(request: approval, conversation: conversation)
+                switch interaction {
+                case .approval(let approval):
+                    AgentApprovalCard(request: approval, conversation: conversation)
+                case .userInteraction(let interaction):
+                    userInteraction(interaction)
+                }
             }
         } else {
             if !conversation.pendingSteering.isEmpty {
@@ -368,7 +371,7 @@ private struct AgentApprovalCard: View {
     var body: some View {
         let presentation = AgentToolPresentation.approval(
             for: request,
-            presenter: TermindAgentTools.presenter(for: request.descriptor),
+            presenter: AppDependencies.toolPresenter(for: request.descriptor),
             hostName: request.invocation.targetHostID.map(hostName),
             locale: locale
         )

@@ -53,7 +53,7 @@ struct NativeMultiplexerRuntimeTests {
         try await connect(control, fixture: fixture)
         try await control.releaseTerminalForControl()
         let execute = try await control.sessionCommandExecutor()
-        let backend = RemoteMultiplexerService(backend: backendID, execute: execute)
+        let backend = try RemoteSessionBackendRegistry.live.backend(backendID, execute: execute)
         let root = "/tmp/termind-wire-" + UUID().uuidString.prefix(8).lowercased()
         let names = [
             "native-" + UUID().uuidString.prefix(8).lowercased(), "other-" + UUID().uuidString.prefix(8).lowercased(),
@@ -206,7 +206,7 @@ struct NativeMultiplexerRuntimeTests {
     }
 
     private func attach(
-        _ channel: SSHPTYChannel, state: State, fixture: Fixture, backend: RemoteMultiplexerService,
+        _ channel: SSHPTYChannel, state: State, fixture: Fixture, backend: any RemoteSessionBackend,
         reference: RemoteSessionReference?, root: String, name: String
     ) async throws {
         await channel.configureStartup { _ in

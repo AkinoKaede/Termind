@@ -1,11 +1,21 @@
+import AgentKit
 import Foundation
 import SwiftData
 import TermindApplication
 import TermindInfrastructure
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 @MainActor
 struct MobileAppDependencies {
+    private nonisolated static let toolPresenters = SSHExecToolPresentation.registering(
+        in: TermindAgentTools.presenterRegistry)
+
+    nonisolated static func toolPresenter(for descriptor: AgentToolDescriptor) -> AgentToolDetailPresenter? {
+        guard let registered = TermindAgentTools.presenter(for: descriptor) else { return nil }
+        return toolPresenters.presenter(id: registered.id)
+    }
+
     var hosts: (any HostRepository)?
     var inMemory: Bool
     var defaults: UserDefaults?

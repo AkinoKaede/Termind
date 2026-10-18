@@ -392,11 +392,11 @@ struct SessionPersistenceTests {
 
     @Test func creationRequiresMatchingRemoteOwnershipConfirmation() async throws {
         let name = Array("session\n".utf8).map { String(format: "%02x", $0) }.joined()
-        let service = RemoteMultiplexerService { _ in
+        let service = try RemoteSessionBackendRegistry.live.backend(.tmux) { _ in
             .init(stdout: "TERMIND_TMUX_1\nS $1 123 456 1 0 \(name) -\n", stderr: "", exitCode: 0)
         }
         await #expect(throws: RemoteSessionFailure.ownershipMismatch) {
-            try await service.create(token: UUID(), startupCommand: nil, shellIntegration: false)
+            try await service.create(token: UUID(), startupCommand: nil, shellIntegration: false, environment: [])
         }
     }
 
@@ -407,12 +407,14 @@ struct SessionPersistenceTests {
             (.init(stdout: "unrecognized\n", stderr: "", exitCode: 0), .invalidResponse),
             (.init(stdout: "tmux 3.3a\n", stderr: "", exitCode: 0, truncated: true), .invalidResponse),
         ] {
-            let backend = RemoteMultiplexerService { _ in result }
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux) { _ in result }
             await #expect(throws: failure) { try await backend.probe() }
         }
-        let timeout = RemoteMultiplexerService { _ in throw RemoteSessionFailure.timedOut }
+        let timeout = try RemoteSessionBackendRegistry.live.backend(.tmux) { _ in throw RemoteSessionFailure.timedOut }
         await #expect(throws: RemoteSessionFailure.timedOut) { try await timeout.probe() }
-        let empty = RemoteMultiplexerService { _ in .init(stdout: "TERMIND_TMUX_1\n", stderr: "", exitCode: 0) }
+        let empty = try RemoteSessionBackendRegistry.live.backend(.tmux) { _ in
+            .init(stdout: "TERMIND_TMUX_1\n", stderr: "", exitCode: 0)
+        }
         #expect(try await empty.sessions().isEmpty)
     }
 

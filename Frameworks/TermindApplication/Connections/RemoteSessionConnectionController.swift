@@ -216,6 +216,13 @@ public final class RemoteSessionConnectionController {
         isRecovering = reconnecting && hasConnectedOnce
     }
 
+    /// Capture before resetting recovery on failure. Visibility is not evidence that
+    /// a transport is bootstrapping: restored sessions can fail before showing a Journey.
+    public func transportJourneyContext(restoring: Bool = false) -> ConnectionJourney.TransportContext {
+        hasConnectedOnce || isRecovering || restoring || journey.transportRecovery != nil
+            ? .recovery : .initialConnection
+    }
+
     public func resetRecovery() {
         reconnect.stop()
         hasConnectedOnce = false

@@ -46,9 +46,6 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(throws: RemoteSessionFailure.unsupported) {
             try RemoteSessionBackendRegistry.live.backend(id, execute: execute)
         }
-        let service = RemoteMultiplexerService(backend: id, execute: execute)
-        await #expect(throws: RemoteSessionFailure.unsupported) { try await service.probe() }
-        await #expect(throws: RemoteSessionFailure.unsupported) { try await service.sessions() }
         var reference = try Self.reference(.zellij)
         reference.backend = id
         let runtime = RemoteMultiplexerRuntimeAdapter(attachment: reference, execute: execute)
@@ -127,7 +124,7 @@ nonisolated struct RemoteMultiplexerTests {
     }
 
     @Test(arguments: kinds)
-    func registryAndVersionProbeUseTheSameService(kind: SessionPersistenceBackendID) async throws {
+    func registryProbesTheRegisteredBackend(kind: SessionPersistenceBackendID) async throws {
         let versions: [SessionPersistenceBackendID: String] = [
             .tmux: "tmux 3.3a\n", .zellij: "zellij 0.44.3\n",
             .zmx: "zmx\t\t0.7.0\nghostty_vt\t1.2.3\nsocket_dir\t/tmp/zmx\nlog_dir\t/tmp\n",
@@ -137,7 +134,6 @@ nonisolated struct RemoteMultiplexerTests {
         let recorder = Recorder([.init(stdout: version, stderr: "", exitCode: 0)])
         let backend = try RemoteSessionBackendRegistry.live.backend(
             kind, execute: { try await recorder.execute($0) })
-        #expect(backend is RemoteMultiplexerService)
         let capabilities = try await backend.probe()
         #expect(capabilities.shellIntegration)
         #expect(capabilities.windowCount == (kind == .tmux))
@@ -168,7 +164,7 @@ nonisolated struct RemoteMultiplexerTests {
     }
 
     @Test(arguments: kinds)
-    func failuresAndTruncationNeverEnableABackend(kind: SessionPersistenceBackendID) async {
+    func failuresAndTruncationNeverEnableABackend(kind: SessionPersistenceBackendID) async throws {
         for (response, expected) in [
             (RemoteSessionCommandResult(stdout: "", stderr: "", exitCode: 77), RemoteSessionFailure.missing),
             (.init(stdout: "", stderr: "", exitCode: 79), .ownershipMismatch),
@@ -176,7 +172,7 @@ nonisolated struct RemoteMultiplexerTests {
             (.init(stdout: "partial", stderr: "", exitCode: 0, truncated: true), .invalidResponse),
             (.init(stdout: "not a version", stderr: "", exitCode: 0), .invalidResponse),
         ] {
-            let backend = RemoteMultiplexerService(backend: kind) { _ in response }
+            let backend = try RemoteSessionBackendRegistry.live.backend(kind) { _ in response }
             await #expect(throws: expected) { try await backend.probe() }
         }
     }
@@ -208,7 +204,7 @@ nonisolated struct RemoteMultiplexerTests {
     @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
     func recoveryRejectsReplacedInstancesAndNeverAcquiresManualOwnership(kind: SessionPersistenceBackendID) throws {
         let reference = try Self.reference(kind)
-        let backend = RemoteMultiplexerService(backend: kind) { _ in throw CancellationError() }
+        let backend = try RemoteSessionBackendRegistry.live.backend(kind) { _ in throw CancellationError() }
         #expect(backend.matches(reference, session: reference.session))
         var identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: kind)
         identity = .init(
@@ -228,7 +224,7 @@ nonisolated struct RemoteMultiplexerTests {
     @Test(arguments: [SessionPersistenceBackendID.zellij, .zmx, .herdr])
     func identityRoutingAndOwnershipAreRecheckedBeforeClose(kind: SessionPersistenceBackendID) async throws {
         let recorder = Recorder([.init(stdout: "TERMIND_ENDED\n", stderr: "", exitCode: 0)])
-        let backend = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
+        let backend = try RemoteSessionBackendRegistry.live.backend(kind, execute: { try await recorder.execute($0) })
         let reference = try Self.reference(kind)
         try await backend.terminate(reference)
         let command = try #require(await recorder.commands.first)
@@ -256,7 +252,7 @@ nonisolated struct RemoteMultiplexerTests {
     @Test func zmxDaemonReplacementDoesNotMatchEvenIfTheSocketFingerprintIsUnchanged() throws {
         let reference = try Self.reference(.zmx)
         let original = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: .zmx)
-        let service = RemoteMultiplexerService(backend: .zmx) { _ in throw CancellationError() }
+        let service = try RemoteSessionBackendRegistry.live.backend(.zmx) { _ in throw CancellationError() }
         for (pid, created, owner) in [
             ("124", "456", Self.token), ("123", "457", Self.token), ("123", "456", UUID()),
         ] {
@@ -277,7 +273,7 @@ nonisolated struct RemoteMultiplexerTests {
 
     @Test func herdrDefaultAndForeignOwnershipNeverReachStopOrDelete() async throws {
         let recorder = Recorder([])
-        let service = RemoteMultiplexerService(backend: .herdr, execute: { try await recorder.execute($0) })
+        let service = try RemoteSessionBackendRegistry.live.backend(.herdr, execute: { try await recorder.execute($0) })
         let identity = RemoteMultiplexerIdentity(
             kind: .herdr, root: "/tmp/config/herdr", socket: "/tmp/config/herdr/herdr.sock",
             fingerprint: "1:2:3", process: nil, created: nil, owner: Self.token, helper: nil,
@@ -303,7 +299,7 @@ nonisolated struct RemoteMultiplexerTests {
             .init(stdout: "TERMIND_ENDED", stderr: "", exitCode: 0),
             .init(stdout: "TERMIND_ENDED\n", stderr: "", exitCode: 0, truncated: true),
         ] {
-            let service = RemoteMultiplexerService(backend: kind) { _ in response }
+            let service = try RemoteSessionBackendRegistry.live.backend(kind) { _ in response }
             await #expect(throws: (any Error).self) { try await service.terminate(Self.reference(kind)) }
         }
     }
@@ -315,9 +311,9 @@ nonisolated struct RemoteMultiplexerTests {
             .init(stdout: Self.metadata(kind), stderr: "", exitCode: 0),
             .init(stdout: "TERMIND_CREATED\n", stderr: "", exitCode: 0),
         ])
-        let service = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
+        let service = try RemoteSessionBackendRegistry.live.backend(kind, execute: { try await recorder.execute($0) })
         let session = try await service.create(
-            token: Self.token, startupCommand: "echo NEVER_REPLAY", shellIntegration: true)
+            token: Self.token, startupCommand: "echo NEVER_REPLAY", shellIntegration: true, environment: [])
         #expect(session.name == Self.name)
         let completion = try #require(await recorder.commands.last)
         #expect(completion.contains("/started"))
@@ -334,9 +330,10 @@ nonisolated struct RemoteMultiplexerTests {
             .init(stdout: Self.list(kind), stderr: "", exitCode: 0),
             .init(stdout: Self.metadata(kind), stderr: "", exitCode: 0),
         ])
-        let service = RemoteMultiplexerService(backend: kind, execute: { try await recorder.execute($0) })
+        let service = try RemoteSessionBackendRegistry.live.backend(kind, execute: { try await recorder.execute($0) })
         _ = try await service.create(
-            token: Self.token, startupCommand: "cd /tmp; export FROM_SNIPPET=yes", shellIntegration: true)
+            token: Self.token, startupCommand: "cd /tmp; export FROM_SNIPPET=yes", shellIntegration: true,
+            environment: [])
         let create = await recorder.commands[1]
         #expect(create.contains("first-claimed"))
         #expect(create.contains("cd /tmp; export FROM_SNIPPET=yes"))
@@ -357,11 +354,11 @@ nonisolated struct RemoteMultiplexerTests {
     }
 
     @Test func attachingCannotImplicitlyStartAnInteractiveReplacement() throws {
-        let zmx = try RemoteMultiplexerService(backend: .zmx) { _ in throw CancellationError() }
+        let zmx = try RemoteSessionBackendRegistry.live.backend(.zmx) { _ in throw CancellationError() }
             .launch(Self.reference(.zmx), created: false).command
         #expect(zmx.contains("attach '\(Self.name)' /bin/sh -c 'exit 79'"))
         #expect(!zmx.contains("default-shell"))
-        let herdr = try RemoteMultiplexerService(backend: .herdr) { _ in throw CancellationError() }
+        let herdr = try RemoteSessionBackendRegistry.live.backend(.herdr) { _ in throw CancellationError() }
             .launch(Self.reference(.herdr), created: false).command
         #expect(herdr.contains("--session '\(Self.name)' client"))
         #expect(!herdr.contains("session attach"))

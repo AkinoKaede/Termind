@@ -819,11 +819,8 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                 guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
                 let result = stored.restoredResult
                 recovered.append(
-                    AgentTranscriptMessage(
-                        id: AgentTranscriptMessage.toolResultID(runID: stored.runID, callID: call.id),
-                        role: .tool, text: result.content, toolCallID: call.id,
-                        toolName: names[call.id] ?? call.name, isError: stored.isError,
-                        modelText: result.modelContent
+                    AgentTranscriptMessage.toolResult(
+                        result, runID: stored.runID, toolName: names[call.id] ?? call.name
                     ))
             }
         }

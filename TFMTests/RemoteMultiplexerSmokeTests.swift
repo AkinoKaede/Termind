@@ -24,7 +24,7 @@ struct RemoteMultiplexerSmokeTests {
         try await connect(control, fixture: fixture, hostID: hostID)
         try await control.releaseTerminalForControl()
         let execute = try await control.sessionCommandExecutor()
-        let backend = RemoteMultiplexerService(backend: backendID, execute: execute)
+        let backend = try RemoteSessionBackendRegistry.live.backend(backendID, execute: execute)
         let token = UUID()
         let marker = "/tmp/termind-multiplexer-smoke-\(token.uuidString)"
         var owned: RemoteSessionReference?
@@ -40,7 +40,7 @@ struct RemoteMultiplexerSmokeTests {
                 username: "root", ownershipToken: token)
             owned = reference
             let retried = try await backend.create(
-                token: token, startupCommand: "printf REPLAY >> '\(marker)'", shellIntegration: true)
+                token: token, startupCommand: "printf REPLAY >> '\(marker)'", shellIntegration: true, environment: [])
             #expect(backend.matches(reference, session: retried))
             let manual = RemoteSessionReference(
                 backend: backendID, session: session, hostID: hostID, endpoint: reference.endpoint,

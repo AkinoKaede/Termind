@@ -1107,7 +1107,6 @@ final class MobileWorkspace: Identifiable {
                         recoveryLease = await terminalRecoveryStore.register(recoveryID)
                         guard generation == token else { throw CancellationError() }
                         let snapshot = hosts.additionalConnectionSnapshot(from: config)
-                        let port = host.terminalTransports.eternalTerminalPort
                         let hostKeyAuthorizer = request.authorizeHostKey
                         let keyboardInteractive = request.keyboardInteractive
                         let securityKeySigning = request.securityKeySigning
@@ -1132,12 +1131,7 @@ final class MobileWorkspace: Identifiable {
                         }
                         await session.configureTransport(
                             transport, options: host.terminalTransports, checkpoint: resumeCheckpoint,
-                            route: {
-                                try await TerminalTransportRoute.open(using: requestFactory(false), port: port)
-                            },
-                            control: { command in
-                                try await TerminalTransportRoute.execute(command, using: requestFactory(true))
-                            },
+                            requestFactory: requestFactory,
                             stateChanged: { [weak self] state in
                                 Task { @MainActor in
                                     guard let self, self.generation == token else { return }
@@ -1653,6 +1647,8 @@ final class MobileWorkspace: Identifiable {
         guard transportState != .ended, transportState != .closed else { return }
         guard state != transportState || failure != nil else { return }
         transportState = state
+        let context = connection.transportJourneyContext(
+            restoring: resumeCheckpoint != nil || requiresTransportRecovery)
         switch state {
         case .connected:
             connected = true
@@ -1661,16 +1657,10 @@ final class MobileWorkspace: Identifiable {
             if journey.transportRecovery != nil {
                 _ = connection.markConnected()
                 connectionFailure = nil
-                journey.succeed()
             }
         case .recovering, .suspended:
             connected = false
             status = String(localized: AppStrings.Connections.reconnecting)
-            presentTransportRecovery(
-                state == .recovering ? .recovering : .suspended,
-                message: String(
-                    localized: state == .recovering
-                        ? AppStrings.Transports.recoveringSession : AppStrings.Transports.sessionSuspended))
         case .ended:
             connected = false
             busy = false
@@ -1682,27 +1672,27 @@ final class MobileWorkspace: Identifiable {
             Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
             handleRemoteExit(.success(0))
         case .failed:
-            let initialConnection =
-                !connection.hasConnectedOnce && resumeCheckpoint == nil && !requiresTransportRecovery
-                && journey.mode == .connection && journey.isPresented && journey.transportRecovery == nil
             connected = false
             busy = false
             connection.resetRecovery()
             connectionFailure = failure ?? TerminalTransportError.sessionFailed.localizedDescription
             status = connectionFailure ?? ""
-            if initialConnection {
-                journey.fail(connectionFailure ?? "")
-            } else {
-                presentTransportRecovery(.failed, message: connectionFailure ?? "")
-            }
             let recoveryID = recoveryID
             Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
         // Transport cleanup can follow a failure; the workspace owns dismissing its Journey.
         case .connecting, .closed: break
         }
+        journey.receiveTransportState(
+            state, context: context, failure: failure,
+            recoveryMessage: { $0.statusMessage }, prepareRecovery: prepareTransportRecoveryJourney)
     }
 
     private func presentTransportRecovery(_ state: ConnectionJourney.TransportRecovery, message: String) {
+        prepareTransportRecoveryJourney()
+        journey.updateTransportRecovery(state, message: message)
+    }
+
+    private func prepareTransportRecoveryJourney() {
         if journey.endpoints.isEmpty {
             let host =
                 connectionHost(descriptor.hostID)
@@ -1712,7 +1702,6 @@ final class MobileWorkspace: Identifiable {
                 username: resumeUsername ?? connectionRoute?.usernames[host.id] ?? usernameHint,
                 mode: .reconnection)
         }
-        journey.updateTransportRecovery(state, message: message)
     }
 
     func restoreRemoteSession(_ reference: RemoteSessionReference?) {
@@ -1754,9 +1743,8 @@ final class MobileWorkspace: Identifiable {
                 var sessionExists: Bool?
                 do {
                     let execute = try await channel.sessionCommandExecutor()
-                    let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
-                    let sessions = try await backend.sessions()
-                    sessionExists = sessions.contains(where: { backend.matches(reference, session: $0) })
+                    sessionExists = try await RemoteSessionBackendRegistry.live.sessionExists(
+                        reference, execute: execute)
                 } catch {
                     // An unverified exit must not erase identity or start a replacement session.
                 }

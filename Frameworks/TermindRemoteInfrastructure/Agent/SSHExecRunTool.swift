@@ -7,7 +7,7 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.ssh_exec_run",
         layout: .init(singleLineHeader: true, boundsApprovalHeight: true, truncateStrategy: .tail),
-        present: SSHCommandPresentation.present,
+        present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
         presentArguments: presentArguments)
     public let authentication: AgentSSHAuthenticationRegistry
     public let pool: AgentConnectionPool
@@ -145,10 +145,6 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
             }
         }
         return SSHExecResults.snapshot(invocation, try await background.output(handle, scope: scope))
-    }
-
-    public static func present(_ input: AgentToolDetailInput) -> [AgentToolDetail.Item] {
-        SSHCommandPresentation.present(input)
     }
 
     public static func presentArguments(_ input: AgentToolArgumentDetailInput) -> [AgentToolDetail.Item] {

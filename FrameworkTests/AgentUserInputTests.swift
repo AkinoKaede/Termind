@@ -908,7 +908,7 @@ struct AgentUserInputTests {
     }
 
     @Test
-    func localSSHCheckpointsAndQuestionsPresentByCreationTime() async throws {
+    func localSSHCheckpointsQuestionsAndApprovalsPresentByCreationTime() async throws {
         let conversation = ConversationModel()
         let base = Date(timeIntervalSince1970: 100)
         let hostID = UUID()
@@ -935,6 +935,8 @@ struct AgentUserInputTests {
                 AgentUserQuestion(id: "q", prompt: "Choose", kind: .text)
             ]
         )
+        let approval = approvalRequest(createdAt: base.addingTimeInterval(0.5))
+        let approvalTask = Task { await conversation.requestApproval(approval) }
         let authenticationTask = Task {
             await conversation.requestSSHAuthentication(authentication)
         }
@@ -946,29 +948,84 @@ struct AgentUserInputTests {
             conversation.pendingSSHAuthentication != nil
                 && conversation.pendingSSHHostKey != nil
                 && conversation.pendingUserInput != nil
+                && conversation.pendingApproval != nil
         }
 
-        guard case .questions(let visible)? = conversation.pendingUserInteraction else {
+        guard case .userInteraction(.questions(let visible))? = conversation.pendingInteraction else {
             Issue.record("Expected the oldest question first")
             return
         }
         #expect(visible.id == question.id)
         conversation.cancelUserInput()
         #expect(await questionTask.value == .cancelled)
-        guard case .sshHostKey(let visibleHostKey)? = conversation.pendingUserInteraction else {
-            Issue.record("Expected host key second")
+        guard case .approval(let visibleApproval)? = conversation.pendingInteraction else {
+            Issue.record("Expected approval second")
+            return
+        }
+        #expect(visibleApproval.id == approval.id)
+        conversation.respondToApproval(visibleApproval.id, allow: true)
+        #expect(await approvalTask.value == .allow)
+        guard case .userInteraction(.sshHostKey(let visibleHostKey))? = conversation.pendingInteraction else {
+            Issue.record("Expected host key third")
             return
         }
         #expect(visibleHostKey.id == hostKey.id)
         conversation.respondToSSHHostKey(.continueOnce)
         #expect(await hostKeyTask.value == .continueOnce)
-        guard case .sshAuthentication(let visibleAuthentication)? = conversation.pendingUserInteraction else {
+        guard case .userInteraction(.sshAuthentication(let visibleAuthentication))? = conversation.pendingInteraction
+        else {
             Issue.record("Expected authentication last")
             return
         }
         #expect(visibleAuthentication.id == authentication.id)
         conversation.respondToSSHAuthentication(.cancelled)
         #expect(await authenticationTask.value == .cancelled)
+        #expect(conversation.pendingInteraction == nil)
+    }
+
+    @Test
+    func approvalWinsCreationTimeTieWithoutChangingQuestionDrafts() async throws {
+        let conversation = ConversationModel()
+        let question = request(multiple: false)
+        let questionTask = Task { await conversation.request(question) }
+        try await waitUntil { conversation.pendingUserInput != nil }
+        conversation.toggleUserInputOption("postgres", in: "storage")
+        let selection = conversation.userInputDraft(for: "storage").selection
+        let approval = approvalRequest(createdAt: question.createdAt)
+        let approvalTask = Task { await conversation.requestApproval(approval) }
+        try await waitUntil { conversation.pendingApproval != nil }
+
+        guard case .approval(let visibleApproval)? = conversation.pendingInteraction else {
+            Issue.record("Expected approval to win the timestamp tie")
+            return
+        }
+        #expect(visibleApproval.id == approval.id)
+        conversation.respondToApproval(visibleApproval.id, allow: true)
+        #expect(await approvalTask.value == .allow)
+        guard case .userInteraction(.questions(let visibleQuestion))? = conversation.pendingInteraction else {
+            Issue.record("Expected the question after approval")
+            return
+        }
+        #expect(visibleQuestion.id == question.id)
+        #expect(conversation.userInputDraft(for: "storage").selection == selection)
+        conversation.cancelUserInput()
+        #expect(await questionTask.value == .cancelled)
+        #expect(conversation.pendingInteraction == nil)
+    }
+
+    private func approvalRequest(createdAt: Date) -> AgentApprovalRequest {
+        AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(id: "approval", name: "inspect", arguments: .object([:])),
+                createdAt: createdAt
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "inspect", summary: "Inspect", inputSchema: .object([:]),
+                target: .host, approvalPolicy: .ask
+            ),
+            userIntent: "Inspect"
+        )
     }
 
     /// `request(_:)` publishes the pending question and then suspends on its

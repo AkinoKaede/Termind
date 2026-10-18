@@ -510,7 +510,6 @@ struct MobileAssistantConversation: View {
                 MobileAssistantSteeringQueue(conversation: conversation)
             }
             MobileAssistantComposer(
-                pro: app.pro,
                 model: model,
                 conversation: conversation,
                 focus: composerFocus,

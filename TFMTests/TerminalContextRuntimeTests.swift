@@ -47,7 +47,7 @@ struct TerminalContextRuntimeTests {
             """
         await channel.configureStartup { execute in
             _ = try await execute(setup)
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let owner = UUID()
             let session = try await backend.create(
                 token: owner, startupCommand: nil, shellIntegration: true,
@@ -101,7 +101,7 @@ struct TerminalContextRuntimeTests {
         let channel = makeChannel(state)
         var stage = "connect"
         await channel.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let owner = UUID()
             let session = try await backend.create(
                 token: owner, startupCommand: "cd /tmp", shellIntegration: true,
@@ -242,7 +242,7 @@ struct TerminalContextRuntimeTests {
             state.coordinator.reset()
             state.events.removeAll()
             await channel.configureStartup { execute in
-                let backend = RemoteMultiplexerService(execute: execute)
+                let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
                 try backend.validate(reference)
                 return try SSHPTYStartupPlan(command: backend.launch(reference, created: false).command)
             }
@@ -299,7 +299,7 @@ struct TerminalContextRuntimeTests {
                 "mkdir -p \(try RemoteTmuxCommands.quote(root + "/fish")); printf %s "
                     + "\(try RemoteTmuxCommands.quote(historyContents("echo manual-pane", shell: shell)))"
                     + " > \(try RemoteTmuxCommands.quote(path))")
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let owner = UUID()
             let session = try await backend.create(
                 token: owner, startupCommand: "cd /tmp", shellIntegration: true,
@@ -386,9 +386,10 @@ struct TerminalContextRuntimeTests {
         let state = State()
         let channel = makeChannel(state)
         await channel.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let owner = UUID()
-            let session = try await backend.create(token: owner, startupCommand: nil, shellIntegration: true)
+            let session = try await backend.create(
+                token: owner, startupCommand: nil, shellIntegration: true, environment: [])
             let reference = RemoteSessionReference(
                 backend: .tmux, session: session, hostID: UUID(), endpoint: "fixture", username: "root",
                 ownershipToken: owner)
@@ -441,7 +442,7 @@ struct TerminalContextRuntimeTests {
             else rm -f /root/.bash_profile; fi
             """
         await channel.configureStartup { execute in
-            let backend = RemoteMultiplexerService(execute: execute)
+            let backend = try RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute)
             let owner = UUID()
             let session = try await backend.create(
                 token: owner, startupCommand: "exec vim -n -u NONE -i NONE", shellIntegration: true,
@@ -507,7 +508,7 @@ struct TerminalContextRuntimeTests {
         try await channel.releaseTerminalForControl()
         if let reference = state.reference {
             let execute = try await channel.sessionCommandExecutor()
-            try await RemoteMultiplexerService(execute: execute).terminate(reference)
+            try await RemoteSessionBackendRegistry.live.backend(.tmux, execute: execute).terminate(reference)
         }
         await channel.disconnect()
     }

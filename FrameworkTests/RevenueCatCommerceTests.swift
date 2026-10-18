@@ -90,12 +90,10 @@ struct RevenueCatCommerceTests {
         let service = FakeService()
         let controller = ProAccessController(purchaseService: service, observeUpdates: false)
         controller.isPaywallPresented = true
-        controller.beginPaywallOperation()
         service.status = status
         await controller.completePaywallOperation()
         #expect(controller.status == status)
         #expect(controller.isPaywallPresented)
-        #expect(!controller.isProcessing)
 
         service.status = .free
         await controller.refresh()

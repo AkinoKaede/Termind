@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/AgentKit.git",
       "state" : {
-        "revision" : "0bf0b12dcb3b17e52f2157a260a86faddc748b41",
-        "version" : "2.1.0"
+        "revision" : "42769e5e3633f6958b98b804cb044ca58c0bc6a5",
+        "version" : "2.2.0"
       }
     },
     {

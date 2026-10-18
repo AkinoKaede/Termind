@@ -73,6 +73,47 @@ struct AgentReplayPersistenceTests {
         #expect(conversation.messageRunIDs[resultID] == snapshot.id)
     }
 
+    @Test(arguments: [false, true])
+    func crashRecoveryUsesFrozenStructuredFallbackOnlyForMalformedEnvelopes(malformed: Bool) throws {
+        let call = AgentToolCall(id: "read", name: "read", arguments: .object([:]))
+        let runID = UUID()
+        let invocation = AgentToolInvocation(runID: runID, call: call)
+        let frozen =
+            AgentToolResult.untrustedDataOpeningMarker
+            + AgentJSONValue.object(["output": .string("retained\nlines\n")]).encodedString
+            + AgentToolResult.untrustedDataClosingMarker
+        var result = AgentToolResult(callID: call.id, content: "source", isError: true)
+        result.modelContent = frozen
+        let stored = PersistentAgentToolResult(result, invocation: invocation)
+        // Simulate historical writers that sliced serialized JSON, bypassing today's writer.
+        stored.content = malformed ? AgentToolResult.untrustedDataOpeningMarker + "{\"output\":" : "plain output"
+        let recovered = SwiftDataAgentRunRepository.recovering(
+            [AgentTranscriptMessage(role: .assistant, toolCalls: [call])],
+            results: [stored], invocations: [PersistentAgentToolInvocation(invocation, state: "finished")])
+        let message = try #require(recovered.last)
+        #expect(message.id == AgentTranscriptMessage.toolResultID(runID: runID, callID: call.id))
+        #expect(message.text == (malformed ? frozen : "plain output"))
+        #expect(message.modelText == frozen)
+        #expect(message.isError)
+    }
+
+    @Test
+    func secretResultPersistenceExpiresHandlesBeforeStructuralRedaction() throws {
+        let call = AgentToolCall(id: "secret", name: "request_user_secret", arguments: .object([:]))
+        let handle = UUID().uuidString
+        let text =
+            AgentToolResult.untrustedDataOpeningMarker
+            + AgentJSONValue.object(["secret_handle": .string(handle), "single_use": .bool(true)]).encodedString
+            + AgentToolResult.untrustedDataClosingMarker
+        let stored = PersistentAgentToolResult(
+            AgentToolResult(callID: call.id, content: text),
+            invocation: AgentToolInvocation(runID: UUID(), call: call))
+        let fields = try #require(AgentToolResult.decodeStructuredPayload(stored.content)?.objectValue)
+        #expect(fields["handle_status"] == .string("expired"))
+        #expect(fields["secret_handle"] == nil)
+        #expect(!stored.content.contains(handle))
+    }
+
     @Test(arguments: [AgentRunState.failed, .interrupted])
     func aRealRunAtomicallyAdoptsTheEditedStagingMessageAndReplayBacking(
         state: AgentRunState

@@ -63,6 +63,15 @@ public nonisolated struct RemoteSessionBackendRegistry: Sendable {
         guard let factory = factories[id] else { throw RemoteSessionFailure.unsupported }
         return factory(execute)
     }
+
+    /// A failed lookup is unknown, not evidence that the remote session ended.
+    public func sessionExists(
+        _ reference: RemoteSessionReference, execute: @escaping RemoteSessionCommandExecutor
+    ) async throws -> Bool {
+        let backend = try backend(reference.backend, execute: execute)
+        let sessions = try await backend.sessions()
+        return sessions.contains { backend.matches(reference, session: $0) }
+    }
 }
 
 public nonisolated protocol RemoteSessionBackend: Sendable {

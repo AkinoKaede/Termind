@@ -53,7 +53,6 @@ private struct MobileDismissibleComposerBadge: View {
 }
 
 struct MobileAssistantComposer: View {
-    let pro: ProAccessController
     let model: MobileAssistantSceneModel
     @Bindable var conversation: ConversationModel
     let focus: FocusState<Bool>.Binding?
@@ -80,14 +79,12 @@ struct MobileAssistantComposer: View {
     private var activeFocus: FocusState<Bool>.Binding { focus ?? $localFocus }
 
     init(
-        pro: ProAccessController,
         model: MobileAssistantSceneModel,
         conversation: ConversationModel,
         focus: FocusState<Bool>.Binding? = nil,
         focusRequest: Int? = nil,
         focusRequestHandled: @escaping (Int) -> Void = { _ in }
     ) {
-        self.pro = pro
         self.model = model
         self.conversation = conversation
         self.focus = focus
@@ -651,7 +648,6 @@ struct MobileAssistantComposer: View {
             },
             send: model.send,
             selectModel: { model.selectModel($0) },
-            authorizeRemoteMCP: { true },
             localized: { AppLocalization.string($0, locale: locale) }
         )
     }

@@ -786,7 +786,7 @@ private enum NativeTranscriptFactory {
         let stack = NativeStack.vertical()
         let disclosureID = AssistantTranscriptDisclosureID.tool(card.id)
         let expanded = context.presentation.disclosures.isExpanded(disclosureID, default: defaultExpanded)
-        let presenter = TermindAgentTools.presenter(for: card.descriptor)
+        let presenter = AppDependencies.toolPresenter(for: card.descriptor)
         let host = card.invocation.targetHostID.flatMap(context.actions.hostName)
         let title = AgentToolPresentation.summary(
             for: card,
@@ -951,23 +951,13 @@ private enum NativeTranscriptFactory {
         let stack = NativeStack.vertical(spacing: Metrics.Space.s)
         let disclosureID = AssistantTranscriptDisclosureID.toolBatch(batch.id)
         let expanded = context.presentation.disclosures.isExpanded(disclosureID)
-        let unfinished = batch.cards.filter { !$0.state.isTerminal }
-        let fallbackTitle: String
-        if unfinished.isEmpty {
-            fallbackTitle = AgentToolPresentation.batchSummary(
-                for: batch.cards,
-                locale: context.configuration.locale
-            )
-        } else {
-            fallbackTitle = unfinished.map { card in
-                AgentToolPresentation.summary(
-                    for: card,
-                    hostName: card.invocation.targetHostID.flatMap(context.actions.hostName),
-                    locale: context.configuration.locale
-                )
-            }.joined(separator: "; ")
-        }
-        let transientReasoning = unfinished.isEmpty ? nil : batch.reasoning
+        let hasUnfinishedTools = batch.cards.contains { !$0.state.isTerminal }
+        let fallbackTitle = AgentToolPresentation.batchFallbackTitle(
+            for: batch.cards,
+            hostName: context.actions.hostName,
+            locale: context.configuration.locale
+        )
+        let transientReasoning = hasUnfinishedTools ? batch.reasoning : nil
         let reasoningDeadline = transientReasoning.flatMap { reasoning in
             context.measurement
                 ? nil
@@ -982,7 +972,7 @@ private enum NativeTranscriptFactory {
             iconColor: batchColor(AgentToolPresentation.batchTint(for: batch.cards)),
             titleColor: .secondaryLabelColor,
             expanded: expanded,
-            active: !unfinished.isEmpty,
+            active: hasUnfinishedTools,
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
             lineLimit: 1,

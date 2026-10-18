@@ -24,16 +24,11 @@ struct ProPaywallView: View {
                     .onPurchaseInitiated { [pro] _, resume in
                         Task { @MainActor in resume(shouldProceed: !pro.hasProAccess) }
                     }
-                    .onPurchaseStarted { _ in pro.beginPaywallOperation() }
-                    .onRestoreStarted { pro.beginPaywallOperation() }
                     .onPurchaseCompleted { _ in
                         ignoresPurchaseDismissal = true
                         Task { await pro.completePaywallOperation() }
                     }
                     .onRestoreCompleted { _ in Task { await pro.completePaywallOperation() } }
-                    .onPurchaseCancelled { pro.cancelPaywallOperation() }
-                    .onPurchaseFailure { _ in pro.cancelPaywallOperation() }
-                    .onRestoreFailure { _ in pro.cancelPaywallOperation() }
                     .onRequestedDismissal {
                         // RevenueCat requests dismissal after purchase; keep the account variant visible.
                         if ignoresPurchaseDismissal {
@@ -55,7 +50,6 @@ struct ProPaywallView: View {
         .frame(width: 604, height: 720)
         .termindInputAwareFocusEffect()
         .onChange(of: pro.isPaywallPresented) { if !pro.isPaywallPresented { dismiss() } }
-        .onDisappear { pro.cancelPaywallOperation() }
     }
     private var paywallVariables: [String: CustomVariableValue] {
         let account = ProPaywallState(status: pro.status)
