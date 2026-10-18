@@ -12,47 +12,68 @@ public struct HostIconPicker: View {
     }
 
     public var body: some View {
-        LabeledContent(AppStrings.Vault.icon.swiftUIKey) {
-            Menu {
-                // Picker flattens internal sections; separate pickers preserve native menu dividers.
-                Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
-                    iconLabel(Text(AppStrings.Common.automatic), artwork: artwork(for: nil))
-                        .tag(String?.none)
-                }
-                .labelsHidden()
+        #if os(macOS)
+            Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
+                automaticOption
                 Divider()
-                Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
-                    ForEach(HostGeneralIcon.allCases) { icon in
-                        iconLabel(Text(icon.title), artwork: .systemImage(icon.systemImageName))
-                            .tag(String?.some(icon.id))
-                    }
-                }
-                .labelsHidden()
+                generalOptions
                 Divider()
-                Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
-                    ForEach(HostIconCatalog.bundled.selectableEntries) { entry in
-                        iconLabel(Text(verbatim: entry.title), artwork: .asset(entry.asset))
-                            .tag(String?.some(entry.id))
-                    }
-                    if let selection, HostGeneralIcon(rawValue: selection) == nil,
-                        !HostIconCatalog.bundled.entries.contains(where: { $0.id == selection })
-                    {
-                        iconLabel(Text(AppStrings.Vault.unknownIcon), artwork: artwork(for: selection))
-                            .tag(String?.some(selection))
-                    }
-                }
-                .labelsHidden()
-            } label: {
-                iconLabel(selectionTitle, artwork: artwork(for: selection))
+                distributionOptions
             }
-            .pickerStyle(.inline)
-            .menuOrder(.fixed)
-            .accessibilityLabel(Text(AppStrings.Vault.icon))
-            .accessibilityValue(selectionTitle)
             .accessibilityIdentifier("hostIcon.picker")
-            #if os(macOS)
-                .menuStyle(.borderlessButton)
-            #endif
+        #else
+            LabeledContent(AppStrings.Vault.icon.swiftUIKey) {
+                Menu {
+                    // Picker flattens internal sections; separate pickers preserve native menu dividers.
+                    Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
+                        automaticOption
+                    }
+                    .labelsHidden()
+                    Divider()
+                    Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
+                        generalOptions
+                    }
+                    .labelsHidden()
+                    Divider()
+                    Picker(AppStrings.Vault.icon.swiftUIKey, selection: $selection) {
+                        distributionOptions
+                    }
+                    .labelsHidden()
+                } label: {
+                    iconLabel(selectionTitle, artwork: artwork(for: selection))
+                }
+                .pickerStyle(.inline)
+                .menuOrder(.fixed)
+                .accessibilityLabel(Text(AppStrings.Vault.icon))
+                .accessibilityValue(selectionTitle)
+                .accessibilityIdentifier("hostIcon.picker")
+            }
+        #endif
+    }
+
+    private var automaticOption: some View {
+        iconLabel(Text(AppStrings.Common.automatic), artwork: artwork(for: nil))
+            .tag(String?.none)
+    }
+
+    private var generalOptions: some View {
+        ForEach(HostGeneralIcon.allCases) { icon in
+            iconLabel(Text(icon.title), artwork: .systemImage(icon.systemImageName))
+                .tag(String?.some(icon.id))
+        }
+    }
+
+    @ViewBuilder
+    private var distributionOptions: some View {
+        ForEach(HostIconCatalog.bundled.selectableEntries) { entry in
+            iconLabel(Text(verbatim: entry.title), artwork: .asset(entry.asset))
+                .tag(String?.some(entry.id))
+        }
+        if let selection, HostGeneralIcon(rawValue: selection) == nil,
+            !HostIconCatalog.bundled.entries.contains(where: { $0.id == selection })
+        {
+            iconLabel(Text(AppStrings.Vault.unknownIcon), artwork: artwork(for: selection))
+                .tag(String?.some(selection))
         }
     }
 

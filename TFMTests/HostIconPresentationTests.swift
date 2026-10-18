@@ -110,7 +110,7 @@ struct HostIconRenderingTests {
             try await Task.sleep(for: .milliseconds(300))
             controller.view.layoutSubtreeIfNeeded()
             let picker = try #require(
-                descendants(controller.view).compactMap { $0 as? NSButton }.first { $0.image != nil })
+                descendants(controller.view).compactMap { $0 as? NSPopUpButton }.first)
             if selection == nil || selection == "windows" {
                 #expect(picker.image?.size == NSSize(width: 16, height: 16))
             }
