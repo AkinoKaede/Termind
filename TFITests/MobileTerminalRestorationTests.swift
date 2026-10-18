@@ -139,6 +139,62 @@ struct MobileTerminalRestorationTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func moshConnectDistinguishesCheckpointRestoreFromFullReconnect(restoring: Bool) {
+        let jump = Host(name: "Jump", host: "jump.invalid")
+        var host = Host(name: "Server", host: "server.invalid")
+        host.jumpHostID = jump.id
+        host.terminalTransports.moshEnabled = true
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(.mosh)),
+            hosts: HostLibraryModel(hosts: [jump, host]))
+        defer { workspace.disconnect() }
+        workspace.journey.begin(host: host, route: [jump, host], purpose: .moshSession, username: "user")
+        workspace.journey.receive(.connected(host.id))
+        workspace.journey.updateTransportRecovery(.failed, message: "Previous session")
+        if restoring { workspace.resumeCheckpoint = .init(transport: .mosh, payload: Data("checkpoint".utf8)) }
+
+        workspace.connect()
+
+        #expect(workspace.journey.endpoints.map(\.hostID) == [nil, jump.id, host.id])
+        #expect(workspace.journey.usesDirectRecoveryRoute == restoring)
+        #expect(workspace.journey.transportRecovery == (restoring ? .recovering : nil))
+        #expect(workspace.journey.phase == .connecting)
+        #expect(workspace.journey.completedEndpointIndex == 0)
+        #expect(workspace.journey.activeEndpointIndex == (restoring ? 2 : 0))
+    }
+
+    @Test func etRouteProgressDoesNotCompleteRecoveryAndClosedWorkspaceIgnoresLateRoutes() {
+        let jump = Host(name: "Jump", host: "jump.invalid")
+        let host = Host(name: "Server", host: "server.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(.eternalTerminal)),
+            hosts: HostLibraryModel(hosts: [jump, host]))
+        defer { workspace.disconnect() }
+        workspace.journey.begin(
+            host: host, route: [jump, host], purpose: .eternalTerminalSession, username: "user")
+        let terminal = workspace.terminal
+        workspace.receiveTransportState(.recovering)
+        let attempt = UUID()
+        workspace.receiveTransportRoute(
+            .init(
+                attemptID: attempt, revision: 1, stage: .opening,
+                establishedHostIDs: [jump.id], activeHostID: host.id))
+        #expect(workspace.journey.transportRoute?.establishedHostIDs == [jump.id])
+        workspace.receiveTransportRoute(.init(attemptID: attempt, revision: 2, stage: .ready))
+        #expect(workspace.journey.phase == .connecting)
+        #expect(!workspace.acceptsTerminalInput)
+        #expect(workspace.reconnectState == nil)
+        #expect(workspace.terminal === terminal)
+        workspace.receiveTransportState(.connected)
+        #expect(workspace.journey.phase == .succeeded)
+        workspace.disconnect()
+        let retained = workspace.journey.transportRoute
+        workspace.receiveTransportRoute(.init(attemptID: attempt, revision: 3, stage: .opening))
+        #expect(workspace.journey.transportRoute == retained)
+        #expect(!workspace.journey.isPresented)
+    }
+
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
     func recoveryUsesJourneyAndRetainsTerminalWithoutSchedulingSSHReconnect(_ transport: HostTerminalProtocol)
         async throws

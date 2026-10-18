@@ -160,21 +160,7 @@ private struct MobileJourneyFailureCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(AppStrings.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
-                .font(.headline)
-                .foregroundStyle(.red)
-            Text(message)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-            actions
-        }
-        .padding(18)
-        .background(Color.red.opacity(0.065), in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(Color.red.opacity(0.3))
-        }
+        ConnectionJourneyFailureCard(message: message) { actions }
     }
 
     @ViewBuilder
@@ -182,34 +168,34 @@ private struct MobileJourneyFailureCard: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(spacing: 10) {
                 HStack {
-                    Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                    Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                    secondaryActions
                     Spacer()
                 }
-                Button(AppStrings.Common.retry.swiftUIKey, action: retry)
-                    .buttonStyle(.borderedProminent)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                retryButton.frame(maxWidth: .infinity, alignment: .trailing)
             }
         } else {
             HStack {
-                Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                secondaryActions
                 Spacer()
-                Button(AppStrings.Common.retry.swiftUIKey, action: retry)
-                    .buttonStyle(.borderedProminent)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                retryButton
             }
         }
+    }
+
+    @ViewBuilder
+    private var secondaryActions: some View {
+        Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+        Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var retryButton: some View {
+        Button(AppStrings.Common.retry.swiftUIKey, action: retry)
+            .buttonStyle(.borderedProminent)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 }

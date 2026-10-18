@@ -82,6 +82,70 @@ struct TransportRecoveryJourneyTests {
         #expect(!journey.plainTextLog.contains("Must not apply"))
     }
 
+    @Test(arguments: ["authentication", "hostKey", "proxy", "identity", "passphrase"])
+    func routeAndProtocolUpdatesDoNotDismissPendingInteraction(kind: String) {
+        let (journey, host) = fixture(.eternalTerminalSession)
+        switch kind {
+        case "authentication": journey.waitForAuthentication(at: host.id)
+        case "hostKey": journey.waitForHostKey(at: host.id, fingerprint: "SHA256:test")
+        case "proxy": journey.waitForProxyAuthentication(at: host.id)
+        case "identity": journey.waitForLocalIdentity(at: host.id)
+        default: journey.waitForLocalPassphrase(at: host.id)
+        }
+        let checkpoint = journey.checkpoint
+        let requirement = journey.localRequirement
+        let endpoint = journey.activeEndpointIndex
+        let attempt = UUID()
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 1, stage: .opening))
+        for recovery in [ConnectionJourney.TransportRecovery.recovering, .suspended, .recovering] {
+            journey.updateTransportRecovery(recovery, message: "Recovery changed")
+            #expect(journey.phase == .waiting)
+            #expect(journey.checkpoint == checkpoint)
+            #expect(journey.localRequirement == requirement)
+            #expect(journey.activeEndpointIndex == endpoint)
+        }
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 2, stage: .ready))
+        #expect(journey.phase == .waiting)
+        #expect(journey.checkpoint == checkpoint)
+        #expect(journey.localRequirement == requirement)
+        journey.resume()
+        #expect(journey.phase == .connecting)
+        #expect(journey.checkpoint == nil)
+        #expect(journey.localRequirement == nil)
+    }
+
+    @Test func routeSnapshotsAreIsolatedAndDoNotReviveTheJourneyOrDeclareProtocolReadiness() {
+        let (first, host) = fixture(.eternalTerminalSession)
+        let second = ConnectionJourney()
+        second.begin(host: host, route: [host], purpose: .eternalTerminalSession, username: "user")
+        first.succeed()
+        first.hide()
+        let attempt = UUID()
+        let ready = TerminalRouteSnapshot(attemptID: attempt, revision: 2, stage: .ready)
+        first.receiveTransportRoute(ready)
+        #expect(!first.isPresented)
+        #expect(second.transportRoute == nil)
+        #expect(second.phase == .connecting)
+        first.updateTransportRecovery(.recovering, message: "Recovering")
+        first.receiveTransportRoute(ready)
+        #expect(first.phase == .connecting)
+        first.receiveTransportRoute(.init(attemptID: attempt, revision: 3, stage: .unavailable))
+        first.receiveTransportRoute(ready)
+        #expect(first.transportRoute?.stage == .unavailable)
+        first.begin(host: host, route: [host], purpose: .eternalTerminalSession, username: "user")
+        #expect(first.transportRoute == nil)
+        first.receiveTransportRoute(.init(attemptID: UUID(), revision: 1, stage: .opening))
+        #expect(first.transportRoute?.stage == .opening)
+    }
+
+    @Test(arguments: [ConnectionPurpose.moshSession, .sshSession])
+    func nonETJourneysIgnoreDataRouteFacts(purpose: ConnectionPurpose) {
+        let (journey, _) = fixture(purpose)
+        journey.receiveTransportRoute(.init(attemptID: UUID(), revision: 1, stage: .ready))
+        #expect(journey.transportRoute == nil)
+        #expect(journey.phase == .connecting)
+    }
+
     private func fixture(_ purpose: ConnectionPurpose) -> (ConnectionJourney, Host) {
         let host = Host(name: "Server", host: "example.invalid")
         let journey = ConnectionJourney()

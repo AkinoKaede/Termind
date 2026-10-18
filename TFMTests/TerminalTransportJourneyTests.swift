@@ -7,6 +7,36 @@ import Testing
 
 @Suite @MainActor
 struct TerminalTransportJourneyTests {
+    @Test func etRouteProgressDoesNotCompleteRecoveryAndClosedSessionIgnoresLateRoutes() {
+        let jump = Host(name: "Jump", host: "jump.invalid")
+        let host = Host(name: "Server", host: "server.invalid")
+        let session = SSHSessionModel(host: host)
+        session.transport = .eternalTerminal
+        defer { session.disconnect() }
+        session.connectionJourney.begin(
+            host: host, route: [jump, host], purpose: .eternalTerminalSession, username: "user")
+        let surface = session.terminalState
+        session.receiveTransportState(.recovering)
+        let attempt = UUID()
+        session.receiveTransportRoute(
+            .init(
+                attemptID: attempt, revision: 1, stage: .opening,
+                establishedHostIDs: [jump.id], activeHostID: host.id))
+        #expect(session.connectionJourney.transportRoute?.establishedHostIDs == [jump.id])
+        session.receiveTransportRoute(.init(attemptID: attempt, revision: 2, stage: .ready))
+        #expect(session.connectionJourney.phase == .connecting)
+        #expect(!session.acceptsTerminalInput)
+        #expect(session.reconnectState == nil)
+        #expect(session.terminalState === surface)
+        session.receiveTransportState(.connected)
+        #expect(session.connectionJourney.phase == .succeeded)
+        session.disconnect()
+        let retained = session.connectionJourney.transportRoute
+        session.receiveTransportRoute(.init(attemptID: attempt, revision: 3, stage: .opening))
+        #expect(session.connectionJourney.transportRoute == retained)
+        #expect(!session.connectionJourney.isPresented)
+    }
+
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], [false, true])
     func initialConnectedEventDoesNotDismissBootstrapJourney(_ transport: HostTerminalProtocol, hidesJourney: Bool) {
         let host = Host(name: "Server", host: "example.invalid")

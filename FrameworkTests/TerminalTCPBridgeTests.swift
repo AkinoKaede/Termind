@@ -15,7 +15,7 @@ struct TerminalTCPBridgeTests {
         defer { Darwin.close(peer) }
         configure(peer)
         let route = try await routed(pair[0])
-        let bridge = try TerminalTCPBridge(open: { throw CancellationError() }, initial: route)
+        let bridge = try TerminalTCPBridge(open: { _ in throw CancellationError() }, initial: route)
         let client = try connect(to: bridge.port)
         defer { Darwin.close(client) }
         let payload = Data((0..<131_072).map { UInt8($0 % 251) })
@@ -44,10 +44,16 @@ struct TerminalTCPBridgeTests {
         configure(second[1])
         let initial = try await routed(first[0])
         let replacement = try await routed(second[0])
-        let bridge = try TerminalTCPBridge(open: { replacement }, initial: initial)
+        let snapshots = BridgeSnapshots()
+        let reporter = TerminalRouteReporter(hostIDs: [UUID()], changed: snapshots.record)
+        let initialAttempt = reporter.begin()
+        reporter.ready(attemptID: initialAttempt)
+        let bridge = try TerminalTCPBridge(
+            open: { _ in replacement }, initial: initial, reporter: reporter, initialAttemptID: initialAttempt)
         let oldClient = try connect(to: bridge.port)
         try await write(oldClient, Data([1]))
         #expect(try await read(first[1], count: 1) == Data([1]))
+        #expect(snapshots.values.map(\.stage) == [.opening, .ready])
         Darwin.close(oldClient)
         let newClient = try connect(to: bridge.port)
         defer { Darwin.close(newClient) }
@@ -56,6 +62,79 @@ struct TerminalTCPBridgeTests {
         await bridge.close()
         #expect(fcntl(initial.socket, F_GETFD) == -1)
         #expect(fcntl(replacement.socket, F_GETFD) == -1)
+        let reported = snapshots.values
+        #expect(reported.map(\.stage) == [.opening, .ready, .unavailable, .opening, .ready, .unavailable])
+        #expect(reported[2].attemptID == initialAttempt)
+        #expect(reported[3].attemptID != initialAttempt)
+        #expect(reported[3].establishedHostIDs.isEmpty)
+        #expect(reported.map(\.revision) == Array(1...UInt64(reported.count)))
+    }
+
+    @Test func closeDuringOpeningRejectsLateProgressAndReleasesTheLateSocket() async throws {
+        var pair: [Int32] = [-1, -1]
+        #expect(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+        defer { Darwin.close(pair[1]) }
+        let lateRoute = try await routed(pair[0])
+        let gate = OpeningGate()
+        let snapshots = BridgeSnapshots()
+        let hop = UUID()
+        let reporter = TerminalRouteReporter(hostIDs: [hop, UUID()], changed: snapshots.record)
+        let bridge = try TerminalTCPBridge(open: { try await gate.open($0) }, reporter: reporter)
+        let client = try connect(to: bridge.port)
+        defer { Darwin.close(client) }
+        #expect(await eventually { await gate.isOpening })
+        await gate.emit(.authenticated(hop))
+        #expect(await eventually { snapshots.values.last?.establishedHostIDs == [hop] })
+        await bridge.close()
+        let retired = snapshots.values
+        #expect(retired.last?.stage == .unavailable)
+        #expect(retired.last?.establishedHostIDs == [])
+        await gate.emit(.connected(hop))
+        await gate.finish(lateRoute)
+        #expect(await eventually { fcntl(lateRoute.socket, F_GETFD) == -1 })
+        #expect(snapshots.values == retired)
+    }
+
+    @Test func blockedOpeningRemainsBlockedUntilExplicitRetry() async throws {
+        var pair: [Int32] = [-1, -1]
+        #expect(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+        defer { Darwin.close(pair[1]) }
+        configure(pair[1])
+        let route = try await routed(pair[0])
+        let gate = OpeningGate()
+        let snapshots = BridgeSnapshots()
+        let reporter = TerminalRouteReporter(hostIDs: [UUID()], changed: snapshots.record)
+        let bridge = try TerminalTCPBridge(open: { try await gate.open($0) }, reporter: reporter)
+        let first = try connect(to: bridge.port)
+        defer { Darwin.close(first) }
+        #expect(await eventually { await gate.isOpening })
+        await gate.fail()
+        #expect(await eventually { snapshots.values.last?.stage == .unavailable })
+        let blocked = try connect(to: bridge.port)
+        defer { Darwin.close(blocked) }
+        #expect(
+            await eventually {
+                var byte: UInt8 = 0
+                return Darwin.recv(blocked, &byte, 1, 0) == 0
+            })
+        #expect(await gate.openCount == 1)
+        await bridge.retry()
+        let retried = try connect(to: bridge.port)
+        defer { Darwin.close(retried) }
+        #expect(await eventually { await gate.openCount == 2 })
+        await gate.finish(route)
+        try await write(retried, Data([7]))
+        #expect(try await read(pair[1], count: 1) == Data([7]))
+        #expect(snapshots.values.map(\.stage) == [.opening, .unavailable, .opening, .ready])
+        await bridge.close()
+    }
+
+    private func eventually(_ predicate: () async -> Bool) async -> Bool {
+        for _ in 0..<200 {
+            if await predicate() { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return await predicate()
     }
 
     private nonisolated func routed(_ socket: Int32) async throws -> SSHRoutedSocket {
@@ -133,5 +212,37 @@ struct TerminalTCPBridgeTests {
                 try await Task.sleep(for: .milliseconds(5))
             }
         }
+    }
+}
+
+private nonisolated final class BridgeSnapshots: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [TerminalRouteSnapshot] = []
+    var values: [TerminalRouteSnapshot] { lock.withLock { recorded } }
+    func record(_ snapshot: TerminalRouteSnapshot) { lock.withLock { recorded.append(snapshot) } }
+}
+
+private actor OpeningGate {
+    private var continuation: CheckedContinuation<SSHRoutedSocket, any Error>?
+    private var progress: SSHRouteProgressHandler?
+    private(set) var openCount = 0
+    var isOpening: Bool { continuation != nil }
+
+    func open(_ progress: SSHRouteProgressHandler?) async throws -> SSHRoutedSocket {
+        self.progress = progress
+        openCount += 1
+        return try await withCheckedThrowingContinuation { continuation = $0 }
+    }
+
+    func emit(_ event: SSHRouteEvent) { progress?(event) }
+
+    func finish(_ socket: SSHRoutedSocket) {
+        continuation?.resume(returning: socket)
+        continuation = nil
+    }
+
+    func fail() {
+        continuation?.resume(throwing: CancellationError())
+        continuation = nil
     }
 }

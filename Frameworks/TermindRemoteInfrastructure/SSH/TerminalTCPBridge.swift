@@ -5,10 +5,12 @@ import TermindApplication
 /// Adapts the ET library's TCP-only endpoint API to our routed socket owner.
 /// Socket ownership and bounded queues stay on one serial queue, including cancellation.
 nonisolated final class TerminalTCPBridge: @unchecked Sendable {
-    typealias Open = @Sendable () async throws -> SSHRoutedSocket
+    typealias Open = ResumableTerminalClient.RouteFactory
     let port: UInt16
     private let queue = DispatchQueue(label: "com.akinokaede.termind.terminal-tcp-bridge")
     private let open: Open
+    private let reporter: TerminalRouteReporter?
+    private var routeAttemptID: UUID?
     private var listener: Int32
     private var local: Int32 = -1
     private var remote: SSHRoutedSocket?
@@ -22,8 +24,13 @@ nonisolated final class TerminalTCPBridge: @unchecked Sendable {
     private var closed = false
     private var openingBlocked = false
 
-    init(open: @escaping Open, initial: SSHRoutedSocket? = nil) throws {
+    init(
+        open: @escaping Open, initial: SSHRoutedSocket? = nil,
+        reporter: TerminalRouteReporter? = nil, initialAttemptID: UUID? = nil
+    ) throws {
         self.open = open
+        self.reporter = reporter
+        self.routeAttemptID = initialAttemptID
         self.remote = initial
         if let initial { Self.configure(initial.socket) }
         listener = Darwin.socket(AF_INET, SOCK_STREAM, 0)
@@ -56,6 +63,7 @@ nonisolated final class TerminalTCPBridge: @unchecked Sendable {
     }
 
     deinit {
+        if let routeAttemptID { reporter?.retire(attemptID: routeAttemptID) }
         timer?.cancel()
         opening?.cancel()
         if listener >= 0 { Darwin.close(listener) }
@@ -96,6 +104,8 @@ nonisolated final class TerminalTCPBridge: @unchecked Sendable {
 
     private func retire() {
         generation = UUID()
+        if let routeAttemptID { reporter?.retire(attemptID: routeAttemptID) }
+        routeAttemptID = nil
         opening?.cancel()
         opening = nil
         if local >= 0 {
@@ -138,9 +148,18 @@ nonisolated final class TerminalTCPBridge: @unchecked Sendable {
 
     private func startOpening() {
         let token = generation
+        let attemptID = reporter?.begin()
+        routeAttemptID = attemptID
+        let progress: SSHRouteProgressHandler = { [weak self] event in
+            guard let self else { return }
+            queue.async {
+                guard !self.closed, self.generation == token, let attemptID else { return }
+                self.reporter?.receive(event, attemptID: attemptID)
+            }
+        }
         opening = Task { [weak self, open] in
             do {
-                let socket = try await open()
+                let socket = try await open(progress)
                 guard let self else {
                     socket.close()
                     return
@@ -153,6 +172,7 @@ nonisolated final class TerminalTCPBridge: @unchecked Sendable {
                     Self.configure(socket.socket)
                     self.remote = socket
                     self.opening = nil
+                    if let attemptID { self.reporter?.ready(attemptID: attemptID) }
                 }
             } catch {
                 guard let self else { return }

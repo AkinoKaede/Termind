@@ -23,13 +23,7 @@ public struct ConnectionJourneyRouteView: View {
                             #endif
                     }
                     .scrollIndicators(.hidden)
-                    .onChange(of: journey.activeEndpointIndex) { _, _ in
-                        scrollToActivity(proxy)
-                    }
-                    .onChange(of: journey.checkpoint) { _, _ in
-                        scrollToActivity(proxy)
-                    }
-                    .onChange(of: journey.localRequirementEndpointIndex) { _, _ in
+                    .onChange(of: ConnectionJourneyRouteStyle(journey: journey).scrollTarget, initial: true) { _, _ in
                         scrollToActivity(proxy)
                     }
                 }
@@ -43,19 +37,21 @@ public struct ConnectionJourneyRouteView: View {
         let endpointSpacing: CGFloat = 190
         let labelWidth: CGFloat = 150
         let gapBetweenEndpointFrames = endpointSpacing - labelWidth
-        let routeWidth = labelWidth + CGFloat(max(0, journey.endpoints.count - 1)) * endpointSpacing
-        let canvasWidth = max(viewportWidth, routeWidth + 58)
         let style = ConnectionJourneyRouteStyle(journey: journey)
+        let endpointIndices = style.endpointIndices
+        let activityEndpointIndex = style.activityEndpointIndex
+        let routeWidth = labelWidth + CGFloat(max(0, endpointIndices.count - 1)) * endpointSpacing
+        let canvasWidth = max(viewportWidth, routeWidth + 58)
 
         return ZStack(alignment: .topLeading) {
             HStack(spacing: 0) {
-                ForEach(journey.endpoints.indices.dropFirst(), id: \.self) { index in
+                ForEach(endpointIndices.dropFirst(), id: \.self) { index in
                     JourneySegmentView(
                         state: style.state(for: .segment, at: index),
                         checkpoint: journey.checkpoint?.endpointIndex == index
                             ? journey.checkpoint?.kind : journey.completedCheckpoints[index],
                         checkpointIsWaiting: journey.checkpoint?.endpointIndex == index,
-                        reduceMotion: reduceMotion
+                        reduceMotion: reduceMotion || journey.transportRecovery == .suspended
                     )
                     .frame(width: endpointSpacing, height: nodeLaneHeight)
                     .id("segment-\(index)")
@@ -64,12 +60,13 @@ public struct ConnectionJourneyRouteView: View {
             .padding(.leading, labelWidth / 2)
 
             HStack(alignment: .top, spacing: gapBetweenEndpointFrames) {
-                ForEach(Array(journey.endpoints.enumerated()), id: \.element.id) { index, endpoint in
+                ForEach(endpointIndices.map { (index: $0, endpoint: journey.endpoints[$0]) }, id: \.endpoint.id) {
+                    index, endpoint in
                     JourneyEndpointView(
                         endpoint: endpoint,
                         purpose: journey.purpose,
                         state: style.state(for: .endpoint, at: index),
-                        showsActivity: style.activityEndpointIndex == index,
+                        showsActivity: activityEndpointIndex == index,
                         localRequirement: journey.localRequirementEndpointIndex == index
                             ? journey.localRequirement : nil,
                         reduceMotion: reduceMotion
@@ -84,17 +81,13 @@ public struct ConnectionJourneyRouteView: View {
     }
 
     private func scrollToActivity(_ proxy: ScrollViewProxy) {
-        guard !reduceMotion, let lastIndex = journey.endpoints.indices.last else { return }
-        let candidate =
-            journey.checkpoint?.endpointIndex
-            ?? journey.localRequirementEndpointIndex
-            ?? journey.activeEndpointIndex
-        let index = min(max(journey.endpoints.startIndex, candidate), lastIndex)
-        let target =
-            journey.checkpoint != nil && index > journey.endpoints.startIndex
-            ? "segment-\(index)" : "endpoint-\(index)"
-        withAnimation(.easeInOut(duration: 0.24)) {
+        guard let target = ConnectionJourneyRouteStyle(journey: journey).scrollTarget else { return }
+        if reduceMotion {
             proxy.scrollTo(target, anchor: .center)
+        } else {
+            withAnimation(.easeInOut(duration: 0.24)) {
+                proxy.scrollTo(target, anchor: .center)
+            }
         }
     }
 }

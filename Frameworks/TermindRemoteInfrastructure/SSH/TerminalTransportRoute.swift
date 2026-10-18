@@ -27,7 +27,9 @@ public nonisolated enum TerminalTransportRoute {
             truncated: result.stdoutTruncated || result.stderrTruncated)
     }
 
-    public static func open(using request: SSHConnectionRequest, port: Int) async throws -> SSHRoutedSocket {
+    public static func open(
+        using request: SSHConnectionRequest, port: Int, progress: SSHRouteProgressHandler? = nil
+    ) async throws -> SSHRoutedSocket {
         defer { request.configuration.clearSecrets() }
         try Task.checkCancellation()
         try request.configuration.accessCheck?()
@@ -36,7 +38,7 @@ public nonisolated enum TerminalTransportRoute {
         let config = request.configuration
         return try await SSHRoutedSocket.open(
             host: config.host, port: port, proxy: config.proxy, jumps: config.jumps, timeout: 20,
-            authorizeHostKey: request.authorizeHostKey, network: config.network,
+            progress: progress, authorizeHostKey: request.authorizeHostKey, network: config.network,
             keyboardInteractive: request.keyboardInteractive, securityKeySigning: request.securityKeySigning,
             interactionPolicy: request.interactionPolicy, hostKeyConstraints: request.hostKeyConstraints)
     }

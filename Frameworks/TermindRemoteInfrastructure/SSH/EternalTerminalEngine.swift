@@ -26,6 +26,7 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
     private var session: ETTerminalSession?
     private var credentials: ETCredentials?
     private var bridge: TerminalTCPBridge?
+    private var routeReporter: TerminalRouteReporter?
     private var reader: Task<Void, Never>?
     private var observer: Task<Void, Never>?
     private var connectionState: ETConnectionState = .idle
@@ -36,13 +37,36 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
     }
 
     func prepare(_ context: ResumableTerminalEngineContext) async throws -> ResumableTerminalEnginePreparation {
+        try checkOpen()
         let payload = try context.checkpoint.map(Self.decodeCheckpoint)
-        let socket = try await context.route()
+        let reporter = TerminalRouteReporter(
+            hostIDs: context.request.configuration.jumps.map(\.id) + [context.request.configuration.hostID]
+        ) { [receive] snapshot in
+            Task { await receive(.routeChanged(snapshot)) }
+        }
+        routeReporter = reporter
+        let attemptID = reporter.begin()
+        let socket: SSHRoutedSocket
+        do {
+            socket = try await context.route { reporter.receive($0, attemptID: attemptID) }
+        } catch {
+            reporter.retire(attemptID: attemptID)
+            throw error
+        }
         guard !closed else {
             socket.close()
             throw CancellationError()
         }
-        let bridge = try TerminalTCPBridge(open: context.route, initial: socket)
+        reporter.ready(attemptID: attemptID)
+        let bridge: TerminalTCPBridge
+        do {
+            bridge = try TerminalTCPBridge(
+                open: context.route, initial: socket, reporter: reporter, initialAttemptID: attemptID)
+        } catch {
+            socket.close()
+            reporter.retire(attemptID: attemptID)
+            throw error
+        }
         self.bridge = bridge
         if let payload {
             credentials = ETCredentials(clientID: payload.clientID, passkey: payload.passkey)
@@ -167,6 +191,7 @@ actor EternalTerminalEngine: ResumableTerminalEngine {
     func close() async {
         guard !closed else { return }
         closed = true
+        routeReporter?.close()
         reader?.cancel()
         observer?.cancel()
         await session?.close()

@@ -7,6 +7,48 @@ import Testing
 
 @Suite
 struct ResumableTerminalEngineTests {
+    @Test func routeFactsPassWhileRecoveryIsFrozenWithoutConfirmingProtocolReadiness() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["retry"])
+        let client = client(engine, events: events)
+        try await connect(client)
+        await events.emit(.recovering)
+        let retrying = Task { try await client.retryNow() }
+        await events.wait(for: "gated:retry")
+        let attemptID = UUID()
+        await events.emit(.routeChanged(.init(attemptID: attemptID, revision: 1, stage: .opening)))
+        await events.emit(.routeChanged(.init(attemptID: attemptID, revision: 2, stage: .ready)))
+        #expect(events.values.suffix(2) == ["route:1:opening", "route:2:ready"])
+        #expect(events.values.filter { $0.hasPrefix("state:") }.last == "state:recovering")
+        await #expect(throws: TerminalTransportError.self) { try await client.write(Data("blocked".utf8)) }
+        await engine.release("retry")
+        try await retrying.value
+        #expect(events.values.filter { $0.hasPrefix("state:") }.last == "state:recovering")
+        #expect(events.values.filter { $0 == "prepareRetry" }.count == 1)
+        #expect(events.values.filter { $0 == "retry" }.count == 1)
+        await events.emit(.connected)
+        #expect(events.values.last == "state:connected")
+        await client.close()
+    }
+
+    @Test func reorderedRouteCallbacksAndClosedClientCannotReviveAnOldRoute() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events)
+        let client = client(engine, events: events)
+        try await connect(client)
+        let old = UUID()
+        let next = UUID()
+        await events.emit(.routeChanged(.init(attemptID: old, revision: 3, stage: .unavailable)))
+        await events.emit(.routeChanged(.init(attemptID: old, revision: 2, stage: .ready)))
+        await events.emit(.routeChanged(.init(attemptID: next, revision: 4, stage: .opening)))
+        await events.emit(.routeChanged(.init(attemptID: old, revision: 3, stage: .unavailable)))
+        #expect(events.values.filter { $0.hasPrefix("route:") } == ["route:3:unavailable", "route:4:opening"])
+        await client.close()
+        let closed = events.values
+        await events.emit(.routeChanged(.init(attemptID: next, revision: 5, stage: .ready)))
+        #expect(events.values == closed)
+    }
+
     @Test func recoveryRetryUsesTheExistingEngineWithoutReplayingStartup() async throws {
         let events = EngineEvents()
         let engine = TestEngine(events: events)
@@ -31,7 +73,7 @@ struct ResumableTerminalEngineTests {
             output: { _ in }, exit: { _ in })
         await channel.configureTransport(
             .mosh, options: options,
-            route: {
+            route: { _ in
                 events.record("route")
                 throw CancellationError()
             }, stateChanged: { _ in })
@@ -62,7 +104,7 @@ struct ResumableTerminalEngineTests {
             output: { events.record("output:\(String(decoding: $0, as: UTF8.self))") }, exit: { _ in })
         await channel.configureTransport(
             .mosh, options: options, checkpoint: checkpoint,
-            route: {
+            route: { _ in
                 events.record("route")
                 throw CancellationError()
             }, stateChanged: { events.record("state:\($0)") })
@@ -714,13 +756,14 @@ struct ResumableTerminalEngineTests {
             output: { events.record("output:\(String(decoding: $0, as: UTF8.self))") },
             stateChanged: { events.record("state:\($0)") }, shellIntegration: { _ in },
             registry: registry(engine, events: events), pathMonitor: nil,
-            lifecycleRequestEnqueued: { events.record("lifecycle:queued") })
+            lifecycleRequestEnqueued: { events.record("lifecycle:queued") },
+            routeChanged: { events.record("route:\($0.revision):\($0.stage)") })
     }
 
     private func connect(_ client: ResumableTerminalClient) async throws {
         try await client.connect(
             request: request, options: options, environment: [], shellIntegrationEnabled: true,
-            columns: 80, rows: 24, route: { throw CancellationError() }, progress: nil,
+            columns: 80, rows: 24, route: { _ in throw CancellationError() }, progress: nil,
             startupPreparation: { _ in
                 Issue.record("Restoring a checkpoint must not prepare a new shell")
                 return nil

@@ -4,6 +4,7 @@ import TermindDomain
 
 nonisolated enum ResumableTerminalEngineEvent: Sendable {
     case output(Data)
+    case routeChanged(TerminalRouteSnapshot)
     case activity, connected, recovering, failed, ended
 }
 

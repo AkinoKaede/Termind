@@ -399,10 +399,7 @@ private struct JourneyFailureCard: View {
     let adaptsActions: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(AppStrings.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
-                .font(.headline).foregroundStyle(TermindColor.danger)
-            Text(message).foregroundStyle(.secondary).textSelection(.enabled)
+        ConnectionJourneyFailureCard(message: message, danger: TermindColor.danger, isCompact: compactActions) {
             if compactActions {
                 HStack {
                     Button(action: cancel) {
@@ -428,13 +425,6 @@ private struct JourneyFailureCard: View {
             } else {
                 actions
             }
-        }
-        .padding(compactActions ? 14 : 18)
-        .frame(maxWidth: compactActions ? 380 : nil)
-        .background(TermindColor.danger.opacity(0.065), in: .rect(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(TermindColor.danger.opacity(0.3))
         }
     }
 

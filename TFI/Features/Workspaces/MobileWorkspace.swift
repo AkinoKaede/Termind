@@ -985,6 +985,10 @@ final class MobileWorkspace: Identifiable {
             purpose: connectionPurpose,
             username: usernameHint ?? hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
+        if resumeCheckpoint != nil, transport == .mosh {
+            journey.updateTransportRecovery(
+                .recovering, message: ConnectionJourney.TransportRecovery.recovering.statusMessage)
+        }
         if resumeCheckpoint == nil, host.isTailscaleManaged, submissions[host.id] == nil, usernameHint == nil,
             hosts.savedTailscaleUsername(for: host) == nil
         {
@@ -1136,6 +1140,12 @@ final class MobileWorkspace: Identifiable {
                                 Task { @MainActor in
                                     guard let self, self.generation == token else { return }
                                     self.receiveTransportState(state)
+                                }
+                            },
+                            routeChanged: { [weak self] route in
+                                Task { @MainActor in
+                                    guard let self, self.generation == token else { return }
+                                    self.receiveTransportRoute(route)
                                 }
                             })
                     }
@@ -1641,6 +1651,12 @@ final class MobileWorkspace: Identifiable {
                 self.operationError = error.localizedDescription
             }
         }
+    }
+
+    func receiveTransportRoute(_ route: TerminalRouteSnapshot) {
+        guard transportState != .ended, transportState != .closed else { return }
+        prepareTransportRecoveryJourney()
+        journey.receiveTransportRoute(route)
     }
 
     func receiveTransportState(_ state: ResumableTerminalState, failure: String? = nil) {

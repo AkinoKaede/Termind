@@ -121,7 +121,7 @@ struct LocalNetworkLifecycleTests {
                     try await client.connect(
                         request: .init(configuration: config), options: options,
                         environment: [], shellIntegrationEnabled: false, columns: 80, rows: 24,
-                        route: { throw CancellationError() }, progress: nil)
+                        route: { _ in throw CancellationError() }, progress: nil)
                     Issue.record("A cancelled physical connection must not open")
                 } catch {
                     #expect(error is CancellationError)

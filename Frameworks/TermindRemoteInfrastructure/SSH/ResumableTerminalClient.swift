@@ -4,13 +4,15 @@ import TermindApplication
 import TermindDomain
 
 public actor ResumableTerminalClient: ResumableTerminalSession {
-    public typealias RouteFactory = @Sendable () async throws -> SSHRoutedSocket
+    public typealias RouteFactory = @Sendable (SSHRouteProgressHandler?) async throws -> SSHRoutedSocket
     public typealias StateHandler = @Sendable (ResumableTerminalState) -> Void
 
     private let transport: HostTerminalProtocol
     private let registry: ResumableTerminalEngineRegistry
     private let output: SSHPTYChannel.OutputHandler
     private let stateChanged: StateHandler
+    private let routeChanged: @Sendable (TerminalRouteSnapshot) -> Void
+    private var routeRevision: UInt64?
     private let integrationChanged: SSHPTYChannel.ShellIntegrationHandler
     private let lifecycleRequestEnqueued: (@Sendable () -> Void)?
     private var engine: (any ResumableTerminalEngine)?
@@ -58,11 +60,13 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         output: @escaping SSHPTYChannel.OutputHandler,
         stateChanged: @escaping StateHandler,
         shellIntegration: @escaping SSHPTYChannel.ShellIntegrationHandler,
-        registry: ResumableTerminalEngineRegistry = .live
+        registry: ResumableTerminalEngineRegistry = .live,
+        routeChanged: @escaping @Sendable (TerminalRouteSnapshot) -> Void = { _ in }
     ) {
         self.init(
             transport: transport, checkpoint: checkpoint, output: output, stateChanged: stateChanged,
-            shellIntegration: shellIntegration, registry: registry, pathMonitor: NWPathMonitor())
+            shellIntegration: shellIntegration, registry: registry, pathMonitor: NWPathMonitor(),
+            routeChanged: routeChanged)
     }
 
     init(
@@ -72,13 +76,15 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         shellIntegration: @escaping SSHPTYChannel.ShellIntegrationHandler,
         registry: ResumableTerminalEngineRegistry,
         pathMonitor: NWPathMonitor?,
-        lifecycleRequestEnqueued: (@Sendable () -> Void)? = nil
+        lifecycleRequestEnqueued: (@Sendable () -> Void)? = nil,
+        routeChanged: @escaping @Sendable (TerminalRouteSnapshot) -> Void = { _ in }
     ) {
         self.transport = transport
         self.registry = registry
         self.pendingCheckpoint = checkpoint
         self.output = output
         self.stateChanged = stateChanged
+        self.routeChanged = routeChanged
         self.integrationChanged = shellIntegration
         self.pathMonitor = pathMonitor
         self.lifecycleRequestEnqueued = lifecycleRequestEnqueued
@@ -366,6 +372,10 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         guard !closed else { return }
         switch event {
         case .output(let data): await receive(data)
+        case .routeChanged(let snapshot):
+            guard routeRevision.map({ snapshot.revision > $0 }) ?? true else { return }
+            routeRevision = snapshot.revision
+            routeChanged(snapshot)
         case .activity, .connected:
             engineState = .connected
             if !frozen { publish(.connected) }

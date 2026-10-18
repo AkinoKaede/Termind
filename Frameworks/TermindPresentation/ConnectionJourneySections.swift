@@ -239,26 +239,26 @@ public struct ConnectionJourneyReconnectStatus: View {
     }
 
     public var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            VStack(spacing: 12) {
-                HStack(spacing: 9) {
-                    Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-                        .foregroundStyle(accent)
+        VStack(spacing: 12) {
+            HStack(spacing: 9) {
+                Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                    .foregroundStyle(accent)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text(statusText(at: context.date)).font(.headline)
                 }
-                Text(state.lastError)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .textSelection(.enabled)
-                ConnectionJourneyActions {
-                    retryButton
-                    stopButton
-                }
             }
-            .padding(.top, 4)
+            Text(state.lastError)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .textSelection(.enabled)
+            ConnectionJourneyActions {
+                retryButton
+                stopButton
+            }
         }
+        .padding(.top, 4)
     }
 
     private var retryButton: some View {

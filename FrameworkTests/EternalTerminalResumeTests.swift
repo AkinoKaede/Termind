@@ -1,12 +1,43 @@
 import ETSession
 import Foundation
 import TermindApplication
+import TermindDomain
 import Testing
 
 @testable import TermindRemoteInfrastructure
 
 @Suite
 struct EternalTerminalResumeTests {
+    @Test func initialDataRouteFailureReportsRetirementAndPreservesTheOriginalError() async throws {
+        let fixture = Fixture()
+        let hostID = UUID()
+        let request = SSHConnectionRequest(
+            configuration: .init(
+                hostID: hostID, host: "unused.invalid", port: 22, username: "unused", credentials: [],
+                expectedHostKeys: []))
+        do {
+            _ = try await fixture.engine.prepare(
+                .init(
+                    request: request, options: .init(), environment: [], shellIntegrationEnabled: false,
+                    checkpoint: nil, startup: .init(plan: nil), bootstrap: SSHConnection(),
+                    route: { progress in
+                        progress?(.connecting(hostID))
+                        throw TerminalTransportError.unreachable
+                    }))
+            Issue.record("The original route failure must escape prepare")
+        } catch TerminalTransportError.unreachable {
+        }
+        #expect(await eventually { fixture.events.routes.count == 3 })
+        let snapshots = fixture.events.routes.sorted { $0.revision < $1.revision }
+        #expect(snapshots.map(\.stage) == [.opening, .opening, .unavailable])
+        #expect(snapshots.first?.activeHostID == hostID)
+        #expect(snapshots[1].event == .connecting(hostID))
+        #expect(snapshots.last?.establishedHostIDs == [])
+        #expect(Set(snapshots.map(\.attemptID)).count == 1)
+        #expect(fixture.events.connectionConfirmations == 0)
+        await fixture.close()
+    }
+
     @Test func foregroundResumeConfirmsAConnectionThatStayedAliveWithoutANewVendorEvent() async throws {
         let fixture = Fixture()
         await fixture.start()
@@ -94,6 +125,7 @@ private struct Fixture {
         self.client = client
         engine = EternalTerminalEngine {
             if case .connected = $0 { events.recordConnectionConfirmation() }
+            if case .routeChanged(let snapshot) = $0 { events.recordRoute(snapshot) }
             await client.receiveEngineEvent($0)
         }
     }
@@ -114,8 +146,14 @@ private nonisolated final class Events: @unchecked Sendable {
     private let lock = NSLock()
     private var recorded: [ResumableTerminalState] = []
     private var confirmations = 0
+    private var routeSnapshots: [TerminalRouteSnapshot] = []
+    var routes: [TerminalRouteSnapshot] { lock.withLock { routeSnapshots } }
     var values: [ResumableTerminalState] { lock.withLock { recorded } }
     var connectionConfirmations: Int { lock.withLock { confirmations } }
+
+    func recordRoute(_ snapshot: TerminalRouteSnapshot) {
+        lock.withLock { routeSnapshots.append(snapshot) }
+    }
 
     func record(_ state: ResumableTerminalState) {
         lock.withLock { recorded.append(state) }

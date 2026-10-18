@@ -977,6 +977,12 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                             guard let self, self.connectionAttemptID == attemptID else { return }
                             self.receiveTransportState(state)
                         }
+                    },
+                    routeChanged: { [weak self] route in
+                        Task { @MainActor in
+                            guard let self, self.connectionAttemptID == attemptID else { return }
+                            self.receiveTransportRoute(route)
+                        }
                     })
             }
             await actor.configureEnvironment(host.environmentVariables) { variables in
@@ -1066,6 +1072,12 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             if ssh === actor { ssh = nil }
             throw error
         }
+    }
+
+    func receiveTransportRoute(_ route: TerminalRouteSnapshot) {
+        guard transportState != .ended, transportState != .closed else { return }
+        prepareTransportRecoveryJourney()
+        connectionJourney.receiveTransportRoute(route)
     }
 
     func receiveTransportState(_ state: ResumableTerminalState, failure: String? = nil) {

@@ -104,6 +104,8 @@ public final class ConnectionJourney {
     public private(set) var endpoints: [ConnectionEndpoint] = []
     public private(set) var phase: Phase = .hidden
     public private(set) var transportRecovery: TransportRecovery?
+    public private(set) var transportRoute: TerminalRouteSnapshot?
+    public private(set) var usesDirectRecoveryRoute = false
     public private(set) var activeEndpointIndex = 0
     public private(set) var completedEndpointIndex = 0
     public private(set) var checkpoint: Checkpoint?
@@ -145,6 +147,8 @@ public final class ConnectionJourney {
     ) {
         completionTask?.cancel()
         transportRecovery = nil
+        transportRoute = nil
+        usesDirectRecoveryRoute = false
         let nextEndpoints =
             [
                 ConnectionEndpoint(
@@ -193,6 +197,8 @@ public final class ConnectionJourney {
     public func beginSerial(name: String, address: String, mode: Mode = .connection) {
         completionTask?.cancel()
         transportRecovery = nil
+        transportRoute = nil
+        usesDirectRecoveryRoute = false
         purpose = .serialSession
         self.mode = mode
         endpoints = [
@@ -227,6 +233,8 @@ public final class ConnectionJourney {
     ) {
         completionTask?.cancel()
         transportRecovery = nil
+        transportRoute = nil
+        usesDirectRecoveryRoute = false
         purpose = .telnetSession
         self.mode = mode
         let address = host.displayAddress(for: .telnet)
@@ -280,7 +288,21 @@ public final class ConnectionJourney {
         log(endpoint: endpoints[destination].name, message: message)
     }
 
-    public func receive(_ event: SSHRouteEvent) {
+    /// Snapshots describe the data route, not the earlier SSH bootstrap or terminal readiness.
+    public func receiveTransportRoute(_ snapshot: TerminalRouteSnapshot) {
+        guard purpose == .eternalTerminalSession,
+            transportRoute.map({ snapshot.revision > $0.revision }) ?? true
+        else { return }
+        if transportRoute?.attemptID != snapshot.attemptID || snapshot.stage == .unavailable {
+            completedCheckpoints = [:]
+        }
+        transportRoute = snapshot
+        if let event = snapshot.event, let (index, message) = details(for: event) {
+            log(endpoint: endpoints[index].name, message: message)
+        }
+    }
+
+    private func details(for event: SSHRouteEvent) -> (Int, String)? {
         let hostID: Host.ID
         let message: String
         switch event {
@@ -315,8 +337,11 @@ public final class ConnectionJourney {
             isProxyEvent
             ? proxySourceEndpointIndex(for: hostID)
             : endpoints.firstIndex { $0.id == .host(hostID) }
-        guard let index else { return }
+        return index.map { ($0, message) }
+    }
 
+    public func receive(_ event: SSHRouteEvent) {
+        guard let (index, message) = details(for: event) else { return }
         switch event {
         case .proxyConnecting:
             activeEndpointIndex = max(completedEndpointIndex, index)
@@ -356,17 +381,7 @@ public final class ConnectionJourney {
     /// Identity. This is not a server challenge, so the untouched route stays
     /// gray and no midpoint checkpoint is introduced.
     public func waitForLocalIdentity(at hostID: Host.ID, failure: String? = nil) {
-        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
-        activeEndpointIndex = 0
-        completedEndpointIndex = 0
-        checkpoint = nil
-        localRequirement = .identity
-        localRequirementEndpointIndex = 0
-        phase = .waiting
-        log(
-            endpoint: endpoints[index].name,
-            message: failure ?? String(localized: "Waiting for an Identity")
-        )
+        waitForLocalRequirement(.identity, at: hostID, message: failure ?? String(localized: "Waiting for an Identity"))
     }
 
     public func waitForTailscaleUsername(at hostID: Host.ID, failure: String? = nil) {
@@ -375,17 +390,19 @@ public final class ConnectionJourney {
     }
 
     public func waitForLocalPassphrase(at hostID: Host.ID, failure: String? = nil) {
+        waitForLocalRequirement(
+            .passphrase, at: hostID, message: failure ?? String(localized: "Waiting for a Passphrase"))
+    }
+
+    private func waitForLocalRequirement(_ requirement: LocalRequirement, at hostID: Host.ID, message: String) {
         guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
         activeEndpointIndex = 0
         completedEndpointIndex = 0
         checkpoint = nil
-        localRequirement = .passphrase
+        localRequirement = requirement
         localRequirementEndpointIndex = 0
         phase = .waiting
-        log(
-            endpoint: endpoints[index].name,
-            message: failure ?? String(localized: "Waiting for a Passphrase")
-        )
+        log(endpoint: endpoints[index].name, message: message)
     }
 
     public func waitForHostKey(at hostID: Host.ID, fingerprint: String) {
@@ -444,23 +461,27 @@ public final class ConnectionJourney {
         }
     }
 
-    /// Recovery retains the original route and log, but does not replay SSH authentication.
+    /// Protocol recovery does not replay bootstrap or dismiss an in-flight route interaction.
     public func updateTransportRecovery(_ state: TransportRecovery, message: String) {
         guard purpose == .moshSession || purpose == .eternalTerminalSession else { return }
         guard transportRecovery != state || (state == .failed && phase != .failed(message)) else { return }
         completionTask?.cancel()
+        let isWaiting = phase == .waiting && (checkpoint != nil || localRequirement != nil)
+        if transportRecovery == nil { completedCheckpoints = [:] }
         transportRecovery = state
+        usesDirectRecoveryRoute = purpose == .moshSession
         mode = .reconnection
-        checkpoint = nil
-        completedCheckpoints = [:]
-        localRequirement = nil
-        localRequirementEndpointIndex = nil
-        activeEndpointIndex = max(0, endpoints.count - 1)
+        if !isWaiting {
+            checkpoint = nil
+            localRequirement = nil
+            localRequirementEndpointIndex = nil
+            activeEndpointIndex = max(0, endpoints.count - 1)
+        }
         if state == .failed {
             fail(message)
             transportRecovery = state
         } else {
-            phase = .connecting
+            if !isWaiting { phase = .connecting }
             log(endpoint: destination?.name ?? purpose.logName, message: message)
         }
     }

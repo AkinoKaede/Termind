@@ -53,6 +53,25 @@ struct ConnectionJourneyRouteStyleTests {
         expectRoute(journey, states: [.failed, .failed, .failed, .failed])
     }
 
+    @Test func etDataRouteAuthenticationFailureStillRecolorsTheWholeBootstrappedRoute() {
+        let (journey, hosts) = fixture(.eternalTerminalSession)
+        completeBootstrap(journey, hosts: hosts)
+        let attempt = UUID()
+        journey.receiveTransportRoute(
+            .init(attemptID: attempt, revision: 1, stage: .opening, activeHostID: hosts[0].id))
+        #expect(ConnectionJourneyRouteStyle(journey: journey).state(for: .endpoint, at: 3) == .pending)
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 2, stage: .unavailable))
+
+        journey.fail("ET data route authentication rejected", at: hosts[0].id)
+
+        #expect(journey.activeEndpointIndex == 1)
+        #expect(journey.logs.last?.endpoint == hosts[0].name)
+        expectRoute(journey, states: [.failed, .failed, .failed, .failed])
+        #expect(ConnectionJourneyRouteStyle(journey: journey).activityEndpointIndex == nil)
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 3, stage: .unavailable))
+        expectRoute(journey, states: [.failed, .failed, .failed, .failed])
+    }
+
     @Test func completedCheckpointStillCountsAsProgressBeforeItsEndpointFinishesConnecting() {
         let (journey, hosts) = fixture(.sshSession)
         journey.receive(.connected(hosts[0].id))
@@ -146,6 +165,164 @@ struct ConnectionJourneyRouteStyleTests {
         expectRoute(journey, states: [.complete, .pending, .pending, .pending])
         #expect(journey.completedCheckpoints.isEmpty)
         #expect(ConnectionJourneyRouteStyle(journey: journey).activityEndpointIndex == 0)
+    }
+
+    @Test(arguments: [2, 3])
+    func etRebuildHighlightsOnlyTheEstablishedPrefixAndMovesActivityWithIt(jumpCount: Int) {
+        let hosts = (0...jumpCount).map { Host(name: "Host \($0)", host: "host-\($0).invalid") }
+        let journey = ConnectionJourney()
+        let destination = hosts[jumpCount]
+        journey.begin(host: destination, route: hosts, purpose: .eternalTerminalSession, username: "user")
+        completeBootstrap(journey, hosts: hosts)
+        journey.succeed()
+        journey.hide()
+        let attempt = UUID()
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 1, stage: .opening))
+        journey.updateTransportRecovery(.recovering, message: "Recovering")
+        let style = ConnectionJourneyRouteStyle(journey: journey)
+        #expect(style.activityEndpointIndex == 0)
+        #expect(style.state(for: .endpoint, at: 1) == .pending)
+
+        for establishedCount in 1...jumpCount {
+            journey.receiveTransportRoute(
+                .init(
+                    attemptID: attempt, revision: UInt64(establishedCount + 1), stage: .opening,
+                    establishedHostIDs: hosts.prefix(establishedCount).map(\.id),
+                    activeHostID: hosts[establishedCount].id,
+                    event: .authenticated(hosts[establishedCount - 1].id)))
+            for index in 0...establishedCount {
+                #expect(style.state(for: .endpoint, at: index) == .complete)
+                if index > 0 { #expect(style.state(for: .segment, at: index) == .complete) }
+            }
+            #expect(style.state(for: .endpoint, at: establishedCount + 1) == .pending)
+            #expect(style.state(for: .segment, at: establishedCount + 1) == .active)
+            #expect(style.activityEndpointIndex == establishedCount)
+            #expect(style.scrollTarget == "endpoint-\(establishedCount)")
+        }
+        journey.receiveTransportRoute(
+            .init(attemptID: attempt, revision: 10, stage: .ready, establishedHostIDs: hosts.dropLast().map(\.id)))
+        #expect(journey.phase == .connecting)
+        expectRoute(journey, states: Array(repeating: .complete, count: hosts.count + 1))
+        #expect(style.activityEndpointIndex == hosts.count)
+        journey.succeed()
+        #expect(style.activityEndpointIndex == nil)
+    }
+
+    @Test func etRetainedRouteSurvivesSuspensionButRetiredRouteCannotReturnFromLateProgress() {
+        let (journey, hosts) = fixture(.eternalTerminalSession)
+        completeBootstrap(journey, hosts: hosts)
+        let attempt = UUID()
+        let ready = TerminalRouteSnapshot(
+            attemptID: attempt, revision: 4, stage: .ready, establishedHostIDs: hosts.dropLast().map(\.id))
+        journey.receiveTransportRoute(ready)
+        journey.succeed()
+        journey.hide()
+        journey.updateTransportRecovery(.suspended, message: "Paused")
+        let style = ConnectionJourneyRouteStyle(journey: journey)
+        expectRoute(journey, states: [.complete, .complete, .complete, .complete])
+        #expect(style.activityEndpointIndex == nil)
+        journey.updateTransportRecovery(.recovering, message: "Recovering")
+        #expect(style.activityEndpointIndex == 3)
+
+        journey.receiveTransportRoute(.init(attemptID: attempt, revision: 5, stage: .unavailable))
+        journey.receiveTransportRoute(ready)
+        expectRoute(journey, states: [.complete, .pending, .pending, .pending])
+        #expect(style.activityEndpointIndex == nil)
+        journey.receiveTransportRoute(.init(attemptID: UUID(), revision: 6, stage: .opening))
+        #expect(style.activityEndpointIndex == 0)
+        #expect(style.state(for: .segment, at: 1) == .active)
+        #expect(style.state(for: .endpoint, at: 1) == .pending)
+    }
+
+    @Test func etWaitingCheckpointAndSuspensionStopActivityWithoutGrayingTheEstablishedPrefix() {
+        let (journey, hosts) = fixture(.eternalTerminalSession)
+        journey.receiveTransportRoute(
+            .init(
+                attemptID: UUID(), revision: 1, stage: .opening,
+                establishedHostIDs: [hosts[0].id], activeHostID: hosts[1].id))
+        journey.waitForHostKey(at: hosts[1].id, fingerprint: "SHA256:test")
+        journey.updateTransportRecovery(.recovering, message: "Recovering")
+        let style = ConnectionJourneyRouteStyle(journey: journey)
+        #expect(style.activityEndpointIndex == nil)
+        #expect(style.scrollTarget == "segment-2")
+        #expect(style.state(for: .endpoint, at: 1) == .complete)
+        #expect(style.state(for: .segment, at: 1) == .complete)
+        journey.updateTransportRecovery(.suspended, message: "Paused")
+        #expect(style.state(for: .segment, at: 2) == .pending)
+        #expect(journey.checkpoint?.endpointIndex == 2)
+        journey.updateTransportRecovery(.recovering, message: "Recovering")
+        journey.resume()
+        #expect(style.activityEndpointIndex == 1)
+        #expect(style.state(for: .segment, at: 2) == .active)
+    }
+
+    @Test(arguments: [false, true])
+    func moshRecoveryDisplaysOnlyTheDirectPathIncludingAfterSuccess(coldRestore: Bool) {
+        let (journey, hosts) = fixture(.moshSession)
+        if !coldRestore {
+            completeBootstrap(journey, hosts: hosts)
+            journey.succeed()
+            journey.hide()
+        }
+        let endpoints = journey.endpoints
+        let bootstrapLogs = journey.logs
+        let style = ConnectionJourneyRouteStyle(journey: journey)
+        #expect(style.endpointIndices == [0, 1, 2, 3])
+        journey.updateTransportRecovery(.recovering, message: "Recovering UDP")
+        #expect(style.endpointIndices == [0, 3])
+        #expect(style.endpointIndices.dropFirst().count == 1)
+        #expect(style.activityEndpointIndex == 3)
+        #expect(style.scrollTarget == "endpoint-3")
+        #expect(style.state(for: .segment, at: 3) == .active)
+        #expect(journey.endpoints == endpoints)
+        #expect(Array(journey.logs.prefix(bootstrapLogs.count)) == bootstrapLogs)
+        journey.updateTransportRecovery(.suspended, message: "Paused")
+        #expect(style.endpointIndices == [0, 3])
+        #expect(style.activityEndpointIndex == nil)
+        #expect(style.state(for: .segment, at: 3) == .pending)
+        journey.updateTransportRecovery(.failed, message: "Unavailable")
+        #expect(style.endpointIndices == [0, 3])
+        #expect(style.state(for: .segment, at: 3) == .failed)
+        journey.updateTransportRecovery(.recovering, message: "Retry")
+        journey.succeed()
+        #expect(style.endpointIndices == [0, 3])
+        #expect(style.state(for: .segment, at: 3) == .complete)
+        #expect(style.activityEndpointIndex == nil)
+        journey.hide()
+        journey.begin(host: hosts[2], route: hosts, purpose: .moshSession, username: "user")
+        #expect(style.endpointIndices == [0, 1, 2, 3])
+        #expect(style.activityEndpointIndex == 0)
+    }
+
+    @Test(arguments: [ConnectionJourney.TransportRecovery.recovering, .suspended, .failed])
+    func moshFullReconnectRebuildsTheSSHRouteRatherThanReusingUDPRecovery(recovery: ConnectionJourney.TransportRecovery)
+    {
+        let (journey, hosts) = fixture(.moshSession)
+        completeBootstrap(journey, hosts: hosts)
+        journey.updateTransportRecovery(recovery, message: "Old Mosh session")
+        let style = ConnectionJourneyRouteStyle(journey: journey)
+        #expect(style.endpointIndices == [0, 3])
+
+        journey.begin(
+            host: hosts[2], route: hosts, purpose: .moshSession, username: "user", mode: .reconnection)
+
+        #expect(journey.mode == .reconnection)
+        #expect(journey.transportRecovery == nil)
+        #expect(!journey.usesDirectRecoveryRoute)
+        #expect(style.endpointIndices == [0, 1, 2, 3])
+        expectRoute(journey, states: [.complete, .pending, .pending, .pending])
+        #expect(style.activityEndpointIndex == 0)
+        journey.waitForAuthentication(at: hosts[0].id)
+        #expect(style.scrollTarget == "segment-1")
+        #expect(style.activityEndpointIndex == nil)
+        journey.resume()
+        journey.receive(.connected(hosts[0].id))
+        journey.receive(.connecting(hosts[1].id))
+        #expect(style.state(for: .endpoint, at: 1) == .complete)
+        #expect(style.state(for: .segment, at: 1) == .complete)
+        #expect(style.state(for: .segment, at: 2) == .active)
+        #expect(style.activityEndpointIndex == 1)
+        #expect(style.endpointIndices == [0, 1, 2, 3])
     }
 
     private func fixture(_ purpose: ConnectionPurpose) -> (ConnectionJourney, [Host]) {

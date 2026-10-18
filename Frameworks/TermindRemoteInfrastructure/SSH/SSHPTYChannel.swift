@@ -747,6 +747,7 @@ public actor SSHPTYChannel {
     private var transportRoute: ResumableTerminalClient.RouteFactory?
     private var transportControl: RemoteSessionCommandExecutor?
     private var transportState: ResumableTerminalClient.StateHandler = { _ in }
+    private var transportRouteChanged: @Sendable (TerminalRouteSnapshot) -> Void = { _ in }
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
@@ -782,7 +783,8 @@ public actor SSHPTYChannel {
             guard let transportRoute else { throw TerminalTransportError.unsupportedRoute }
             let client = ResumableTerminalClient(
                 transport: transportKind, checkpoint: transportCheckpoint, output: transportOutput,
-                stateChanged: transportState, shellIntegration: transportIntegration, registry: transportEngines)
+                stateChanged: transportState, shellIntegration: transportIntegration, registry: transportEngines,
+                routeChanged: transportRouteChanged)
             resumable = client
             try await client.connect(
                 request: request, options: transportOptions, environment: environmentVariables,
@@ -819,7 +821,8 @@ public actor SSHPTYChannel {
         checkpoint: TerminalTransportCheckpoint? = nil,
         route: @escaping ResumableTerminalClient.RouteFactory,
         control: RemoteSessionCommandExecutor? = nil,
-        stateChanged: @escaping ResumableTerminalClient.StateHandler
+        stateChanged: @escaping ResumableTerminalClient.StateHandler,
+        routeChanged: @escaping @Sendable (TerminalRouteSnapshot) -> Void = { _ in }
     ) {
         transportKind = kind
         transportOptions = options
@@ -827,6 +830,7 @@ public actor SSHPTYChannel {
         transportRoute = route
         transportControl = control
         transportState = stateChanged
+        transportRouteChanged = routeChanged
     }
 
     /// Share route/control wiring while the owner supplies its generation-fenced request factory.
@@ -834,18 +838,19 @@ public actor SSHPTYChannel {
         _ kind: HostTerminalProtocol, options: HostTerminalTransports,
         checkpoint: TerminalTransportCheckpoint? = nil,
         requestFactory: @escaping @Sendable (_ authenticatingTarget: Bool) async throws -> SSHConnectionRequest,
-        stateChanged: @escaping ResumableTerminalClient.StateHandler
+        stateChanged: @escaping ResumableTerminalClient.StateHandler,
+        routeChanged: @escaping @Sendable (TerminalRouteSnapshot) -> Void = { _ in }
     ) {
         configureTransport(
             kind, options: options, checkpoint: checkpoint,
-            route: {
+            route: { progress in
                 try await TerminalTransportRoute.open(
-                    using: requestFactory(false), port: options.eternalTerminalPort)
+                    using: requestFactory(false), port: options.eternalTerminalPort, progress: progress)
             },
             control: { command in
                 try await TerminalTransportRoute.execute(command, using: requestFactory(true))
             },
-            stateChanged: stateChanged)
+            stateChanged: stateChanged, routeChanged: routeChanged)
     }
 
     public func suspendTransport() async throws -> TerminalTransportCheckpoint {
