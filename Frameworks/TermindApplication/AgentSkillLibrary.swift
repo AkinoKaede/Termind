@@ -133,7 +133,7 @@ public nonisolated enum AgentSkillLibrary {
             AgentKit marks truncation as [Showing lines <start>-<end> of <total>. Full output: <path>].
             Without a complete saved copy, the same marker omits the Full output clause.
             A snapshot capture covers the reported output, not future output. Check capture_error:
-            file/workspace quotas or write errors mean a complete saved copy is unavailable. Do not claim
+            write errors mean a complete saved copy is unavailable. Do not claim
             that truncation can always be recovered when capture failed. Captures are local to this app,
             not remote paths, and are not automatically deleted when a conversation is deleted.
 
@@ -141,7 +141,7 @@ public nonisolated enum AgentSkillLibrary {
             files, inspect before overwriting, and follow returned paths rather than inventing filenames.
             Parent directories are created automatically; do not use absolute paths or '..'.
 
-            For output expected to exceed scratch quotas, choose an authorized remote log path before
+            To keep verbose output on the host, choose an authorized remote log path before
             starting and redirect there. For example, in one ssh_exec_run call:
 
             ```sh

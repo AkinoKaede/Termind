@@ -230,6 +230,15 @@ struct MobileHostIntegrationRenderingTests {
     }
 
     private func menuActions(_ menu: UIMenu) -> [UIAction] {
+        menu.children.flatMap { element -> [UIAction] in
+            if let action = element as? UIAction { return [action] }
+            if let submenu = element as? UIMenu { return menuActions(submenu) }
+            return []
+        }
+    }
+
+    private func actionGroups(_ menu: UIMenu) -> [[String]] {
+        let actions = menu.children.compactMap { $0 as? UIAction }
         if !actions.isEmpty { return [actions.map(\.title)] }
         return menu.children.compactMap { $0 as? UIMenu }.flatMap(actionGroups)
     }

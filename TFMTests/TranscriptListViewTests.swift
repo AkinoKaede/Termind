@@ -336,6 +336,148 @@ struct TranscriptListCacheTests {
 @Suite
 struct TranscriptListViewBridgeTests {
     @Test
+    func editingDraftRefreshPreservesTextViewSelectionAndMarkedText() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+        let presentation = TranscriptPresentationState()
+        let id = UUID()
+        let entry = user(id: id, text: "Original text")
+        presentation.beginEditingMessage(id, text: "Original text")
+        update(coordinator, list, entries: [entry], presentation: presentation)
+        let row = try #require(list.rowView(for: id))
+        let editor = try #require(descendant(in: row, identifier: "Transcript.UserEditorText") as? NSTextView)
+        editor.string = "Draft text"
+        editor.setSelectedRange(NSRange(location: 3, length: 2))
+        editor.didChangeText()
+        coordinator.refreshDisplayedRow(id, in: list)
+        #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+        #expect(editor.selectedRange() == NSRange(location: 3, length: 2))
+        #expect(presentation.messageEditText(id) == "Draft text")
+        editor.setMarkedText(
+            "composition", selectedRange: NSRange(location: 2, length: 0), replacementRange: editor.selectedRange())
+        let markedRange = editor.markedRange()
+        coordinator.refreshDisplayedRow(id, in: list)
+        #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+        #expect(editor.hasMarkedText())
+        #expect(editor.markedRange() == markedRange)
+    }
+
+    @Test
+    func recyclingUserRowReleasesItsBubble() throws {
+        weak var bubble: NSView?
+        try autoreleasepool {
+            let coordinator = TranscriptListView.Coordinator()
+            let list = coordinator.makeListView()
+            list.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+            let id = UUID()
+            update(coordinator, list, entries: [user(id: id, text: "Release this bubble")])
+            let row = try #require(list.rowView(for: id) as? TranscriptNativeRow)
+            bubble = descendant(in: row, identifier: "Transcript.UserBubble")
+            #expect(bubble != nil)
+            row.prepareForReuse()
+        }
+        #expect(bubble == nil)
+    }
+
+    @Test
+    func actionOnlyUpdateUsesCurrentHandlersWithoutReplacingTheEditor() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+        let presentation = TranscriptPresentationState()
+        let id = UUID()
+        let entry = user(id: id, text: "Original")
+        presentation.beginEditingMessage(id, text: "Revised")
+        var oldCalls = 0
+        var newCalls: [String] = []
+        update(
+            coordinator, list, entries: [entry], presentation: presentation,
+            actions: .init(editUserMessage: { _, _ in oldCalls += 1 }))
+        let row = try #require(list.rowView(for: id))
+        let editor = try #require(descendant(in: row, identifier: "Transcript.UserEditorText"))
+        let send = try #require(descendant(in: row, identifier: "Transcript.UserEditorSend") as? NSButton)
+        update(
+            coordinator, list, entries: [entry], presentation: presentation,
+            actions: .init(editUserMessage: { _, text in newCalls.append(text) }))
+        #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+        send.performClick(nil)
+        #expect(oldCalls == 0)
+        #expect(newCalls == ["Revised"])
+        coordinator.suspend()
+        send.performClick(nil)
+        #expect(newCalls == ["Revised"])
+    }
+
+    @Test
+    func streamingWorkReusesUnchangedToolAndMarkdownChildren() throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 1200)
+        let presentation = TranscriptPresentationState()
+        let runID = UUID()
+        var message = ChatMessage(role: .assistant, text: "First", isStreaming: true)
+        let card = AgentToolCard(
+            invocation: AgentToolInvocation(
+                runID: runID, call: AgentToolCall(id: "tool", name: "lookup", arguments: .object([:]))),
+            descriptor: AgentToolDescriptor(
+                name: "lookup", summary: "lookup", inputSchema: .object([:]), target: .local, approvalPolicy: .approve)
+        )
+        var group = AgentWorkGroup(
+            run: AgentRunSummary(id: runID, state: .running, startedAt: .now),
+            items: [.message(message), .tool(card)], orderedAt: .now, appearsAfterAnswer: false)
+        update(
+            coordinator, list, entries: [TranscriptEntry(id: runID, content: .work(group))], presentation: presentation)
+        let row = try #require(list.rowView(for: runID))
+        let markdown = try #require(descendant(in: row, ofType: MarkdownTextView.self))
+        let headers = descendants(in: row, ofType: NSControl.self).filter {
+            String(describing: type(of: $0)) == "NativeDisclosureHeader"
+        }
+        #expect(headers.count == 2)
+        message.text += " more streamed text"
+        group.items = [.message(message), .tool(card)]
+        update(
+            coordinator, list, entries: [TranscriptEntry(id: runID, content: .work(group))], presentation: presentation)
+        #expect(descendant(in: row, ofType: MarkdownTextView.self) === markdown)
+        let updatedHeaders = descendants(in: row, ofType: NSControl.self).filter {
+            String(describing: type(of: $0)) == "NativeDisclosureHeader"
+        }
+        #expect(updatedHeaders.count == headers.count)
+        #expect(zip(headers, updatedHeaders).allSatisfy { $0 === $1 })
+    }
+
+    @Test
+    func remountRestartsWorkTitleClockWithoutAContentRevision() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        let id = UUID()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+        let group = AgentWorkGroup(
+            run: AgentRunSummary(id: id, state: .running, startedAt: .now.addingTimeInterval(-3)),
+            items: [], orderedAt: .now, appearsAfterAnswer: false
+        )
+        update(coordinator, list, entries: [TranscriptEntry(id: id, content: .work(group))], presentation: presentation)
+        // Never order or activate this window; only exercise native attachment callbacks.
+        let window = NSWindow(contentRect: list.frame, styleMask: [], backing: .buffered, defer: false)
+        window.contentView = list
+        defer { window.contentView = nil }
+        let row = try #require(list.rowView(for: id))
+        let header = try #require(
+            descendants(in: row, ofType: NSControl.self).first {
+                String(describing: type(of: $0)) == "NativeDisclosureHeader"
+            })
+        let initial = header.accessibilityLabel()
+        window.contentView = nil
+        try await Task.sleep(for: .milliseconds(1100))
+        window.contentView = list
+        let remounted = header.accessibilityLabel()
+        #expect(remounted != initial)
+        try await Task.sleep(for: .milliseconds(1100))
+        #expect(header.accessibilityLabel() != remounted)
+    }
+
+    @Test
     func resizingUnchangedMessagesReflowsMountedContentAndMeasuredHeights() async throws {
         for isCompact in [false, true] {
             let coordinator = TranscriptListView.Coordinator()
@@ -1004,7 +1146,8 @@ struct TranscriptListViewBridgeTests {
                 abs(editingBubble.bounds.width - shortEditor.bounds.width - Metrics.Space.l * 2)
                     <= 1
             )
-            #expect(shortScroll.bounds.height >= 44)
+            let shortHeight = shortScroll.bounds.height
+            #expect(shortHeight >= 44)
 
             presentation.setMessageEditText(
                 (1...12).map { "Expanded line \($0)" }.joined(separator: "\n"),
@@ -1016,7 +1159,8 @@ struct TranscriptListViewBridgeTests {
             let tallScroll = try #require(
                 descendant(in: row, identifier: "Transcript.UserEditorScroll")
             )
-            #expect(tallScroll.bounds.height > shortScroll.bounds.height)
+            #expect(tallScroll === shortScroll)
+            #expect(tallScroll.bounds.height > shortHeight)
             #expect(tallScroll.bounds.height <= 160)
         }
     }

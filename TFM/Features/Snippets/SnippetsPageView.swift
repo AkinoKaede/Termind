@@ -501,6 +501,21 @@ private struct SnippetGhostCard: View {
     }
 }
 
+struct SnippetEditorPackageSelection {
+    let snippetID: Snippet.ID?
+    private let original: SnippetPackage.ID?
+    var value: SnippetPackage.ID?
+
+    init(snippetID: Snippet.ID?, packageID: SnippetPackage.ID?) {
+        self.snippetID = snippetID
+        original = packageID
+        value = packageID
+    }
+
+    var isDirty: Bool { value != original }
+    var editingRoute: VaultWorkRoute { .snippetEditor(snippetID: snippetID, packageID: original) }
+}
+
 struct SnippetEditorView: View {
     let existing: Snippet?
     let save: (Snippet) -> Void
@@ -512,7 +527,7 @@ struct SnippetEditorView: View {
     @State private var title: String
     @State private var colorTag: TagColor
     @State private var bodyText: String
-    @State private var packageID: SnippetPackage.ID?
+    @State private var packageSelection: SnippetEditorPackageSelection
     @State private var targets: Set<Host.ID>
     @State private var showsTargetPicker = false
     @State private var error: String?
@@ -530,7 +545,9 @@ struct SnippetEditorView: View {
         _title = State(initialValue: snippet?.title ?? "")
         _colorTag = State(initialValue: snippet?.colorTag ?? .none)
         _bodyText = State(initialValue: snippet?.body ?? "")
-        _packageID = State(initialValue: snippet?.packageID ?? packageID)
+        _packageSelection = State(
+            initialValue: SnippetEditorPackageSelection(
+                snippetID: snippet?.id, packageID: snippet?.packageID ?? packageID))
         _targets = State(initialValue: Set(snippet?.targetHostIDs ?? []))
     }
 
@@ -554,7 +571,7 @@ struct SnippetEditorView: View {
         .animation(.snappy(duration: 0.2), value: showsTargetPicker)
         .onAppear {
             editingToken = editingSession.register(
-                route: .snippetEditor(snippetID: existing?.id, packageID: packageID), isDirty: { isDirty }
+                route: editingRoute, isDirty: { isDirty }
             ) {
                 commitChanges()
             }
@@ -581,7 +598,7 @@ struct SnippetEditorView: View {
         ) {
             Form {
                 SnippetOrganizationSection(name: $title, color: $colorTag) {
-                    Picker(AppStrings.Snippets.package.swiftUIKey, selection: $packageID) {
+                    Picker(AppStrings.Snippets.package.swiftUIKey, selection: $packageSelection.value) {
                         Text(AppStrings.Snippets.unpackaged).tag(SnippetPackage.ID?.none)
                         ForEach(packageChoices, id: \.package.id) { choice in
                             Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
@@ -655,11 +672,13 @@ struct SnippetEditorView: View {
         }
     }
 
+    private var editingRoute: VaultWorkRoute { packageSelection.editingRoute }
+
     private var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var trimmedBody: String { bodyText.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var isDirty: Bool {
         title != (existing?.title ?? "") || bodyText != (existing?.body ?? "")
-            || packageID != existing?.packageID
+            || packageSelection.isDirty
             || targets != Set(existing?.targetHostIDs ?? [])
             || colorTag != (existing?.colorTag ?? .none)
     }
@@ -676,7 +695,7 @@ struct SnippetEditorView: View {
 
     private func cancelEditing() {
         editingSession.requestCancellation(
-            route: .snippetEditor(snippetID: existing?.id, packageID: packageID), action: close)
+            route: editingRoute, action: close)
     }
 
     private func commitChanges() -> Bool {
@@ -689,7 +708,7 @@ struct SnippetEditorView: View {
         save(
             Snippet(
                 id: existing?.id ?? UUID(), title: trimmedTitle, body: trimmedBody,
-                packageID: packageID, targetHostIDs: orderedTargets,
+                packageID: packageSelection.value, targetHostIDs: orderedTargets,
                 sortIndex: existing?.sortIndex ?? 0, colorTag: colorTag
             )
         )

@@ -5,37 +5,61 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
+/// Editor-only projection. Runtime admission continues to use HostLibraryModel.validatedRoute.
+enum HostEditorJumpHostProjection {
+    struct Input: Hashable {
+        let destinationID: Host.ID
+        let sshEnabled: Bool
+        let isTailscaleManaged: Bool
+        let hosts: [Host]
+        let groups: [HostGroup]
+    }
+
+    struct Section: Identifiable {
+        enum ID: Hashable {
+            case group(HostGroup.ID)
+            case ungrouped
+        }
+        let id: ID
+        let title: String
+        let hosts: [Host]
+    }
+
+    static func sections(for input: Input) -> [Section] {
+        guard input.sshEnabled, !input.isTailscaleManaged else { return [] }
+        let byID = Dictionary(input.hosts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        func eligible(_ candidate: Host) -> Bool {
+            var proposed = Host(id: input.destinationID, name: "", host: "", sshEnabled: input.sshEnabled)
+            proposed.jumpHostID = candidate.id
+            return HostLibraryModel.validatedRoute(for: proposed, lookup: { byID[$0] }) != nil
+        }
+        let hostsByGroup = Dictionary(grouping: input.hosts.filter(eligible), by: \.groupID)
+            .mapValues { $0.sorted { $0.sortIndex < $1.sortIndex } }
+        let groupsByParent = Dictionary(grouping: input.groups, by: \.parentID)
+            .mapValues { $0.sorted { $0.sortIndex < $1.sortIndex } }
+        var result: [Section] = []
+        var visitedGroups: Set<HostGroup.ID> = []
+        func walk(_ group: HostGroup, prefix: String) {
+            guard visitedGroups.insert(group.id).inserted else { return }
+            let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
+            if let hosts = hostsByGroup[group.id], !hosts.isEmpty {
+                result.append(Section(id: .group(group.id), title: title, hosts: hosts))
+            }
+            for child in groupsByParent[group.id] ?? [] { walk(child, prefix: title) }
+        }
+        for group in groupsByParent[nil] ?? [] { walk(group, prefix: "") }
+        if let hosts = hostsByGroup[nil], !hosts.isEmpty {
+            result.append(Section(id: .ungrouped, title: String(localized: AppStrings.Common.ungrouped), hosts: hosts))
+        }
+        return result
+    }
+}
+
 /// Add or edit a host.
 ///
 /// A route inside Vault rather than a dynamic workspace or sheet. It edits durable
 /// connection data without entering SSH/SFTP Workspace lifecycle state.
 struct HostEditorView: View {
-    private struct CustomIdentityState: Equatable {
-        let sshUsername: String
-        let sshPassword: String
-        let sshKeyID: SSHKeyRef.ID?
-        let telnetUsername: String
-        let telnetPassword: String
-        let usesCustomTelnetSelection: Bool
-        let usesCustomProxy: Bool
-        let proxyPassword: String
-        let usesCustomTelnetProxy: Bool
-        let telnetProxyPassword: String
-
-        init(_ draft: HostCustomIdentityDraft) {
-            sshUsername = draft.sshUsername
-            sshPassword = draft.sshPassword
-            sshKeyID = draft.sshKeyID
-            telnetUsername = draft.telnetUsername
-            telnetPassword = draft.telnetPassword
-            usesCustomTelnetSelection = draft.usesCustomTelnetSelection
-            usesCustomProxy = draft.usesCustomProxy
-            proxyPassword = draft.proxyPassword
-            usesCustomTelnetProxy = draft.usesCustomTelnetProxy
-            telnetProxyPassword = draft.telnetProxyPassword
-        }
-    }
-
     private enum Route: Hashable {
         case identity
         case telnetIdentity
@@ -61,7 +85,7 @@ struct HostEditorView: View {
     @State private var tailscaleUsername = ""
     @State private var originalTailscaleUsername = ""
     @State private var original: Host
-    @State private var originalCustomIdentity = CustomIdentityState(HostCustomIdentityDraft())
+    @State private var originalCustomIdentity = HostCustomIdentityDraft().editableState
     @State private var route: Route?
     @State private var saveError: String?
     @State private var isResolvingAccess = false
@@ -71,6 +95,8 @@ struct HostEditorView: View {
     @State private var selectedProtocol = HostTerminalProtocol.ssh
     @State private var confirmsDeletion = false
     @State private var editingToken: UUID?
+    @State private var passwordEligibleIdentities: [Identity] = []
+    @State private var jumpHostSections: [HostEditorJumpHostProjection.Section] = []
 
     init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil, discover: Bool = false) {
         self.hostID = hostID
@@ -112,12 +138,21 @@ struct HostEditorView: View {
         .clipped()
         .animation(.snappy(duration: 0.2), value: route)
         .onAppear {
+            refreshPasswordEligibleIdentities()
             loadOnce()
-            original = draft
-            originalCustomIdentity = CustomIdentityState(customIdentity)
             editingToken = editingSession.register(
                 route: .hostEditor(hostID, groupID: initialGroupID, discover: discover), isDirty: { isDirty }
             ) { commitChanges() }
+        }
+        .task(id: jumpHostInput) {
+            jumpHostSections = HostEditorJumpHostProjection.sections(for: jumpHostInput)
+        }
+        .onChange(of: app.hostLibrary.reusableIdentities) { _, _ in refreshPasswordEligibleIdentities() }
+        .onChange(of: app.hostLibrary.passwordAvailabilityRevision) { _, _ in
+            refreshPasswordEligibleIdentities()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshPasswordEligibleIdentities()
         }
         .onDisappear {
             saveTask?.cancel()
@@ -601,70 +636,21 @@ struct HostEditorView: View {
         }.forwardingConnections($draft.portForwardingMaxConnections)
     }
 
-    private var telnetIdentities: [Identity] {
-        app.hostLibrary.reusableIdentities.filter(app.hostLibrary.isProxyEligibleOnThisDevice)
+    private func refreshPasswordEligibleIdentities() {
+        passwordEligibleIdentities = app.hostLibrary.reusableIdentities.filter(
+            app.hostLibrary.isProxyEligibleOnThisDevice)
     }
 
-    private var jumpHostChoices: [Host] {
-        app.hostLibrary.hosts.filter { candidate in
-            candidate.id != draft.id
-                && {
-                    var proposed = draft
-                    proposed.jumpHostID = candidate.id
-                    return app.hostLibrary.validatedRoute(for: proposed) != nil
-                }()
-        }
+    private var telnetIdentities: [Identity] { passwordEligibleIdentities }
+
+    private var jumpHostInput: HostEditorJumpHostProjection.Input {
+        .init(
+            destinationID: draft.id, sshEnabled: draft.sshEnabled, isTailscaleManaged: draft.isTailscaleManaged,
+            hosts: app.hostLibrary.hosts, groups: app.hostLibrary.groups
+        )
     }
 
-    private struct JumpHostSection: Identifiable {
-        enum ID: Hashable {
-            case group(HostGroup.ID)
-            case ungrouped
-        }
-
-        let id: ID
-        let title: String
-        let hosts: [Host]
-    }
-
-    private var jumpHostSections: [JumpHostSection] {
-        let eligibleIDs = Set(jumpHostChoices.map(\.id))
-        var result: [JumpHostSection] = []
-
-        func walk(_ group: HostGroup, prefix: String) {
-            let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
-            let hosts = app.hostLibrary.hosts(in: group.id).filter { eligibleIDs.contains($0.id) }
-            if !hosts.isEmpty {
-                result.append(
-                    JumpHostSection(id: .group(group.id), title: title, hosts: hosts)
-                )
-            }
-            for child in app.hostLibrary.childGroups(of: group.id) {
-                walk(child, prefix: title)
-            }
-        }
-
-        for group in app.hostLibrary.rootGroups {
-            walk(group, prefix: "")
-        }
-
-        let ungrouped = app.hostLibrary.hosts(in: nil).filter { eligibleIDs.contains($0.id) }
-        if !ungrouped.isEmpty {
-            result.append(
-                JumpHostSection(
-                    id: .ungrouped,
-                    title: String(localized: AppStrings.Common.ungrouped),
-                    hosts: ungrouped
-                )
-            )
-        }
-
-        return result
-    }
-
-    private var proxyIdentities: [Identity] {
-        app.hostLibrary.reusableIdentities.filter(app.hostLibrary.isProxyEligibleOnThisDevice)
-    }
+    private var proxyIdentities: [Identity] { passwordEligibleIdentities }
 
     private var fields: HostEditorBindings {
         HostEditorBindings(host: $draft, customIdentity: $customIdentity, library: app.hostLibrary) { creation in
@@ -745,6 +731,8 @@ struct HostEditorView: View {
         } else {
             customIdentity = HostCustomIdentityDraft(host: draft, library: app.hostLibrary)
         }
+        original = draft
+        originalCustomIdentity = customIdentity.editableState
         if discover { openDiscovery() }
     }
 
@@ -752,7 +740,7 @@ struct HostEditorView: View {
     /// `draft.tags`, so there is never a half-typed word left to flush.
     private var isDirty: Bool {
         tailscaleUsername != originalTailscaleUsername || draft != original
-            || CustomIdentityState(customIdentity) != originalCustomIdentity
+            || customIdentity.editableState != originalCustomIdentity
     }
 
     private func commitChanges() -> Bool {
@@ -783,7 +771,7 @@ struct HostEditorView: View {
         }
         original = draft
         originalTailscaleUsername = tailscaleUsername
-        originalCustomIdentity = CustomIdentityState(customIdentity)
+        originalCustomIdentity = customIdentity.editableState
         saveError = nil
         window.selectVaultItem(.host(draft.id), on: .hosts)
         return true

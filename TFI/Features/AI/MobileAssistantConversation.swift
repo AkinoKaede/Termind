@@ -351,10 +351,25 @@ private struct MobileAssistantSteeringQueue: View {
     }
 }
 
+/// Native list rows have independent hosting roots, so navigation must be injected here.
+struct MobileAssistantTranscriptRowRoot<Content: View>: View {
+    let navigate: @MainActor (AgentToolDetail.NavigationReference) -> Void
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content()
+            .environment(\.assistantToolNavigation, navigate)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: 840)
+            .frame(maxWidth: .infinity)
+    }
+}
+
 struct MobileAssistantConversation: View {
     let app: MobileAppModel
     let model: MobileAssistantSceneModel
-    @Bindable var conversation: ConversationModel
+    let conversation: ConversationModel
     let composerFocus: FocusState<Bool>.Binding
     let composerFocusRequest: Int?
     let composerFocusRequestHandled: (Int) -> Void
@@ -368,8 +383,16 @@ struct MobileAssistantConversation: View {
     @State private var previewDirectory = FileManager.default.temporaryDirectory.appending(
         path: "Assistant-Previews/\(UUID().uuidString)")
 
+    private func navigateToToolReference(_ reference: AgentToolDetail.NavigationReference) {
+        guard case .chat(let id) = reference,
+            let target = model.library.conversation(id: id)
+        else { return }
+        model.select(target)
+    }
+
     var body: some View {
         let entries = transcriptEntries
+        let validPresentationIDs = entries.reduce(into: Set<UUID>()) { $0.formUnion($1.presentationIDs) }
         let revisions = Dictionary(
             uniqueKeysWithValues: entries.map {
                 ($0.id, presentation.layoutRevision(for: $0.presentationIDs))
@@ -390,11 +413,9 @@ struct MobileAssistantConversation: View {
                     onViewportChange: { presentation.collapseWorkOutsideViewport(visibleIDs: $0) },
                     onTap: { composerFocus.wrappedValue = false }
                 ) { entry in
-                    transcriptRow(entry)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: 840)
-                        .frame(maxWidth: .infinity)
+                    MobileAssistantTranscriptRowRoot(navigate: navigateToToolReference) {
+                        transcriptRow(entry)
+                    }
                 }
                 .opacity(MobileContentRegions.isUsable(panes.first) ? 1 : 0)
                 .allowsHitTesting(MobileContentRegions.isUsable(panes.first))
@@ -417,12 +438,7 @@ struct MobileAssistantConversation: View {
                 .clipped()
             }
         }
-        .environment(\.assistantToolNavigation) { reference in
-            guard case .chat(let id) = reference,
-                let target = model.library.conversation(id: id)
-            else { return }
-            model.select(target)
-        }
+        .environment(\.assistantToolNavigation, navigateToToolReference)
         .background(Color(uiColor: .systemBackground))
         .mobileConversationAttachmentDropTarget(
             conversation: conversation,
@@ -468,16 +484,13 @@ struct MobileAssistantConversation: View {
     }
 
     private var transcriptEntries: [AssistantTranscriptEntry] {
-        AssistantTranscriptEntry.items(
+        let availability = conversation.messageActionAvailability
+        return AssistantTranscriptEntry.items(
             timeline: conversation.timeline,
             isInterrupted: conversation.runState == .interrupted,
-            canEdit: conversation.canEditUserMessage,
-            canFork: conversation.canForkAssistantMessage
+            canEdit: availability.editable.contains,
+            canFork: availability.forkable.contains
         )
-    }
-
-    private var validPresentationIDs: Set<UUID> {
-        transcriptEntries.reduce(into: []) { $0.formUnion($1.presentationIDs) }
     }
 
     @ViewBuilder private var bottomSurface: some View {
@@ -558,8 +571,10 @@ struct MobileAssistantConversation: View {
                 Text(AppStrings.Assistant.startAConversation).font(.headline)
                 Text(AppStrings.Assistant.askAQuestionOrDescribeWhatYouWantToDo).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 24)
-        case .user(let message, _), .assistant(let message, _):
-            messageRow(message)
+        case .user(let message, let canEdit):
+            messageRow(message, canEdit: canEdit, canFork: false)
+        case .assistant(let message, let canFork):
+            messageRow(message, canEdit: false, canFork: canFork)
         case .tool(let card):
             toolRow(card)
         case .work(let group):
@@ -582,7 +597,10 @@ struct MobileAssistantConversation: View {
 
     @ViewBuilder private func timelineRow(_ item: TimelineItem) -> some View {
         switch item {
-        case .message(let message): messageRow(message)
+        case .message(let message):
+            messageRow(
+                message, canEdit: conversation.canEditUserMessage(message.id),
+                canFork: conversation.canForkAssistantMessage(message.id))
         case .tool(let card): toolRow(card)
         case .plan(let card):
             MobileAssistantPlanRow(
@@ -703,7 +721,7 @@ struct MobileAssistantConversation: View {
 
     private var imageTileSize: CGFloat { sizeClass == .compact ? 104 : 160 }
 
-    private func messageRow(_ message: ChatMessage) -> some View {
+    private func messageRow(_ message: ChatMessage, canEdit: Bool, canFork: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if !message.images.isEmpty {
                 MobileAssistantImageFlowLayout(
@@ -770,7 +788,7 @@ struct MobileAssistantConversation: View {
                     }
                 )
             }
-            if !message.isStreaming { messageActions(message) }
+            if !message.isStreaming { messageActions(message, canEdit: canEdit, canFork: canFork) }
             ForEach(message.commands) { command in MobileAssistantCommandRow(command: command) }
         }
         .contextMenu {
@@ -779,13 +797,13 @@ struct MobileAssistantConversation: View {
             }
             ShareLink(item: message.text)
             if message.origin == nil {
-                if conversation.canEditUserMessage(message.id) {
+                if canEdit {
                     Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
                         editedText = message.text
                         editing = message
                     }
                 }
-                if conversation.canForkAssistantMessage(message.id) {
+                if canFork {
                     Button(AppStrings.Assistant.forkConversation.swiftUIKey, systemImage: "arrow.triangle.branch") {
                         Task { await model.fork(conversation, at: message.id) }
                     }
@@ -794,14 +812,14 @@ struct MobileAssistantConversation: View {
         }
     }
 
-    private func messageActions(_ message: ChatMessage) -> some View {
+    private func messageActions(_ message: ChatMessage, canEdit: Bool, canFork: Bool) -> some View {
         HStack(spacing: 4) {
             if message.role == .user {
                 Spacer(minLength: 0)
                 timestamp(message)
             }
 
-            if conversation.canEditUserMessage(message.id) {
+            if canEdit {
                 messageAction(AppStrings.Common.edit, systemImage: "pencil") {
                     editedText = message.text
                     editing = message
@@ -827,7 +845,7 @@ struct MobileAssistantConversation: View {
                 }
             }
 
-            if conversation.canForkAssistantMessage(message.id) {
+            if canFork {
                 messageAction(AppStrings.Assistant.fork, systemImage: "arrow.triangle.branch") {
                     Task { await model.fork(conversation, at: message.id) }
                 }

@@ -162,6 +162,11 @@ class TranscriptNativeRow: ListRowView {
     private var hoverViews: [NSView] = []
     private var isHovering = false
     private var tracking: NSTrackingArea?
+    private let actionHolder = NativeTranscriptActionHolder()
+    private var previousEntry: TranscriptEntry?
+    private var previousPresentation: TranscriptPresentationState?
+    private var wasEditing = false
+    private var previousWidth: CGFloat = 0
 
     static func make(for kind: TranscriptEntry.Kind) -> TranscriptNativeRow {
         switch kind {
@@ -199,6 +204,9 @@ class TranscriptNativeRow: ListRowView {
         root.removeAllArrangedSubviews()
         representedID = nil
         activeContent = nil
+        previousEntry = nil
+        previousPresentation = nil
+        actionHolder.actions = .init()
         hoverViews.removeAll()
         if let tracking { removeTrackingArea(tracking) }
         tracking = nil
@@ -214,7 +222,16 @@ class TranscriptNativeRow: ListRowView {
         measurement: Bool,
         invalidate: @escaping (UUID, Bool) -> Void
     ) {
+        let oldConfiguration = self.configuration
         self.configuration = configuration
+        actionHolder.actions = actions
+        let editing = presentation.isEditingMessage(entry.id)
+        defer {
+            previousEntry = entry
+            previousPresentation = presentation
+            wasEditing = editing
+            previousWidth = proposedWidth
+        }
         topInset = entry.hasLeadingSpacing ? Metrics.Chat.turnSpacing : 0
         let contentWidth = max(
             1,
@@ -227,7 +244,7 @@ class TranscriptNativeRow: ListRowView {
             entryID: entry.id,
             contentWidth: contentWidth,
             configuration: configuration,
-            actions: actions,
+            actionHolder: actionHolder,
             presentation: presentation,
             markdownCache: markdownCache,
             measurement: measurement,
@@ -245,6 +262,22 @@ class TranscriptNativeRow: ListRowView {
         )
         if representedID == entry.id, let activeContent {
             contentWidthConstraint?.constant = contentWidth
+            // Draft revisions must remeasure, not replace the live NSTextView:
+            // replacement loses selection, undo history, and marked IME text.
+            if case .user = entry.content, previousEntry == entry,
+                previousPresentation === presentation, oldConfiguration == configuration,
+                wasEditing == editing, editing || previousWidth == proposedWidth
+            {
+                if let editor = activeContent.nativeMessageEditor {
+                    let gutter = configuration.isCompact ? Metrics.Chat.compactGutter : Metrics.Chat.gutter
+                    editor.synchronizeDraft(
+                        presentation.messageEditText(entry.id),
+                        maximumWidth: max(1, contentWidth - gutter - Metrics.Space.l * 2)
+                    )
+                }
+                synchronizeHoverWithPointer()
+                return
+            }
             hoverViews.removeAll()
             if NativeTranscriptFactory.update(activeContent, for: entry, context: context) {
                 synchronizeHoverWithPointer()
@@ -376,11 +409,17 @@ class TranscriptNativeRow: ListRowView {
 @MainActor final class TranscriptInterruptedRow: TranscriptNativeRow {}
 
 @MainActor
+private final class NativeTranscriptActionHolder {
+    var actions = TranscriptListActions()
+}
+
+@MainActor
 private struct NativeTranscriptContext {
     let entryID: UUID
     let contentWidth: CGFloat
     let configuration: TranscriptListConfiguration
-    let actions: TranscriptListActions
+    let actionHolder: NativeTranscriptActionHolder
+    var actions: TranscriptListActions { actionHolder.actions }
     let presentation: TranscriptPresentationState
     let markdownCache: TranscriptMarkdownCache
     let measurement: Bool
@@ -495,6 +534,10 @@ private enum NativeTranscriptFactory {
         for entry: TranscriptEntry,
         context: NativeTranscriptContext
     ) -> Bool {
+        if case .work(let group) = entry.content, let view = view as? WorkContent {
+            _ = work(group, context: context, reusing: view)
+            return true
+        }
         guard case .assistant(let message, let canFork) = entry.content,
             let view = view as? AssistantContent
         else { return false }
@@ -630,8 +673,8 @@ private enum NativeTranscriptFactory {
             bubble.fillProvider = {
                 nativeHierarchicalColor(.controlAccentColor, opacity: 0.10)
             }
-            bubble.onLayout = {
-                guard !context.presentation.isEditingMessage(message.id), !context.measurement
+            bubble.onLayout = { [weak bubble] in
+                guard let bubble, !context.presentation.isEditingMessage(message.id), !context.measurement
                 else { return }
                 context.presentation.setMessageBubbleWidth(bubble.bounds.width, for: message.id)
             }
@@ -747,7 +790,14 @@ private enum NativeTranscriptFactory {
         let captured = context.presentation.messageBubbleWidth(message.id) - Metrics.Space.l * 2
         let editor = NativeMessageEditor(
             text: context.presentation.messageEditText(message.id),
-            width: max(captured, context.configuration.isCompact ? 160 : 200),
+            width: min(
+                max(captured, context.configuration.isCompact ? 160 : 200),
+                max(
+                    1,
+                    context.contentWidth
+                        - (context.configuration.isCompact ? Metrics.Chat.compactGutter : Metrics.Chat.gutter)
+                        - Metrics.Space.l * 2)
+            ),
             measurement: context.measurement
         )
         editor.onChange = { value in
@@ -845,8 +895,64 @@ private enum NativeTranscriptFactory {
         return stack
     }
 
-    private static func work(_ group: AgentWorkGroup, context: NativeTranscriptContext) -> NSView {
+    private final class WorkContent: NSView {
         let stack = NativeStack.vertical(spacing: Metrics.Space.m)
+        let itemsStack = NativeStack.vertical(spacing: Metrics.Chat.blockSpacing)
+        let separator = NSBox()
+        var header: NativeDisclosureHeader?
+        var headerGroup: AgentWorkGroup?
+        var expanded: Bool?
+        var configuration: TranscriptListConfiguration?
+        var width: CGFloat = 0
+        var revision: UInt64 = 0
+        var items: [UUID: (AgentWorkItem, NSView)] = [:]
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            separator.boxType = .separator
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(stack)
+            NSLayoutConstraint.activate([
+                stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+                stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+                stack.topAnchor.constraint(equalTo: topAnchor),
+                stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError() }
+    }
+
+    private static func reconcile(_ stack: NSStackView, with views: [NSView]) {
+        for old in stack.arrangedSubviews where !views.contains(where: { $0 === old }) {
+            stack.removeArrangedSubview(old)
+            old.removeFromSuperview()
+        }
+        for (index, view) in views.enumerated() {
+            if index < stack.arrangedSubviews.count, stack.arrangedSubviews[index] === view { continue }
+            if view.superview != nil {
+                stack.removeArrangedSubview(view)
+                view.removeFromSuperview()
+            }
+            stack.insertArrangedSubview(view, at: index)
+        }
+    }
+
+    private static func work(
+        _ group: AgentWorkGroup, context: NativeTranscriptContext, reusing existing: WorkContent? = nil
+    ) -> NSView {
+        let content = existing ?? WorkContent()
+        let stack = content.stack
+        let environmentChanged = content.configuration != context.configuration || content.width != context.contentWidth
+        let retryChanged = content.headerGroup?.retryProgress != group.retryProgress
+        let revision = context.presentation.layoutRevision(
+            for: Set(
+                [group.id]
+                    + group.items.flatMap { item in
+                        if case .tools(let batch) = item { return [batch.id] + batch.cards.map(\.id) }
+                        return [item.id]
+                    }))
         let defaultExpanded = AgentWorkPresentation.isExpandedByDefault(
             for: group.run.state,
             appearsAfterAnswer: group.appearsAfterAnswer,
@@ -866,17 +972,23 @@ private enum NativeTranscriptFactory {
                 locale: context.configuration.locale
             )
         }
-        let header = NativeDisclosureHeader(
-            symbol: nil,
-            title: titleProvider(),
-            titleColor: group.retryProgress == nil ? .secondaryLabelColor : .tertiaryLabelColor,
-            expanded: expanded,
-            active: group.retryProgress != nil,
-            reduceMotion: context.configuration.reduceMotion,
-            measurement: context.measurement,
-            lineLimit: 1,
-            titleProvider: group.run.state.isTerminal ? nil : titleProvider
-        )
+        var headerGroup = group
+        headerGroup.items = []
+        headerGroup.activeReasoningBlockID = nil
+        let reusableHeader = !environmentChanged && content.headerGroup == headerGroup && content.expanded == expanded
+        let header =
+            (reusableHeader ? content.header : nil)
+            ?? NativeDisclosureHeader(
+                symbol: nil,
+                title: titleProvider(),
+                titleColor: group.retryProgress == nil ? .secondaryLabelColor : .tertiaryLabelColor,
+                expanded: expanded,
+                active: group.retryProgress != nil,
+                reduceMotion: context.configuration.reduceMotion,
+                measurement: context.measurement,
+                lineLimit: 1,
+                titleProvider: group.run.state.isTerminal ? nil : titleProvider
+            )
         header.toolTip =
             expanded
             ? String(localized: AppStrings.Assistant.hideWork) : String(localized: AppStrings.Assistant.showWork)
@@ -884,61 +996,77 @@ private enum NativeTranscriptFactory {
             context.presentation.disclosures.toggleDisclosure(.work(group.id), default: defaultExpanded)
             context.invalidate(context.entryID, false)
         }
-        stack.addArrangedSubview(header)
+        content.header = header
+        content.headerGroup = headerGroup
+        content.expanded = expanded
+        var children: [NSView] = []
+        var retained: [UUID: (AgentWorkItem, NSView)] = [:]
         if expanded {
-            let workItems = NativeStack.vertical(spacing: Metrics.Chat.blockSpacing)
             for item in group.items {
+                let cached = content.items[item.id]
+                let child: NSView
                 switch item {
                 case .reasoning(let block):
-                    let reasoning = markdown(
-                        source: block.text,
-                        slot: "reasoning.\(block.id)",
-                        tone: .secondary,
-                        context: context
+                    let reasoning = (cached?.1 as? NativeMarkdownView) ?? NativeMarkdownView()
+                    reasoning.configure(
+                        package: context.markdownCache.package(
+                            entryID: context.entryID, slot: "reasoning.\(block.id)", source: block.text,
+                            tone: .secondary, colorScheme: context.configuration.colorScheme
+                        ),
+                        proposedWidth: context.contentWidth, fillsWidth: true
                     )
                     reasoning.setScanning(
                         group.activeReasoningBlockID == block.id,
                         reduceMotion: context.configuration.reduceMotion,
                         measurement: context.measurement
                     )
-                    workItems.addArrangedSubview(reasoning)
-                case .message(let message):
-                    if message.text.isEmpty, message.isStreaming {
-                        let title =
-                            group.retryProgress.map {
-                                AgentWorkPresentation.reconnectingTitle(
-                                    $0, locale: context.configuration.locale
-                                )
-                            } ?? String(localized: AppStrings.Assistant.workingProgress)
-                        workItems.addArrangedSubview(
-                            NativeActivityLabel(
-                                text: title,
-                                alternatives: [title],
-                                color: group.retryProgress == nil
-                                    ? .secondaryLabelColor : .tertiaryLabelColor,
-                                reduceMotion: context.configuration.reduceMotion,
-                                measurement: context.measurement
-                            ))
-                    } else if !message.text.isEmpty {
-                        workItems.addArrangedSubview(
-                            markdown(
-                                source: message.text,
-                                slot: "work-message.\(message.id)",
-                                context: context
-                            ))
+                    child = reasoning
+                case .message(let message) where !message.text.isEmpty:
+                    let markdown = (cached?.1 as? NativeMarkdownView) ?? NativeMarkdownView()
+                    markdown.configure(
+                        package: context.markdownCache.package(
+                            entryID: context.entryID, slot: "work-message.\(message.id)", source: message.text,
+                            colorScheme: context.configuration.colorScheme
+                        ),
+                        proposedWidth: context.contentWidth, fillsWidth: true
+                    )
+                    child = markdown
+                default:
+                    if let cached, cached.0 == item, !environmentChanged,
+                        content.revision == revision, !retryChanged
+                    {
+                        child = cached.1
+                    } else {
+                        switch item {
+                        case .message(let message):
+                            guard message.isStreaming else { continue }
+                            let title =
+                                group.retryProgress.map {
+                                    AgentWorkPresentation.reconnectingTitle($0, locale: context.configuration.locale)
+                                } ?? String(localized: AppStrings.Assistant.workingProgress)
+                            child = NativeActivityLabel(
+                                text: title, alternatives: [title],
+                                color: group.retryProgress == nil ? .secondaryLabelColor : .tertiaryLabelColor,
+                                reduceMotion: context.configuration.reduceMotion, measurement: context.measurement
+                            )
+                        case .tool(let card): child = tool(card, context: context)
+                        case .tools(let batch): child = toolBatch(batch, context: context)
+                        case .reasoning: continue
+                        }
                     }
-                case .tool(let card):
-                    workItems.addArrangedSubview(tool(card, context: context))
-                case .tools(let batch):
-                    workItems.addArrangedSubview(toolBatch(batch, context: context))
                 }
+                retained[item.id] = (item, child)
+                children.append(child)
             }
-            stack.addArrangedSubview(workItems)
         }
-        let separator = NSBox()
-        separator.boxType = .separator
-        stack.addArrangedSubview(separator)
-        return stack
+        reconcile(content.itemsStack, with: children)
+        reconcile(
+            stack, with: expanded ? [header, content.itemsStack, content.separator] : [header, content.separator])
+        content.items = retained
+        content.configuration = context.configuration
+        content.width = context.contentWidth
+        content.revision = revision
+        return content
     }
 
     private static func toolBatch(
@@ -1812,6 +1940,7 @@ private final class NativeDisclosureHeader: NSControl {
     private var timer: Timer?
     private var titleProvider: (() -> String)?
     private var fallbackTitle: String?
+    private var transientDeadline: Date?
 
     init(
         symbol: String?,
@@ -1913,27 +2042,12 @@ private final class NativeDisclosureHeader: NSControl {
             ? transientMarkdownTitle.map(TermindMarkdownParser.plainText) ?? title
             : title
         setAccessibilityLabel(accessibleTitle)
-        if let titleProvider, !measurement {
+        if !measurement {
             self.titleProvider = titleProvider
-            timer = Timer.scheduledTimer(
-                timeInterval: 1,
-                target: self,
-                selector: #selector(refreshTitle),
-                userInfo: nil,
-                repeats: true
-            )
-        } else if showsTransientTitle, let transientUntil, !measurement {
-            fallbackTitle = title
-            let timer = Timer(
-                fireAt: transientUntil,
-                interval: 0,
-                target: self,
-                selector: #selector(showFallbackTitle),
-                userInfo: nil,
-                repeats: false
-            )
-            self.timer = timer
-            RunLoop.main.add(timer, forMode: .common)
+            if showsTransientTitle {
+                fallbackTitle = title
+                transientDeadline = transientUntil
+            }
         }
     }
 
@@ -1942,12 +2056,41 @@ private final class NativeDisclosureHeader: NSControl {
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
-        if newWindow == nil { timer?.invalidate() }
+        if newWindow == nil {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, timer == nil else { return }
+        if titleProvider != nil {
+            refreshTitle()
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                MainActor.assumeIsolated { self.refreshTitle() }
+            }
+        } else if let transientDeadline, fallbackTitle != nil {
+            guard transientDeadline > .now else {
+                showFallbackTitle()
+                return
+            }
+            let timer = Timer(fire: transientDeadline, interval: 0, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated { self?.showFallbackTitle() }
+            }
+            self.timer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
     }
 
     @objc private func refreshTitle() {
         guard let titleProvider else { return }
         titleLabel.stringValue = titleProvider()
+        setAccessibilityLabel(titleLabel.stringValue)
     }
 
     @objc private func showFallbackTitle() {
@@ -2336,6 +2479,14 @@ private final class NativeEditorTextView: NSTextView {
 }
 
 @MainActor
+extension NSView {
+    fileprivate var nativeMessageEditor: NativeMessageEditor? {
+        if let editor = self as? NativeMessageEditor { return editor }
+        return subviews.lazy.compactMap(\.nativeMessageEditor).first
+    }
+}
+
+@MainActor
 private final class NativeMessageEditor: NSView, NSTextViewDelegate {
     var onChange: (String) -> Void = { _ in }
     var onCommit: (String) -> Void = { _ in }
@@ -2345,11 +2496,14 @@ private final class NativeMessageEditor: NSView, NSTextViewDelegate {
     private let scroll = NSScrollView()
     private let textView = NativeEditorTextView()
     private var heightConstraint: NSLayoutConstraint!
-    private let editorWidth: CGFloat
+    private var editorWidth: CGFloat
+    private let preferredWidth: CGFloat
+    private var editorWidthConstraint: NSLayoutConstraint!
     private let isMeasurement: Bool
 
     init(text: String, width: CGFloat, measurement: Bool) {
         editorWidth = width
+        preferredWidth = width
         isMeasurement = measurement
         super.init(frame: .zero)
         identifier = NSUserInterfaceItemIdentifier("Transcript.UserEditor")
@@ -2362,8 +2516,9 @@ private final class NativeMessageEditor: NSView, NSTextViewDelegate {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
-            widthAnchor.constraint(equalToConstant: width),
         ])
+        editorWidthConstraint = widthAnchor.constraint(equalToConstant: width)
+        editorWidthConstraint.isActive = true
 
         textView.isRichText = false
         textView.font = .systemFont(ofSize: NSFont.systemFontSize)
@@ -2428,6 +2583,19 @@ private final class NativeMessageEditor: NSView, NSTextViewDelegate {
         }
     }
 
+    func synchronizeDraft(_ text: String, maximumWidth: CGFloat) {
+        editorWidth = min(preferredWidth, maximumWidth)
+        editorWidthConstraint.constant = editorWidth
+        heightConstraint.constant = Self.height(for: textView.string, width: editorWidth)
+        guard textView.string != text, !textView.hasMarkedText() else { return }
+        let selection = textView.selectedRange()
+        textView.string = text
+        let count = (text as NSString).length
+        let location = min(selection.location, count)
+        textView.setSelectedRange(NSRange(location: location, length: min(selection.length, count - location)))
+        heightConstraint.constant = Self.height(for: text, width: editorWidth)
+    }
+
     func textDidChange(_ notification: Notification) {
         heightConstraint.constant = Self.height(for: textView.string, width: editorWidth)
         textView.invalidateIntrinsicContentSize()
@@ -2449,6 +2617,7 @@ private final class NativeActivityLabel: NativeLabel {
     private let alternatives: [String]
     private var timer: Timer?
     private var index = 0
+    private let animates: Bool
 
     init(
         text: String,
@@ -2458,17 +2627,9 @@ private final class NativeActivityLabel: NativeLabel {
         measurement: Bool
     ) {
         self.alternatives = alternatives
+        animates = !measurement && !reduceMotion
         super.init(text, color: color)
-        guard !measurement, !reduceMotion else { return }
-        if alternatives.count > 1 {
-            timer = Timer.scheduledTimer(
-                timeInterval: AssistantTranscriptStyle.activityTextDuration,
-                target: self,
-                selector: #selector(advanceText),
-                userInfo: nil,
-                repeats: true
-            )
-        }
+        guard animates else { return }
         installNativeScanningMask(on: self)
     }
 
@@ -2477,7 +2638,27 @@ private final class NativeActivityLabel: NativeLabel {
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
-        if newWindow == nil { timer?.invalidate() }
+        if newWindow == nil {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, animates else { return }
+        installNativeScanningMask(on: self)
+        if alternatives.count > 1, timer == nil {
+            timer = Timer.scheduledTimer(
+                withTimeInterval: AssistantTranscriptStyle.activityTextDuration, repeats: true
+            ) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                MainActor.assumeIsolated { self.advanceText() }
+            }
+        }
     }
 
     @objc private func advanceText() {

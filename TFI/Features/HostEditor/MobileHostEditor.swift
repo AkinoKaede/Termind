@@ -28,6 +28,7 @@ struct MobileHostEditor: View {
     @State private var draft: Host
     @State private var editorRoute: EditorRoute?
     @State private var customIdentity = HostCustomIdentityDraft()
+    @State private var originalCustomIdentity = HostCustomIdentityDraft().editableState
     @State private var didLoadCustom = false
     @State private var selectedProtocol: HostTerminalProtocol
 
@@ -48,10 +49,7 @@ struct MobileHostEditor: View {
         MobileEditorSheet(
             title: editorTitle,
             isDirty: tailscaleUsername != originalTailscaleUsername || draft != original
-                || !customIdentity.sshUsername.isEmpty
-                || !customIdentity.sshPassword.isEmpty || customIdentity.sshKeyID != nil
-                || !customIdentity.telnetUsername.isEmpty || !customIdentity.telnetPassword.isEmpty
-                || !customIdentity.telnetProxyPassword.isEmpty,
+                || customIdentity.editableState != originalCustomIdentity,
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && draft.preferredTerminalProtocol != nil
                 && draft.wakeOnLAN.isValid
@@ -479,6 +477,7 @@ struct MobileHostEditor: View {
         } else {
             customIdentity = HostCustomIdentityDraft(host: draft, library: library)
         }
+        originalCustomIdentity = customIdentity.editableState
     }
 
 }

@@ -57,7 +57,7 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
             authentication: authentication, pool: pool,
             schedulesDataTransfer: true
         ) { client in
-            try await client.readFile(at: remote, maximumBytes: AgentScratchWorkspace.Limits.fileBytes)
+            try await client.readFile(at: remote, maximumBytes: .max)
         }
         let written = try await workspace.write(arguments.string("scratch_path"), data: data)
         let text = String(data: data, encoding: .utf8).map(LineEnding.normalizedToLF)
@@ -68,7 +68,6 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
                 "bytes": .number(Double(written.bytes)), "sha256": .string(written.sha256),
                 "is_utf8": .bool(text != nil),
                 "lines": text.map { .number(Double(UnifiedDiff.split($0).lines.count)) } ?? .null,
-                "total_bytes": .number(Double(written.usage.bytes)),
             ]))
     }
 
@@ -203,7 +202,6 @@ nonisolated extension ScratchPullTool {
                 items.append(F.field("Lines", String(lines), locale: input.locale))
             }
             F.appendField(&items, "SHA-256", object["sha256"]?.stringValue, locale: input.locale, monospaced: true)
-            F.appendBytes(&items, "Workspace usage", object["total_bytes"], locale: input.locale)
             return items
         }
     }

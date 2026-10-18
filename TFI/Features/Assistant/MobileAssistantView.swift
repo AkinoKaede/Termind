@@ -19,7 +19,7 @@ enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
 
 struct MobileAssistantView: View {
     let app: MobileAppModel
-    @Bindable var model: MobileAssistantSceneModel
+    let model: MobileAssistantSceneModel
     @Binding var libraryRoute: MobileAssistantLibraryRoute?
     @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @State private var restoreComposerFocusAfterLibrary = false
@@ -266,7 +266,7 @@ struct MobileAssistantView: View {
 }
 
 struct MobileAssistantLibrary: View {
-    @Bindable var model: MobileAssistantSceneModel
+    let model: MobileAssistantSceneModel
     let route: MobileAssistantLibraryRoute
     let selected: () -> Void
     let showArchived: () -> Void

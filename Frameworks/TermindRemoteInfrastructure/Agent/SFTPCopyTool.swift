@@ -221,7 +221,7 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
             if let value = object[key]?.integerValue { items.append(field(label, String(value))) }
         }
         for (label, key) in [
-            (String.LocalizationValue("Completed bytes"), "completed_bytes"), ("Total bytes", "total_bytes"),
+            (String.LocalizationValue("Completed"), "completed_bytes"), ("Total", "total_bytes"),
         ] {
             if let value = object[key]?.integerValue {
                 items.append(field(label, AgentToolDetailFormatting.byteCount(value)))

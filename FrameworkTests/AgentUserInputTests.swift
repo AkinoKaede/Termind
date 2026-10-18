@@ -983,6 +983,48 @@ struct AgentUserInputTests {
         #expect(conversation.pendingInteraction == nil)
     }
 
+    @Test(arguments: [false, true])
+    func approvalBlocksQuestionTimeoutUntilTheQuestionIsPresented(preempt: Bool) async throws {
+        let conversation = ConversationModel()
+        let clock = QuestionTestClock()
+        conversation.questionClockNow = { clock.now }
+        conversation.questionClockSleep = { try await clock.sleep(until: $0) }
+        var question = request(multiple: false)
+        question.timeout = .milliseconds(100)
+        let approval = approvalRequest(createdAt: question.createdAt.addingTimeInterval(-1))
+        var questionTask: Task<AgentUserInputResponse, Never>?
+        if preempt {
+            questionTask = Task { await conversation.request(question) }
+            await settle(conversation)
+            #expect(conversation.userInputDeadline != nil)
+        }
+        let approvalTask = Task { await conversation.requestApproval(approval) }
+        defer {
+            approvalTask.cancel()
+            questionTask?.cancel()
+        }
+        try await waitUntil { conversation.pendingApproval != nil }
+        if !preempt {
+            questionTask = Task { await conversation.request(question) }
+            await settle(conversation)
+        }
+        conversation.toggleUserInputOption("postgres", in: "storage")
+        #expect(conversation.userInputDeadline == nil)
+        clock.advance(by: .seconds(1))
+        await Task.yield()
+        #expect(conversation.pendingUserInput?.id == question.id)
+        conversation.respondToApproval(approval.id, allow: true)
+        #expect(await approvalTask.value == .allow)
+        #expect(conversation.userInputDeadline == clock.now.advanced(by: question.timeout))
+        #expect(conversation.userInputDraft(for: "storage").selection == ["postgres"])
+        clock.advance(by: .milliseconds(50))
+        await Task.yield()
+        #expect(conversation.pendingUserInput?.id == question.id)
+        clock.advance(by: .seconds(1))
+        #expect(await questionTask?.value == .timedOut)
+        #expect(conversation.userInputDeadline == nil)
+    }
+
     @Test
     func approvalWinsCreationTimeTieWithoutChangingQuestionDrafts() async throws {
         let conversation = ConversationModel()

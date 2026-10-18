@@ -587,6 +587,47 @@ struct MobileVaultFeatureTests {
         #expect(imported.publicKey.isEmpty)
     }
 
+    @Test(arguments: [MobileKeyEditorModel.Mode.generate, .importKey])
+    func keyEditorTracksItsConfiguredInitialStorage(mode: MobileKeyEditorModel.Mode) throws {
+        let app = try MobileAppModel(inMemory: true)
+        let editor = MobileKeyEditorModel(mode: mode, credentials: app.credentials, defaultStorage: .thisDevice)
+        #expect(!editor.isDirty)
+        for _ in 0..<2 {
+            editor.storage = .iCloud
+            #expect(editor.isDirty)
+            editor.storage = .thisDevice
+            #expect(!editor.isDirty)
+        }
+    }
+
+    @Test func revertingPrivateKeyRestoresCleanStateWithoutReusingSecretsForReplacements() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        generator.passphrase = "original-passphrase"
+        generator.confirmation = generator.passphrase
+        try await generator.save()
+        let key = try #require(app.credentials.keys.first)
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+        await editor.loadPrivateKey()
+        let originalPrivateKey = editor.privateKey
+        let replacement = try SSHKeyMaterial.generate(.ed25519, comment: "replacement", passphrase: nil)
+        #expect(!editor.isDirty)
+        for _ in 0..<2 {
+            editor.privateKey = replacement.privateKey
+            #expect(editor.publicKey.isEmpty && editor.passphrase.isEmpty && editor.isDirty)
+            editor.privateKey = originalPrivateKey
+            #expect(editor.publicKey == key.publicKey && editor.passphrase == "original-passphrase")
+            #expect(!editor.isDirty)
+        }
+        editor.label = "Renamed"
+        try await editor.save()
+        guard case .software(let secret)? = try app.credentials.keyCredential(for: key) else {
+            Issue.record("Expected original key")
+            return
+        }
+        #expect(secret.privateKey == originalPrivateKey && secret.passphrase == "original-passphrase")
+    }
+
     @Test func replacingPrivateKeyDoesNotReuseItsSavedPassphrase() async throws {
         let app = try MobileAppModel(inMemory: true)
         let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

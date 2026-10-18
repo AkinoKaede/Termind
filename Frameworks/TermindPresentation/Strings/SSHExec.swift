@@ -18,7 +18,6 @@ extension AppStrings {
         public static var eof: LocalizedStringResource { "End of input" }
         public static var written: LocalizedStringResource { "Written" }
         public static var released: LocalizedStringResource { "Result released" }
-        public static var bytes: LocalizedStringResource { "Bytes written" }
         public static var foreground: LocalizedStringResource { "Foreground" }
         public static var background: LocalizedStringResource { "Background" }
         public static var noOutput: LocalizedStringResource { "No output" }

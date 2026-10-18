@@ -171,7 +171,7 @@ nonisolated extension SFTPChannelProtocol {
         throw SFTPError.operation("This SFTP client does not support streamed uploads.")
     }
     public func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage {
-        let data = try await readFile(at: path, maximumBytes: AgentScratchWorkspace.Limits.fileBytes)
+        let data = try await readFile(at: path, maximumBytes: .max)
         var reader = try AgentTextPageReader(offset: offset, limit: limit)
         try reader.append(data)
         return try reader.finish()

@@ -687,13 +687,19 @@ public final class ConversationModel: Identifiable {
     public var isPinned = false
     public var sortIndex: Double
     public var archivedAt: Date?
-    public var messages: [ChatMessage] = []
+    public var messages: [ChatMessage] = [] {
+        didSet {
+            let openingTitle = Self.openingTitle(in: messages)
+            if openingTitle != self.openingTitle { self.openingTitle = openingTitle }
+        }
+    }
+    private var openingTitle: String?
     public let composer = ConversationComposerState()
     public var attachmentLoader = ContextAttachmentLoading.unavailable
     private var attachmentImportTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
     /// The last state the run reported, before anything outstanding in the UI
     /// is taken into account.
-    private var reportedRunState: AgentRunState = .idle { didSet { publishNotificationInteraction() } }
+    private var reportedRunState: AgentRunState = .idle { didSet { publishInteractionChanges() } }
 
     /// What the transcript shows, ranked from the reported state and actual
     /// outstanding work. There is deliberately no second stored run state.
@@ -741,16 +747,16 @@ public final class ConversationModel: Identifiable {
     /// Only the head is presented. Showing three cards at once would ask
     /// someone to authorize three things while reading one.
     public private(set) var pendingApprovals: [AgentApprovalRequest] = [] {
-        didSet { publishNotificationInteraction() }
+        didSet { publishInteractionChanges() }
     }
     public private(set) var pendingUserInputs: [AgentUserInputRequest] = [] {
-        didSet { publishNotificationInteraction() }
+        didSet { publishInteractionChanges() }
     }
     public private(set) var pendingSSHAuthentications: [AgentSSHAuthenticationRequest] = [] {
-        didSet { publishNotificationInteraction() }
+        didSet { publishInteractionChanges() }
     }
     public private(set) var pendingSSHHostKeys: [AgentSSHHostKeyRequest] = [] {
-        didSet { publishNotificationInteraction() }
+        didSet { publishInteractionChanges() }
     }
     /// What the user typed at a busy agent, oldest first, none of it delivered
     /// yet. See `submitSteeringDraft`.
@@ -766,7 +772,7 @@ public final class ConversationModel: Identifiable {
     }
     public var pendingSSHHostKey: AgentSSHHostKeyRequest? { pendingSSHHostKeys.first }
     public private(set) var pendingMCPAuthorizations: [MCPAuthorizationPrompt] = [] {
-        didSet { publishNotificationInteraction() }
+        didSet { publishInteractionChanges() }
     }
     private var mcpAuthorizationWaiters: [UUID: CheckedContinuation<URL, any Error>] = [:]
 
@@ -882,6 +888,7 @@ public final class ConversationModel: Identifiable {
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
     private var userInputTimeoutTask: Task<Void, Never>?
+    private var timedUserInputID: UUID?
     private(set) var userInputDeadline: ContinuousClock.Instant?
     @ObservationIgnored var questionClockNow: () -> ContinuousClock.Instant = { .now }
     @ObservationIgnored var questionClockSleep: (ContinuousClock.Instant) async throws -> Void = {
@@ -1049,7 +1056,8 @@ public final class ConversationModel: Identifiable {
     func markNotificationUnread(_ id: String) { unreadNotificationIDs.insert(id) }
     func removeUnreadNotification(_ id: String) { unreadNotificationIDs.remove(id) }
 
-    private func publishNotificationInteraction() {
+    private func publishInteractionChanges() {
+        scheduleUserInputTimeout()
         chatStateDidChange?(id)
         let current = notificationInteraction
         guard current != lastNotificationInteraction else { return }
@@ -1092,6 +1100,7 @@ public final class ConversationModel: Identifiable {
         self.updatedAt = updatedAt
         self.sortIndex = sortIndex ?? Self.defaultSortIndex(for: updatedAt)
         self.messages = messages
+        openingTitle = Self.openingTitle(in: messages)
         self.transcript = transcript
         self.messageRunIDs = messageRunIDs
         self.compactionRecords = compactionRecords
@@ -1113,9 +1122,11 @@ public final class ConversationModel: Identifiable {
     public var derivedTitle: String {
         if let customTitle, !customTitle.isEmpty { return customTitle }
         if let title, !title.isEmpty { return title }
-        guard let first = messages.first(where: { $0.role == .user }) else {
-            return String(localized: "New Chat")
-        }
+        return openingTitle ?? String(localized: "New Chat")
+    }
+
+    private static func openingTitle(in messages: [ChatMessage]) -> String? {
+        guard let first = messages.first(where: { $0.role == .user }) else { return nil }
         if first.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             let attachment = first.contextChips.first?.label ?? first.images.first?.label
         {
@@ -1132,7 +1143,23 @@ public final class ConversationModel: Identifiable {
             || !composer.attachments.isEmpty
     }
 
-    public var isEmpty: Bool { timeline.isEmpty }
+    public var isEmpty: Bool {
+        if !toolCards.isEmpty || !plans.isEmpty || !compactions.isEmpty || compactionActivity != nil {
+            return false
+        }
+        if runSummaries.values.contains(where: {
+            $0.state == .cancelled || ($0.state == .failed && !($0.failure?.isEmpty ?? true))
+        }) {
+            return false
+        }
+        if messages.contains(where: {
+            $0.role != .assistant || !$0.text.isEmpty || ($0.isStreaming && $0.reasoning.isEmpty)
+        }) {
+            return false
+        }
+        // Reasoning-only messages are visible only while their work group is active.
+        return workGroups.isEmpty
+    }
     public var isArchived: Bool { archivedAt != nil }
 
     public var metadata: StoredAgentConversationMetadata {
@@ -1145,6 +1172,22 @@ public final class ConversationModel: Identifiable {
 
     public nonisolated static func defaultSortIndex(for date: Date) -> Double {
         -date.timeIntervalSinceReferenceDate
+    }
+
+    /// Build once per transcript projection rather than scanning history for every row.
+    public var messageActionAvailability: (editable: Set<UUID>, forkable: Set<UUID>) {
+        guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging,
+            !isPersistingAgentPreparationFailure
+        else { return ([], []) }
+        var editable = Set<UUID>()
+        var forkable = Set<UUID>()
+        for message in transcript {
+            if message.role == .user && !message.isCompaction && message.origin == nil {
+                editable.insert(message.id)
+            }
+            if message.role == .assistant { forkable.insert(message.id) }
+        }
+        return (editable, forkable)
     }
 
     public func canEditUserMessage(_ id: UUID) -> Bool {
@@ -1456,7 +1499,6 @@ public final class ConversationModel: Identifiable {
 
     /// One collapsible work group per run, keyed by source-message ownership.
     public var workGroups: [AgentWorkGroup] {
-        let visibleByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
         let cardsByRun = Dictionary(
             grouping: toolCards.filter { $0.terminalSuggestion == nil },
             by: { $0.invocation.runID }
@@ -1500,12 +1542,26 @@ public final class ConversationModel: Identifiable {
         let runIDs = Set(cardsByRun.keys)
             .union(processRunIDs.values)
             .union(stoppedRunIDs)
+        var processMessagesByRun: [UUID: [ChatMessage]] = [:]
+        var answersByRun: [UUID: [ChatMessage]] = [:]
+        // Prefix maxima preserve the first qualifying source position even when
+        // restored message timestamps are out of order.
+        var anchors: [(date: Date, id: UUID)] = []
+        for message in messages {
+            if anchors.last.map({ message.createdAt > $0.date }) ?? true {
+                anchors.append((message.createdAt, message.id))
+            }
+            if let runID = processRunIDs[message.id] {
+                processMessagesByRun[runID, default: []].append(message)
+            } else if message.role == .assistant, !message.text.isEmpty,
+                let runID = messageRunIDs[message.id]
+            {
+                answersByRun[runID, default: []].append(message)
+            }
+        }
         return runIDs.compactMap { runID in
             let cards = cardsByRun[runID] ?? []
-            let processMessages = processRunIDs.compactMap { messageID, owner -> ChatMessage? in
-                guard owner == runID else { return nil }
-                return visibleByID[messageID]
-            }
+            let processMessages = processMessagesByRun[runID] ?? []
             let workHasNonReasoningOutput =
                 !cards.isEmpty
                 || processMessages.contains { !$0.text.isEmpty }
@@ -1594,14 +1650,18 @@ public final class ConversationModel: Identifiable {
                 ?? stored?.finishedAt
                 ?? stored?.startedAt
                 ?? .now
-            let anchorID = messages.first(where: { $0.createdAt >= orderedAt })?.id
-            let answerAt = messages.last(where: {
-                $0.role == .assistant
-                    && !$0.text.isEmpty
-                    && messageRunIDs[$0.id] == runID
-                    && processRunIDs[$0.id] == nil
-                    && $0.createdAt < orderedAt
-            })?.createdAt
+            var lower = 0
+            var upper = anchors.count
+            while lower < upper {
+                let middle = lower + (upper - lower) / 2
+                if anchors[middle].date < orderedAt {
+                    lower = middle + 1
+                } else {
+                    upper = middle
+                }
+            }
+            let anchorID = lower < anchors.count ? anchors[lower].id : nil
+            let answerAt = answersByRun[runID]?.last(where: { $0.createdAt < orderedAt })?.createdAt
             let fallbackState: AgentRunState =
                 cards.allSatisfy {
                     $0.state == .completed
@@ -1674,9 +1734,10 @@ public final class ConversationModel: Identifiable {
                     return message.id
                 }
             })
+        let groupsByAnchor = Dictionary(grouping: groups, by: \.anchorMessageID)
         var emittedGroups = Set<UUID>()
         for message in messages {
-            for group in groups where group.anchorMessageID == message.id {
+            for group in groupsByAnchor[message.id] ?? [] {
                 items.append(.work(group))
                 emittedGroups.insert(group.id)
             }
@@ -2702,7 +2763,6 @@ public final class ConversationModel: Identifiable {
         // queued question gets a blank sheet when it reaches the front.
         if pendingUserInputs.first?.id != previousHead {
             clearUserInputDrafts()
-            scheduleUserInputTimeout()
         }
     }
 
@@ -2867,11 +2927,8 @@ public final class ConversationModel: Identifiable {
 
     /// Retires the answered question and hands a clean sheet to the next one.
     private func advanceUserInput() {
-        userInputTimeoutTask?.cancel()
-        userInputTimeoutTask = nil
         if !pendingUserInputs.isEmpty { pendingUserInputs.removeFirst() }
         clearUserInputDrafts()
-        scheduleUserInputTimeout()
     }
 
     /// Removes one request by identity. Cancellation may target a queued call,
@@ -2881,22 +2938,25 @@ public final class ConversationModel: Identifiable {
         guard let index = pendingUserInputs.firstIndex(where: { $0.id == id }) else { return }
         let wasCurrent = index == pendingUserInputs.startIndex
         pendingUserInputs.remove(at: index)
-        if wasCurrent {
-            userInputTimeoutTask?.cancel()
-            userInputTimeoutTask = nil
-            clearUserInputDrafts()
-            scheduleUserInputTimeout()
-        }
+        if wasCurrent { clearUserInputDrafts() }
         inputWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
     }
 
     private func scheduleUserInputTimeout() {
-        userInputTimeoutTask?.cancel()
-        guard let request = pendingUserInput else {
-            userInputTimeoutTask = nil
-            userInputDeadline = nil
-            return
+        let request: AgentUserInputRequest?
+        if case .userInteraction(.questions(let visible))? = pendingInteraction {
+            request = visible
+        } else {
+            request = nil
         }
+        guard timedUserInputID != request?.id else { return }
+        userInputTimeoutTask?.cancel()
+        userInputTimeoutTask = nil
+        timedUserInputID = request?.id
+        userInputDeadline = nil
+        guard let request else { return }
+        // A question hidden behind another checkpoint has no response budget to
+        // spend. Start a full budget when it becomes the presented interaction.
         let deadline = questionClockNow().advanced(by: request.timeout)
         userInputDeadline = deadline
         let sleep = questionClockSleep
@@ -2906,12 +2966,15 @@ public final class ConversationModel: Identifiable {
             } catch {
                 return
             }
+            guard !Task.isCancelled else { return }
             self?.timeOutUserInput(request.id)
         }
     }
 
     private func timeOutUserInput(_ id: UUID) {
-        guard pendingUserInput?.id == id else { return }
+        guard timedUserInputID == id,
+            case .userInteraction(.questions(let request))? = pendingInteraction, request.id == id
+        else { return }
         advanceUserInput()
         inputWaiters.removeValue(forKey: id)?.resume(returning: .timedOut)
     }

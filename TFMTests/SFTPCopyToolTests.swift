@@ -11,7 +11,7 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct SFTPCopyToolTests {
-    @Test(arguments: [Data(), Data([0, 255, 128, 10]), Data(count: AgentScratchWorkspace.Limits.fileBytes + 1)])
+    @Test(arguments: [Data(), Data([0, 255, 128, 10]), Data(count: 8 * 1_024 * 1_024 + 1)])
     func copiesBytesWithoutScratchOrInlineIO(_ bytes: Data) async throws {
         let fixture = CopyFixture()
         await fixture.source.put("/source/a.bin", bytes: bytes)
@@ -290,6 +290,27 @@ struct SFTPCopyToolTests {
             AgentRunRequest(conversationID: UUID(), prompt: "copy", permissionMode: .askForApproval)
         ) {}
         #expect(await fixture.backend.opens == 0)
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func transferDetailsUseShortLabelsAndFormattedSizes(_ language: String) {
+        let locale = Locale(identifier: language)
+        let items = SFTPCopyTool.present(
+            .init(
+                result: .object([
+                    "completed_bytes": .number(1_024), "total_bytes": .number(2_048),
+                    "bytes_per_second": .number(512),
+                ]), arguments: [:], locale: locale))
+        for (label, value) in [
+            (String.LocalizationValue("Completed"), AgentToolDetailFormatting.byteCount(1_024)),
+            ("Total", AgentToolDetailFormatting.byteCount(2_048)),
+            ("Transfer speed", AgentToolDetailFormatting.byteCount(512) + "/s"),
+        ] {
+            #expect(
+                items.contains(
+                    .field(
+                        .init(label: AppLocalization.string(label, locale: locale), value: value, isMonospaced: true))))
+        }
     }
 
     @Test(arguments: ["skip", "replace", "keep_both"], ["en", "zh-Hans", "zh-Hant"])

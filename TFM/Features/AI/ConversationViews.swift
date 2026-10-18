@@ -454,7 +454,6 @@ struct ComposerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
     @State private var transcriptionOwnerID = UUID()
-    @State private var draftBeforeTranscription = ""
     @State private var slashSelection = 0
     @State private var slashScrollRequest = 0
     @State private var slashMenuHeight: CGFloat = 0
@@ -511,8 +510,6 @@ struct ComposerView: View {
 
     var body: some View {
         @Bindable var composer = conversation.composer
-        let estimate = conversation.contextEstimate
-        let share = contextShare(for: estimate)
 
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             if !sessionContext.isEmpty || !composer.attachments.isEmpty
@@ -532,7 +529,7 @@ struct ComposerView: View {
                     transcriptionControls
                         .transition(.opacity)
                 } else {
-                    standardControls(contextEstimate: estimate)
+                    standardControls
                         .transition(.opacity)
                 }
             }
@@ -545,7 +542,11 @@ struct ComposerView: View {
         // Anchored to the whole surface rather than the TextEditor. The editor
         // begins inside the surface padding (and can have Context chips above
         // it), which let the palette overlap the Chat frame.
-        .overlay(alignment: .top) { slashMenu(contextShare: share) }
+        .overlay(alignment: .top) {
+            ComposerContext(conversation: conversation) { estimate in
+                slashMenu(contextShare: contextShare(for: estimate))
+            }
+        }
         .padding(.horizontal, Metrics.Space.l)
         .frame(maxWidth: maxContentWidth ?? .infinity)
         .frame(maxWidth: .infinity)
@@ -558,7 +559,6 @@ struct ComposerView: View {
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
         .onDisappear {
             guard transcription.isOwned(by: transcriptionOwnerID) else { return }
-            conversation.composer.draft = draftBeforeTranscription
             transcription.cancel(ownerID: transcriptionOwnerID)
         }
         .alert(
@@ -717,11 +717,11 @@ struct ComposerView: View {
         conversation.isPreparingAgentRun || (conversation.isStreaming && !conversation.canSendDraft)
     }
 
-    private func standardControls(contextEstimate: AgentContextEstimate) -> some View {
+    private var standardControls: some View {
         HStack(spacing: Metrics.Space.s) {
             ViewThatFits(in: .horizontal) {
-                composerMenus(compact: false, contextEstimate: contextEstimate)
-                composerMenus(compact: true, contextEstimate: contextEstimate)
+                composerMenus(compact: false)
+                composerMenus(compact: true)
             }
             .frame(maxWidth: .infinity)
 
@@ -787,8 +787,8 @@ struct ComposerView: View {
                     action: cancelTranscription
                 )
 
-                SpeechWaveformView(
-                    samples: transcription.levelSamples,
+                ComposerWaveform(
+                    transcription: transcription,
                     reduceMotion: reduceMotion
                 )
                 .frame(maxWidth: .infinity, minHeight: 32)
@@ -892,7 +892,6 @@ struct ComposerView: View {
     }
 
     private func beginTranscription() {
-        draftBeforeTranscription = conversation.composer.draft
         Task {
             await transcription.start(ownerID: transcriptionOwnerID) { transcript, shouldSend in
                 let applied = conversation.applyTranscription(
@@ -906,7 +905,6 @@ struct ComposerView: View {
     }
 
     private func cancelTranscription() {
-        conversation.composer.draft = draftBeforeTranscription
         transcription.cancel(ownerID: transcriptionOwnerID)
         isFocused = true
     }
@@ -1112,7 +1110,7 @@ struct ComposerView: View {
     }
 
     private func composerMenus(
-        compact: Bool, contextEstimate: AgentContextEstimate
+        compact: Bool
     ) -> some View {
         HStack(spacing: Metrics.Space.s) {
             addContextButton
@@ -1128,7 +1126,9 @@ struct ComposerView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
             Spacer(minLength: Metrics.Space.s)
-            modelAndThinkingMenu(compact: compact, contextEstimate: contextEstimate)
+            ComposerContext(conversation: conversation) { estimate in
+                modelAndThinkingMenu(compact: compact, contextEstimate: estimate)
+            }
         }
         .animation(Motion.panel(reduceMotion: reduceMotion), value: conversation.isPlanning)
         .animation(
@@ -1672,5 +1672,24 @@ nonisolated private struct AssistantModelOptionListItem: Identifiable, Hashable,
         case .provider: 18
         case .model: 25
         }
+    }
+}
+
+// These leaves own observations that must not invalidate the draft editor.
+private struct ComposerContext<Content: View>: View {
+    let conversation: ConversationModel
+    @ViewBuilder var content: (AgentContextEstimate) -> Content
+
+    var body: some View {
+        content(conversation.contextEstimate)
+    }
+}
+
+private struct ComposerWaveform: View {
+    let transcription: SpeechTranscriptionCoordinator
+    let reduceMotion: Bool
+
+    var body: some View {
+        SpeechWaveformView(samples: transcription.levelSamples, reduceMotion: reduceMotion)
     }
 }

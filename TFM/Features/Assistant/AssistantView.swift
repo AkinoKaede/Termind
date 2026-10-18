@@ -498,11 +498,6 @@ private struct AssistantConversationList: View {
     private func item(_ conversation: ConversationModel) -> AssistantConversationListItem {
         .conversation(
             id: conversation.id,
-            title: conversation.derivedTitle,
-            isArchived: conversation.isArchived,
-            isPinned: conversation.isPinned,
-            isStreaming: conversation.isStreaming,
-            isCompacting: conversation.isCompacting,
             isSelected: selectedID == conversation.id,
             isRenaming: renamingID == conversation.id
         )
@@ -516,7 +511,7 @@ private struct AssistantConversationList: View {
         switch item.content {
         case .section(let section, let count):
             AssistantSectionHeaderRow(section: section, count: count)
-        case .conversation(let id, _, _, _, _, _, _, _):
+        case .conversation(let id, _, _):
             if let conversation = window.assistantLibrary.conversation(id: id) {
                 AssistantConversationRow(
                     conversation: conversation,
@@ -630,11 +625,6 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
         case section(Section, count: Int)
         case conversation(
             id: UUID,
-            title: String,
-            isArchived: Bool,
-            isPinned: Bool,
-            isStreaming: Bool,
-            isCompacting: Bool,
             isSelected: Bool,
             isRenaming: Bool
         )
@@ -649,11 +639,6 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
 
     static func conversation(
         id: UUID,
-        title: String,
-        isArchived: Bool,
-        isPinned: Bool,
-        isStreaming: Bool,
-        isCompacting: Bool,
         isSelected: Bool,
         isRenaming: Bool
     ) -> Self {
@@ -661,11 +646,6 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
             id: .conversation(id),
             content: .conversation(
                 id: id,
-                title: title,
-                isArchived: isArchived,
-                isPinned: isPinned,
-                isStreaming: isStreaming,
-                isCompacting: isCompacting,
                 isSelected: isSelected,
                 isRenaming: isRenaming
             )
@@ -682,7 +662,7 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
     }
 
     var conversationID: UUID? {
-        guard case .conversation(let id, _, _, _, _, _, _, _) = content else { return nil }
+        guard case .conversation(let id, _, _) = content else { return nil }
         return id
     }
 }

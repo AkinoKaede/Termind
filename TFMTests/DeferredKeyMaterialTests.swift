@@ -49,6 +49,28 @@ struct DeferredKeyMaterialTests {
         #expect(throws: (any Error).self) { try SSHKeyMaterial.imported(privateKey: input, publicKey: "") }
     }
 
+    @Test func analysisRetainsEncryptionMetadataWhenPublicMaterialIsInvalid() throws {
+        let encrypted = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: "test")
+        let analysis = try SSHKeyMaterial.analyzeImport(privateKey: encrypted.privateKey, publicKey: "invalid")
+        #expect(analysis.metadata.isEncrypted)
+        #expect(throws: (any Error).self) { try analysis.material.get() }
+        #expect(throws: (any Error).self) {
+            try SSHKeyMaterial.imported(privateKey: encrypted.privateKey, publicKey: "invalid")
+        }
+        let corrected = try SSHKeyMaterial.analyzeImport(
+            privateKey: encrypted.privateKey, publicKey: encrypted.publicKey)
+        #expect(try corrected.material.get().fingerprint == encrypted.fingerprint)
+    }
+
+    @Test func analysisRejectsMismatchedPublicAlgorithm() throws {
+        let privateMaterial = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        let publicMaterial = try SSHKeyMaterial.generate(.ecdsa(bits: 256), comment: "", passphrase: nil)
+        let analysis = try SSHKeyMaterial.analyzeImport(
+            privateKey: privateMaterial.privateKey, publicKey: publicMaterial.publicKey)
+        #expect(!analysis.metadata.isEncrypted)
+        #expect(throws: (any Error).self) { try analysis.material.get() }
+    }
+
     @Test func suppliedPublicKeyMustHaveAValidWireBlob() throws {
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
         for value in [

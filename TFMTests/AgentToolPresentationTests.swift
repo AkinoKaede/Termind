@@ -652,6 +652,9 @@ struct AgentToolPresentationTests {
             let rendered = String(describing: detail)
             #expect(!rendered.contains("{"), "\(name) exposed JSON")
             #expect(!rendered.contains("}"), "\(name) exposed JSON")
+            if name.hasPrefix("scratch_") {
+                #expect(!rendered.contains("Workspace usage"), "\(name) displayed historical quota usage")
+            }
         }
     }
 
@@ -1365,8 +1368,8 @@ struct AgentToolPresentationTests {
         }
     }
 
-    @Test
-    func registeredSSHControlDetailsUseAppCopyWithoutExposingSecretInput() throws {
+    @Test(arguments: [0, 4, 1_024, 2 * 1_024 * 1_024])
+    func registeredSSHControlDetailsUseAppCopyWithoutExposingSecretInput(_ count: Int) throws {
         var card = makeCard(
             name: "renamed_stdin_tool", target: .host,
             arguments: [
@@ -1376,15 +1379,18 @@ struct AgentToolPresentationTests {
                 symbol: "terminal", activity: .semanticLabel(.remoteCommand), presenterID: "builtin.ssh_exec_stdin"))
         card.result = .init(
             callID: "call",
-            content: "{\"status\":\"written\",\"handle\":\"command-id\",\"bytes_written\":4,\"stdin_closed\":false}")
+            content:
+                "{\"status\":\"written\",\"handle\":\"command-id\",\"bytes_written\":\(count),\"stdin_closed\":false}")
         let presenter = try #require(AppDependencies.toolPresenter(for: card.descriptor))
         for (language, secret, bytes) in [
-            ("en", "Secret", "Bytes written"),
-            ("zh-Hans", "机密", "已写入字节数"), ("zh-Hant", "機密", "已寫入位元組數"),
+            ("en", "Secret", "Written"),
+            ("zh-Hans", "机密", "写入"), ("zh-Hant", "機密", "寫入"),
         ] {
             let detail = try #require(
                 AgentToolPresentation.detail(for: card, presenter: presenter, locale: Locale(identifier: language)))
-            #expect(detail.items.contains(.field(.init(label: bytes, value: "4", isMonospaced: true))))
+            #expect(
+                detail.items.contains(
+                    .field(.init(label: bytes, value: DataSizeFormat.bytes(count), isMonospaced: true))))
             let rendered = String(describing: detail)
             #expect(rendered.contains(secret))
             #expect(rendered.contains("command-id"))

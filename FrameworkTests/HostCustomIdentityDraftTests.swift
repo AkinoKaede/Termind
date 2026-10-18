@@ -5,6 +5,51 @@ import Testing
 
 @Suite @MainActor
 struct HostCustomIdentityDraftTests {
+    @Test(arguments: 0..<6)
+    func editableTextTracksRepeatedEditsAndReversions(fieldIndex: Int) {
+        let fields: [WritableKeyPath<HostCustomIdentityDraft, String>] = [
+            \.sshUsername, \.sshPassword, \.telnetUsername, \.telnetPassword, \.proxyPassword, \.telnetProxyPassword,
+        ]
+        let field = fields[fieldIndex]
+        var draft = HostCustomIdentityDraft()
+        draft[keyPath: field] = "original"
+        let original = draft.editableState
+        for _ in 0..<2 {
+            draft[keyPath: field] = "changed"
+            #expect(draft.editableState != original)
+            draft[keyPath: field] = "original"
+            #expect(draft.editableState == original)
+            draft[keyPath: field] = ""
+            #expect(draft.editableState != original)
+            draft[keyPath: field] = "original"
+            #expect(draft.editableState == original)
+        }
+    }
+
+    @Test func editableSelectionsTrackRepeatedEditsAndReversions() {
+        var draft = HostCustomIdentityDraft()
+        var host = Host(name: "Server", host: "server.invalid")
+        let original = draft.editableState
+        for _ in 0..<2 {
+            draft.sshKeyID = UUID()
+            #expect(draft.editableState != original)
+            draft.sshKeyID = nil
+            #expect(draft.editableState == original)
+            draft.selectCustomTelnet(on: &host)
+            #expect(draft.editableState != original)
+            draft.clearTelnetIdentity(on: &host)
+            #expect(draft.editableState == original)
+            draft.usesCustomProxy = true
+            #expect(draft.editableState != original)
+            draft.usesCustomProxy = false
+            #expect(draft.editableState == original)
+            draft.usesCustomTelnetProxy = true
+            #expect(draft.editableState != original)
+            draft.usesCustomTelnetProxy = false
+            #expect(draft.editableState == original)
+        }
+    }
+
     @Test
     func loadsAndSavesSSHAndProxyCustomIdentities() throws {
         let secrets = InMemorySecretStore()
@@ -34,6 +79,16 @@ struct HostCustomIdentityDraftTests {
         #expect(draft.proxyPasswordIsEditable)
         #expect(draft.isSSHValid(for: host))
         #expect(draft.isProxyValid(for: host))
+
+        let original = draft.editableState
+        draft.proxyPassword = "changed"
+        #expect(draft.editableState != original)
+        draft.proxyPassword = "proxy-secret"
+        #expect(draft.editableState == original)
+        draft.sshPassword = ""
+        #expect(draft.editableState != original)
+        draft.sshPassword = "ssh-secret"
+        #expect(draft.editableState == original)
 
         draft.sshUsername = "root"
         draft.proxyPassword = "new-proxy-secret"

@@ -1,10 +1,81 @@
 import AgentKit
 import Foundation
+import Observation
 import TermindApplication
 import Testing
 
 @Suite(.timeLimit(.minutes(1))) @MainActor
 struct AssistantConversationOperationsTests {
+    @Test func titleObservationIgnoresAssistantStreamingButTracksOpeningEdits() {
+        let conversation = ConversationModel(messages: [ChatMessage(role: .user, text: "Opening")])
+        let changed = DispatchSemaphore(value: 0)
+        withObservationTracking {
+            #expect(conversation.derivedTitle == "Opening")
+        } onChange: {
+            changed.signal()
+        }
+        conversation.messages.append(ChatMessage(role: .assistant, text: "Partial"))
+        conversation.messages[1].text += " response"
+        #expect(changed.wait(timeout: .now()) == .timedOut)
+        conversation.messages[0].text = "Edited opening"
+        #expect(changed.wait(timeout: .now()) == .success)
+        #expect(conversation.derivedTitle == "Edited opening")
+        conversation.messages = []
+        #expect(conversation.derivedTitle == ConversationModel().derivedTitle)
+        conversation.messages = [ChatMessage(role: .user, text: String(repeating: "a", count: 41))]
+        #expect(conversation.derivedTitle == String(repeating: "a", count: 40) + "…")
+    }
+
+    @Test(arguments: [[30.0, 10, 20], [10.0, 20, 30], [20.0, 20, 30], []])
+    func workAnchorsPreserveFirstQualifyingSourcePosition(timestamps: [Double]) throws {
+        let messages = timestamps.map {
+            ChatMessage(role: .user, text: "Message", createdAt: Date(timeIntervalSince1970: $0))
+        }
+        for threshold in [5.0, 10, 15, 20, 25, 30, 35] {
+            let date = Date(timeIntervalSince1970: threshold)
+            let run = AgentRunSummary(id: UUID(), state: .cancelled, startedAt: date, finishedAt: date)
+            let conversation = ConversationModel(messages: messages, runs: [run])
+            let group = try #require(conversation.workGroups.first)
+            #expect(group.anchorMessageID == messages.first(where: { $0.createdAt >= date })?.id)
+        }
+    }
+
+    @Test func messageActionProjectionTracksArchiveAndHistoryEdits() {
+        let user = AgentTranscriptMessage(role: .user, text: "Question")
+        let answer = AgentTranscriptMessage(role: .assistant, text: "Answer")
+        let conversation = ConversationModel(
+            messages: [
+                ChatMessage(id: user.id, role: .user, text: user.text),
+                ChatMessage(id: answer.id, role: .assistant, text: answer.text),
+            ], transcript: [user, answer])
+        #expect(conversation.messageActionAvailability.editable == [user.id])
+        #expect(conversation.messageActionAvailability.forkable == [answer.id])
+        conversation.archivedAt = .now
+        #expect(conversation.messageActionAvailability.editable.isEmpty)
+        #expect(conversation.messageActionAvailability.forkable.isEmpty)
+        conversation.archivedAt = nil
+        let replacement = conversation.editUserMessage(user.id, authoredText: "Revised")
+        #expect(replacement != nil)
+        #expect(!conversation.messageActionAvailability.editable.contains(user.id))
+        #expect(conversation.messageActionAvailability.forkable.isEmpty)
+        #expect(conversation.messageActionAvailability.editable == Set(conversation.transcript.map(\.id)))
+    }
+
+    @Test func emptinessUsesVisibleContentRatherThanStoredAssistantRows() {
+        let hidden = ChatMessage(role: .assistant, text: "")
+        let conversation = ConversationModel(messages: [hidden])
+        #expect(conversation.isEmpty)
+        #expect(conversation.timeline.isEmpty)
+        let start = Date(timeIntervalSince1970: 100)
+        let stopped = ConversationModel(
+            messages: [hidden],
+            runs: [AgentRunSummary(id: UUID(), state: .cancelled, startedAt: start, finishedAt: start)])
+        #expect(!stopped.isEmpty)
+        #expect(stopped.timeline.count == 1)
+        let attachmentOnlyUser = ConversationModel(messages: [ChatMessage(role: .user, text: "")])
+        #expect(!attachmentOnlyUser.isEmpty)
+    }
+
     private func fixture() async throws -> (
         InMemoryAgentRunRepository, ConversationModel, AssistantConversationOperations
     ) {

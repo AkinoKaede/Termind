@@ -54,6 +54,23 @@ struct SpeechTranscriptionTests {
         #expect(completion?.1 == true)
     }
 
+    @Test(arguments: [true, false])
+    func speechPreservesEditsMadeDuringRecording(cancel: Bool) async {
+        let service = FakeSpeechTranscriptionService()
+        let coordinator = SpeechTranscriptionCoordinator(service: service)
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Original"
+        _ = await coordinator.start(ownerID: conversation.id) { text, shouldSend in
+            _ = conversation.applyTranscription(text, sendAfterTranscription: shouldSend, send: {})
+        }
+        service.emit(.partial("Partial speech"))
+        #expect(conversation.composer.draft == "Original")
+        conversation.composer.draft = "Manual edit"
+        if cancel { coordinator.cancel(ownerID: conversation.id) }
+        service.emit(.final("Final speech"))
+        #expect(conversation.composer.draft == (cancel ? "Manual edit" : "Manual edit Final speech"))
+    }
+
     @Test
     func cancellationDiscardsResultAndIgnoresTheOldSessionCallback() async {
         let service = FakeSpeechTranscriptionService()

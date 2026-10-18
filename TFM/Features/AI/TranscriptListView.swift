@@ -349,6 +349,18 @@ struct TranscriptListView: NSViewRepresentable {
         private var latestUserMessageID: UUID?
         private var configuration: TranscriptListConfiguration?
         private var actions = TranscriptListActions()
+        // Mounted rows can outlive a surface's action closures. Resolve actions
+        // at invocation time, including action-only updates and suspension.
+        private lazy var forwardingActions = TranscriptListActions(
+            hostName: { [weak self] in self?.actions.hostName($0) },
+            navigateChat: { [weak self] in self?.actions.navigateChat($0) },
+            editUserMessage: { [weak self] in self?.actions.editUserMessage($0, $1) },
+            forkAssistantMessage: { [weak self] in self?.actions.forkAssistantMessage($0) },
+            resolvePlan: { [weak self] in self?.actions.resolvePlan($0, $1) },
+            implementPlan: { [weak self] in self?.actions.implementPlan($0) },
+            canDeliverCommand: { [weak self] in self?.actions.canDeliverCommand() ?? false },
+            deliverCommand: { [weak self] in self?.actions.deliverCommand($0, $1) }
+        )
         private weak var presentation: TranscriptPresentationState?
         private weak var listView: NativeListView?
         let markdownCache = TranscriptMarkdownCache(limit: 48)
@@ -683,7 +695,7 @@ struct TranscriptListView: NSViewRepresentable {
                 entry: entry,
                 proposedWidth: width,
                 configuration: configuration,
-                actions: measurement ? .init() : actions,
+                actions: measurement ? .init() : forwardingActions,
                 presentation: presentation,
                 markdownCache: markdownCache,
                 measurement: measurement

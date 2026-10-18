@@ -71,6 +71,7 @@ struct NewIdentitySheet: View {
     @State private var colorTag: TagColor
     @State private var saveError: String?
     @State private var didLoadPassword = false
+    @State private var hasAvailablePassword = false
     @State private var confirmsDeletion = false
     @State private var editingToken: UUID?
 
@@ -110,11 +111,19 @@ struct NewIdentitySheet: View {
             footer
         }
         .onAppear {
+            refreshPasswordAvailability()
             loadPasswordOnce()
             guard requestedClose != nil else { return }
             editingToken = editingSession.register(
                 route: .identityEditor(existing?.id), isDirty: { isDirty }
             ) { commitChanges() }
+        }
+        .onChange(of: app.credentials.identities) { _, _ in refreshPasswordAvailability() }
+        .onChange(of: app.credentials.passwordAvailabilityRevision) { _, _ in
+            refreshPasswordAvailability()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshPasswordAvailability()
         }
         .onDisappear {
             guard let editingToken else { return }
@@ -185,9 +194,11 @@ struct NewIdentitySheet: View {
         username.trimmingCharacters(in: .whitespaces)
     }
 
-    private var hasAvailablePassword: Bool {
-        guard let existing else { return false }
-        return app.credentials.passwordAvailability(for: existing) == .available
+    private func refreshPasswordAvailability() {
+        hasAvailablePassword =
+            existing.map {
+                app.credentials.passwordAvailability(for: $0) == .available
+            } ?? false
     }
 
     var canEditPassword: Bool {
@@ -196,7 +207,12 @@ struct NewIdentitySheet: View {
     }
 
     private var passwordUpdate: IdentityPasswordUpdate {
-        if !canEditPassword { return .keep }
+        // Presentation availability is cached; saving still checks the live secret store.
+        if let existing, existing.usesPassword,
+            app.credentials.passwordAvailability(for: existing) != .available
+        {
+            return .keep
+        }
         if password == originalPassword { return .keep }
         if password.isEmpty { return .remove }
         return .replace(password)

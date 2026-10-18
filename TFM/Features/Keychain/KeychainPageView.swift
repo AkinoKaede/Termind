@@ -495,6 +495,7 @@ private struct SoftwareKeyEditor: View {
     @State private var storage: KeyStorage
     @State private var privateKey = ""
     @State private var originalPrivateKey = ""
+    @State private var replacementDraft = SSHKeyReplacementDraft()
     @State private var publicKey: String
     @State private var passphrase = ""
     @State private var originalPassphrase = ""
@@ -502,6 +503,8 @@ private struct SoftwareKeyEditor: View {
     @State private var originalSavePassphrase = true
     @State private var certificate: String
     @State private var material: SSHKeyMaterial?
+    @State private var privateKeyRequiresPassphrase = false
+    @State private var certificateWarning: String?
     @State private var isLoading: Bool
     @State private var canEditPrivateKey = true
     @State private var isChoosingFile = false
@@ -709,12 +712,11 @@ private struct SoftwareKeyEditor: View {
             }
         }
         .onChange(of: privateKey) { old, value in
-            if !isLoading, !originalPrivateKey.isEmpty, value != originalPrivateKey, publicKey == existing?.publicKey {
-                publicKey = ""
-            }
-            if value != originalPrivateKey, old == originalPrivateKey, !originalPassphrase.isEmpty {
-                passphrase = ""
-            }
+            guard canEditPrivateKey, !isLoading else { return }
+            replacementDraft.privateKeyChanged(
+                from: old, to: value, originalPrivateKey: originalPrivateKey,
+                originalPublicKey: existing?.publicKey ?? "", originalPassphrase: originalPassphrase,
+                publicKey: &publicKey, passphrase: &passphrase)
         }
         .onDisappear {
             referenceDropTask?.cancel()
@@ -722,6 +724,7 @@ private struct SoftwareKeyEditor: View {
             originalPrivateKey = ""
             passphrase = ""
             originalPassphrase = ""
+            replacementDraft = SSHKeyReplacementDraft()
             material = nil
             isLoading = loadPrivateKey != nil
             guard let editingToken else { return }
@@ -737,6 +740,9 @@ private struct SoftwareKeyEditor: View {
             Text(AppStrings.Keychain.deleteKeyWarning)
         }
         .task(id: validationToken) { refreshPublicMaterial() }
+        .task(id: CertificateValidationInput(certificate: certificate, publicKey: publicKey)) {
+            certificateWarning = validateCertificate()
+        }
     }
 
     /// A key blob field drawn on the form's own background.
@@ -842,9 +848,11 @@ private struct SoftwareKeyEditor: View {
                 isWorking = false
                 return true
             }
-            let passphrase = privateKeyRequiresPassphrase && !passphrase.isEmpty ? passphrase : nil
+            let analysis = try SSHKeyMaterial.analyzeImport(privateKey: privateKey, publicKey: publicKey)
+            let inspected = try analysis.material.get()
+            let requiresPassphrase = analysis.metadata.isEncrypted
+            let passphrase = requiresPassphrase && !passphrase.isEmpty ? passphrase : nil
             let savesPassphrase = savePassphrase && passphrase != nil
-            let inspected = try SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
             if !normalizedCertificate.isEmpty {
                 _ = try SSHUserCertificate.parse(
                     normalizedCertificate, matching: inspected.publicKey.isEmpty ? nil : inspected.publicKey
@@ -873,10 +881,18 @@ private struct SoftwareKeyEditor: View {
         }
     }
 
-    private var validationToken: String { privateKey + "\u{0}" + publicKey }
+    private struct MaterialValidationInput: Hashable {
+        let privateKey: String
+        let publicKey: String
+    }
 
-    private var privateKeyRequiresPassphrase: Bool {
-        (try? SSHKeyMaterial.privateKeyMetadata(privateKey).isEncrypted) == true
+    private struct CertificateValidationInput: Hashable {
+        let certificate: String
+        let publicKey: String
+    }
+
+    private var validationToken: MaterialValidationInput {
+        MaterialValidationInput(privateKey: privateKey, publicKey: publicKey)
     }
 
     private var defaultName: String {
@@ -900,7 +916,7 @@ private struct SoftwareKeyEditor: View {
         )
     }
 
-    private var certificateWarning: String? {
+    private func validateCertificate() -> String? {
         guard !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         do {
             return try SSHUserCertificate.parse(
@@ -932,7 +948,9 @@ private struct SoftwareKeyEditor: View {
     }
 
     private func refreshPublicMaterial() {
-        material = try? SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
+        let analysis = try? SSHKeyMaterial.analyzeImport(privateKey: privateKey, publicKey: publicKey)
+        privateKeyRequiresPassphrase = analysis?.metadata.isEncrypted == true
+        material = try? analysis?.material.get()
     }
 
     private func receiveReferenceText(_ providers: [NSItemProvider]) -> Bool {

@@ -1656,6 +1656,25 @@ struct ChatComposerStateTests {
     }
 
     @Test
+    func multipleWorkGroupsSharingAnAnchorKeepChronologicalOrder() {
+        let start = Date(timeIntervalSince1970: 100)
+        let answer = ChatMessage(role: .assistant, text: "Answer", createdAt: start)
+        let next = ChatMessage(role: .user, text: "Next", createdAt: start.addingTimeInterval(10))
+        let first = AgentRunSummary(
+            id: UUID(), state: .cancelled, startedAt: start,
+            finishedAt: start.addingTimeInterval(1))
+        let second = AgentRunSummary(
+            id: UUID(), state: .cancelled, startedAt: start.addingTimeInterval(2),
+            finishedAt: start.addingTimeInterval(3))
+        let conversation = ConversationModel(
+            messages: [answer, next], messageRunIDs: [answer.id: first.id], runs: [second, first])
+        #expect(conversation.workGroups.map(\.id) == [first.id, second.id])
+        #expect(conversation.workGroups.map(\.anchorMessageID) == [next.id, next.id])
+        #expect(conversation.workGroups.map(\.appearsAfterAnswer) == [true, false])
+        #expect(conversation.timeline.map(\.id) == [answer.id, first.id, second.id, next.id])
+    }
+
+    @Test
     func restoredReasoningStaysPersistedButOutOfWorked() throws {
         let conversationID = UUID()
         let runID = UUID()

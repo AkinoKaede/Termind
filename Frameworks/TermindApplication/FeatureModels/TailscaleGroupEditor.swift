@@ -63,8 +63,8 @@ public final class TailscaleGroupEditor {
     }
     public var isDirty: Bool {
         draft != (original ?? initialDraft)
-            || enabled != (original?.tailscale != nil) || operationID != nil || isLogoutPending
-            || hostname != (model.savedHostname(groupID: draft.id) ?? "")
+            || enabled != (original?.tailscale != nil) || isLoggingIn || pending != nil || isLogoutPending
+            || hostname != initialHostname
             || exitNodeID != (original?.tailscale?.exitNodeID ?? "")
             || controlURL != (original?.tailscale?.network.controlURL ?? TailscaleNetwork.defaultControlURL)
     }

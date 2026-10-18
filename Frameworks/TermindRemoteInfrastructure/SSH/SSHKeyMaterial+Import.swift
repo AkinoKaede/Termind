@@ -119,20 +119,33 @@ nonisolated extension SSHKeyMaterial {
         else { throw invalidEnvelope }
     }
 
-    public static func imported(privateKey: String, publicKey: String) throws -> SSHKeyMaterial {
+    public struct ImportAnalysis: Sendable {
+        public let metadata: PrivateKeyMetadata
+        public let material: Result<SSHKeyMaterial, any Error>
+    }
+
+    /// Parses the private envelope once, retaining its metadata even if the supplied public key is invalid.
+    public static func analyzeImport(privateKey: String, publicKey: String) throws -> ImportAnalysis {
         let metadata = try privateKeyMetadata(privateKey)
-        let publicKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !publicKey.isEmpty else {
-            return SSHKeyMaterial(
-                privateKey: privateKey, publicKey: "", algorithm: metadata.algorithm,
-                fingerprint: "", keySize: metadata.keySize)
+        let material = Result<SSHKeyMaterial, any Error> {
+            let publicKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !publicKey.isEmpty else {
+                return SSHKeyMaterial(
+                    privateKey: privateKey, publicKey: "", algorithm: metadata.algorithm,
+                    fingerprint: "", keySize: metadata.keySize)
+            }
+            var material = try publicMaterial(publicKey)
+            guard material.algorithm != .securityKey,
+                metadata.algorithm == .unknown || material.algorithm == metadata.algorithm
+            else { throw SSHUserCertificateError.keyMismatch }
+            material.privateKey = privateKey
+            return material
         }
-        var material = try publicMaterial(publicKey)
-        guard material.algorithm != .securityKey,
-            metadata.algorithm == .unknown || material.algorithm == metadata.algorithm
-        else { throw SSHUserCertificateError.keyMismatch }
-        material.privateKey = privateKey
-        return material
+        return ImportAnalysis(metadata: metadata, material: material)
+    }
+
+    public static func imported(privateKey: String, publicKey: String) throws -> SSHKeyMaterial {
+        try analyzeImport(privateKey: privateKey, publicKey: publicKey).material.get()
     }
 
     /// Validates a single OpenSSH public key, including the method inside its wire blob.

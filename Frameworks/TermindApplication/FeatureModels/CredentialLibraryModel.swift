@@ -18,6 +18,7 @@ public final class CredentialLibraryModel {
 
     public var keys: [SSHKeyRef] { library.keys }
     public var identities: [Identity] { library.reusableIdentities }
+    public var passwordAvailabilityRevision: UInt64 { library.passwordAvailabilityRevision }
     public var storageError: String? { library.storageError }
 
     public func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }

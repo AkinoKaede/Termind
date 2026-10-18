@@ -245,8 +245,7 @@ actor SFTPChannel: SFTPChannelProtocol {
         var data = Data()
         do {
             while data.count <= maximumBytes {
-                let wanted = min(64 * 1024, maximumBytes + 1 - data.count)
-                if wanted == 0 { break }
+                let wanted = min(64 * 1024 - 1, maximumBytes - data.count) + 1
                 let chunk: Data? = try await read(handle, maximumBytes: wanted)
                 guard let chunk else { break }
                 data.append(chunk)

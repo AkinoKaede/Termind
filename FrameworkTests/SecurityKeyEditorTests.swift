@@ -31,6 +31,18 @@ struct SecurityKeyEditorTests {
         #expect(saved == expected)
         #expect(validated == expected.securityKey)
         #expect(model.error == nil && !model.isSaving)
+        #expect(!model.isDirty)
+        #expect(model.label == "Renamed")
+        model.label = existing.label
+        #expect(model.isDirty)
+        model.label = "Renamed"
+        #expect(!model.isDirty)
+        model.verification = .discouraged
+        #expect(model.isDirty)
+        model.verification = .required
+        #expect(!model.isDirty)
+        model.load()
+        #expect(model.label == "Renamed" && model.verification == .required && !model.isDirty)
     }
 
     @Test func validationAndPersistenceFailuresKeepTheEditorOpen() async {
@@ -112,6 +124,11 @@ struct SecurityKeyEditorTests {
         shouldFail = false
         try await model.saveChanges()
         #expect(persisted?.label == "Renamed")
+        #expect(!model.isDirty)
+        model.label = "Key"
+        #expect(model.isDirty)
+        model.label = "Renamed"
+        #expect(!model.isDirty)
     }
 
     private struct EditFailure: LocalizedError {

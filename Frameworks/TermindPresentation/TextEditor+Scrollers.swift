@@ -23,11 +23,28 @@ extension TextEditor {
     /// bars. The underlying NSScrollView already knows whether its document exceeds
     /// the clip view, so leave that decision to `autohidesScrollers` instead of
     /// duplicating it from an approximate text-height measurement.
-    private struct TextEditorScrollViewConfigurator: NSViewRepresentable {
+    struct TextEditorScrollViewConfigurator: NSViewRepresentable {
         final class ResolverView: NSView {
+            private weak var cachedScrollView: NSScrollView?
+            private var resolverAncestors: [ObjectIdentifier] = []
+            private var targetAncestors: [ObjectIdentifier] = []
+
+            override func viewDidMoveToSuperview() {
+                super.viewDidMoveToSuperview()
+                invalidateTarget()
+                configureAfterLayout()
+            }
+
             override func viewDidMoveToWindow() {
                 super.viewDidMoveToWindow()
+                invalidateTarget()
                 configureAfterLayout()
+            }
+
+            private func invalidateTarget() {
+                cachedScrollView = nil
+                resolverAncestors = []
+                targetAncestors = []
             }
 
             override func layout() {
@@ -39,10 +56,22 @@ extension TextEditor {
                 Task { @MainActor [weak self] in self?.configureScrollView() }
             }
 
-            private func configureScrollView() {
-                guard let contentView = window?.contentView, !bounds.isEmpty,
-                    let scrollView = textEditorScrollView(in: contentView)
-                else { return }
+            func configureScrollView() {
+                guard let contentView = window?.contentView, !bounds.isEmpty else { return }
+                let scrollView: NSScrollView
+                if let cached = cachedScrollView,
+                    resolverAncestors == ancestors(of: self), targetAncestors == ancestors(of: cached),
+                    matches(cached, in: contentView)
+                {
+                    scrollView = cached
+                } else {
+                    invalidateTarget()
+                    guard let resolved = textEditorScrollView(in: contentView) else { return }
+                    scrollView = resolved
+                    cachedScrollView = resolved
+                    resolverAncestors = ancestors(of: self)
+                    targetAncestors = ancestors(of: resolved)
+                }
 
                 guard !scrollView.autohidesScrollers || !scrollView.hasVerticalScroller else { return }
                 scrollView.hasVerticalScroller = true
@@ -50,25 +79,35 @@ extension TextEditor {
                 scrollView.tile()
             }
 
-            private func textEditorScrollView(in root: NSView) -> NSScrollView? {
-                let targetFrame = convert(bounds, to: root)
-                let targetCenter = NSPoint(x: targetFrame.midX, y: targetFrame.midY)
-                return descendantScrollViews(in: root).first { scrollView in
-                    guard let textView = scrollView.documentView as? NSTextView, textView.isEditable else {
-                        return false
-                    }
-                    return scrollView.convert(scrollView.bounds, to: root).contains(targetCenter)
+            private func ancestors(of view: NSView) -> [ObjectIdentifier] {
+                var result: [ObjectIdentifier] = []
+                var cursor = view.superview
+                while let ancestor = cursor {
+                    result.append(ObjectIdentifier(ancestor))
+                    cursor = ancestor.superview
                 }
+                return result
             }
 
-            private func descendantScrollViews(in root: NSView) -> [NSScrollView] {
-                var result: [NSScrollView] = []
-                func visit(_ view: NSView) {
-                    if let scrollView = view as? NSScrollView { result.append(scrollView) }
-                    view.subviews.forEach(visit)
+            private func matches(_ scrollView: NSScrollView, in root: NSView) -> Bool {
+                guard scrollView.window === window, scrollView.isDescendant(of: root),
+                    !scrollView.isHiddenOrHasHiddenAncestor,
+                    let textView = scrollView.documentView as? NSTextView, textView.isEditable
+                else { return false }
+                let targetFrame = convert(bounds, to: root)
+                return scrollView.convert(scrollView.bounds, to: root).contains(
+                    NSPoint(x: targetFrame.midX, y: targetFrame.midY))
+            }
+
+            private func textEditorScrollView(in root: NSView) -> NSScrollView? {
+                func find(in view: NSView) -> NSScrollView? {
+                    if let scrollView = view as? NSScrollView, matches(scrollView, in: root) { return scrollView }
+                    for child in view.subviews {
+                        if let match = find(in: child) { return match }
+                    }
+                    return nil
                 }
-                visit(root)
-                return result
+                return find(in: root)
             }
         }
 

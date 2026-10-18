@@ -5,6 +5,83 @@ import Testing
 
 @Suite @MainActor
 struct TailscaleGroupEditorTests {
+    @Test func fieldsCanBeChangedRevertedAndChangedAgain() throws {
+        let fixture = try EditorFixture(existing: true)
+        let group = try #require(fixture.library.groups.first)
+        let editor = fixture.editor(group)
+        let hostname = editor.hostname
+        let controlURL = editor.controlURL
+        let exitNodeID = editor.exitNodeID
+        #expect(!editor.isDirty)
+        for _ in 0..<2 {
+            editor.draft.name = "Changed"
+            #expect(editor.isDirty)
+            editor.draft.name = group.name
+            #expect(!editor.isDirty)
+            editor.hostname = "another-device"
+            #expect(editor.isDirty)
+            editor.hostname = hostname
+            #expect(!editor.isDirty)
+            editor.controlURL = "https://other.example.com"
+            #expect(editor.isDirty)
+            editor.controlURL = controlURL
+            #expect(!editor.isDirty)
+            editor.exitNodeID = "other-exit"
+            #expect(editor.isDirty)
+            editor.exitNodeID = exitNodeID
+            #expect(!editor.isDirty)
+            editor.setEnabled(false)
+            #expect(editor.isDirty)
+            editor.setEnabled(true)
+            #expect(!editor.isDirty)
+        }
+    }
+
+    @Test func hostnameDirtinessUsesTheEditorBaselineNotLiveStorage() async throws {
+        let fixture = try EditorFixture()
+        let group = try await fixture.connect()
+        let editor = fixture.editor(group)
+        let originalHostname = editor.hostname
+        try await fixture.model.saveHostname("external-device", groupID: group.id)
+        #expect(!editor.isDirty)
+        editor.hostname = "external-device"
+        #expect(editor.isDirty)
+        editor.hostname = originalHostname
+        #expect(!editor.isDirty)
+        editor.hostname = "saved-device"
+        _ = try await editor.save()
+        #expect(!editor.isDirty)
+        editor.hostname = originalHostname
+        #expect(editor.isDirty)
+        editor.hostname = "saved-device"
+        #expect(!editor.isDirty)
+        await fixture.model.shutdown()
+    }
+
+    @Test func failedLoginDoesNotKeepARevertedFormDirty() async throws {
+        let fixture = try EditorFixture(existing: true)
+        let group = try #require(fixture.library.groups.first)
+        let editor = fixture.editor(group)
+        let originalControlURL = editor.controlURL
+        let originalHostname = editor.hostname
+        editor.controlURL = "://"
+        editor.login(authKey: nil)
+        #expect(editor.isDirty)
+        try await wait { fixture.model.error != nil && !editor.isLoggingIn }
+        #expect(editor.operationID != nil && editor.pending == nil)
+        editor.controlURL = originalControlURL
+        #expect(!editor.isDirty)
+        editor.login(authKey: nil)
+        #expect(editor.isDirty)
+        try await fixture.ready(editor)
+        #expect(editor.isDirty)
+        editor.hostname = originalHostname
+        #expect(editor.isDirty)
+        editor.cancel()
+        #expect(!editor.isDirty)
+        await fixture.model.shutdown()
+    }
+
     @Test(arguments: ["", "My servers"])
     func loginWithoutSavingOnlyUpdatesTheEditor(name: String) async throws {
         let fixture = try EditorFixture()

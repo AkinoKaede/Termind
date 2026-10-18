@@ -9,6 +9,28 @@ import struct TermindDomain.Host
 /// persisted, synchronized, logged, or given a textual representation.
 @MainActor
 public struct HostCustomIdentityDraft {
+    public struct EditableState: Equatable {
+        let sshUsername: String
+        let sshPassword: String
+        let sshKeyID: SSHKeyRef.ID?
+        let telnetUsername: String
+        let telnetPassword: String
+        let usesCustomTelnetSelection: Bool
+        let usesCustomProxy: Bool
+        let proxyPassword: String
+        let usesCustomTelnetProxy: Bool
+        let telnetProxyPassword: String
+    }
+
+    public var editableState: EditableState {
+        EditableState(
+            sshUsername: sshUsername, sshPassword: sshPassword, sshKeyID: sshKeyID,
+            telnetUsername: telnetUsername, telnetPassword: telnetPassword,
+            usesCustomTelnetSelection: usesCustomTelnetSelection,
+            usesCustomProxy: usesCustomProxy, proxyPassword: proxyPassword,
+            usesCustomTelnetProxy: usesCustomTelnetProxy, telnetProxyPassword: telnetProxyPassword)
+    }
+
     public var sshUsername = ""
     public var sshPassword = ""
     public var sshKeyID: SSHKeyRef.ID?

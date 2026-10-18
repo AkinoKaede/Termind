@@ -16,21 +16,11 @@ struct ListViewMigrationTests {
         let id = UUID()
         let normal = AssistantConversationListItem.conversation(
             id: id,
-            title: "Chat",
-            isArchived: false,
-            isPinned: false,
-            isStreaming: false,
-            isCompacting: false,
             isSelected: false,
             isRenaming: false
         )
         let selected = AssistantConversationListItem.conversation(
             id: id,
-            title: "Renamed",
-            isArchived: false,
-            isPinned: true,
-            isStreaming: true,
-            isCompacting: false,
             isSelected: true,
             isRenaming: true
         )
@@ -45,8 +35,7 @@ struct ListViewMigrationTests {
         let collapsedPinned = AssistantConversationListItem.section(.pinned, count: 3)
         let chats = AssistantConversationListItem.section(.chats)
         let conversation = AssistantConversationListItem.conversation(
-            id: UUID(), title: "Chat", isArchived: false, isPinned: false,
-            isStreaming: false, isCompacting: false, isSelected: false,
+            id: UUID(), isSelected: false,
             isRenaming: false
         )
 
@@ -64,13 +53,11 @@ struct ListViewMigrationTests {
             AssistantConversationListItem.section(.pinned),
             AssistantConversationListItem.section(.chats),
             .conversation(
-                id: first, title: "First", isArchived: false, isPinned: false,
-                isStreaming: false, isCompacting: false, isSelected: false,
+                id: first, isSelected: false,
                 isRenaming: false
             ),
             .conversation(
-                id: second, title: "Second", isArchived: false, isPinned: false,
-                isStreaming: false, isCompacting: false, isSelected: false,
+                id: second, isSelected: false,
                 isRenaming: false
             ),
         ]

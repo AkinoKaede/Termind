@@ -63,7 +63,6 @@ struct MobileAssistantComposer: View {
     @State private var camera = false
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var photoTask: Task<Void, Never>?
-    @State private var speechDraft = ""
     @State private var contextDetails = false
     @State private var isSlashPanelDismissed = false
     @State private var slashPanelHeight: CGFloat = 0
@@ -217,14 +216,16 @@ struct MobileAssistantComposer: View {
         .mobileAssistantInteractionSurface()
         .overlay(alignment: .top) {
             if !slashCompletion.isEmpty, !isSlashPanelDismissed {
-                MobileSlashCommandPanel(
-                    completion: slashCompletion,
-                    contextShare: contextShare,
-                    hasOptions: { !slashOptions($0).isEmpty },
-                    trailingText: slashTrailingText,
-                    isCurrent: isCurrentSlashOption,
-                    onSelect: acceptSlashRow
-                )
+                MobileComposerContext(conversation: conversation) { estimate in
+                    MobileSlashCommandPanel(
+                        completion: slashCompletion,
+                        contextShare: contextShare(for: estimate),
+                        hasOptions: { !slashOptions($0).isEmpty },
+                        trailingText: slashTrailingText,
+                        isCurrent: isCurrentSlashOption,
+                        onSelect: acceptSlashRow
+                    )
+                }
                 .onGeometryChange(for: CGFloat.self) { proxy in
                     proxy.size.height
                 } action: { height in
@@ -258,8 +259,8 @@ struct MobileAssistantComposer: View {
         switch phase {
         case .recording:
             speechControls(phase: phase) {
-                SpeechWaveformView(
-                    samples: model.speech.levelSamples,
+                MobileComposerWaveform(
+                    transcription: model.speech,
                     reduceMotion: reduceMotion
                 )
                 .frame(maxWidth: .infinity, minHeight: 48)
@@ -282,7 +283,6 @@ struct MobileAssistantComposer: View {
     ) -> some View {
         HStack(alignment: .center, spacing: 8) {
             Button {
-                composer.draft = speechDraft
                 model.speech.cancel(ownerID: conversation.id)
                 activeFocus.wrappedValue = true
             } label: {
@@ -355,15 +355,17 @@ struct MobileAssistantComposer: View {
     }
 
     private var contextButton: some View {
-        Button {
-            contextDetails = true
-        } label: {
-            ContextRing(share: contextShare ?? 0, diameter: 28, lineWidth: 4)
-                .frame(width: 48, height: 48).contentShape(.circle)
+        MobileComposerContext(conversation: conversation) { estimate in
+            Button {
+                contextDetails = true
+            } label: {
+                ContextRing(share: contextShare(for: estimate) ?? 0, diameter: 28, lineWidth: 4)
+                    .frame(width: 48, height: 48).contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(modelAndEffortAccessibilityLabel))
+            .accessibilityValue(Text(estimate.total, format: .number))
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(modelAndEffortAccessibilityLabel))
-        .accessibilityValue(Text(conversation.contextEstimate.total, format: .number))
     }
 
     private var microphoneButton: some View {
@@ -408,14 +410,16 @@ struct MobileAssistantComposer: View {
     private var contextDetailsSheet: some View {
         NavigationStack {
             Form {
-                if conversation.contextEstimate.total > 0 {
-                    Section(AppStrings.Assistant.context.swiftUIKey) {
-                        ContextBreakdownView(
-                            estimate: conversation.contextEstimate,
-                            contextWindow: resolved?.model.contextLength,
-                            cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0,
-                            showsTitle: false
-                        )
+                MobileComposerContext(conversation: conversation) { estimate in
+                    if estimate.total > 0 {
+                        Section(AppStrings.Assistant.context.swiftUIKey) {
+                            ContextBreakdownView(
+                                estimate: estimate,
+                                contextWindow: resolved?.model.contextLength,
+                                cachedInputTokens: conversation.usage?.cachedInputTokens ?? 0,
+                                showsTitle: false
+                            )
+                        }
                     }
                 }
                 Section(AppStrings.Assistant.model.swiftUIKey) {
@@ -586,9 +590,9 @@ struct MobileAssistantComposer: View {
         slashRegistry.completion(for: composer.draft, in: slashContext)
     }
 
-    private var contextShare: Double? {
-        guard conversation.contextEstimate.total > 0 else { return nil }
-        return conversation.contextEstimate.share(of: resolved?.model.contextLength)
+    private func contextShare(for estimate: AgentContextEstimate) -> Double? {
+        guard estimate.total > 0 else { return nil }
+        return estimate.share(of: resolved?.model.contextLength)
     }
 
     private func slashTrailingText(_ row: ChatSlashCommandCompletion.Row) -> String? {
@@ -680,7 +684,6 @@ struct MobileAssistantComposer: View {
     }
 
     private func startSpeech() {
-        speechDraft = composer.draft
         activeFocus.wrappedValue = false
         Task {
             await model.speech.start(ownerID: conversation.id, completion: applySpeechTranscript)
@@ -726,5 +729,24 @@ private struct MobileComposerControlIconModifier: ViewModifier {
 extension View {
     fileprivate func mobileComposerControlIcon(isDestructive: Bool = false, opacity: Double = 0.75) -> some View {
         modifier(MobileComposerControlIconModifier(isDestructive: isDestructive, opacity: opacity))
+    }
+}
+
+// Keep high-frequency observations out of the draft editor's view body.
+private struct MobileComposerContext<Content: View>: View {
+    let conversation: ConversationModel
+    @ViewBuilder var content: (AgentContextEstimate) -> Content
+
+    var body: some View {
+        content(conversation.contextEstimate)
+    }
+}
+
+private struct MobileComposerWaveform: View {
+    let transcription: SpeechTranscriptionCoordinator
+    let reduceMotion: Bool
+
+    var body: some View {
+        SpeechWaveformView(samples: transcription.levelSamples, reduceMotion: reduceMotion)
     }
 }

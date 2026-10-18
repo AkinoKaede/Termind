@@ -87,6 +87,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
     public var agentForwardingKeyRevision: Int { keyCredentialRevision }
     public private(set) var identities: [Identity] = []
+    /// Invalidates editor availability projections even when a password keeps the same reference.
+    public private(set) var passwordAvailabilityRevision: UInt64 = 0
     public private(set) var snippets: [Snippet] = []
     public private(set) var snippetPackages: [SnippetPackage] = []
     public private(set) var portForwardings: [PortForwardingRule] = []
@@ -1139,7 +1141,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         let owned = identities.filter { $0.ownerHostID == hostID }
         for identity in owned where !identity.credentialRef.isEmpty {
             do {
-                try keychain.removePassword(identity.credentialRef, storage: identity.passwordStorage)
+                try removePassword(identity.credentialRef, storage: identity.passwordStorage)
             } catch {
                 storageError = error.localizedDescription
             }
@@ -1349,7 +1351,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 }
                 let reference = "termind.password.\(UUID().uuidString)"
                 destination.passwordStorage = source.passwordStorage
-                try keychain.setString(password, for: reference, storage: destination.passwordStorage)
+                try setPasswordString(password, for: reference, storage: destination.passwordStorage)
                 destination.credentialRef = reference
                 copiedReference = reference
             }
@@ -1366,12 +1368,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             identities = previousIdentities
             hosts = previousHosts
             if let copiedReference {
-                try keychain.removePassword(copiedReference, storage: destination.passwordStorage)
+                try removePassword(copiedReference, storage: destination.passwordStorage)
             }
             throw TermindSSHError.library(storageError ?? String(localized: "Unable to Save"))
         }
         if let owned, !owned.credentialRef.isEmpty, owned.credentialRef != destination.credentialRef {
-            try? keychain.removePassword(owned.credentialRef, storage: owned.passwordStorage)
+            try? removePassword(owned.credentialRef, storage: owned.passwordStorage)
         }
         didChangeHostConnection?(hostID)
     }
@@ -1422,7 +1424,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                             )
                         )
                     }
-                    try keychain.setString(
+                    try setPasswordString(
                         oldPassword, for: previousReference, storage: updated.passwordStorage
                     )
                     wroteDestination = true
@@ -1438,7 +1440,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     ? "termind.password.\(UUID().uuidString)"
                     : previousReference
                 _ = try loadOldPassword()
-                try keychain.setString(password, for: reference, storage: updated.passwordStorage)
+                try setPasswordString(password, for: reference, storage: updated.passwordStorage)
                 wroteDestination = true
                 updated.credentialRef = reference
             case .remove:
@@ -1461,11 +1463,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             do {
                 if wroteDestination {
                     if updated.passwordStorage == previousStorage, let oldPassword {
-                        try keychain.setString(
+                        try setPasswordString(
                             oldPassword, for: previousReference, storage: previousStorage
                         )
                     } else if !updated.credentialRef.isEmpty {
-                        try keychain.removePassword(
+                        try removePassword(
                             updated.credentialRef, storage: updated.passwordStorage
                         )
                     }
@@ -1484,7 +1486,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             && (updated.credentialRef.isEmpty || previousStorage != updated.passwordStorage)
         if removesPrevious {
             do {
-                try keychain.removePassword(previousReference, storage: previousStorage)
+                try removePassword(previousReference, storage: previousStorage)
             } catch {
                 // The newly committed destination stays authoritative. Retaining
                 // the source is safer than rolling a successful save backward.
@@ -1569,18 +1571,18 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             guard let password = try keychain.string(for: identity.credentialRef, storage: .thisDevice) else {
                 throw TermindSSHError.library(String(localized: "The saved password is no longer available."))
             }
-            try keychain.setString(password, for: identity.credentialRef, storage: .iCloud)
+            try setPasswordString(password, for: identity.credentialRef, storage: .iCloud)
             guard try keychain.string(for: identity.credentialRef, storage: .iCloud) == password else {
-                try? keychain.removePassword(identity.credentialRef, storage: .iCloud)
+                try? removePassword(identity.credentialRef, storage: .iCloud)
                 throw TermindSSHError.library(String(localized: "The saved password is no longer available."))
             }
             updated.passwordStorage = .iCloud
             guard upsert(updated) else {
-                try? keychain.removePassword(identity.credentialRef, storage: .iCloud)
+                try? removePassword(identity.credentialRef, storage: .iCloud)
                 throw TermindSSHError.library(
                     storageError ?? String(localized: "The identity could not be saved."))
             }
-            try keychain.removePassword(identity.credentialRef, storage: .thisDevice)
+            try removePassword(identity.credentialRef, storage: .thisDevice)
         }
     }
 
@@ -1589,6 +1591,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return try keychain.sshSecret(
             for: identity.credentialRef, storage: identity.passwordStorage
         )
+    }
+
+    private func setPasswordString(_ password: String, for reference: String, storage: PasswordStorage) throws {
+        try keychain.setString(password, for: reference, storage: storage)
+        passwordAvailabilityRevision &+= 1
+    }
+
+    private func removePassword(_ reference: String, storage: PasswordStorage) throws {
+        try keychain.removePassword(reference, storage: storage)
+        if !reference.isEmpty { passwordAvailabilityRevision &+= 1 }
     }
 
     public func passwordAvailability(for identity: Identity) -> SecretAvailability {
@@ -1620,7 +1632,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 : try keychain.string(
                     for: identity.credentialRef, storage: identity.passwordStorage
                 )
-            try keychain.removePassword(
+            try removePassword(
                 identity.credentialRef, storage: identity.passwordStorage
             )
         } catch {
@@ -1642,7 +1654,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             hosts = hostSnapshot
             if let password {
                 do {
-                    try keychain.setString(
+                    try setPasswordString(
                         password, for: identity.credentialRef,
                         storage: identity.passwordStorage
                     )
@@ -2054,6 +2066,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Root jump first and destination last. A nil result means the proposed
     /// host closes a cycle, references a missing jump, or exceeds eight hosts.
     public func validatedRoute(for proposed: Host) -> [Host]? {
+        Self.validatedRoute(for: proposed, lookup: host)
+    }
+
+    /// Shares route policy with batch projections that already have an indexed host lookup.
+    public nonisolated static func validatedRoute(for proposed: Host, lookup: (Host.ID) -> Host?) -> [Host]? {
         var route: [Host] = []
         var cursor: Host? = proposed
         var visited: Set<Host.ID> = []
@@ -2064,7 +2081,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             route.append(current)
             guard let jumpID = current.jumpHostID else { break }
             if jumpID == proposed.id { return nil }
-            cursor = jumpID == proposed.id ? proposed : host(jumpID)
+            cursor = lookup(jumpID)
             if cursor == nil { return nil }
         }
         return route.reversed()
@@ -2386,7 +2403,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         try requireSavingHosts(batch.hosts)
         do {
             for (identity, password) in passwords {
-                try keychain.setString(password, for: identity.credentialRef, storage: identity.passwordStorage)
+                try setPasswordString(password, for: identity.credentialRef, storage: identity.passwordStorage)
                 written.append(identity)
             }
             if !batch.hosts.isEmpty || !batch.identities.isEmpty { try commitSSHImport(batch) }
@@ -2394,7 +2411,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             let saveError = error
             for identity in written {
                 do {
-                    try keychain.removePassword(identity.credentialRef, storage: identity.passwordStorage)
+                    try removePassword(identity.credentialRef, storage: identity.passwordStorage)
                 } catch {
                     throw TermindSSHError.library(
                         String(

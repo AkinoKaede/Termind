@@ -34,8 +34,7 @@ struct AgentScratchTests {
 
     /// Containment alone would already stop an escape. The stricter rule is what
     /// keeps an alias *inside* the workspace from making two paths the same file,
-    /// which would quietly break both the quota arithmetic and the atomicity
-    /// `apply(_:to:)` claims.
+    /// which would quietly break the atomicity `apply(_:to:)` claims.
     @Test
     func aSymlinkPlantedByHandIsRefusedRatherThanFollowed() async throws {
         let base = Fixture.base()
@@ -79,46 +78,10 @@ struct AgentScratchTests {
         #expect(try await second.read("notes.md").content == "second")
     }
 
-    // MARK: - Quota
-
     @Test
-    func aWritePastTheEntryLimitFailsAndChangesNothing() async throws {
-        let workspace = Fixture.workspace()
-        for index in 0..<AgentScratchWorkspace.Limits.entries {
-            _ = try await workspace.write("f\(index).txt", data: Data("x".utf8))
-        }
-        let before = try await workspace.usage()
-        await #expect(throws: (any Error).self) {
-            try await workspace.write("one-too-many.txt", data: Data("x".utf8))
-        }
-        #expect(try await workspace.usage() == before)
-        #expect(before.entries == AgentScratchWorkspace.Limits.entries)
-
-        // Overwriting an existing file adds no entry, so it is still allowed at the
-        // ceiling — otherwise a full workspace could not even be corrected.
-        _ = try await workspace.write("f0.txt", data: Data("replaced".utf8))
-        #expect(try await workspace.read("f0.txt").content == "replaced")
-    }
-
-    @Test
-    func aFilePastTheSizeLimitIsRefusedBeforeAnythingIsWritten() async throws {
-        let workspace = Fixture.workspace()
-        let tooBig = Data(repeating: 0x61, count: AgentScratchWorkspace.Limits.fileBytes + 1)
-        await #expect(throws: (any Error).self) {
-            try await workspace.write("big.bin", data: tooBig)
-        }
-        #expect(try await workspace.usage().bytes == 0)
-        #expect(try await workspace.list(nil, recursive: true).isEmpty)
-    }
-
-    /// A quota an agent could evade by naming a file `.big` is not a quota.
-    @Test
-    func hiddenFilesCountAgainstTheQuotaAndAppearInListings() async throws {
+    func hiddenFilesAppearInListings() async throws {
         let workspace = Fixture.workspace()
         _ = try await workspace.write(".hidden", data: Data(repeating: 0x61, count: 100))
-        let usage = try await workspace.usage()
-        #expect(usage.bytes == 100)
-        #expect(usage.entries == 1)
         #expect(try await workspace.list(nil, recursive: true).map(\.path) == [".hidden"])
     }
 
@@ -715,6 +678,26 @@ struct AgentScratchTests {
     }
 
     @Test
+    func pullAcceptsFilesBeyondTheFormerScratchLimit() async throws {
+        let workspace = Fixture.workspace()
+        let data = Data(repeating: 0xFF, count: 8 * 1_024 * 1_024 + 1)
+        let client = StubTransferSFTPClient(files: ["/large.bin": data])
+        let tool = ScratchPullTool(
+            workspace: workspace, pool: Fixture.pool(client), authentication: Fixture.authentication())
+        let result = try await tool.execute(
+            Fixture.invocation(
+                "scratch_pull",
+                [
+                    "host_id": .string(Fixture.hostID.uuidString),
+                    "remote_path": .string("/large.bin"), "scratch_path": .string("large.bin"),
+                ]), context: Fixture.context())
+
+        #expect(!result.isError)
+        #expect(try await workspace.data(at: "large.bin").data == data)
+        #expect(!result.content.contains("total_bytes"))
+    }
+
+    @Test
     func pullValidatesBothPathsBeforeTouchingTheHost() async throws {
         let client = StubTransferSFTPClient(files: ["/etc/app.conf": Data("x".utf8)])
         let tool = try #require(
@@ -982,7 +965,7 @@ struct AgentScratchTests {
                 context: Fixture.context()
             )
         }
-        #expect(try await workspace.usage().entries == 0)
+        #expect(try await workspace.list(nil, recursive: true).isEmpty)
     }
 }
 

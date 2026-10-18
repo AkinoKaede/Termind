@@ -93,7 +93,9 @@ nonisolated public enum SSHExecToolPresentation {
             items.append(field(S.input, text(type == "secret" ? S.secret : type == "eof" ? S.eof : S.text)))
             if type == "text", let input = args["stdin"]?.stringValue { items.append(block(S.input, input)) }
         }
-        if let count = object["bytes_written"]?.integerValue { items.append(field(S.bytes, String(count), mono: true)) }
+        if let count = object["bytes_written"]?.integerValue {
+            items.append(field(S.written, DataSizeFormat.bytes(count), mono: true))
+        }
         if let closed = object["stdin_closed"]?.boolValue {
             items.append(field(closed ? S.stdinClosed : S.stdinOpen))
         }

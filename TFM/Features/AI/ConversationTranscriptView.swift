@@ -275,11 +275,12 @@ private struct ConversationTranscriptSurface: View {
 
     var body: some View {
         let timeline = conversation.timeline
+        let availability = conversation.messageActionAvailability
         let entries = TranscriptEntry.items(
             timeline: timeline,
             isInterrupted: conversation.runState == .interrupted,
-            canEdit: conversation.canEditUserMessage,
-            canFork: conversation.canForkAssistantMessage
+            canEdit: availability.editable.contains,
+            canFork: availability.forkable.contains
         )
         let owner = window.transcriptCache.owner(
             for: .init(

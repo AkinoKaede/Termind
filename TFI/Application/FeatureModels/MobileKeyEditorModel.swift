@@ -19,6 +19,7 @@ final class MobileKeyEditorModel: Identifiable {
     let id = UUID()
     let mode: Mode
     private let original: SSHKeyRef?
+    private let initialStorage: KeyStorage
     private let credentials: CredentialLibraryModel
     var label: String
     var storage: KeyStorage
@@ -40,16 +41,14 @@ final class MobileKeyEditorModel: Identifiable {
     var confirmation = ""
     var privateKey = "" {
         didSet {
-            if canEditPrivateKey, !isLoadingPrivateKey, !originalPrivateKey.isEmpty,
-                privateKey != originalPrivateKey, publicKey == original?.publicKey
-            {
-                publicKey = ""
-            }
-            if privateKey != originalPrivateKey, oldValue == originalPrivateKey, !originalPassphrase.isEmpty {
-                passphrase = ""
-            }
+            guard canEditPrivateKey, !isLoadingPrivateKey else { return }
+            replacementDraft.privateKeyChanged(
+                from: oldValue, to: privateKey, originalPrivateKey: originalPrivateKey,
+                originalPublicKey: original?.publicKey ?? "", originalPassphrase: originalPassphrase,
+                publicKey: &publicKey, passphrase: &passphrase)
         }
     }
+    private var replacementDraft = SSHKeyReplacementDraft()
     var publicKey: String
     var passphrase = ""
     var savePassphrase = true
@@ -76,7 +75,8 @@ final class MobileKeyEditorModel: Identifiable {
         savePassphrase = mode != .edit
         originalSavePassphrase = mode != .edit
         label = key?.label ?? ""
-        storage = key?.storage ?? defaultStorage
+        initialStorage = key?.storage ?? defaultStorage
+        storage = initialStorage
         certificate = key?.certificate ?? ""
         publicKey = key?.publicKey ?? ""
         colorTag = key?.colorTag ?? .none
@@ -103,7 +103,7 @@ final class MobileKeyEditorModel: Identifiable {
 
     var isDirty: Bool {
         usesWebAuthn || !securityKeyReference.isEmpty || verification != .preferred || label != (original?.label ?? "")
-            || storage != (original?.storage ?? .iCloud)
+            || storage != initialStorage
             || publicKey != (original?.publicKey ?? "") || certificate != (original?.certificate ?? "")
             || privateKey != originalPrivateKey
             || passphrase != originalPassphrase
@@ -370,6 +370,7 @@ final class MobileKeyEditorModel: Identifiable {
         passphrase = ""
         confirmation = ""
         originalPassphrase = ""
+        replacementDraft = SSHKeyReplacementDraft()
         inspectedMaterial = nil
     }
 }

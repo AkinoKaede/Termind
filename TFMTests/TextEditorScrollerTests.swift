@@ -2,13 +2,54 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
-import TermindPresentation
 import Testing
 
 @testable import Termind
+@testable import TermindPresentation
 
 @Suite(.serialized) @MainActor
 struct TextEditorScrollerTests {
+    @Test
+    func cachedTargetRecoversAfterReplacementAndReparenting() {
+        let frame = NSRect(x: 0, y: 0, width: 200, height: 100)
+        let window = NSWindow(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let root = NSView(frame: frame)
+        window.contentView = root
+        func editor(in parent: NSView) -> NSScrollView {
+            let scroll = NSScrollView(frame: frame)
+            scroll.documentView = NSTextView(frame: frame)
+            scroll.autohidesScrollers = false
+            parent.addSubview(scroll)
+            return scroll
+        }
+        let first = editor(in: root)
+        let resolver = TextEditorScrollViewConfigurator.ResolverView(frame: frame)
+        root.addSubview(resolver)
+        resolver.configureScrollView()
+        #expect(first.autohidesScrollers)
+
+        first.removeFromSuperview()
+        let replacement = editor(in: root)
+        resolver.configureScrollView()
+        #expect(replacement.autohidesScrollers)
+
+        let otherRoot = NSView(frame: frame)
+        let otherWindow = NSWindow(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
+        otherWindow.isReleasedWhenClosed = false
+        defer { otherWindow.close() }
+        otherWindow.contentView = otherRoot
+        let movedTarget = editor(in: otherRoot)
+        replacement.autohidesScrollers = false
+        resolver.removeFromSuperview()
+        otherRoot.addSubview(resolver)
+        resolver.configureScrollView()
+        #expect(movedTarget.autohidesScrollers)
+        #expect(!replacement.autohidesScrollers)
+        #expect(!window.isVisible && !otherWindow.isVisible)
+    }
+
     @Test
     func snippetScriptHidesItsUnusedScrollerAsTheFormGrows() async throws {
         let state = ScriptState()

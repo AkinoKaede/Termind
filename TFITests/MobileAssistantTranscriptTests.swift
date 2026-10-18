@@ -230,6 +230,148 @@ struct MobileAssistantTranscriptTests {
         #expect(gestures.contains { $0 is UILongPressGestureRecognizer })
     }
 
+    @Test func independentToolHostingRootRetainsNavigationWhenReconfiguredOffscreen() async throws {
+        let row = MobileHostingListRow()
+        row.frame = CGRect(x: 0, y: 0, width: 390, height: 120)
+        var navigation: (@MainActor (AgentToolDetail.NavigationReference) -> Void)?
+        var destinations: [UUID] = []
+        var handlers: [Int] = []
+        let destination = UUID()
+
+        func configure(handler: Int) {
+            row.configure(
+                rootView: AnyView(
+                    MobileAssistantTranscriptRowRoot(navigate: { reference in
+                        guard case .chat(let id) = reference else { return }
+                        destinations.append(id)
+                        handlers.append(handler)
+                    }) {
+                        AssistantToolDetails(items: [
+                            .field(.init(label: "Chat", value: "Open conversation", navigation: .chat(destination)))
+                        ])
+                        .background {
+                            ToolNavigationProbe { navigation = $0 }
+                        }
+                    }),
+                selectable: false,
+                backgroundColor: .systemBackground
+            )
+            row.setNeedsLayout()
+            row.layoutIfNeeded()
+            _ = row.systemLayoutSizeFitting(
+                CGSize(width: 390, height: UIView.layoutFittingCompressedSize.height),
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            )
+        }
+
+        configure(handler: 1)
+        try await Task.sleep(for: .milliseconds(20))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        let firstNavigation = try #require(navigation)
+        firstNavigation(.chat(destination))
+        #expect(destinations == [destination])
+        #expect(handlers == [1])
+
+        navigation = nil
+        configure(handler: 2)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(row.subviews.first?.subviews.first === hosted)
+        let currentNavigation = try #require(navigation)
+        let nextDestination = UUID()
+        currentNavigation(.chat(nextDestination))
+        #expect(destinations == [destination, nextDestination])
+        #expect(handlers == [1, 2])
+        #expect(row.window == nil)
+    }
+
+    private struct ToolNavigationProbe: UIViewRepresentable {
+        @Environment(\.assistantToolNavigation) private var navigate
+        typealias Navigation = @MainActor (AgentToolDetail.NavigationReference) -> Void
+        let receive: (Navigation?) -> Void
+
+        func makeUIView(context: Context) -> UIView {
+            receive(navigate)
+            return UIView()
+        }
+
+        func updateUIView(_ uiView: UIView, context: Context) {
+            receive(navigate)
+        }
+    }
+
+    @Test(.requiresKeyWindow)
+    func hostedToolNavigationUsesTheCurrentReferenceAndHandlerAfterRowReuse() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        let controller = UIViewController()
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        let row = MobileHostingListRow()
+        row.frame = CGRect(x: 0, y: 0, width: 390, height: 120)
+        controller.view.addSubview(row)
+        var selected: [UUID] = []
+        var handlers: [Int] = []
+        let firstID = UUID()
+        let secondID = UUID()
+
+        func configure(reference: UUID, handler: Int) {
+            row.configure(
+                rootView: AnyView(
+                    MobileAssistantTranscriptRowRoot(navigate: { reference in
+                        guard case .chat(let id) = reference else { return }
+                        selected.append(id)
+                        handlers.append(handler)
+                    }) {
+                        AssistantToolDetails(items: [
+                            .field(.init(label: "Chat", value: "Open conversation", navigation: .chat(reference)))
+                        ])
+                    }),
+                selectable: false,
+                backgroundColor: .systemBackground
+            )
+            controller.view.layoutIfNeeded()
+            row.layoutIfNeeded()
+        }
+
+        configure(reference: firstID, handler: 1)
+        try await Task.sleep(for: .milliseconds(50))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        let firstButton = try #require(navigationButton(in: row))
+        #expect(firstButton.accessibilityActivate())
+        #expect(selected == [firstID])
+        #expect(handlers == [1])
+
+        configure(reference: secondID, handler: 2)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(row.subviews.first?.subviews.first === hosted)
+        let reusedButton = try #require(navigationButton(in: row))
+        #expect(reusedButton.accessibilityActivate())
+        #expect(selected == [firstID, secondID])
+        #expect(handlers == [1, 2])
+    }
+
+    private func navigationButton(in root: NSObject) -> NSObject? {
+        var seen = Set<ObjectIdentifier>()
+        func visit(_ element: NSObject) -> NSObject? {
+            guard seen.insert(ObjectIdentifier(element)).inserted else { return nil }
+            if element.accessibilityTraits.contains(.button), element.accessibilityLabel == "Open conversation" {
+                return element
+            }
+            var children: [NSObject] = (element as? UIView)?.subviews ?? []
+            let count = element.accessibilityElementCount()
+            if count != NSNotFound, count > 0 {
+                children += (0..<count).compactMap { element.accessibilityElement(at: $0) as? NSObject }
+            }
+            return children.lazy.compactMap { visit($0) }.first
+        }
+        return visit(root)
+    }
+
     private func message(_ text: String) -> ChatMessage { .init(role: .assistant, text: text, isStreaming: true) }
 
     private final class Harness {

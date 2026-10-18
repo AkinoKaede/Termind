@@ -13,7 +13,7 @@ public final class SecurityKeyEditorModel {
     public private(set) var error: String?
     public private(set) var isSaving = false
     public var canSave: Bool { originalCredential != nil && !isSaving }
-    public let existing: SSHKeyRef
+    public private(set) var existing: SSHKeyRef
     public var isDirty: Bool {
         label != existing.label || colorTag != existing.colorTag
             || verification != (originalCredential?.userVerification ?? .preferred)
@@ -61,6 +61,9 @@ public final class SecurityKeyEditorModel {
         key.colorTag = colorTag
         key.securityKey = credential
         try persist(key)
+        existing = key
+        originalCredential = credential
+        label = key.label
     }
 
     public func save() async -> Bool {
