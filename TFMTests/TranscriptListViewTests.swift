@@ -336,6 +336,313 @@ struct TranscriptListCacheTests {
 @Suite
 struct TranscriptListViewBridgeTests {
     @Test
+    func interactionMetadataPreservesEditorMarkdownMeasurementsAndHistoryAnchor() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 500)
+        let presentation = TranscriptPresentationState()
+        let userID = UUID()
+        let answerID = UUID()
+        let destinationID = UUID()
+        let entries =
+            [
+                user(id: userID, text: "Original"),
+                assistant(id: answerID, text: "**Retain this Markdown**"),
+            ] + (0..<15).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        presentation.beginEditingMessage(userID, text: "Draft text")
+        update(coordinator, list, entries: entries, presentation: presentation)
+        list.setContentOffset(.zero, animated: false)
+        await settleResize(list)
+        let row = try #require(list.rowView(for: userID))
+        let answer = try #require(list.rowView(for: answerID))
+        let editor = try #require(descendant(in: row, identifier: "Transcript.UserEditorText") as? NSTextView)
+        let markdown = try #require(descendant(in: answer, ofType: MarkdownTextView.self))
+        editor.setSelectedRange(NSRange(location: 3, length: 2))
+        editor.setMarkedText(
+            "中文", selectedRange: NSRange(location: 1, length: 0), replacementRange: editor.selectedRange())
+        let selection = editor.selectedRange()
+        let marked = editor.markedRange()
+        await settleResize(list)
+        let anchorOffset = list.rectForRow(with: userID).minY - list.contentOffset.y
+        var measurements = 0
+        let measurementConfiguration = TranscriptListConfiguration(
+            isCompact: true, showsTerminalActions: false, isConversationStreaming: false,
+            locale: Locale(identifier: "en"), reduceMotion: true, colorScheme: .light)
+        func probeMeasurement() {
+            _ = coordinator.sizingPool.height(
+                for: entries[0], width: 601, configuration: measurementConfiguration, presentation: presentation
+            ) { _ in measurements += 1 }
+        }
+        probeMeasurement()
+        for (streaming, title) in [(true, "First title"), (true, "Renamed"), (false, "Renamed")] {
+            update(
+                coordinator, list, entries: entries, presentation: presentation,
+                isConversationStreaming: streaming, chatDestinations: [destinationID: title])
+            list.layoutSubtreeIfNeeded()
+            #expect(list.rowView(for: userID) === row)
+            #expect(list.rowView(for: answerID) === answer)
+            #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+            #expect(descendant(in: answer, ofType: MarkdownTextView.self) === markdown)
+            #expect(editor.selectedRange() == selection)
+            #expect(editor.markedRange() == marked)
+            #expect(editor.hasMarkedText())
+            #expect(abs(list.rectForRow(with: userID).minY - list.contentOffset.y - anchorOffset) <= 1)
+            probeMeasurement()
+            #expect(measurements == 1)
+        }
+        coordinator.refreshDisplayedRow(userID, in: list)
+        #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+    }
+
+    @Test
+    func modelRunBoundariesPreserveAnActiveMessageEditorWhenEditEligibilityChanges() async throws {
+        let conversation = ConversationModel()
+        let messageID = conversation.appendUserTurnContent("Original message").id
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 500)
+        let presentation = TranscriptPresentationState()
+        presentation.beginEditingMessage(messageID, text: "Draft text")
+        func applyConversation() {
+            let availability = conversation.messageActionAvailability
+            let entries = TranscriptEntry.items(
+                timeline: conversation.timeline,
+                isInterrupted: conversation.runState == .interrupted,
+                canEdit: availability.editable.contains,
+                canFork: availability.forkable.contains
+            )
+            update(
+                coordinator, list, entries: entries, presentation: presentation,
+                isConversationStreaming: conversation.isStreaming)
+        }
+        #expect(conversation.messageActionAvailability.editable.contains(messageID))
+        applyConversation()
+        await settleResize(list)
+        let row = try #require(list.rowView(for: messageID))
+        let editor = try #require(descendant(in: row, identifier: "Transcript.UserEditorText") as? NSTextView)
+        editor.setSelectedRange(NSRange(location: 3, length: 2))
+        editor.setMarkedText(
+            "中文", selectedRange: NSRange(location: 1, length: 0), replacementRange: editor.selectedRange())
+        let selection = editor.selectedRange()
+        let marked = editor.markedRange()
+        for state: AgentRunState in [.running, .completed] {
+            conversation.handle(.runState(state))
+            #expect(conversation.messageActionAvailability.editable.contains(messageID) == !conversation.isStreaming)
+            applyConversation()
+            #expect(presentation.isEditingMessage(messageID))
+            #expect(list.rowView(for: messageID) === row)
+            #expect(descendant(in: row, identifier: "Transcript.UserEditorText") === editor)
+            #expect(editor.selectedRange() == selection)
+            #expect(editor.markedRange() == marked)
+            #expect(editor.hasMarkedText())
+        }
+    }
+
+    @Test
+    func interactionMetadataDoesNotSnapANearBottomReaderToBottom() async {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        let presentation = TranscriptPresentationState()
+        list.frame = CGRect(x: 0, y: 0, width: 420, height: 220)
+        let entries = (0..<15).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        update(coordinator, list, entries: entries, presentation: presentation)
+        await settleResize(list)
+        list.setContentOffset(CGPoint(x: 0, y: list.maximumContentOffset.y - 8), animated: false)
+        let offset = list.contentOffset
+        #expect(list.isScrolledToBottom(tolerance: Metrics.Space.l))
+        update(coordinator, list, entries: entries, presentation: presentation, isConversationStreaming: true)
+        #expect(list.contentOffset == offset)
+    }
+
+    @Test
+    func interactionMetadataUpdatesRetainedPlanAndOriginControlsInBothDirections() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 1200)
+        let presentation = TranscriptPresentationState()
+        let sourceID = UUID()
+        let message = ChatMessage(
+            role: .user, text: "Delegated request",
+            origin: AgentMessageOrigin(
+                sourceConversationID: sourceID, sourceRunID: UUID(), sourceToolCallID: "send",
+                sourceTitle: "Snapshot title"))
+        let plan = AgentPlan(title: "Plan", body: "Implement this", scratchPath: "/tmp/plan.md")
+        let entries = [
+            TranscriptEntry(id: message.id, content: .user(message, canEdit: false)),
+            TranscriptEntry(id: plan.id, content: .plan(AgentPlanCard(plan: plan))),
+        ]
+        var navigations: [UUID] = []
+        var implementations: [UUID] = []
+        let actions = TranscriptListActions(
+            navigateChat: { navigations.append($0) }, implementPlan: { implementations.append($0.id) })
+        update(
+            coordinator, list, entries: entries, presentation: presentation, actions: actions,
+            chatDestinations: [sourceID: "Live title"])
+        await settleResize(list)
+        let originRow = try #require(list.rowView(for: message.id))
+        let planRow = try #require(list.rowView(for: plan.id))
+        let origin = try #require(descendant(in: originRow, identifier: "Transcript.AgentOrigin") as? NSButton)
+        let implement = try #require(descendant(in: planRow, identifier: "Transcript.PlanImplement") as? NSButton)
+        for (streaming, destinations, expectedTitle) in [
+            (true, [sourceID: "Renamed"], "Renamed"),
+            (false, [:], "Snapshot title"),
+            (false, [sourceID: "Restored"], "Restored"),
+        ] {
+            update(
+                coordinator, list, entries: entries, presentation: presentation, actions: actions,
+                isConversationStreaming: streaming, chatDestinations: destinations)
+            #expect(list.rowView(for: message.id) === originRow)
+            #expect(list.rowView(for: plan.id) === planRow)
+            #expect(descendant(in: originRow, identifier: "Transcript.AgentOrigin") === origin)
+            #expect(descendant(in: planRow, identifier: "Transcript.PlanImplement") === implement)
+            #expect(implement.isEnabled == !streaming)
+            #expect(origin.isEnabled == (destinations[sourceID] != nil))
+            let help = AppLocalization.resolve(
+                AppStrings.Assistant.agentFrom(expectedTitle), locale: Locale(identifier: "en"))
+            #expect(origin.toolTip == help)
+            #expect(origin.accessibilityLabel() == help)
+        }
+        origin.performClick(nil)
+        implement.performClick(nil)
+        #expect(navigations == [sourceID])
+        #expect(implementations == [plan.id])
+    }
+
+    @Test
+    func offscreenPlanUsesLatestInteractionMetadataWhenMountedAgain() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 420, height: 220)
+        let presentation = TranscriptPresentationState()
+        let plan = AgentPlan(title: "Plan", body: "Implement this", scratchPath: "/tmp/plan.md")
+        let entries =
+            [TranscriptEntry(id: plan.id, content: .plan(AgentPlanCard(plan: plan)))]
+            + (0..<40).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        update(coordinator, list, entries: entries, presentation: presentation)
+        await settleResize(list)
+        #expect(list.rowView(for: plan.id) == nil)
+        update(coordinator, list, entries: entries, presentation: presentation, isConversationStreaming: true)
+        list.setContentOffset(.zero, animated: false)
+        list.layoutSubtreeIfNeeded()
+        let row = try #require(list.rowView(for: plan.id))
+        let implement = try #require(descendant(in: row, identifier: "Transcript.PlanImplement") as? NSButton)
+        #expect(!implement.isEnabled)
+        update(coordinator, list, entries: entries, presentation: presentation)
+        #expect(descendant(in: row, identifier: "Transcript.PlanImplement") === implement)
+        #expect(implement.isEnabled)
+    }
+
+    @Test
+    func simultaneousContentAndInteractionChangesApplyImmediatelyWithoutReplacingUnchangedRows() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 1200)
+        let presentation = TranscriptPresentationState()
+        let stable = assistant(id: UUID(), text: "Stable **Markdown**")
+        let streamingID = UUID()
+        let plan = AgentPlan(title: "Plan", body: "Implement this", scratchPath: "/tmp/plan.md")
+        let planEntry = TranscriptEntry(id: plan.id, content: .plan(AgentPlanCard(plan: plan)))
+        update(
+            coordinator, list, entries: [stable, streamingAssistant(id: streamingID, text: "First"), planEntry],
+            presentation: presentation)
+        await settleResize(list)
+        let row = try #require(list.rowView(for: stable.id))
+        let markdown = try #require(descendant(in: row, ofType: MarkdownTextView.self))
+        let planRow = try #require(list.rowView(for: plan.id))
+        let implement = try #require(descendant(in: planRow, identifier: "Transcript.PlanImplement") as? NSButton)
+        let revised = streamingAssistant(id: streamingID, text: "First delta")
+        update(
+            coordinator, list, entries: [stable, revised, planEntry], presentation: presentation,
+            isConversationStreaming: true)
+        #expect(list.content[1] == revised)
+        #expect(list.rowView(for: stable.id) === row)
+        #expect(descendant(in: row, ofType: MarkdownTextView.self) === markdown)
+        #expect(descendant(in: planRow, identifier: "Transcript.PlanImplement") === implement)
+        #expect(!implement.isEnabled)
+    }
+
+    @Test
+    func interactionMetadataRefreshesNestedToolNavigationWithoutRebuildingWork() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 1200)
+        let presentation = TranscriptPresentationState()
+        let runID = UUID()
+        let destinationID = UUID()
+        var card = AgentToolCard(
+            invocation: AgentToolInvocation(
+                runID: runID, call: AgentToolCall(id: "chats", name: "list_chats", arguments: .object([:]))),
+            descriptor: AgentToolDescriptor(
+                name: "list_chats", summary: "List chats", inputSchema: .object([:]), target: .local,
+                approvalPolicy: .approve,
+                presentation: .init(
+                    symbol: "bubble.left.and.bubble.right", activity: .semanticLabel(.chats), output: .json,
+                    presenterID: "builtin.list_chats", actionKind: .list)))
+        card.state = .completed
+        card.result = AgentToolResult(
+            callID: "chats",
+            content: AgentJSONValue.object([
+                "chats": .array([
+                    .object([
+                        "chat_id": .string(destinationID.uuidString), "title": .string("Linked chat"),
+                        "status": .string("completed"),
+                    ])
+                ])
+            ]).encodedString)
+        presentation.disclosures.toggleDisclosure(.tool(card.id))
+        var message = ChatMessage(role: .assistant, text: "**Working**")
+        var group = AgentWorkGroup(
+            run: AgentRunSummary(id: runID, state: .running, startedAt: .now),
+            items: [.message(message), .tool(card)],
+            orderedAt: .now, appearsAfterAnswer: false)
+        let entry = TranscriptEntry(id: runID, content: .work(group))
+        var navigations: [UUID] = []
+        let actions = TranscriptListActions(navigateChat: { navigations.append($0) })
+        update(
+            coordinator, list, entries: [entry], presentation: presentation, actions: actions,
+            chatDestinations: [destinationID: "Linked chat"])
+        await settleResize(list)
+        let row = try #require(list.rowView(for: runID))
+        let markdown = try #require(descendant(in: row, ofType: MarkdownTextView.self))
+        let link = try #require(descendants(in: row, ofType: NSButton.self).first { $0.title == "Linked chat" })
+        let destinationStates: [[UUID: String]] = [[:], [destinationID: "Restored"]]
+        for destinations in destinationStates {
+            update(
+                coordinator, list, entries: [entry], presentation: presentation, actions: actions,
+                chatDestinations: destinations)
+            #expect(list.rowView(for: runID) === row)
+            #expect(descendant(in: row, ofType: MarkdownTextView.self) === markdown)
+            #expect(descendants(in: row, ofType: NSButton.self).first { $0.title == "Linked chat" } === link)
+            #expect(link.isEnabled == (destinations[destinationID] != nil))
+        }
+        message.text += " with another delta"
+        group.items = [.message(message), .tool(card)]
+        let revised = TranscriptEntry(id: runID, content: .work(group))
+        update(
+            coordinator, list, entries: [revised], presentation: presentation, actions: actions,
+            chatDestinations: [destinationID: "Restored"])
+        #expect(list.content == [revised])
+        #expect(descendant(in: row, ofType: MarkdownTextView.self) === markdown)
+        #expect(descendants(in: row, ofType: NSButton.self).first { $0.title == "Linked chat" } === link)
+        update(coordinator, list, entries: [revised], presentation: presentation, actions: actions)
+        #expect(!link.isEnabled, "Reused nested tool controls must retain their interaction binding")
+        update(
+            coordinator, list, entries: [revised], presentation: presentation, actions: actions,
+            chatDestinations: [destinationID: "Restored"])
+        link.performClick(nil)
+        #expect(navigations == [destinationID])
+
+        group.items = [.message(message)]
+        let removed = TranscriptEntry(id: runID, content: .work(group))
+        update(
+            coordinator, list, entries: [removed], presentation: presentation, actions: actions,
+            chatDestinations: [destinationID: "Restored"])
+        #expect(!link.isDescendant(of: row))
+        update(coordinator, list, entries: [removed], presentation: presentation, actions: actions)
+        #expect(link.isEnabled, "Detached controls must no longer receive interaction updates")
+    }
+
+    @Test
     func editingDraftRefreshPreservesTextViewSelectionAndMarkedText() throws {
         let coordinator = TranscriptListView.Coordinator()
         let list = coordinator.makeListView()
@@ -1663,7 +1970,9 @@ struct TranscriptListViewBridgeTests {
         showsTerminalActions: Bool = false,
         actions: TranscriptListActions = .init(),
         reduceMotion: Bool = true,
-        colorScheme: ColorScheme = .light
+        colorScheme: ColorScheme = .light,
+        isConversationStreaming: Bool = false,
+        chatDestinations: [UUID: String] = [:]
     ) {
         coordinator.update(
             listView: listView,
@@ -1672,7 +1981,8 @@ struct TranscriptListViewBridgeTests {
             configuration: .init(
                 isCompact: isCompact,
                 showsTerminalActions: showsTerminalActions,
-                isConversationStreaming: false,
+                isConversationStreaming: isConversationStreaming,
+                chatDestinations: chatDestinations,
                 locale: Locale(identifier: "en"),
                 reduceMotion: reduceMotion,
                 colorScheme: colorScheme

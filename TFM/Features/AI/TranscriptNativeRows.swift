@@ -167,6 +167,16 @@ class TranscriptNativeRow: ListRowView {
     private var previousPresentation: TranscriptPresentationState?
     private var wasEditing = false
     private var previousWidth: CGFloat = 0
+    private var interactionBindings: [NativeTranscriptControlBinding] = []
+
+    /// Update controls without touching the editor, Markdown, or disclosure tree.
+    func updateInteractionConfiguration(_ configuration: TranscriptListConfiguration) {
+        guard self.configuration != configuration else { return }
+        self.configuration = configuration
+        for binding in interactionBindings {
+            if let button = binding.button { binding.interaction.apply(to: button, configuration: configuration) }
+        }
+    }
 
     static func make(for kind: TranscriptEntry.Kind) -> TranscriptNativeRow {
         switch kind {
@@ -207,6 +217,8 @@ class TranscriptNativeRow: ListRowView {
         previousEntry = nil
         previousPresentation = nil
         actionHolder.actions = .init()
+        configuration = nil
+        interactionBindings.removeAll()
         hoverViews.removeAll()
         if let tracking { removeTrackingArea(tracking) }
         tracking = nil
@@ -223,7 +235,7 @@ class TranscriptNativeRow: ListRowView {
         invalidate: @escaping (UUID, Bool) -> Void
     ) {
         let oldConfiguration = self.configuration
-        self.configuration = configuration
+        updateInteractionConfiguration(configuration)
         actionHolder.actions = actions
         let editing = presentation.isEditingMessage(entry.id)
         defer {
@@ -231,6 +243,12 @@ class TranscriptNativeRow: ListRowView {
             previousPresentation = presentation
             wasEditing = editing
             previousWidth = proposedWidth
+            // Work updates can retain individual tool subtrees. Keep their
+            // bindings, but discard controls replaced or removed by this update.
+            interactionBindings.removeAll { binding in
+                guard let button = binding.button, let activeContent else { return true }
+                return !button.isDescendant(of: activeContent)
+            }
         }
         topInset = entry.hasLeadingSpacing ? Metrics.Chat.turnSpacing : 0
         let contentWidth = max(
@@ -255,6 +273,10 @@ class TranscriptNativeRow: ListRowView {
                 hoverViews.append(view)
                 view.alphaValue = isHovering ? 1 : 0
             },
+            registerInteraction: { [weak self] button, interaction in
+                interaction.apply(to: button, configuration: configuration)
+                self?.interactionBindings.append(.init(button: button, interaction: interaction))
+            },
             presentError: { [weak self] title, message in
                 guard !measurement else { return }
                 self?.presentError(title: title, message: message)
@@ -262,10 +284,12 @@ class TranscriptNativeRow: ListRowView {
         )
         if representedID == entry.id, let activeContent {
             contentWidthConstraint?.constant = contentWidth
-            // Draft revisions must remeasure, not replace the live NSTextView:
+            // Draft revisions and edit-eligibility changes must not replace a live NSTextView:
             // replacement loses selection, undo history, and marked IME text.
-            if case .user = entry.content, previousEntry == entry,
-                previousPresentation === presentation, oldConfiguration == configuration,
+            if case .user(let message, let canEdit) = entry.content,
+                case .user(let previousMessage, let previouslyCanEdit)? = previousEntry?.content,
+                message == previousMessage, editing || canEdit == previouslyCanEdit,
+                previousPresentation === presentation, oldConfiguration?.hasSameLayout(as: configuration) == true,
                 wasEditing == editing, editing || previousWidth == proposedWidth
             {
                 if let editor = activeContent.nativeMessageEditor {
@@ -414,6 +438,36 @@ private final class NativeTranscriptActionHolder {
 }
 
 @MainActor
+private struct NativeTranscriptControlBinding {
+    weak var button: NSButton?
+    let interaction: NativeTranscriptInteraction
+}
+
+@MainActor
+private enum NativeTranscriptInteraction {
+    case planImplementation
+    case chat(UUID)
+    case origin(UUID, snapshotTitle: String?)
+
+    func apply(to button: NSButton, configuration: TranscriptListConfiguration) {
+        switch self {
+        case .planImplementation:
+            button.isEnabled = !configuration.isConversationStreaming
+        case .chat(let id):
+            button.isEnabled = configuration.chatDestinations[id] != nil
+        case .origin(let id, let snapshotTitle):
+            let title = configuration.chatDestinations[id] ?? snapshotTitle
+            let label = AppLocalization.resolve(
+                title.map { AppStrings.Assistant.agentFrom($0) } ?? AppStrings.Assistant.agent,
+                locale: configuration.locale)
+            button.toolTip = label
+            button.setAccessibilityLabel(label)
+            button.isEnabled = configuration.chatDestinations[id] != nil
+        }
+    }
+}
+
+@MainActor
 private struct NativeTranscriptContext {
     let entryID: UUID
     let contentWidth: CGFloat
@@ -425,6 +479,7 @@ private struct NativeTranscriptContext {
     let measurement: Bool
     let invalidate: (UUID, Bool) -> Void
     let registerHoverView: (NSView) -> Void
+    let registerInteraction: (NSButton, NativeTranscriptInteraction) -> Void
     let presentError: (String, String) -> Void
 }
 
@@ -759,22 +814,9 @@ private enum NativeTranscriptFactory {
             context.registerHoverView(hoverActions)
         }
         if let origin = message.origin {
-            let sourceTitle =
-                context.configuration.chatDestinations[origin.sourceConversationID]
-                ?? origin.sourceTitle
-            let label =
-                sourceTitle.map {
-                    AppLocalization.resolve(
-                        AppStrings.Assistant.agentFrom($0),
-                        locale: context.configuration.locale)
-                }
-                ?? AppLocalization.resolve(
-                    AppStrings.Assistant.agent,
-                    locale: context.configuration.locale)
-            let agent = NativeButton(symbol: "sparkles", help: label)
+            let agent = NativeButton(symbol: "sparkles", help: "")
             agent.identifier = NSUserInterfaceItemIdentifier("Transcript.AgentOrigin")
-            agent.setAccessibilityLabel(label)
-            agent.isEnabled = context.configuration.chatDestinations[origin.sourceConversationID] != nil
+            context.registerInteraction(agent, .origin(origin.sourceConversationID, snapshotTitle: origin.sourceTitle))
             agent.handler = { context.actions.navigateChat(origin.sourceConversationID) }
             actions.addArrangedSubview(agent)
         }
@@ -944,7 +986,9 @@ private enum NativeTranscriptFactory {
     ) -> NSView {
         let content = existing ?? WorkContent()
         let stack = content.stack
-        let environmentChanged = content.configuration != context.configuration || content.width != context.contentWidth
+        let environmentChanged =
+            content.configuration?.hasSameLayout(as: context.configuration) != true
+            || content.width != context.contentWidth
         let retryChanged = content.headerGroup?.retryProgress != group.retryProgress
         let revision = context.presentation.layoutRevision(
             for: Set(
@@ -1214,7 +1258,7 @@ private enum NativeTranscriptFactory {
                 prominent: true
             )
             implement.identifier = NSUserInterfaceItemIdentifier("Transcript.PlanImplement")
-            implement.isEnabled = !context.configuration.isConversationStreaming
+            context.registerInteraction(implement, .planImplementation)
             implement.handler = { context.actions.implementPlan(card) }
             actions.addArrangedSubview(discard)
             actions.addArrangedSubview(NativeFlexibleSpacer())
@@ -1522,7 +1566,7 @@ private enum NativeTranscriptFactory {
                 link.alignment = .left
                 link.font = font
                 link.contentTintColor = .linkColor
-                link.isEnabled = context.configuration.chatDestinations[id] != nil
+                context.registerInteraction(link, .chat(id))
                 link.handler = { context.actions.navigateChat(id) }
                 row.addArrangedSubview(link)
             } else if let raw = field.url, let url = URL(string: raw) {
@@ -1631,7 +1675,7 @@ private enum NativeTranscriptFactory {
             link.alignment = .left
             link.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
             link.contentTintColor = .linkColor
-            link.isEnabled = context.configuration.chatDestinations[id] != nil
+            context.registerInteraction(link, .chat(id))
             link.handler = { context.actions.navigateChat(id) }
             body.addArrangedSubview(link)
         } else if let raw = row.url, let url = URL(string: raw) {

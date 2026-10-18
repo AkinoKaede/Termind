@@ -407,6 +407,9 @@ struct MobileAssistantConversation: View {
                     followsBottom: true,
                     surface: .plain,
                     rowRevision: { revisions[$0.id] ?? 0 },
+                    interactionRevision: {
+                        Self.transcriptInteractionRevision(for: $0, isStreaming: conversation.isStreaming)
+                    },
                     prepareUpdate: { old, new, visible in
                         presentation.prepareWorkCompletionTransitions(from: old, to: new, visibleIDs: visible)
                     },
@@ -474,7 +477,16 @@ struct MobileAssistantConversation: View {
     }
 
     private var transcriptRefreshID: String {
-        "\(conversation.id.uuidString):\(conversation.isArchived):\(conversation.isStreaming)"
+        Self.transcriptRefreshID(for: conversation)
+    }
+
+    static func transcriptRefreshID(for conversation: ConversationModel) -> String {
+        "\(conversation.id.uuidString):\(conversation.isArchived)"
+    }
+
+    static func transcriptInteractionRevision(for entry: AssistantTranscriptEntry, isStreaming: Bool) -> UInt64 {
+        guard case .plan = entry.content else { return 0 }
+        return isStreaming ? 1 : 0
     }
 
     private var acceptsAttachmentDrops: Bool {

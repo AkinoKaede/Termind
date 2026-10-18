@@ -96,6 +96,13 @@ struct TranscriptListConfiguration: Equatable {
     let colorScheme: ColorScheme
     var horizontalInset: CGFloat { isCompact ? Metrics.Space.l : Metrics.Space.xl }
 
+    /// Run state and destination availability only affect existing controls.
+    /// Keep all other configuration changes on the original reload path.
+    func hasSameLayout(as other: Self) -> Bool {
+        isCompact == other.isCompact && showsTerminalActions == other.showsTerminalActions
+            && locale == other.locale && reduceMotion == other.reduceMotion && colorScheme == other.colorScheme
+    }
+
     init(
         isCompact: Bool, showsTerminalActions: Bool, isConversationStreaming: Bool,
         chatDestinations: [UUID: String] = [:], locale: Locale, reduceMotion: Bool,
@@ -552,6 +559,17 @@ struct TranscriptListView: NSViewRepresentable {
                     || oldConfiguration != configuration
             else { return }
 
+            let requiresReload = oldConfiguration?.hasSameLayout(as: configuration) != true
+            if !requiresReload, oldConfiguration != configuration {
+                for case let row as TranscriptNativeRow in listView.visibleRowViews {
+                    row.updateInteractionConfiguration(configuration)
+                }
+            }
+            // Interaction metadata must not discard measurements or request a
+            // bottom follow. Content arriving in the same update still applies
+            // synchronously through the usual incremental update plan below.
+            if !requiresReload, content == entries, self.latestUserMessageID == latestUserMessageID { return }
+
             let validPresentationIDs = entries.reduce(into: Set<UUID>()) {
                 $0.formUnion($1.presentationIDs)
             }
@@ -569,7 +587,7 @@ struct TranscriptListView: NSViewRepresentable {
                 || (listView.isScrolledToBottom(tolerance: Metrics.Space.l)
                     && !listView.isUserInteractingWithScroll)
 
-            if oldConfiguration != configuration {
+            if requiresReload {
                 sizingPool.removeAll()
                 listView.reloadData()
             }

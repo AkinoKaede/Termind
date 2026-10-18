@@ -109,6 +109,16 @@ struct MobileAdaptiveLayoutTests {
                 #expect(input.text(in: marked) == "输入中")
                 capture(controller, name: "assistant-fold-\(index)-\(language)")
             }
+            for isRunning in [true, false] {
+                conversation.handle(.runState(isRunning ? .running : .completed))
+                try await settle()
+                #expect(find(ListScrollView.self, in: controller.view) === transcript)
+                #expect(composer.isFirstResponder)
+                #expect(composer.window != nil)
+                let marked = try #require(input.markedTextRange)
+                #expect(input.text(in: marked) == "输入中")
+                capture(controller, name: "assistant-run-\(isRunning)-\(language)")
+            }
             input.unmarkText()
             composer.resignFirstResponder()
         }

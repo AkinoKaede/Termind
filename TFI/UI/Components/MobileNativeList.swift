@@ -62,6 +62,8 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let bottomContentInset: CGFloat
     let surface: MobileNativeListSurface
     let rowRevision: ((Item) -> UInt64)?
+    /// Refreshes mounted content without invalidating geometry; use rowRevision for layout changes.
+    let interactionRevision: ((Item) -> UInt64)?
     let prepareUpdate: (([Item], [Item], Set<Item.ID>) -> Void)?
     let onViewportChange: ((Set<Item.ID>) -> Void)?
     let onTap: (() -> Void)?
@@ -82,6 +84,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         bottomContentInset: CGFloat = 0,
         surface: MobileNativeListSurface = .grouped,
         rowRevision: ((Item) -> UInt64)? = nil,
+        interactionRevision: ((Item) -> UInt64)? = nil,
         prepareUpdate: (([Item], [Item], Set<Item.ID>) -> Void)? = nil,
         onViewportChange: ((Set<Item.ID>) -> Void)? = nil,
         onTap: (() -> Void)? = nil,
@@ -96,6 +99,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.bottomContentInset = bottomContentInset
         self.surface = surface
         self.rowRevision = rowRevision
+        self.interactionRevision = interactionRevision
         self.prepareUpdate = prepareUpdate
         self.onViewportChange = onViewportChange
         self.onTap = onTap
@@ -145,6 +149,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             reduceMotion: reduceMotion || reduceMotionOverride,
             sceneIsActive: scenePhase == .active,
             rowRevision: rowRevision,
+            interactionRevision: interactionRevision,
             prepareUpdate: prepareUpdate,
             onViewportChange: onViewportChange,
             onTap: onTap
@@ -173,6 +178,8 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         private var reduceMotion = false
         private var sceneIsActive = true
         private var revisions: [Item.ID: UInt64] = [:]
+        private var interactionRevisions: [Item.ID: UInt64] = [:]
+        private var configuredIDsDuringUpdate: Set<Item.ID>?
         private var onViewportChange: ((Set<Item.ID>) -> Void)?
         private var onTap: (() -> Void)?
         private weak var listView: ListView<Item>?
@@ -231,10 +238,13 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             reduceMotion: Bool = false,
             sceneIsActive: Bool = true,
             rowRevision: ((Item) -> UInt64)? = nil,
+            interactionRevision: ((Item) -> UInt64)? = nil,
             prepareUpdate: (([Item], [Item], Set<Item.ID>) -> Void)? = nil,
             onViewportChange: ((Set<Item.ID>) -> Void)? = nil,
             onTap: (() -> Void)? = nil
         ) {
+            configuredIDsDuringUpdate = interactionRevision == nil ? nil : []
+            defer { configuredIDsDuringUpdate = nil }
             let wasEmpty = items.isEmpty
             let wasAtBottom = wasEmpty || listView.isScrolledToBottom(tolerance: 48)
             let environmentChanged =
@@ -257,6 +267,10 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             prepareUpdate?(items, newItems, visibleIDs(in: listView))
 
             let newRevisions = Dictionary(uniqueKeysWithValues: newItems.map { ($0.id, rowRevision?($0) ?? 0) })
+            let newInteractionRevisions =
+                interactionRevision.map { revision in
+                    Dictionary(uniqueKeysWithValues: newItems.map { ($0.id, revision($0)) })
+                } ?? [:]
             let previous = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
             let changed = newItems.filter {
                 previous[$0.id] != $0 || revisions[$0.id] != newRevisions[$0.id]
@@ -279,8 +293,21 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
                 listView.invalidateLayout(forRowWith: item.id)
             }
             if environmentChanged { listView.reloadData() }
+            // Interaction-only updates retain the host and its measured geometry. Reconciliation
+            // may already have configured a row with the latest renderer, so do not configure twice.
+            if interactionRevision != nil, !environmentChanged {
+                for item in newItems
+                where interactionRevisions[item.id] != newInteractionRevisions[item.id]
+                    && configuredIDsDuringUpdate?.contains(item.id) != true
+                {
+                    if let row = listView.rowView(for: item.id) as? MobileHostingListRow {
+                        configure(row, item: item, surface: surface)
+                    }
+                }
+            }
             items = newItems
             revisions = newRevisions
+            interactionRevisions = newInteractionRevisions
             scheduleViewportCheck()
             if followsBottom, wasAtBottom, identitiesChanged || !changed.isEmpty {
                 DispatchQueue.main.async { [weak listView] in
@@ -334,6 +361,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         }
 
         func configure(_ row: MobileHostingListRow, item: Item, surface: MobileNativeListSurface) {
+            configuredIDsDuringUpdate?.insert(item.id)
             row.configure(
                 rootView: rootView(for: item),
                 selectable: onSelect != nil,

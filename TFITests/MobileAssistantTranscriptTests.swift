@@ -103,6 +103,232 @@ struct MobileAssistantTranscriptTests {
         }
     }
 
+    @Test func conversationRunBoundariesKeepUnchangedRowsAndHostingRoots() throws {
+        let conversation = ConversationModel()
+        let harness = ConversationHarness()
+        harness.update(conversation)
+        let entry = try #require(harness.entries.first)
+        let row = try #require(harness.list.rowView(for: entry.id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+
+        for state: AgentRunState in [.running, .completed] {
+            harness.renderedIDs.removeAll()
+            conversation.handle(.runState(state))
+            harness.update(conversation)
+            #expect(harness.entries.first == entry)
+            #expect(harness.list.rowView(for: entry.id) === row)
+            #expect(row.subviews.first?.subviews.first === hosted)
+            #expect(!harness.renderedIDs.contains(entry.id))
+        }
+    }
+
+    @Test func conversationRunBoundariesKeepHistoryAnchorAndHostedIdentity() async throws {
+        let conversation = ConversationModel(messages: (0..<30).map { message("Message \($0)") })
+        let harness = ConversationHarness()
+        harness.update(conversation)
+        harness.list.setContentOffset(CGPoint(x: 0, y: 120), animated: false)
+        harness.list.layoutIfNeeded()
+        let index = try #require(harness.list.indicesForVisibleRows.first)
+        let id = harness.entries[index].id
+        let row = try #require(harness.list.rowView(for: id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        let anchor = harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y
+
+        for state: AgentRunState in [.running, .completed] {
+            conversation.handle(.runState(state))
+            harness.update(conversation, followsBottom: true)
+            try await Task.sleep(for: .milliseconds(30))
+            #expect(harness.list.rowView(for: id) === row)
+            #expect(row.subviews.first?.subviews.first === hosted)
+            let currentAnchor = harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y
+            #expect(abs(currentAnchor - anchor) < 1)
+        }
+    }
+
+    @Test func interactionOnlyUpdatesKeepHostsMeasurementsAndHistoryAnchor() async throws {
+        let harness = Harness()
+        let items = (0..<30).map { message("Message \($0)") }
+        harness.update(items)
+        // Let the initial offscreen measurement pass finish before counting invalidations.
+        for _ in 0..<100 where Set(harness.measuredIDs).count < items.count {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(Set(harness.measuredIDs).count == items.count)
+        harness.list.setContentOffset(CGPoint(x: 0, y: 120), animated: false)
+        harness.list.layoutIfNeeded()
+        let index = try #require(harness.list.indicesForVisibleRows.first)
+        let id = items[index].id
+        let row = try #require(harness.list.rowView(for: id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        let anchor = harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y
+        let contentSize = harness.list.contentSize
+        harness.renderedIDs.removeAll()
+        harness.measuredIDs.removeAll()
+        harness.interactionRevisions[id] = 1
+        harness.update(items, followsBottom: true)
+        try await Task.sleep(for: .milliseconds(30))
+
+        #expect(harness.list.rowView(for: id) === row)
+        #expect(row.subviews.first?.subviews.first === hosted)
+        #expect(harness.renderedIDs == [id])
+        #expect(harness.measuredIDs.isEmpty)
+        #expect(harness.list.contentSize == contentSize)
+        #expect(abs(harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y - anchor) < 1)
+    }
+
+    @Test func mixedInteractionContentAndDisclosureUpdatesConfigureEachAffectedRowOnce() throws {
+        let harness = Harness()
+        var first = message("First")
+        let second = message("Second")
+        harness.update([first, second])
+        let row = try #require(harness.list.rowView(for: first.id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        harness.renderedIDs.removeAll()
+        harness.interactionRevisions[first.id] = 1
+        first.text += " delta"
+        harness.update([first, second])
+        #expect(harness.renderedIDs == [first.id])
+        #expect(harness.renderedInteractionRevisions[first.id] == 1)
+        #expect(row.subviews.first?.subviews.first === hosted)
+
+        harness.renderedIDs.removeAll()
+        harness.interactionRevisions[first.id] = 2
+        harness.revisions[first.id] = 1
+        harness.update([first, second])
+        #expect(harness.renderedIDs == [first.id])
+        #expect(harness.renderedInteractionRevisions[first.id] == 2)
+        #expect(row.subviews.first?.subviews.first === hosted)
+    }
+
+    @Test func offscreenMountAndReinsertUseTheLatestInteractionRenderer() throws {
+        let harness = Harness()
+        let items = (0..<40).map { message("Message \($0)") }
+        let tail = try #require(items.last)
+        harness.update(items)
+        #expect(harness.list.rowView(for: tail.id) == nil)
+        harness.renderedIDs.removeAll()
+        harness.interactionRevisions[tail.id] = 1
+        harness.update(items)
+        #expect(!harness.renderedIDs.contains(tail.id))
+        harness.list.scrollToBottom(animated: false)
+        harness.list.layoutIfNeeded()
+        _ = try #require(harness.list.rowView(for: tail.id))
+        #expect(harness.renderedInteractionRevisions[tail.id] == 1)
+
+        harness.update(Array(items.dropLast()))
+        harness.interactionRevisions[tail.id] = 2
+        harness.update(items)
+        harness.list.scrollToBottom(animated: false)
+        harness.list.layoutIfNeeded()
+        _ = try #require(harness.list.rowView(for: tail.id))
+        #expect(harness.renderedInteractionRevisions[tail.id] == 2)
+    }
+
+    @Test func explicitRefreshAndRealEnvironmentChangesStillRebuildRows() throws {
+        let harness = Harness()
+        let item = message("File row")
+        harness.update([item], tracksInteractions: false)
+        let original = try #require(harness.list.rowView(for: item.id))
+        harness.update([item], refreshID: "directory changed", tracksInteractions: false)
+        let refreshed = try #require(harness.list.rowView(for: item.id))
+        #expect(refreshed !== original)
+        harness.update([item], refreshID: "directory changed", colorScheme: .dark, tracksInteractions: false)
+        #expect(harness.list.rowView(for: item.id) !== refreshed)
+    }
+
+    @Test func conversationAndArchiveChangesStillRebuildTranscriptRows() throws {
+        let harness = ConversationHarness()
+        let conversation = ConversationModel()
+        harness.update(conversation)
+        let id = try #require(harness.entries.first?.id)
+        let original = try #require(harness.list.rowView(for: id))
+        conversation.archivedAt = .now
+        harness.update(conversation)
+        let archived = try #require(harness.list.rowView(for: id))
+        #expect(archived !== original)
+        conversation.archivedAt = nil
+        harness.update(conversation)
+        let restored = try #require(harness.list.rowView(for: id))
+        #expect(restored !== archived)
+        harness.update(ConversationModel())
+        let switchedID = try #require(harness.entries.first?.id)
+        #expect(harness.list.rowView(for: switchedID) !== restored)
+    }
+
+    @Test(.requiresKeyWindow)
+    func planImplementControlTracksRunBoundariesWithoutReplacingItsHost() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let controller = UIViewController()
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousKeyWindow?.makeKey()
+        }
+        let conversation = ConversationModel()
+        let plan = AgentPlan(title: "Implementation plan", body: "Apply the change.", scratchPath: "/tmp/plan.md")
+        conversation.handle(.planPresented(plan))
+        let harness = ConversationHarness(rowHeight: 320)
+        harness.list.frame = CGRect(x: 0, y: 0, width: 390, height: 400)
+        controller.view.addSubview(harness.list)
+        harness.update(conversation)
+        let row = try #require(harness.list.rowView(for: plan.id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        var implementLabel = AppStrings.Assistant.implement
+        implementLabel.locale = Locale(identifier: "en")
+        let label = String(localized: implementLabel)
+
+        for state: AgentRunState in [.idle, .running, .completed] {
+            conversation.handle(.runState(state))
+            harness.update(conversation)
+            controller.view.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(50))
+            #expect(harness.list.rowView(for: plan.id) === row)
+            #expect(row.subviews.first?.subviews.first === hosted)
+            let button = try #require(accessibilityButton(in: row, label: label))
+            #expect(button.accessibilityTraits.contains(.notEnabled) == conversation.isStreaming)
+            if !conversation.isStreaming {
+                let count = harness.implementedIDs.count
+                #expect(button.accessibilityActivate())
+                #expect(harness.implementedIDs.count == count + 1)
+                #expect(harness.implementedIDs.last == plan.id)
+            }
+        }
+
+        conversation.messages = (0..<30).map { message("Later message \($0)") }
+        harness.update(conversation)
+        harness.list.scrollToBottom(animated: false)
+        harness.list.layoutIfNeeded()
+        #expect(harness.list.rowView(for: plan.id) == nil)
+        conversation.handle(.runState(.running))
+        harness.update(conversation)
+        harness.list.setContentOffset(.zero, animated: false)
+        harness.list.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(50))
+        let remountedRow = try #require(harness.list.rowView(for: plan.id))
+        let remountedButton = try #require(accessibilityButton(in: remountedRow, label: label))
+        #expect(remountedButton.accessibilityTraits.contains(.notEnabled))
+
+        conversation.archivedAt = .now
+        harness.update(conversation)
+        controller.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(50))
+        let archivedRow = try #require(harness.list.rowView(for: plan.id))
+        #expect(archivedRow !== remountedRow)
+        #expect(accessibilityButton(in: archivedRow, label: label) == nil)
+        conversation.archivedAt = nil
+        conversation.handle(.runState(.completed))
+        harness.update(conversation)
+        controller.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(50))
+        let restoredRow = try #require(harness.list.rowView(for: plan.id))
+        let restoredButton = try #require(accessibilityButton(in: restoredRow, label: label))
+        #expect(!restoredButton.accessibilityTraits.contains(.notEnabled))
+    }
+
     @Test func streamedUpdatesAndDisclosureRevisionsKeepTheHostedView() throws {
         let harness = Harness()
         let first = message("First")
@@ -356,10 +582,14 @@ struct MobileAssistantTranscriptTests {
     }
 
     private func navigationButton(in root: NSObject) -> NSObject? {
+        accessibilityButton(in: root, label: "Open conversation")
+    }
+
+    private func accessibilityButton(in root: NSObject, label: String) -> NSObject? {
         var seen = Set<ObjectIdentifier>()
         func visit(_ element: NSObject) -> NSObject? {
             guard seen.insert(ObjectIdentifier(element)).inserted else { return nil }
-            if element.accessibilityTraits.contains(.button), element.accessibilityLabel == "Open conversation" {
+            if element.accessibilityTraits.contains(.button), element.accessibilityLabel == label {
                 return element
             }
             var children: [NSObject] = (element as? UIView)?.subviews ?? []
@@ -367,37 +597,114 @@ struct MobileAssistantTranscriptTests {
             if count != NSNotFound, count > 0 {
                 children += (0..<count).compactMap { element.accessibilityElement(at: $0) as? NSObject }
             }
-            return children.lazy.compactMap { visit($0) }.first
+            for child in children {
+                if let button = visit(child) { return button }
+            }
+            return nil
         }
         return visit(root)
     }
 
     private func message(_ text: String) -> ChatMessage { .init(role: .assistant, text: text, isStreaming: true) }
 
-    private final class Harness {
-        let coordinator = MobileNativeList<ChatMessage, Text>.Coordinator()
-        let list = ListView<ChatMessage>()
-        var revisions: [UUID: UInt64] = [:]
+    private final class ConversationHarness {
+        let coordinator = MobileNativeList<AssistantTranscriptEntry, Text>.Coordinator()
+        let list = ListView<AssistantTranscriptEntry>()
+        private(set) var entries: [AssistantTranscriptEntry] = []
+        let presentation = AssistantTranscriptPresentationState()
         var renderedIDs: [UUID] = []
+        var implementedIDs: [UUID] = []
 
-        init() {
+        init(rowHeight: CGFloat = 80) {
             list.frame = CGRect(x: 0, y: 0, width: 390, height: 280)
+            list.estimatedRowHeight = rowHeight
             list.rows {
-                ListRow(MobileHostingListRow.self).height { _, _ in 80 }.configure { [weak self] row, item, _ in
+                ListRow(MobileHostingListRow.self).height { _, _ in rowHeight }.configure { [weak self] row, item, _ in
                     self?.coordinator.configure(row, item: item, surface: .plain)
                 }
             }
         }
 
-        func update(_ items: [ChatMessage], followsBottom: Bool = false) {
+        func update(_ conversation: ConversationModel, followsBottom: Bool = false) {
+            let streaming = conversation.isStreaming
+            let archived = conversation.isArchived
+            let availability = conversation.messageActionAvailability
+            entries = AssistantTranscriptEntry.items(
+                timeline: conversation.timeline,
+                isInterrupted: conversation.runState == .interrupted,
+                canEdit: availability.editable.contains,
+                canFork: availability.forkable.contains
+            )
+            coordinator.update(
+                listView: list, items: entries,
+                renderer: { [weak self] item in
+                    self?.renderedIDs.append(item.id)
+                    switch item.content {
+                    case .assistant(let message, _), .user(let message, _):
+                        return AnyView(Text(message.text))
+                    case .plan(let card):
+                        guard let self else { return AnyView(EmptyView()) }
+                        return AnyView(
+                            MobileAssistantPlanRow(
+                                card: card, presentation: presentation, readOnly: archived,
+                                isStreaming: streaming,
+                                implement: { [weak self] in self?.implementedIDs.append(card.id) }, discard: {}
+                            )
+                        )
+                    default:
+                        return AnyView(Text("Transcript row"))
+                    }
+                }, onSelect: nil, onRefresh: nil, followsBottom: followsBottom, surface: .plain,
+                refreshID: MobileAssistantConversation.transcriptRefreshID(for: conversation),
+                locale: Locale(identifier: "en"), colorScheme: .light, dynamicTypeSize: .large,
+                rowRevision: { [weak self] in self?.presentation.layoutRevision(for: $0.presentationIDs) ?? 0 },
+                interactionRevision: {
+                    MobileAssistantConversation.transcriptInteractionRevision(for: $0, isStreaming: streaming)
+                }
+            )
+            list.layoutIfNeeded()
+        }
+    }
+
+    private final class Harness {
+        let coordinator = MobileNativeList<ChatMessage, Text>.Coordinator()
+        let list = ListView<ChatMessage>()
+        var revisions: [UUID: UInt64] = [:]
+        var interactionRevisions: [UUID: UInt64] = [:]
+        var renderedIDs: [UUID] = []
+        var measuredIDs: [UUID] = []
+        var renderedInteractionRevisions: [UUID: UInt64] = [:]
+
+        init() {
+            list.frame = CGRect(x: 0, y: 0, width: 390, height: 280)
+            list.estimatedRowHeight = 80
+            list.rows {
+                ListRow(MobileHostingListRow.self).height { [weak self] item, _ in
+                    self?.measuredIDs.append(item.id)
+                    return 80
+                }.configure { [weak self] row, item, _ in
+                    self?.coordinator.configure(row, item: item, surface: .plain)
+                }
+            }
+        }
+
+        func update(
+            _ items: [ChatMessage], followsBottom: Bool = false,
+            refreshID: AnyHashable = 0, colorScheme: ColorScheme = .light,
+            tracksInteractions: Bool = true
+        ) {
+            let interactions = interactionRevisions
             coordinator.update(
                 listView: list, items: items,
                 renderer: { [weak self] item in
                     self?.renderedIDs.append(item.id)
+                    self?.renderedInteractionRevisions[item.id] = interactions[item.id] ?? 0
                     return AnyView(Text(item.text))
                 }, onSelect: nil, onRefresh: nil, followsBottom: followsBottom, surface: .plain,
-                refreshID: 0, locale: Locale(identifier: "en"), colorScheme: .light, dynamicTypeSize: .large,
-                rowRevision: { [weak self] in self?.revisions[$0.id] ?? 0 }
+                refreshID: refreshID, locale: Locale(identifier: "en"),
+                colorScheme: colorScheme, dynamicTypeSize: .large,
+                rowRevision: { [weak self] in self?.revisions[$0.id] ?? 0 },
+                interactionRevision: tracksInteractions ? { interactions[$0.id] ?? 0 } : nil
             )
             list.layoutIfNeeded()
         }
