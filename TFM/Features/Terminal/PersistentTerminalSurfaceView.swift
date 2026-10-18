@@ -371,6 +371,7 @@
         private var appliedVisibility: Bool?
         private var wantsFocus = false
         private var nextMountOrdinal: UInt64 = 0
+        private(set) var resizeThrottleMilliseconds: Double = 35
 
         private var uploadBindingID: UUID?
         private var sftpBindingID: UUID?
@@ -466,6 +467,15 @@
             terminal.configuration = state.configuration
             terminal.controller = state.controller
             terminalView = terminal
+        }
+
+        /// Changes only the live coalescing policy; configuration and surface identity stay intact.
+        @discardableResult
+        func setResizeThrottle(milliseconds: Double) -> Bool {
+            guard resizeThrottleMilliseconds != milliseconds else { return false }
+            resizeThrottleMilliseconds = milliseconds
+            terminalView.setResizeThrottle(milliseconds: milliseconds)
+            return true
         }
 
         nonisolated func receive(_ data: Data) {

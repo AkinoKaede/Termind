@@ -21,6 +21,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     private var hasObservedNetworkPath = false
     private var closed = false
     private var protocolSuspended = false
+    private var startupNeedsCompletion = false
     private var recoveryNeedsCompletion = false
     private var suspendedCheckpoint: TerminalTransportCheckpoint?
     private var lifecycleOperations: [LifecycleOperation] = []
@@ -36,8 +37,12 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     private var sendWaiters: [CheckedContinuation<Void, Never>] = []
     private var viewport: (columns: UInt16, rows: UInt16) = (80, 24)
 
-    private var frozen: Bool {
+    private var lifecycleFrozen: Bool {
         !lifecycleOperations.isEmpty || protocolSuspended || recoveryNeedsCompletion
+    }
+
+    private var frozen: Bool {
+        startupNeedsCompletion || lifecycleFrozen
     }
 
     private enum LifecycleAction {
@@ -114,6 +119,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
             await self?.receiveEngineEvent(event)
         }
         self.engine = engine
+        startupNeedsCompletion = true
         sendsInFlight += 1
         defer { finishSend() }
         let bootstrap = SSHConnection()
@@ -149,17 +155,38 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
                     )
                 }
             }
-            try await engine.start(columns: columns, rows: rows)
-            try checkOpen()
-            if let input = preparation.startupInput { try await engine.write(input) }
-            if pendingCheckpoint == nil, let integration { try await engine.write(integration.startCommand) }
-            if let command = pendingIntegrationCommand {
-                pendingIntegrationCommand = nil
-                try await engine.write(command)
+            var appliedViewport = viewport
+            try await engine.start(columns: appliedViewport.columns, rows: appliedViewport.rows)
+            var startupInput = preparation.startupInput
+            var integrationStartCommand = pendingCheckpoint == nil ? integration?.startCommand : nil
+            var bootstrapDisconnected = false
+            // Keep viewport delivery and connected publication ordered across every await.
+            // No concurrent resize may complete before a stale start overwrites it.
+            while true {
+                try checkOpen()
+                if appliedViewport.columns != viewport.columns || appliedViewport.rows != viewport.rows {
+                    let latest = viewport
+                    try await engine.resize(columns: latest.columns, rows: latest.rows)
+                    appliedViewport = latest
+                } else if let input = startupInput {
+                    startupInput = nil
+                    try await engine.write(input)
+                } else if let command = integrationStartCommand {
+                    integrationStartCommand = nil
+                    try await engine.write(command)
+                } else if let command = pendingIntegrationCommand {
+                    pendingIntegrationCommand = nil
+                    try await engine.write(command)
+                } else if !bootstrapDisconnected {
+                    await bootstrap.disconnect()
+                    bootstrapDisconnected = true
+                } else {
+                    pendingCheckpoint = nil
+                    startupNeedsCompletion = false
+                    if !frozen { publish(engineState) }
+                    break
+                }
             }
-            await bootstrap.disconnect()
-            pendingCheckpoint = nil
-            guard !closed else { return }
             startMaintenance()
             startNetworkMonitoring()
         } catch {
@@ -176,7 +203,9 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
 
     public func write(_ data: Data) async throws {
         try checkOpen()
-        guard !frozen else { throw TerminalTransportError.suspended }
+        // A starting surface can already answer terminal protocol queries. The host
+        // gates interactive input on connected state; startup must not drop these replies.
+        guard !lifecycleFrozen else { throw TerminalTransportError.suspended }
         integration?.noteUserInput()
         sendsInFlight += 1
         defer { finishSend() }

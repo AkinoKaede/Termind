@@ -43,6 +43,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         didSet {
             if !status.isLive, status != .connecting { commandMonitor.endConnection() }
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
+            synchronizeResizeThrottle()
         }
     }
     var workingDirectory: String? {
@@ -360,6 +361,22 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         writeInputDirectly(Data((text + (submit ? "\r" : "")).utf8))
     }
 
+    /// Runtime prompt snapshots can outlive foreground ownership or tmux copy/prefix mode.
+    /// A read-draft ticket confirms that the prompt is still interactive.
+    private func synchronizeResizeThrottle() {
+        let milliseconds: Double
+        if !status.isLive || !isShellIntegrationEnabled || !shellIntegrationAvailable {
+            milliseconds = 35
+        } else if isShellPromptReady,
+            !hasRuntimeContext || terminalContext.ticket(requiring: .readDraft) != nil
+        {
+            milliseconds = 0
+        } else {
+            milliseconds = 128
+        }
+        terminalSurface.setResizeThrottle(milliseconds: milliseconds)
+    }
+
     var canGenerateFromCurrentDraft: Bool {
         status.isLive && isShellIntegrationEnabled && shellIntegrationAvailable && isShellPromptReady
             && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
@@ -473,6 +490,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         activeShellCommand = nil
         commandDraft.cancel()
         invalidateCommandGeneration()
+        synchronizeResizeThrottle()
     }
 
     func connectIfNeeded(using store: any RemoteSessionHostStore) {
@@ -1009,6 +1027,16 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 }
             }
             await actor.setTerminalActive(isTerminalActive)
+            guard connectionAttemptID == attemptID, ssh === actor else { throw CancellationError() }
+            if transport == .ssh {
+                // A retained surface may not emit another resize for this new channel.
+                // Prime all dimensions before connect consumes the worker's initial viewport.
+                let viewport = latestViewport
+                await actor.resize(
+                    columns: viewport.columns, rows: viewport.rows,
+                    widthPixels: viewport.widthPixels, heightPixels: viewport.heightPixels)
+            }
+            guard connectionAttemptID == attemptID, ssh === actor else { throw CancellationError() }
             try await actor.connect(
                 using: SSHConnectionRequest(
                     configuration: configuration,
@@ -1377,9 +1405,13 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     private func resizeSSH(_ viewport: InMemoryTerminalViewport) {
+        guard viewport.columns > 0, viewport.rows > 0 else { return }
         latestViewport = viewport
         guard let ssh else { return }
-        Task {
+        let attemptID = connectionAttemptID
+        Task { [weak self] in
+            guard let self, self.ssh === ssh, self.connectionAttemptID == attemptID else { return }
+            let viewport = self.latestViewport
             await ssh.resize(
                 columns: viewport.columns, rows: viewport.rows,
                 widthPixels: viewport.widthPixels, heightPixels: viewport.heightPixels
@@ -1438,6 +1470,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             return
         }
         guard !hasRuntimeContext else { return }
+        defer { synchronizeResizeThrottle() }
         commandMonitor.receiveShellEvent(event)
         switch event {
         case .runtime, .ordinaryStartupUnavailable: break
@@ -1483,6 +1516,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     private func receiveRuntimeContext(_ update: TerminalRuntimeUpdate) {
+        defer { synchronizeResizeThrottle() }
         hasRuntimeContext = true
         let previous = terminalContext.revision
         let events = terminalContext.receive(update, generation: terminalContext.generation)

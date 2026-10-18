@@ -992,6 +992,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var socketEvents: SSHSocketEvents?
     private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
+    private var ptyStartupSizing = SSHPTYStartupSizing()
     private var terminalActivation = SSHPTYActivationState()
     private var activationTask: (request: SSHPTYActivationState.Request, task: Task<Void, Never>)?
     private var shellIntegration: RemoteShellIntegrationBootstrap?
@@ -1626,7 +1627,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             }
         }
         let variables = environment.map { ($0.0, SSHPTYStartupBytes($0.1), SSHPTYStartupBytes($0.2)) }
-        let initialSize = try await queue.perform { self.ptyResize.requestedSize }
         guard let budget = try await queue.perform({ self.channelBudget }) else { throw TermindSSHError.disconnected }
         let lease = try await budget.acquire()
         try await queue.perform { [self] in
@@ -1648,14 +1648,12 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     guard let channel = openingPTY else { return LIBSSH2_ERROR_CHANNEL_CLOSED }
                     return request.agentForwarding == nil ? 0 : libssh2_channel_request_auth_agent(channel)
                 case 2:
-                    guard let channel = openingPTY, let size = initialSize else {
-                        return LIBSSH2_ERROR_CHANNEL_CLOSED
+                    guard let channel = openingPTY else { return LIBSSH2_ERROR_CHANNEL_CLOSED }
+                    return ptyStartupSizing.requestPTY(resize: &ptyResize) { size in
+                        libssh2_channel_request_pty_ex(
+                            channel, "xterm-256color", 14, nil, 0, Int32(size.columns), Int32(size.rows),
+                            Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels))
                     }
-                    let result = libssh2_channel_request_pty_ex(
-                        channel, "xterm-256color", 14, nil, 0, Int32(size.columns), Int32(size.rows),
-                        Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels))
-                    if result == 0 { ptyResize.didCreatePTY(size: size) }
-                    return result
                 case 3..<(3 + environment.count):
                     let variable = variables[operation - 3]
                     let result = libssh2_channel_setenv_ex(
@@ -1666,10 +1664,21 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     }
                     return result
                 default:
-                    if let command {
-                        return libssh2_channel_process_startup(openingPTY, "exec", 4, command.pointer, command.count)
-                    }
-                    return libssh2_channel_process_startup(openingPTY, "shell", 5, nil, 0)
+                    guard let channel = openingPTY else { return LIBSSH2_ERROR_CHANNEL_CLOSED }
+                    return ptyStartupSizing.startProcess(
+                        resize: &ptyResize,
+                        sendResize: { size in
+                            libssh2_channel_request_pty_size_ex(
+                                channel, Int32(size.columns), Int32(size.rows),
+                                Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels))
+                        },
+                        start: {
+                            if let command {
+                                return libssh2_channel_process_startup(
+                                    channel, "exec", 4, command.pointer, command.count)
+                            }
+                            return libssh2_channel_process_startup(channel, "shell", 5, nil, 0)
+                        })
                 }
             }
         }
@@ -2519,6 +2528,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         finishCharsetOutput()
         pendingWrites.removeAll()
         ptyResize.reset()
+        ptyStartupSizing = SSHPTYStartupSizing()
         if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil
@@ -2553,6 +2563,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         self.connection = nil
         pendingWrites.removeAll()
         ptyResize.reset()
+        ptyStartupSizing = SSHPTYStartupSizing()
         if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil

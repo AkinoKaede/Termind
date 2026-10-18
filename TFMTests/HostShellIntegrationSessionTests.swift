@@ -9,6 +9,111 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct HostShellIntegrationSessionTests {
+    @Test func resizeThrottleFollowsLegacyLifecycleRatherThanCommandCompletion() {
+        let session = SSHSessionModel(hostID: UUID(), title: "Resize lifecycle")
+        defer { session.disconnect() }
+        let owner = session.terminalViewOwner
+        #expect(owner.resizeThrottleMilliseconds == 35)
+        session.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: nil))
+        #expect(owner.resizeThrottleMilliseconds == 35)
+        session.status = .connected
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(owner.resizeThrottleMilliseconds == 0)
+        session.receiveShellIntegrationEvent(.commandStarted("top"))
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        session.receiveShellIntegrationEvent(.commandFinished(0, duration: 1))
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(owner.resizeThrottleMilliseconds == 0)
+        session.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: nil))
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        session.status = .reconnecting
+        #expect(owner.resizeThrottleMilliseconds == 35)
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(owner.resizeThrottleMilliseconds == 35)
+        session.status = .connected
+        #expect(owner.resizeThrottleMilliseconds == 0)
+        session.status = .failed("Disconnected")
+        #expect(owner.resizeThrottleMilliseconds == 35)
+    }
+
+    @Test(arguments: [TerminalRuntimeUpdate.Status.ordinary, .multiplexer])
+    func runtimeResizeThrottleRequiresLifecycleAndInteractivePrompt(status: TerminalRuntimeUpdate.Status) {
+        let session = SSHSessionModel(hostID: UUID(), title: "Runtime resize")
+        defer { session.disconnect() }
+        session.status = .connected
+        let owner = session.terminalViewOwner
+        var context = TerminalShellContext(
+            identity: .init(backend: "tmux", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: nil, home: nil, promptReady: false, sequence: 1,
+            capabilities: [.commandLifecycle])
+        func receive() {
+            session.receiveShellIntegrationEvent(
+                .runtime(.init(status: status, active: context.identity, contexts: [context])))
+            context.sequence += 1
+        }
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        // A prompt snapshot without readDraft also represents tmux copy/prefix
+        // mode or a foreground process that is no longer the shell.
+        context.promptReady = true
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        context.capabilities.insert(.readDraft)
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 0)
+        #expect(!session.canGenerateFromCurrentDraft)  // Resize does not require replaceDraft.
+        context.capabilities.remove(.readDraft)
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        context.capabilities = [.readDraft]
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 35)
+        context.capabilities.insert(.commandLifecycle)
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 0)
+        context.promptReady = false
+        receive()
+        #expect(owner.resizeThrottleMilliseconds == 128)
+        for unavailable in [TerminalRuntimeUpdate.Status.unknown, .unavailable] {
+            session.receiveShellIntegrationEvent(.runtime(.init(status: unavailable)))
+            #expect(owner.resizeThrottleMilliseconds == 35)
+            session.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: nil))
+            session.receiveShellIntegrationEvent(.promptReady)
+            #expect(owner.resizeThrottleMilliseconds == 35)
+        }
+    }
+
+    @Test func reconnectResetsResizeThrottleUntilFreshShellStateArrives() {
+        let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
+        let library = HostLibraryModel(hosts: [host])
+        let session = SSHSessionModel(hostID: host.id, title: host.name)
+        defer { session.disconnect() }
+        // Missing authentication keeps setup local; no socket is opened.
+        session.connect(using: library)
+        session.status = .connected
+        let context = TerminalShellContext(
+            identity: .init(backend: "shell", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: nil, home: nil, promptReady: true, sequence: 1,
+            capabilities: [.commandLifecycle, .readDraft])
+        session.receiveShellIntegrationEvent(
+            .runtime(.init(status: .ordinary, active: context.identity, contexts: [context])))
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == 0)
+        session.disconnect()
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == 35)
+        session.connect(using: library)
+        session.status = .connected
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == 35)
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unknown)))
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == 35)
+        session.receiveShellIntegrationEvent(
+            .runtime(.init(status: .ordinary, active: context.identity, contexts: [context])))
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == 0)
+    }
+
     @Test(arguments: [false, true])
     func ordinaryStartupFallbackSubmitsOnceButNeverIntoManagedAttachments(managed: Bool) {
         let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
@@ -169,6 +274,7 @@ struct HostShellIntegrationSessionTests {
         let pane = Pane(.sshSession(session))
         #expect(pane.remoteSystemInfo == (expected ? info : nil))
         #expect(session.canGenerateFromCurrentDraft == expected)
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == (expected ? 0 : 35))
 
         defaults.set(!global, forKey: SettingsKey.shellIntegration)
         host.shellIntegrationMode = expected ? .disabled : .enabled
@@ -176,6 +282,7 @@ struct HostShellIntegrationSessionTests {
         #expect(session.isShellIntegrationEnabled == expected)
         #expect(pane.remoteSystemInfo == (expected ? info : nil))
         #expect(session.canGenerateFromCurrentDraft == expected)
+        #expect(session.terminalViewOwner.resizeThrottleMilliseconds == (expected ? 0 : 35))
         session.receiveShellIntegrationEvent(.commandStarted("pwd"))
         session.receiveShellIntegrationEvent(.commandFinished(0, duration: 0.1))
         #expect(history.entries().count == (expected ? 1 : 0))

@@ -7,6 +7,114 @@ import Testing
 
 @Suite
 struct ResumableTerminalEngineTests {
+    @Test func restoreStartsWithTheLatestViewportAcceptedDuringPreparationWithoutRedundantResize() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["prepare"])
+        let client = client(engine, events: events)
+        let connecting = Task { try await connect(client) }
+        await events.wait(for: "gated:prepare")
+        try await client.resize(columns: 100, rows: 30)
+        try await client.resize(columns: 132, rows: 43)
+        try await client.resize(columns: 132, rows: 43)
+        #expect(!events.values.contains(where: { $0.hasPrefix("resize:") || $0.hasPrefix("start:") }))
+        await engine.release("prepare")
+        try await connecting.value
+        #expect(await engine.preparedPayload == checkpoint.payload)
+        #expect(events.values.filter { $0.hasPrefix("start:") } == ["start:132x43"])
+        #expect(!events.values.contains(where: { $0.hasPrefix("resize:") }))
+        #expect(await engine.appliedGrid == "132x43")
+        #expect(events.values.last == "state:connected")
+        await client.close()
+    }
+
+    @Test func startupPreservesTerminalProtocolRepliesBeforePublishingConnected() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["start"])
+        let client = client(engine, events: events)
+        let connecting = Task { try await connect(client) }
+        await events.wait(for: "gated:start")
+        await events.emit(.connected)
+        let reply = "\u{1B}[1;1R"
+        try await client.write(Data(reply.utf8))
+        #expect(events.values.contains("write:\(reply)"))
+        #expect(!events.values.contains("state:connected"))
+        await engine.release("start")
+        try await connecting.value
+        #expect(events.values.last == "state:connected")
+        await client.close()
+    }
+
+    @Test func startupDrainsResizeChangesAcrossStartAndResizeAwaitsBeforeConnected() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["start", "resize"])
+        let client = client(engine, events: events)
+        let connecting = Task { try await connect(client) }
+        await events.wait(for: "gated:start")
+        try await client.resize(columns: 100, rows: 30)
+        try await client.resize(columns: 132, rows: 43)
+        await events.emit(.connected)
+        #expect(!events.values.contains("state:connected"))
+        #expect(!events.values.contains(where: { $0.hasPrefix("resize:") }))
+        await engine.release("start")
+        await events.wait(for: "gated:resize")
+        #expect(await engine.appliedGrid == "80x24")
+        try await client.resize(columns: 150, rows: 50)
+        try await client.resize(columns: 160, rows: 60)
+        try await client.resize(columns: 160, rows: 60)
+        await events.emit(.activity)
+        #expect(events.values.filter { $0.hasPrefix("resize:") } == ["resize:132x43"])
+        #expect(!events.values.contains("state:connected"))
+        await engine.release("resize")
+        try await connecting.value
+        #expect(events.values.filter { $0.hasPrefix("resize:") } == ["resize:132x43", "resize:160x60"])
+        #expect(await engine.appliedGrid == "160x60")
+        #expect(events.values.last == "state:connected")
+        try await client.write(Data("after".utf8))
+        #expect(events.values.last == "write:after")
+        await client.close()
+    }
+
+    @Test func startupRechecksViewportAfterWritingRestoredIntegrationBeforePublishingConnected() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["start", "write"], restoresIntegration: true)
+        let client = client(engine, events: events)
+        let connecting = Task { try await connect(client) }
+        await events.wait(for: "gated:start")
+        await events.emit(.output(Data("__TRMD_RESTORE_SHELL__/bin/bash__\r\n".utf8)))
+        #expect(!events.values.contains(where: { $0.hasPrefix("write:") }))
+        await engine.release("start")
+        await events.wait(for: "gated:write")
+        try await client.resize(columns: 140, rows: 50)
+        #expect(!events.values.contains("state:connected"))
+        #expect(!events.values.contains(where: { $0.hasPrefix("resize:") }))
+        await engine.release("write")
+        try await connecting.value
+        #expect(events.values.filter { $0.hasPrefix("write:") && $0.contains("TermindCommand=RESTORE") }.count == 1)
+        #expect(events.values.filter { $0.hasPrefix("resize:") } == ["resize:140x50"])
+        #expect(await engine.appliedGrid == "140x50")
+        #expect(events.values.last == "state:connected")
+        await client.close()
+    }
+
+    @Test func cancellingStartupDuringResizeDrainClosesWithoutAdmittingConnectedOrInput() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events, gates: ["start", "resize"])
+        let client = client(engine, events: events)
+        let connecting = Task { try await connect(client) }
+        await events.wait(for: "gated:start")
+        try await client.resize(columns: 132, rows: 43)
+        await engine.release("start")
+        await events.wait(for: "gated:resize")
+        connecting.cancel()
+        try await client.resize(columns: 160, rows: 60)
+        await engine.release("resize")
+        await #expect(throws: CancellationError.self) { try await connecting.value }
+        #expect(!events.values.contains("state:connected"))
+        #expect(events.values.filter { $0.hasPrefix("resize:") } == ["resize:132x43"])
+        #expect(Array(events.values.suffix(3)) == ["rollback", "close", "state:closed"])
+        await #expect(throws: CancellationError.self) { try await client.write(Data("blocked".utf8)) }
+    }
+
     @Test func routeFactsPassWhileRecoveryIsFrozenWithoutConfirmingProtocolReadiness() async throws {
         let events = EngineEvents()
         let engine = TestEngine(events: events, gates: ["retry"])
@@ -295,18 +403,28 @@ struct ResumableTerminalEngineTests {
         await client.close()
     }
 
-    @Test func checkpointQueuedDuringInitialStartUsesTheConnectedEventAfterDrainingConnect() async throws {
+    @Test func checkpointQueuedDuringInitialStartWaitsForTheLatestViewportToDrain() async throws {
         let events = EngineEvents()
-        let engine = TestEngine(events: events, gates: ["start"])
+        let engine = TestEngine(events: events, gates: ["start", "resize"])
         let client = client(engine, events: events)
         let connecting = Task { try await connect(client) }
         await events.wait(for: "gated:start")
         let suspending = Task { try await client.suspend() }
         await events.wait(for: "lifecycle:queued")
+        try await client.resize(columns: 132, rows: 43)
         #expect(!events.values.contains("checkpoint"))
         await engine.release("start")
+        await events.wait(for: "gated:resize")
+        try await client.resize(columns: 160, rows: 60)
+        #expect(!events.values.contains("checkpoint"))
+        #expect(!events.values.contains("state:connected"))
+        await engine.release("resize")
         try await connecting.value
         let saved = try await suspending.value
+        #expect(await engine.appliedGrid == "160x60")
+        let resizeIndex = try #require(events.values.firstIndex(of: "resize:160x60"))
+        let checkpointIndex = try #require(events.values.firstIndex(of: "checkpoint"))
+        #expect(resizeIndex < checkpointIndex)
         #expect(saved.transport == .mosh)
         #expect(events.values.last == "state:suspended")
         #expect(!events.values.contains("state:failed"))
@@ -840,6 +958,7 @@ private actor TestEngine: ResumableTerminalEngine {
     let restoresIntegration: Bool
     let reportsConnectedOnStart: Bool
     private(set) var preparedPayload: Data?
+    private(set) var appliedGrid: String?
     private(set) var permitsAgentForwarding = true
     private(set) var capturedShell: ResumableTerminalShellState?
     private var writing: CheckedContinuation<Void, Never>?
@@ -864,6 +983,7 @@ private actor TestEngine: ResumableTerminalEngine {
         preparedPayload = context.checkpoint
         permitsAgentForwarding = context.request.permitsAgentForwarding
         events.record("prepare")
+        await waitAtGate("prepare")
         return .init(
             shell: .init(
                 integration: restoresIntegration ? RemoteShellIntegrationBootstrap(token: "RESTORE") : nil,
@@ -873,11 +993,13 @@ private actor TestEngine: ResumableTerminalEngine {
         events.record("start:\(columns)x\(rows)")
         if failsStart { throw TerminalTransportError.unreachable }
         await waitAtGate("start")
+        appliedGrid = "\(columns)x\(rows)"
         if reportsConnectedOnStart { await events.emit(.connected) }
         await events.emit(.output(Data("ready".utf8)))
     }
     func write(_ data: Data) async throws {
         events.record("write:\(String(decoding: data, as: UTF8.self))")
+        await waitAtGate("write")
         if data == Data("hold".utf8) {
             await withCheckedContinuation { writing = $0 }
         }
@@ -890,6 +1012,7 @@ private actor TestEngine: ResumableTerminalEngine {
         events.record("resize:\(columns)x\(rows)")
         await waitAtGate("resize")
         try failIfRequested("resize")
+        appliedGrid = "\(columns)x\(rows)"
     }
     func checkpoint(shell: @Sendable () async -> ResumableTerminalShellState) async throws -> Data {
         events.record("checkpoint")
