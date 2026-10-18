@@ -16,38 +16,44 @@ struct AgentToolPresentationTests {
     func mcpCallsUseCallingAndCalledWithoutChangingCommandVerbs() {
         var card = makeCard(
             name: "docs.search", target: .mcp,
-            presentation: .init(symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
+            presentation: .init(
+                symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
         let english = Locale(identifier: "en")
         card.state = .running
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Calling "))
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Calling "))
         card.state = .completed
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Called "))
-        #expect(AgentToolPresentation.batchSummary(for: [card, card], locale: english).hasPrefix("Called "))
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Called "))
+        #expect(
+            TermindToolPresentationProfiles.renderer.batchSummary(for: [card, card], locale: english).hasPrefix(
+                "Called "))
         card.state = .failed
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Failed to call "))
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Failed to call "))
         card.state = .waitingForApproval
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Waiting to call "))
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Waiting to call "))
 
         card.descriptor.target = .local
         card.descriptor.presentation?.actionKind = .run
         card.state = .running
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Running "))
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Running "))
         card.state = .completed
-        #expect(AgentToolPresentation.summary(for: card, locale: english).hasPrefix("Ran "))
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: english).hasPrefix("Ran "))
     }
 
     @Test(arguments: ["zh-Hans", "zh-Hant"])
     func mcpCallVerbsAreLocalized(_ language: String) {
         var card = makeCard(
             name: "docs.search", target: .mcp,
-            presentation: .init(symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
+            presentation: .init(
+                symbol: "puzzlepiece.extension", activity: .label("docs.search"), actionKind: .call))
         let locale = Locale(identifier: language)
         card.state = .running
         let running = language == "zh-Hans" ? "正在调用docs.search" : "正在呼叫docs.search"
-        #expect(AgentToolPresentation.summary(for: card, locale: locale) == running)
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: locale) == running)
         card.state = .completed
         let expected = language == "zh-Hans" ? "已调用docs.search" : "已呼叫docs.search"
-        #expect(AgentToolPresentation.summary(for: card, locale: locale) == expected)
+        #expect(TermindToolPresentationProfiles.renderer.summary(for: card, locale: locale) == expected)
     }
 
     @Test
@@ -81,7 +87,7 @@ struct AgentToolPresentationTests {
             userIntent: "Deploy"
         )
 
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request,
             presenter: AppDependencies.toolPresenter(for: request.descriptor),
             hostName: "Production",
@@ -117,7 +123,7 @@ struct AgentToolPresentationTests {
             userIntent: "Run it"
         )
 
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request, locale: Locale(identifier: "en")
         )
         #expect(!presentation.title.contains("hunter2"))
@@ -167,7 +173,8 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Question", value: "Storage — Which format should we use?")),
@@ -214,12 +221,17 @@ struct AgentToolPresentationTests {
                 ),
             ]),
         ])
-        var card = makeCard(name: "list_hosts", target: .host)
+        var card = makeCard(
+            name: "list_hosts", target: .host,
+            presentation: .init(
+                symbol: "server.rack", activity: .semanticLabel(.hosts), presenterID: "builtin.list_hosts",
+                actionKind: .list))
         card.state = .completed
         card.result = AgentToolResult(callID: "call", content: result.encodedString)
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -244,7 +256,11 @@ struct AgentToolPresentationTests {
                 address: "host\(index).example.com", state: "disconnected", tags: []
             )
         }
-        var card = makeCard(name: "list_hosts", target: .host)
+        var card = makeCard(
+            name: "list_hosts", target: .host,
+            presentation: .init(
+                symbol: "server.rack", activity: .semanticLabel(.hosts), presenterID: "builtin.list_hosts",
+                actionKind: .list))
         card.result = AgentToolResult(
             callID: "call",
             content: AgentJSONValue.object([
@@ -253,7 +269,8 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         guard case .groupedList(let listing) = try #require(detail.items.first) else {
             Issue.record("Expected a grouped host listing")
             return
@@ -270,7 +287,7 @@ struct AgentToolPresentationTests {
         var builtIn = makeCard(name: "future_tool", target: .local)
         builtIn.result = AgentToolResult(callID: "call", content: payload)
         let builtInDetail = try #require(
-            AgentToolPresentation.detail(
+            TermindToolPresentationProfiles.renderer.detail(
                 for: builtIn, presenter: AppDependencies.toolPresenter(for: builtIn.descriptor)))
         #expect(
             builtInDetail.items == [
@@ -287,7 +304,8 @@ struct AgentToolPresentationTests {
         )
         mcp.result = AgentToolResult(callID: "call", content: payload)
         let mcpDetail = try #require(
-            AgentToolPresentation.detail(for: mcp, presenter: AppDependencies.toolPresenter(for: mcp.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: mcp, presenter: AppDependencies.toolPresenter(for: mcp.descriptor)))
         guard case .text(let block) = try #require(mcpDetail.items.first) else {
             Issue.record("Expected MCP JSON text")
             return
@@ -331,7 +349,7 @@ struct AgentToolPresentationTests {
                 invocation: card.invocation, descriptor: card.descriptor,
                 userIntent: "Collaborate")
 
-            let approval = AgentToolPresentation.approval(
+            let approval = TermindToolPresentationProfiles.renderer.approval(
                 for: request, presenter: nil, locale: Locale(identifier: "en"))
             let rendered = AgentToolDetailPreview(approval.detail).fullText
             #expect(!rendered.contains(secret))
@@ -376,7 +394,7 @@ struct AgentToolPresentationTests {
             card.result = result
             if result.isError { card.state = .failed }
             let detail = try #require(
-                AgentToolPresentation.detail(
+                TermindToolPresentationProfiles.renderer.detail(
                     for: card, presenter: presenter,
                     locale: Locale(identifier: "en")),
                 Comment(rawValue: label))
@@ -416,7 +434,7 @@ struct AgentToolPresentationTests {
             content: AgentJSONValue.object(["chats": .array(chats)]).encodedString)
 
         let detail = try #require(
-            AgentToolPresentation.detail(
+            TermindToolPresentationProfiles.renderer.detail(
                 for: card,
                 presenter: TermindAgentTools.presenter(id: "builtin.list_chats"),
                 locale: Locale(identifier: "en")))
@@ -458,7 +476,8 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         #expect(
             detail.items == [
                 .field(.init(label: "Status", value: "200")),
@@ -475,24 +494,10 @@ struct AgentToolPresentationTests {
         let cases: [(String, AgentToolDescriptor.Target, [String: AgentJSONValue], AgentJSONValue)] = [
             ("list_hosts", .host, [:], .object(["groups": .array([]), "hosts": .array([])])),
             (
-                "ssh_exec", .host, [:],
-                .object([
-                    "status": .string("exited"), "stdout": .string("ok"),
-                    "stderr": .string(""), "exit_code": .number(0),
-                ])
-            ),
-            (
-                "ssh_wait", .host, [:],
-                .object([
-                    "status": .string("running"), "stdout": .string(""),
-                    "stderr": .string(""), "note": .string("Still running"),
-                ])
-            ),
-            (
                 "ssh_exec_run", .host, ["command": .string("pwd")],
                 .object([
                     "handle": .string(UUID().uuidString), "status": .string("exited"),
-                    "stdout": .string("/tmp"), "stderr": .string(""), "exit_code": .number(0),
+                    "output": .string("/tmp"), "exit_code": .number(0),
                     "stdin_closed": .bool(true),
                 ])
             ),
@@ -500,7 +505,7 @@ struct AgentToolPresentationTests {
                 "ssh_exec_output", .host, [:],
                 .object([
                     "handle": .string(UUID().uuidString), "status": .string("running"),
-                    "stdout": .string(""), "stderr": .string(""),
+                    "output": .string(""),
                 ])
             ),
             (
@@ -679,13 +684,12 @@ struct AgentToolPresentationTests {
         for (name, target, arguments, result) in cases {
             var card = makeCard(
                 name: name, target: target, arguments: arguments,
-                presentation: name.hasPrefix("ssh_exec_")
-                    ? .init(
-                        symbol: "terminal", activity: .semanticLabel(.remoteCommand), presenterID: "builtin.\(name)")
-                    : nil)
+                presentation: .init(
+                    symbol: "wrench", activity: .label(name), presenterID: "builtin.\(name)"))
             card.result = AgentToolResult(callID: "call", content: result.encodedString)
             let detail = try #require(
-                AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)),
+                TermindToolPresentationProfiles.renderer.detail(
+                    for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)),
                 "Missing \(name)")
             let rendered = String(describing: detail)
             #expect(!rendered.contains("{"), "\(name) exposed JSON")
@@ -696,9 +700,6 @@ struct AgentToolPresentationTests {
         }
     }
 
-    /// Separate from the table above, which builds cards without a presentation and
-    /// so resolves through `legacyPresenter`. `scratch_fetch` has never shipped, so
-    /// it deliberately has no legacy name and is reached only by presenter ID.
     @Test
     func scratchFetchDetailIsStructuredWithoutJSONSyntax() throws {
         var card = makeCard(
@@ -722,7 +723,8 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(!rendered.contains("{"))
         #expect(!rendered.contains("}"))
@@ -759,7 +761,8 @@ struct AgentToolPresentationTests {
         )
 
         let detail = try #require(
-            AgentToolPresentation.detail(for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
         let rendered = String(describing: detail)
         #expect(rendered.contains("nginx.conf:12"))
         #expect(rendered.contains("listen 443 ssl;"))
@@ -773,25 +776,25 @@ struct AgentToolPresentationTests {
             symbol: "terminal", activity: .label("a command"),
             actionKind: .run
         )
-        var first = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
-        var second = makeCard(name: "ssh_exec", target: .host, presentation: terminal)
+        var first = makeCard(name: "ssh_exec_run", target: .host, presentation: terminal)
+        var second = makeCard(name: "ssh_exec_run", target: .host, presentation: terminal)
         first.state = .running
         second.state = .proposed
-        #expect(AgentToolPresentation.batchSymbol(for: [first, second]) == "terminal")
-        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .secondary)
+        #expect(TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, second]) == "terminal")
+        #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .secondary)
 
         first.state = .completed
         second.state = .completed
-        #expect(AgentToolPresentation.batchSymbol(for: [first, second]) == "terminal")
-        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .success)
+        #expect(TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, second]) == "terminal")
+        #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .success)
 
         first.state = .failed
         second.state = .denied
-        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .failure)
+        #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .failure)
 
         first.state = .completed
         second.state = .failed
-        #expect(AgentToolPresentation.batchTint(for: [first, second]) == .warning)
+        #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .warning)
 
         var question = makeCard(
             name: "request_user_input", target: .user,
@@ -799,14 +802,14 @@ struct AgentToolPresentationTests {
         )
         question.state = .completed
         #expect(
-            AgentToolPresentation.batchSymbol(for: [first, question])
+            TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, question])
                 == "wrench.and.screwdriver"
         )
     }
 
     @Test
     func reasoningBatchTitleIsPlainSingleLineText() {
-        let title = AgentToolPresentation.reasoningTitle(
+        let title = TermindToolPresentationProfiles.renderer.reasoningTitle(
             from: """
                 **Checked both hosts.**
 
@@ -827,22 +830,19 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func outputUnwrapsAndExtractsCommandStreams() {
+    func outputUnwrapsWithoutInterpretingLegacyStreamFields() throws {
         let result = AgentToolResult(
             callID: "call",
             content: "<untrusted-data>\n{\"stdout\":\"ok\\n\",\"stderr\":\"warning\"}\n</untrusted-data>",
-            metadata: ["untrusted": .bool(true)]
-        )
-
+            metadata: ["untrusted": .bool(true)])
+        let output = AgentToolPresentation().output(
+            from: result, presentation: .init(symbol: "terminal", activity: .label("command"), output: .streams))
         #expect(
-            AgentToolPresentation.output(
-                from: result,
-                presentation: .init(
-                    symbol: "terminal", activity: .label("command"), output: .streams
-                )
-            )
-                == "Standard output:\nok\n\nStandard error:\nwarning"
-        )
+            try AgentJSONValue.decode(Data(output.utf8))
+                == .object([
+                    "stdout": .string("ok\n"), "stderr": .string("warning"),
+                ]))
+        #expect(!output.contains("Standard output:"))
     }
 
     @Test
@@ -861,11 +861,11 @@ struct AgentToolPresentationTests {
         )
 
         #expect(
-            AgentToolPresentation.detailOutput(
+            TermindToolPresentationProfiles.renderer.detailOutput(
                 from: duplicate, presentation: nil, review: review
             ) == nil)
         #expect(
-            AgentToolPresentation.detailOutput(
+            TermindToolPresentationProfiles.renderer.detailOutput(
                 from: distinct, presentation: nil, review: review
             ) == "The remote host refused the command.")
     }
@@ -881,7 +881,7 @@ struct AgentToolPresentationTests {
         )
 
         #expect(
-            AgentToolPresentation.detailOutput(
+            TermindToolPresentationProfiles.renderer.detailOutput(
                 from: result, presentation: nil, review: review
             ) == review.reason)
     }
@@ -890,9 +890,9 @@ struct AgentToolPresentationTests {
     func presentationRoundTripsThroughExistingResultMetadata() {
         let presentation = AgentToolDescriptor.Presentation(
             symbol: "terminal",
-            activity: .argument(key: "command", fallback: "the SSH command"),
-            output: .streams,
-            presenterID: "builtin.ssh_exec",
+            activity: .semanticArgument(key: "command", fallback: .sshCommand),
+            output: .field("output"),
+            presenterID: "builtin.ssh_exec_run",
             groupsWithAdjacentTools: false,
             messages: ["running": "Connecting to {target}"]
         )
@@ -920,7 +920,7 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func restoredAndLegacyCardsUseTheSameToolOwnedDetailPresenter() throws {
+    func restoredCardsUseTheirPresenterIDAndMissingIDsStayGeneric() throws {
         let payload = AgentJSONValue.array([
             .object([
                 "title": .string("Example"), "url": .string("https://example.com"),
@@ -949,14 +949,18 @@ struct AgentToolPresentationTests {
         legacy.result = persisted
         legacy.descriptor.presentation = nil
 
-        #expect(
-            AgentToolPresentation.detail(
-                for: restored, presenter: AppDependencies.toolPresenter(for: restored.descriptor),
-                locale: Locale(identifier: "en"))
-                == AgentToolPresentation.detail(
-                    for: legacy, presenter: AppDependencies.toolPresenter(for: legacy.descriptor),
-                    locale: Locale(identifier: "en"))
-        )
+        #expect(AppDependencies.toolPresenter(for: legacy.descriptor) == nil)
+        let restoredPresenter = try #require(AppDependencies.toolPresenter(for: restored.descriptor))
+        let restoredDetail = try #require(
+            TermindToolPresentationProfiles.renderer.detail(
+                for: restored, presenter: restoredPresenter, locale: Locale(identifier: "en")))
+        let genericDetail = try #require(
+            TermindToolPresentationProfiles.renderer.detail(
+                for: legacy, locale: Locale(identifier: "en")))
+        #expect(restoredDetail != genericDetail)
+        #expect(TermindAgentTools.presenter(id: "builtin.ssh_exec") == nil)
+        #expect(TermindAgentTools.presenter(id: "builtin.ssh_wait") == nil)
+
     }
 
     @Test
@@ -1001,7 +1005,7 @@ struct AgentToolPresentationTests {
         let current = AgentToolDescriptor.Presentation(
             symbol: "terminal",
             activity: .semanticArgument(key: "command", fallback: .sshCommand),
-            output: .streams, actionKind: .run,
+            output: .field("output"), presenterID: "builtin.ssh_exec_run", actionKind: .run,
             phaseKinds: [
                 "proposed": .sshPreparingCommand,
                 "waitingForApproval": .sshWaitingForCommand,
@@ -1012,11 +1016,6 @@ struct AgentToolPresentationTests {
                 "failed": .sshFailedCommand,
                 "interrupted": .sshInterruptedCommand,
             ]
-        )
-        let legacy = AgentToolDescriptor.Presentation(
-            symbol: "terminal",
-            activity: .argument(key: "command", fallback: "the SSH command"),
-            output: .streams, actionKind: .run
         )
         let states: [(AgentToolCard.State, String?)] = [
             (.proposed, nil), (.reviewing, nil), (.waitingForApproval, nil),
@@ -1031,12 +1030,12 @@ struct AgentToolPresentationTests {
             ("zh-Hant", "「", "」"),
         ]
 
-        for presentation in [current, legacy] {
+        for presentation in [current] {
             for (identifier, openingQuote, closingQuote) in locales {
                 for hostName in [String?.none, "Production"] {
                     for (state, phase) in states {
                         var card = makeCard(
-                            name: "ssh_exec", target: .host,
+                            name: "ssh_exec_run", target: .host,
                             arguments: ["command": .string(command)],
                             presentation: presentation
                         )
@@ -1048,7 +1047,7 @@ struct AgentToolPresentationTests {
                             )
                         }
 
-                        let title = AgentToolPresentation.summary(
+                        let title = TermindToolPresentationProfiles.renderer.summary(
                             for: card, hostName: hostName,
                             locale: Locale(identifier: identifier)
                         )
@@ -1067,7 +1066,7 @@ struct AgentToolPresentationTests {
         }
 
         var example = makeCard(
-            name: "ssh_exec", target: .host,
+            name: "ssh_exec_run", target: .host,
             arguments: ["command": .string(command)], presentation: current
         )
         example.state = .running
@@ -1076,7 +1075,7 @@ struct AgentToolPresentationTests {
             metadata: ["presentation_phase": .string("command")]
         )
         #expect(
-            AgentToolPresentation.summary(
+            TermindToolPresentationProfiles.renderer.summary(
                 for: example, hostName: "Production", locale: Locale(identifier: "en")
             ) == "Running printf hello world on Production"
         )
@@ -1093,14 +1092,14 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func batchesDescribeTheObjectsOfEachActionForCurrentAndHistoricalTools() {
+    func batchesDescribeTheObjectsDeclaredByCurrentToolMetadata() {
         let cases:
             [(
                 String, AgentToolDescriptor.Presentation.ActivityKind,
                 AgentToolDescriptor.Presentation.ActionKind, String
             )] = [
-                ("ssh_exec", .sshCommand, .run, "Ran 2 commands"),
-                ("terminal_suggest", .command, .suggest, "Provided 2 suggestions"),
+                ("ssh_exec_run", .sshCommand, .run, "Ran 2 commands"),
+                ("terminal_suggest", .suggestion, .provide, "Provided 2 suggestions"),
                 ("scratch_push", .remoteFile, .push, "Pushed 2 files"),
                 ("scratch_pull", .remoteFile, .pull, "Pulled 2 files"),
                 ("sftp_read", .remoteFile, .read, "Read 2 files"),
@@ -1110,9 +1109,8 @@ struct AgentToolPresentationTests {
                 ("sftp_delete", .remoteFile, .delete, "Deleted 2 files"),
                 ("sftp_stat", .remoteFile, .inspect, "Inspected 2 files"),
                 ("sftp_chmod", .remoteFile, .changePermissions, "Changed permissions for 2 files"),
-                // Persisted semantic descriptors used remoteFile for directories.
-                ("sftp_list", .remoteFile, .list, "Listed 2 directories"),
-                ("sftp_mkdir", .remoteFile, .create, "Created 2 directories"),
+                ("sftp_list", .remoteDirectory, .list, "Listed 2 directories"),
+                ("sftp_mkdir", .remoteDirectory, .create, "Created 2 directories"),
                 ("scratch_read", .scratchFile, .read, "Read 2 scratch files"),
                 ("scratch_write", .scratchFile, .write, "Wrote 2 scratch files"),
                 ("scratch_edit", .scratchFile, .edit, "Edited 2 scratch files"),
@@ -1127,7 +1125,7 @@ struct AgentToolPresentationTests {
                 ("web_search", .web, .search, "Searched the web (2 times)"),
                 ("list_hosts", .hosts, .list, "Listed hosts (2 times)"),
                 ("get_metrics", .metrics, .read, "Read host metrics (2 times)"),
-                ("ssh_wait", .remoteCommand, .wait, "Waited for the remote command (2 times)"),
+                ("ssh_exec_output", .commandOutput, .read, "Read command output (2 times)"),
                 ("present_plan", .plan, .present, "Presented 2 plans"),
                 ("manage_tasks", .taskList, .update, "Updated the task list 2 times"),
                 ("request_user_secret", .secret, .request, "Requested 2 secrets"),
@@ -1135,17 +1133,16 @@ struct AgentToolPresentationTests {
         for (name, kind, action, expected) in cases {
             let current = AgentToolDescriptor.Presentation(
                 symbol: "wrench", activity: .semanticArgument(key: "path", fallback: kind), actionKind: action)
-            let legacy = AgentToolDescriptor.Presentation(
-                symbol: "wrench", activity: .argument(key: "path", fallback: "legacy activity"))
-            for presentation in [current, legacy, nil] {
+            for presentation in [current] {
                 var card = makeCard(
                     name: name, target: name == "terminal_suggest" ? .user : .host, presentation: presentation)
                 card.state = .completed
                 #expect(
-                    AgentToolPresentation.batchSummary(for: [card, card], locale: Locale(identifier: "en")) == expected,
+                    TermindToolPresentationProfiles.renderer.batchSummary(
+                        for: [card, card], locale: Locale(identifier: "en")) == expected,
                     "\(name): \(String(describing: presentation))")
                 for language in ["zh-Hans", "zh-Hant"] {
-                    let title = AgentToolPresentation.batchSummary(
+                    let title = TermindToolPresentationProfiles.renderer.batchSummary(
                         for: [card, card], locale: Locale(identifier: language))
                     #expect(!title.contains("tool calls"))
                     #expect(!title.contains("工具调用"))
@@ -1160,28 +1157,31 @@ struct AgentToolPresentationTests {
     func executionAndSuggestionUseDifferentVerbsInAllSupportedLanguages() {
         let english = Locale(identifier: "en")
         for activity: AgentToolDescriptor.Presentation.Activity in [
-            .semanticArgument(key: "command", fallback: .sshCommand),
-            .argument(key: "command", fallback: "the SSH command"),
+            .semanticArgument(key: "command", fallback: .sshCommand)
         ] {
             var command = makeCard(
-                name: "ssh_exec", target: .host, arguments: ["command": .string("pwd")],
+                name: "ssh_exec_run", target: .host, arguments: ["command": .string("pwd")],
                 presentation: .init(symbol: "terminal", activity: activity, actionKind: .run))
             command.state = .completed
-            #expect(AgentToolPresentation.batchSummary(for: [command], locale: english) == "Ran a command")
-            #expect(AgentToolPresentation.summary(for: command, locale: english) == "Ran pwd")
+            #expect(
+                TermindToolPresentationProfiles.renderer.batchSummary(for: [command], locale: english)
+                    == "Ran a command")
+            #expect(TermindToolPresentationProfiles.renderer.summary(for: command, locale: english) == "Ran pwd")
         }
-        let legacy = AgentToolDescriptor.Presentation(
-            symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command), actionKind: .suggest)
-        for presentation in [TerminalSuggestTool().descriptor.presentation, legacy, nil] {
+        for presentation in [TerminalSuggestTool().descriptor.presentation] {
             var suggestion = makeCard(
                 name: "terminal_suggest", target: .user, arguments: ["command": .string("pwd")],
                 presentation: presentation)
             suggestion.state = .completed
-            #expect(AgentToolPresentation.summary(for: suggestion, locale: english) == "Provided a suggestion")
-            #expect(AgentToolPresentation.batchSummary(for: [suggestion], locale: english) == "Provided a suggestion")
+            #expect(
+                TermindToolPresentationProfiles.renderer.summary(for: suggestion, locale: english)
+                    == "Provided a suggestion")
+            #expect(
+                TermindToolPresentationProfiles.renderer.batchSummary(for: [suggestion], locale: english)
+                    == "Provided a suggestion")
             for (language, expected) in [("zh-Hans", "已提供2条建议"), ("zh-Hant", "已提供2條建議")] {
                 #expect(
-                    AgentToolPresentation.batchSummary(
+                    TermindToolPresentationProfiles.renderer.batchSummary(
                         for: [suggestion, suggestion], locale: Locale(identifier: language))
                         == expected)
             }
@@ -1202,24 +1202,28 @@ struct AgentToolPresentationTests {
         ]
         for (state, expected) in states {
             card.state = state
-            #expect(AgentToolPresentation.batchSummary(for: [card, card], locale: english) == expected)
+            #expect(
+                TermindToolPresentationProfiles.renderer.batchSummary(for: [card, card], locale: english) == expected)
         }
         card.state = .completed
         var failed = card
         failed.state = .failed
         #expect(
-            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: english)
+            TermindToolPresentationProfiles.renderer.batchSummary(for: [card, card, failed], locale: english)
                 == "Wrote 2 files, failed to write a file")
         for (language, expected) in [("zh-Hans", "已写入2个文件，写入文件失败"), ("zh-Hant", "已寫入2個檔案，寫入檔案失敗")] {
             #expect(
-                AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: language))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card, card, failed], locale: Locale(identifier: language))
                     == expected)
         }
         #expect(
-            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: "ja"))
+            TermindToolPresentationProfiles.renderer.batchSummary(
+                for: [card, card, failed], locale: Locale(identifier: "ja"))
                 == "2個のファイルの書き込みが完了しました。ファイルの書き込みに失敗しました")
         #expect(
-            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: "ko"))
+            TermindToolPresentationProfiles.renderer.batchSummary(
+                for: [card, card, failed], locale: Locale(identifier: "ko"))
                 == "파일 2개 쓰기 완료, 파일 쓰기 실패")
     }
 
@@ -1238,7 +1242,7 @@ struct AgentToolPresentationTests {
                     actionKind: .run)),
             userIntent: "Inspect"
         )
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request, hostName: "web-01", locale: Locale(identifier: "ja-JP"))
         #expect(presentation.title == "web-01でコマンドを実行")
     }
@@ -1261,7 +1265,7 @@ struct AgentToolPresentationTests {
                     actionKind: .run)),
             userIntent: "Inspect"
         )
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request, hostName: "web-01", locale: Locale(identifier: language))
         #expect(presentation.title == expected)
         #expect(!presentation.title.contains("pwd"))
@@ -1286,9 +1290,12 @@ struct AgentToolPresentationTests {
                 symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile), actionKind: .read))
         let locale = Locale(identifier: language)
         card.state = .completed
-        #expect(AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale) == completed)
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, hostName: "web-01", locale: locale) == completed
+        )
         card.state = .failed
-        #expect(AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale) == failed)
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, hostName: "web-01", locale: locale) == failed)
     }
 
     @Test(arguments: [
@@ -1312,10 +1319,11 @@ struct AgentToolPresentationTests {
         card.state = state
         let locale = Locale(identifier: "ko-KR")
         #expect(
-            AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale)
+            TermindToolPresentationProfiles.renderer.summary(for: card, hostName: "web-01", locale: locale)
                 == "web-01에서 ‘/tmp/report.txt’ 읽기 \(suffix)")
         #expect(
-            AgentToolPresentation.summary(for: card, locale: locale) == "‘/tmp/report.txt’ 읽기 \(suffix)")
+            TermindToolPresentationProfiles.renderer.summary(for: card, locale: locale)
+                == "‘/tmp/report.txt’ 읽기 \(suffix)")
     }
 
     @Test
@@ -1333,7 +1341,7 @@ struct AgentToolPresentationTests {
                     symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile), actionKind: .read)),
             userIntent: "Inspect"
         )
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request, hostName: "web-01", locale: Locale(identifier: "ko"))
         #expect(presentation.title == "web-01에서 파일 읽기")
     }
@@ -1341,8 +1349,7 @@ struct AgentToolPresentationTests {
     @Test
     func batchesCountArrayElementsAndKeepUnknownToolObjects() {
         for activity: AgentToolDescriptor.Presentation.Activity in [
-            .semanticArrayCount(key: "questions", unit: .question, fallback: .question),
-            .arrayCount(key: "questions", singular: "a question", plural: "questions", fallback: "a question"),
+            .semanticArrayCount(key: "questions", unit: .question, fallback: .question)
         ] {
             var card = makeCard(
                 name: "request_user_input", target: .user,
@@ -1350,7 +1357,8 @@ struct AgentToolPresentationTests {
                 presentation: .init(symbol: "questionmark", activity: activity, actionKind: .ask))
             card.state = .completed
             #expect(
-                AgentToolPresentation.batchSummary(for: [card, card], locale: Locale(identifier: "en"))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card, card], locale: Locale(identifier: "en"))
                     == "Asked 4 questions")
         }
         var custom = makeCard(
@@ -1358,48 +1366,52 @@ struct AgentToolPresentationTests {
             presentation: .init(symbol: "wrench", activity: .label("artifacts"), actionKind: .push))
         custom.state = .completed
         #expect(
-            AgentToolPresentation.batchSummary(for: [custom, custom], locale: Locale(identifier: "en"))
+            TermindToolPresentationProfiles.renderer.batchSummary(
+                for: [custom, custom], locale: Locale(identifier: "en"))
                 == "Pushed artifacts (2 times)")
     }
 
     @Test
     func sshResultsHonorInjectedPresentersAndTheHostTrustBoundary() throws {
         let registry = SSHExecToolPresentation.registering(
-            in: .init([.init(id: "builtin.ssh_exec", present: { _ in [] })]))
-        let registered = try #require(registry.presenter(id: "builtin.ssh_exec"))
+            in: .init([.init(id: "builtin.ssh_exec_run", present: { _ in [] })]))
+        let registered = try #require(registry.presenter(id: "builtin.ssh_exec_run"))
         #expect(
             registered.presentArguments(.init(arguments: ["path": .string("/tmp")], locale: Locale(identifier: "en")))
                 == [.field(.init(label: "Path", value: "/tmp"))])
 
-        var card = makeCard(name: "ssh_exec", target: .host, arguments: ["command": .string("pwd")])
-        card.result = .init(callID: "call", content: "{\"stdout\":\"remote output\"}")
+        var card = makeCard(name: "ssh_exec_run", target: .host, arguments: ["command": .string("pwd")])
+        card.result = .init(callID: "call", content: "{\"output\":\"remote output\"}")
         let injected = AgentToolDetailPresenter(id: "test.ssh") { _ in [.message("Injected", .secondary)] }
         #expect(
-            AgentToolPresentation.detail(for: card, presenter: injected)?.items == [.message("Injected", .secondary)])
+            TermindToolPresentationProfiles.renderer.detail(for: card, presenter: injected)?.items == [
+                .message("Injected", .secondary)
+            ])
 
         card.descriptor.presentation = .init(
             symbol: "terminal", activity: .semanticLabel(.sshCommand), presenterID: "unknown.ssh")
         #expect(AppDependencies.toolPresenter(for: card.descriptor) == nil)
         card.descriptor.target = .mcp
         #expect(AppDependencies.toolPresenter(for: card.descriptor) == nil)
-        let remote = try #require(AgentToolPresentation.detail(for: card, presenter: injected))
-        #expect(remote.items != [.message("Injected", .secondary)])
-        #expect(String(describing: remote).contains("stdout"))
+        let remote = try #require(TermindToolPresentationProfiles.renderer.detail(for: card, presenter: injected))
+        #expect(remote.items == [.message("Injected", .secondary)])
     }
 
     @Test
-    func sshPendingAndEmptyResultsRemainDistinctForLegacyAndRegisteredTools() throws {
-        for name in ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"] {
+    func sshPendingAndEmptyResultsRemainDistinctForRegisteredTools() throws {
+        for name in ["ssh_exec_run", "ssh_exec_output"] {
             var card = makeCard(
                 name: name, target: .host, arguments: ["command": .string("pwd")],
                 presentation: .init(
                     symbol: "terminal", activity: .semanticLabel(.sshCommand), presenterID: "builtin.\(name)"))
             let presenter = try #require(AppDependencies.toolPresenter(for: card.descriptor))
             let locale = Locale(identifier: "zh-Hans")
-            let pending = try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: locale))
+            let pending = try #require(
+                TermindToolPresentationProfiles.renderer.detail(for: card, presenter: presenter, locale: locale))
             #expect(pending.items.contains(.message("输出将显示在这里", .secondary)))
             card.result = .init(callID: "call", content: "{\"output\":\"\",\"note\":\"Still running\"}")
-            let completed = try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: locale))
+            let completed = try #require(
+                TermindToolPresentationProfiles.renderer.detail(for: card, presenter: presenter, locale: locale))
             #expect(completed.items.contains(.field(.init(label: "无输出", value: ""))))
             #expect(completed.items.contains(.message("Still running", .warning)))
             #expect(!completed.items.contains(.message("输出将显示在这里", .secondary)))
@@ -1425,7 +1437,8 @@ struct AgentToolPresentationTests {
             ("zh-Hans", "机密", "写入"), ("zh-Hant", "機密", "寫入"),
         ] {
             let detail = try #require(
-                AgentToolPresentation.detail(for: card, presenter: presenter, locale: Locale(identifier: language)))
+                TermindToolPresentationProfiles.renderer.detail(
+                    for: card, presenter: presenter, locale: Locale(identifier: language)))
             #expect(
                 detail.items.contains(
                     .field(.init(label: bytes, value: DataSizeFormat.bytes(count), isMonospaced: true))))
@@ -1483,20 +1496,27 @@ struct AgentKnowledgeSearchPresentationTests {
         ]
         var memory = card(descriptor, arguments: arguments)
         memory.state = .completed
-        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "en")) == "Updated memory")
         #expect(
-            AgentToolPresentation.batchSummary(for: [memory, memory], locale: Locale(identifier: "en"))
+            TermindToolPresentationProfiles.renderer.summary(for: memory, locale: Locale(identifier: "en"))
+                == "Updated memory")
+        #expect(
+            TermindToolPresentationProfiles.renderer.batchSummary(
+                for: [memory, memory], locale: Locale(identifier: "en"))
                 == "Updated memory (2 times)")
-        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "zh-Hans")) == "已更新记忆")
-        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "zh-Hant")) == "已更新記憶")
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: memory, locale: Locale(identifier: "zh-Hans"))
+                == "已更新记忆")
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: memory, locale: Locale(identifier: "zh-Hant"))
+                == "已更新記憶")
 
         let request = AgentApprovalRequest(
             invocation: memory.invocation, descriptor: descriptor, userIntent: "Remember")
         #expect(
-            AgentToolPresentation.approval(for: request, locale: Locale(identifier: "en")).title
+            TermindToolPresentationProfiles.renderer.approval(for: request, locale: Locale(identifier: "en")).title
                 == "Update memory")
         #expect(
-            AgentToolPresentation.approval(for: request, locale: Locale(identifier: "zh-Hans")).title
+            TermindToolPresentationProfiles.renderer.approval(for: request, locale: Locale(identifier: "zh-Hans")).title
                 == "更新记忆")
 
         var fallback = card(
@@ -1505,7 +1525,9 @@ struct AgentKnowledgeSearchPresentationTests {
                 target: .local, approvalPolicy: .approve,
                 presentation: .init(symbol: "brain", activity: .semanticLabel(.memory), actionKind: .read)))
         fallback.state = .completed
-        #expect(AgentToolPresentation.summary(for: fallback, locale: Locale(identifier: "en")) == "Read memory")
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: fallback, locale: Locale(identifier: "en"))
+                == "Read memory")
     }
 
     @Test func searchedQueryAndScopeAppearInSingleToolBatchHeaders() {
@@ -1523,31 +1545,35 @@ struct AgentKnowledgeSearchPresentationTests {
             var card = card(descriptor, arguments: arguments)
             card.state = .running
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en"))
+                TermindToolPresentationProfiles.renderer.batchSummary(for: [card], locale: Locale(identifier: "en"))
                     == "Searching deploy backup in \(englishScope)")
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hans"))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card], locale: Locale(identifier: "zh-Hans"))
                     == "正在\(simplifiedScope)中搜索“deploy backup”")
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hant"))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card], locale: Locale(identifier: "zh-Hant"))
                     == "正在\(traditionalScope)中搜尋“deploy backup”")
 
             card.state = .completed
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en"))
+                TermindToolPresentationProfiles.renderer.batchSummary(for: [card], locale: Locale(identifier: "en"))
                     == "Searched deploy backup in \(englishScope)")
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hans"))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card], locale: Locale(identifier: "zh-Hans"))
                     == "已在\(simplifiedScope)中搜索“deploy backup”")
             #expect(
-                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hant"))
+                TermindToolPresentationProfiles.renderer.batchSummary(
+                    for: [card], locale: Locale(identifier: "zh-Hant"))
                     == "已在\(traditionalScope)中搜尋“deploy backup”")
         }
 
         var failed = card(memory, arguments: ["query": .string("deploy backup")])
         failed.state = .failed
         #expect(
-            AgentToolPresentation.batchSummary(for: [failed], locale: Locale(identifier: "en"))
+            TermindToolPresentationProfiles.renderer.batchSummary(for: [failed], locale: Locale(identifier: "en"))
                 == "Failed to search deploy backup")
     }
 
@@ -1559,7 +1585,8 @@ struct AgentKnowledgeSearchPresentationTests {
         ] {
             var search = card(descriptor, arguments: ["query": .string(longQuery)])
             search.state = .completed
-            let summary = AgentToolPresentation.batchSummary(for: [search], locale: Locale(identifier: "en"))
+            let summary = TermindToolPresentationProfiles.renderer.batchSummary(
+                for: [search], locale: Locale(identifier: "en"))
             #expect(summary.count <= 80)
             #expect(summary.contains("…"))
             #expect(summary.hasSuffix(suffix))
@@ -1568,7 +1595,7 @@ struct AgentKnowledgeSearchPresentationTests {
         var browse = card(SessionSearchTool(store: store).descriptor)
         browse.state = .completed
         #expect(
-            AgentToolPresentation.batchSummary(for: [browse], locale: Locale(identifier: "en"))
+            TermindToolPresentationProfiles.renderer.batchSummary(for: [browse], locale: Locale(identifier: "en"))
                 == "Listed saved conversations")
     }
 

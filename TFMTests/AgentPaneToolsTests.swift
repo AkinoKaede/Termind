@@ -195,9 +195,14 @@ struct AgentPaneToolsTests {
         let readResult = try await readTool.execute(readCall, context: context(readCall))
         let card = AgentToolCard(
             invocation: readCall, descriptor: readTool.descriptor, state: .completed, result: readResult)
-        #expect(AgentToolPresentation.summary(for: card, locale: Locale(identifier: "en")) == "Read terminal front")
-        #expect(AgentToolPresentation.summary(for: card, locale: Locale(identifier: "zh-Hans")) == "读取终端“front”")
-        let detail = try #require(AgentToolPresentation.detail(for: card, locale: Locale(identifier: "en")))
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, locale: Locale(identifier: "en"))
+                == "Read terminal front")
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: card, locale: Locale(identifier: "zh-Hans"))
+                == "读取终端“front”")
+        let detail = try #require(
+            TermindToolPresentationProfiles.renderer.detail(for: card, locale: Locale(identifier: "en")))
         #expect(detail.items.count == 2)
         #expect(!String(describing: detail).contains("first  "))
         #expect(String(describing: detail).contains(fixture.first.uuidString))
@@ -216,7 +221,7 @@ struct AgentPaneToolsTests {
             invocation: readCall, descriptor: readTool.descriptor, state: .completed,
             result: AgentToolResult(callID: readCall.call.id, content: readResult.content))
         let restoredDetail = try #require(
-            AgentToolPresentation.detail(
+            TermindToolPresentationProfiles.renderer.detail(
                 for: restoredStyle, presenter: TermindAgentTools.presenter(for: readTool.descriptor)))
         #expect(!String(describing: restoredDetail).contains("first  "))
 
@@ -225,9 +230,14 @@ struct AgentPaneToolsTests {
         let listResult = try await listTool.execute(listCall, context: context(listCall))
         let listCard = AgentToolCard(
             invocation: listCall, descriptor: listTool.descriptor, state: .completed, result: listResult)
-        #expect(AgentToolPresentation.summary(for: listCard, locale: Locale(identifier: "en")) == "List terminals")
-        #expect(AgentToolPresentation.summary(for: listCard, locale: Locale(identifier: "zh-Hant")) == "列出終端")
-        let listDetail = try #require(AgentToolPresentation.detail(for: listCard, locale: Locale(identifier: "en")))
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: listCard, locale: Locale(identifier: "en"))
+                == "List terminals")
+        #expect(
+            TermindToolPresentationProfiles.renderer.summary(for: listCard, locale: Locale(identifier: "zh-Hant"))
+                == "列出終端")
+        let listDetail = try #require(
+            TermindToolPresentationProfiles.renderer.detail(for: listCard, locale: Locale(identifier: "en")))
         #expect(String(describing: listDetail).contains("hidden"))
         #expect(String(describing: listDetail).contains("Active"))
         #expect(String(describing: listDetail).contains("Current"))
@@ -241,39 +251,32 @@ struct AgentPaneToolsTests {
     }
 
     @Test
-    func batchesDescribeListingAndReadingIncludingRestoredCardsAndFailures() {
+    func batchesDescribeListingAndReadingIncludingRestoredCardsAndFailures() throws {
         let fixture = Fixture()
         let descriptors = [
             ListPanesTool(panes: fixture.access()).descriptor,
             ReadPaneTool(panes: fixture.access()).descriptor,
         ]
-        for legacy in [false, true] {
-            let cards = descriptors.map { descriptor in
+        let restored = try JSONDecoder().decode(
+            [AgentToolDescriptor].self, from: JSONEncoder().encode(descriptors))
+        for values in [descriptors, restored] {
+            let cards = values.map { descriptor in
                 AgentToolCard(
-                    invocation: invocation(descriptor.name),
-                    descriptor: legacy
-                        ? AgentToolDescriptor(
-                            name: descriptor.name, summary: descriptor.summary,
-                            inputSchema: descriptor.inputSchema, target: .local, approvalPolicy: .approve,
-                            presentation: .init(
-                                symbol: "terminal",
-                                activity: .label(descriptor.name == "list_panes" ? "terminals" : "terminal")))
-                        : descriptor,
-                    state: .completed)
+                    invocation: invocation(descriptor.name), descriptor: descriptor, state: .completed)
             }
             #expect(
-                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "en"))
+                TermindToolPresentationProfiles.renderer.batchSummary(for: cards, locale: Locale(identifier: "en"))
                     == "Listed terminals, read terminal")
             #expect(
-                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "zh-Hans"))
+                TermindToolPresentationProfiles.renderer.batchSummary(for: cards, locale: Locale(identifier: "zh-Hans"))
                     == "已列出终端，已读取终端")
             #expect(
-                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "zh-Hant"))
+                TermindToolPresentationProfiles.renderer.batchSummary(for: cards, locale: Locale(identifier: "zh-Hant"))
                     == "已列出終端，已讀取終端")
             let failed = AgentToolCard(
                 invocation: invocation("read_pane"), descriptor: cards[1].descriptor, state: .failed)
             #expect(
-                AgentToolPresentation.batchSummary(
+                TermindToolPresentationProfiles.renderer.batchSummary(
                     for: [cards[0], cards[1], cards[1], failed], locale: Locale(identifier: "en"))
                     == "Listed terminals, read terminal (2 times), failed to read terminal")
         }
@@ -281,7 +284,9 @@ struct AgentPaneToolsTests {
             name: "read_pane", summary: "Unrelated MCP tool", inputSchema: .object([:]),
             target: .mcp, approvalPolicy: .approve)
         let card = AgentToolCard(invocation: invocation("read_pane"), descriptor: mcp, state: .completed)
-        #expect(AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en")) != "Read terminal")
+        #expect(
+            TermindToolPresentationProfiles.renderer.batchSummary(for: [card], locale: Locale(identifier: "en"))
+                != "Read terminal")
     }
 
     @Test
@@ -301,13 +306,13 @@ struct AgentPaneToolsTests {
         #expect(projected.truncateMarker == nil)
 
         let card = AgentToolCard(invocation: call, descriptor: tool.descriptor, state: .completed, result: result)
-        #expect(!AgentToolPresentation.showsOutputTruncatedNotice(for: card))
+        #expect(!TermindToolPresentationProfiles.renderer.showsOutputTruncatedNotice(for: card))
         let mcp = AgentToolDescriptor(
             name: "read_pane", summary: "A separate MCP tool", inputSchema: .object([:]),
             target: .mcp, approvalPolicy: .approve, concurrency: .parallel)
         var mcpCard = AgentToolCard(invocation: call, descriptor: mcp, state: .completed, result: result)
         mcpCard.result?.truncateMarker = AgentTruncateMarker.render(ranges: [1...10], totalLines: 20)
-        #expect(AgentToolPresentation.showsOutputTruncatedNotice(for: mcpCard))
+        #expect(TermindToolPresentationProfiles.renderer.showsOutputTruncatedNotice(for: mcpCard))
     }
 
     @Test

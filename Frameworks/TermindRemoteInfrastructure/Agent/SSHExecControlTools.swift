@@ -58,7 +58,7 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
             target: .host, approvalPolicy: .approve, concurrency: .parallel,
             presentation: .init(
                 symbol: "text.alignleft", activity: .semanticLabel(.commandOutput),
-                output: .streams, actionKind: .read))
+                output: .field("output"), actionKind: .read))
     }
 
     public func execute(_ invocation: AgentToolInvocation, context: AgentToolExecutionContext) async throws

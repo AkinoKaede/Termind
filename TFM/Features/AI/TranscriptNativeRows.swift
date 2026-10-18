@@ -878,13 +878,13 @@ private enum NativeTranscriptFactory {
         let expanded = context.presentation.disclosures.isExpanded(disclosureID, default: defaultExpanded)
         let presenter = AppDependencies.toolPresenter(for: card.descriptor)
         let host = card.invocation.targetHostID.flatMap(context.actions.hostName)
-        let title = AgentToolPresentation.summary(
+        let title = TermindToolPresentationProfiles.renderer.summary(
             for: card,
             hostName: host,
             locale: context.configuration.locale
         )
         let header = NativeDisclosureHeader(
-            symbol: AgentToolPresentation.symbol(for: card),
+            symbol: TermindToolPresentationProfiles.renderer.symbol(for: card),
             title: title,
             iconColor: toolColor(card.state),
             titleColor: card.state == .running ? .secondaryLabelColor : .labelColor,
@@ -924,7 +924,7 @@ private enum NativeTranscriptFactory {
                         selectable: true
                     ))
             }
-            if let projected = AgentToolPresentation.detail(
+            if let projected = TermindToolPresentationProfiles.renderer.detail(
                 for: card, presenter: presenter,
                 locale: context.configuration.locale
             ) {
@@ -1122,7 +1122,7 @@ private enum NativeTranscriptFactory {
         let disclosureID = AssistantTranscriptDisclosureID.toolBatch(batch.id)
         let expanded = context.presentation.disclosures.isExpanded(disclosureID)
         let hasUnfinishedTools = batch.cards.contains { !$0.state.isTerminal }
-        let fallbackTitle = AgentToolPresentation.batchFallbackTitle(
+        let fallbackTitle = TermindToolPresentationProfiles.renderer.batchFallbackTitle(
             for: batch.cards,
             hostName: context.actions.hostName,
             locale: context.configuration.locale
@@ -1137,9 +1137,9 @@ private enum NativeTranscriptFactory {
                 )
         }
         let header = NativeDisclosureHeader(
-            symbol: AgentToolPresentation.batchSymbol(for: batch.cards),
+            symbol: TermindToolPresentationProfiles.renderer.batchSymbol(for: batch.cards),
             title: fallbackTitle,
-            iconColor: batchColor(AgentToolPresentation.batchTint(for: batch.cards)),
+            iconColor: batchColor(TermindToolPresentationProfiles.renderer.batchTint(for: batch.cards)),
             titleColor: .secondaryLabelColor,
             expanded: expanded,
             active: hasUnfinishedTools,
@@ -1520,7 +1520,7 @@ private enum NativeTranscriptFactory {
         }
         let stack = NativeStack.vertical()
         stack.addArrangedSubview(body)
-        if let marker = AgentToolPresentation.truncationNotice(for: card) {
+        if let marker = TermindToolPresentationProfiles.renderer.truncationNotice(for: card) {
             let notice = NativeLabel(
                 marker, font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1), color: .systemOrange)
             notice.identifier = NSUserInterfaceItemIdentifier("AssistantTool.TruncationNotice")
@@ -1720,7 +1720,7 @@ private enum NativeTranscriptFactory {
     }
 
     private static func toolColor(_ state: AgentToolCard.State) -> NSColor {
-        batchColor(AgentToolPresentation.tint(for: state))
+        batchColor(TermindToolPresentationProfiles.renderer.tint(for: state))
     }
 
     private static func batchColor(_ tint: AgentToolPresentation.BatchTint) -> NSColor {

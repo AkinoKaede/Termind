@@ -2,29 +2,25 @@ import AgentKit
 import Foundation
 import TermindApplication
 
-/// Local semantic projections also repair historical descriptors. Remote tools and unknown
-/// explicit presenter IDs cannot select a built-in operation by name alone.
+/// Localized knowledge operations supplied by the tool's registered presenter.
 nonisolated enum AgentKnowledgeToolPresentation {
-    struct Operation {
-        let action: AgentToolDescriptor.Presentation.ActionKind
-        let activity: String
-        let batchActivity: String
-        var isArgument = false
+    static func configure(_ profile: inout AgentToolPresentationProfile, presenter: AgentToolDetailPresenter) {
+        profile.operation = { card, locale, approval in
+            operation(for: card, presenter: presenter, locale: locale, approval: approval)
+        }
+        profile.summary = { card, locale in scopedSearchSummary(for: card, presenter: presenter, locale: locale) }
+        profile.title = title
     }
 
-    private static let presenters = AgentToolPresenterRegistry(AgentToolCatalog.builtInPresenters)
-
-    private static func semantics(for card: AgentToolCard) -> AgentToolOperation? {
-        guard card.descriptor.target == .local else { return nil }
-        let id = card.descriptor.presentation?.presenterID ?? "builtin.\(card.descriptor.name)"
-        guard id == "builtin.\(card.descriptor.name)" else { return nil }
-        return presenters.presenter(id: id)?.resolveOperation(
-            arguments: card.invocation.call.arguments.objectValue ?? [:])
+    private static func semantics(for card: AgentToolCard, presenter: AgentToolDetailPresenter) -> AgentToolOperation? {
+        presenter.resolveOperation(arguments: card.invocation.call.arguments.objectValue ?? [:])
     }
 
-    static func scopedSearchSummary(for card: AgentToolCard, locale: Locale) -> String? {
+    private static func scopedSearchSummary(
+        for card: AgentToolCard, presenter: AgentToolDetailPresenter, locale: Locale
+    ) -> String? {
         guard card.state == .running || card.state == .completed,
-            let operation = semantics(for: card), let query = operation.argument,
+            let operation = semantics(for: card, presenter: presenter), let query = operation.argument,
             let scope = operation.searchScope
         else { return nil }
         let scopeName = activity(scope, locale: locale)
@@ -44,8 +40,10 @@ nonisolated enum AgentKnowledgeToolPresentation {
         return title(rendered(displayed))
     }
 
-    static func operation(for card: AgentToolCard, locale: Locale, approval: Bool = false) -> Operation? {
-        guard let operation = semantics(for: card) else { return nil }
+    private static func operation(
+        for card: AgentToolCard, presenter: AgentToolDetailPresenter, locale: Locale, approval: Bool
+    ) -> AgentToolPresentationProfile.Operation? {
+        guard let operation = semantics(for: card, presenter: presenter) else { return nil }
         let argument = approval ? nil : operation.argument
         var name = argument ?? activity(operation.activity, locale: locale)
         if let count = operation.operationCount, count > 1 {

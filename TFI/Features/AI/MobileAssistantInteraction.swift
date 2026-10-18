@@ -66,7 +66,7 @@ struct MobileAssistantInteraction: View {
     }
 
     private func approvalCard(_ approval: AgentApprovalRequest) -> some View {
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: approval,
             presenter: MobileAppDependencies.toolPresenter(for: approval.descriptor),
             hostName: approval.invocation.targetHostID.map(hostName),

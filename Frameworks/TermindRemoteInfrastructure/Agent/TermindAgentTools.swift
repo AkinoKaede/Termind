@@ -61,16 +61,7 @@ nonisolated public enum TermindAgentTools {
     /// runtime's. Built once: the map is immutable and the lookup happens on
     /// every historical card the transcript draws.
     public static let presenterRegistry = AgentToolPresenterRegistry(
-        AgentToolCatalog.builtInPresenters + definitions.map(\.presenter) + [
-            .init(
-                id: "builtin.ssh_exec",
-                present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
-                presentArguments: SSHExecRunTool.presentArguments),
-            .init(
-                id: "builtin.ssh_wait",
-                present: { AgentToolDetailFormatting.genericItems($0.result, locale: $0.locale) },
-                presentArguments: SSHExecResults.handleArguments),
-        ]
+        AgentToolCatalog.builtInPresenters + definitions.map(\.presenter)
     )
 
     public static func presenter(id: String) -> AgentToolDetailPresenter? {
@@ -78,20 +69,8 @@ nonisolated public enum TermindAgentTools {
     }
 
     public static func presenter(for descriptor: AgentToolDescriptor) -> AgentToolDetailPresenter? {
-        guard descriptor.target != .mcp else { return nil }
-        if let id = descriptor.presentation?.presenterID { return presenter(id: id) }
-        return legacyPresenter(forToolNamed: descriptor.name)
-    }
-
-    /// Cards written before presenter IDs were persisted carry only a tool name.
-    ///
-    /// Every built-in of that era used the `builtin.` namespace, so the name is
-    /// enough — but only for the names that existed then, which is why this is a
-    /// closed list rather than a prefix rule. A tool added later has always
-    /// recorded its ID.
-    public static func legacyPresenter(forToolNamed name: String) -> AgentToolDetailPresenter? {
-        guard legacyToolNames.contains(name) else { return nil }
-        return presenter(id: "builtin.\(name)")
+        guard descriptor.target != .mcp, let id = descriptor.presentation?.presenterID else { return nil }
+        return presenter(id: id)
     }
 
     private static let definitions: [Registration] = [
@@ -170,16 +149,5 @@ nonisolated public enum TermindAgentTools {
                 )
             }
         },
-    ]
-
-    /// Names understood by releases that predate persisted presenter IDs. Both
-    /// catalogs' tools appear here, because at that point they were one list.
-    private static let legacyToolNames: Set<String> = [
-        "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
-        "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
-        "sftp_move", "sftp_chmod", "sftp_delete", "fetch", "web_search",
-        "request_user_input", "request_user_secret", "scratch_list", "scratch_read",
-        "scratch_write", "scratch_edit", "scratch_diff", "scratch_delete",
-        "scratch_pull", "scratch_push", "present_plan", "manage_tasks", "load_skill",
     ]
 }

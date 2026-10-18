@@ -480,17 +480,14 @@ struct AgentScratchTests {
 
     // MARK: - Registry
 
-    /// A card records the presenter ID it was written with, and older cards record
-    /// only a tool name. `scratch_edit` became `scratch_replace`, so both routes
-    /// still have to reach a projection — otherwise every transcript that predates
-    /// the rename falls back to generic key/value fields.
+    /// Persisted IDs resolve registered projections; a bare name no longer selects code.
     @Test
-    func aCardWrittenAsScratchEditStillFindsItsProjection() throws {
+    func scratchProjectionsRequireAnExplicitPresenterID() throws {
         let byID = try #require(TermindAgentTools.presenter(id: "builtin.scratch_edit"))
-        let byLegacyName = try #require(
-            TermindAgentTools.legacyPresenter(forToolNamed: "scratch_edit")
-        )
-        #expect(byLegacyName.id == byID.id)
+        let descriptor = AgentToolDescriptor(
+            name: "scratch_edit", summary: "Edit", inputSchema: .object([:]), target: .local,
+            approvalPolicy: .approve)
+        #expect(TermindAgentTools.presenter(for: descriptor) == nil)
         #expect(TermindAgentTools.presenter(id: "builtin.scratch_replace") != nil)
 
         // And it draws the old payload, which has no `replacements_applied`.

@@ -36,7 +36,8 @@ struct KnowledgeToolRenderingTests {
                 let presenter = try #require(
                     AgentToolCatalog.builtInPresenters.first { $0.id == card.descriptor.presentation?.presenterID })
                 let detail = try #require(
-                    AgentToolPresentation.detail(for: card, presenter: presenter, locale: language.locale))
+                    TermindToolPresentationProfiles.renderer.detail(
+                        for: card, presenter: presenter, locale: language.locale))
                 guard AgentToolDetailPreview(detail).isShortened else {
                     #expect(!state.disclosures.isExpanded(.toolDetail(card.id)))
                     continue

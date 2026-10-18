@@ -99,11 +99,11 @@ struct MobileAssistantToolRow: View {
         let presenter = MobileAppDependencies.toolPresenter(for: card.descriptor)
         MobileAssistantDisclosure(expanded: expanded, toggle: toggle) {
             HStack(spacing: 8) {
-                Image(systemName: AgentToolPresentation.symbol(for: card))
-                    .foregroundStyle(AgentToolPresentation.tint(for: card.state).color)
+                Image(systemName: TermindToolPresentationProfiles.renderer.symbol(for: card))
+                    .foregroundStyle(TermindToolPresentationProfiles.renderer.tint(for: card.state).color)
                     .font(.system(size: iconSize)).frame(width: iconSize)
                 Text(
-                    AgentToolPresentation.summary(
+                    TermindToolPresentationProfiles.renderer.summary(
                         for: card, hostName: card.invocation.targetHostID.map(hostName), locale: locale
                     )
                 )
@@ -122,7 +122,7 @@ struct MobileAssistantToolRow: View {
                     Text(AppStrings.Assistant.automaticReview(risk: review.risk.displayName, reason: review.reason))
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
-                if let detail = AgentToolPresentation.detail(
+                if let detail = TermindToolPresentationProfiles.renderer.detail(
                     for: card, presenter: presenter, locale: locale
                 ) {
                     AssistantCompactToolDetails(
@@ -135,7 +135,7 @@ struct MobileAssistantToolRow: View {
                                 }
                             }
                         ),
-                        truncateMarker: AgentToolPresentation.truncationNotice(for: card)
+                        truncateMarker: TermindToolPresentationProfiles.renderer.truncationNotice(for: card)
                     )
                 }
             }
@@ -175,8 +175,8 @@ private struct MobileAssistantToolBatchRow: View {
                 toggle: { presentation.toggleDisclosure(.toolBatch(batch.id)) }
             ) {
                 HStack(spacing: 8) {
-                    Image(systemName: AgentToolPresentation.batchSymbol(for: batch.cards))
-                        .foregroundStyle(AgentToolPresentation.batchTint(for: batch.cards).color)
+                    Image(systemName: TermindToolPresentationProfiles.renderer.batchSymbol(for: batch.cards))
+                        .foregroundStyle(TermindToolPresentationProfiles.renderer.batchTint(for: batch.cards).color)
                         .font(.system(size: iconSize)).frame(width: iconSize)
                     Group {
                         if showsReasoning, let reasoning {
@@ -217,6 +217,7 @@ private struct MobileAssistantToolBatchRow: View {
     }
 
     private var fallbackTitle: String {
-        AgentToolPresentation.batchFallbackTitle(for: batch.cards, hostName: hostName, locale: locale)
+        TermindToolPresentationProfiles.renderer.batchFallbackTitle(
+            for: batch.cards, hostName: hostName, locale: locale)
     }
 }

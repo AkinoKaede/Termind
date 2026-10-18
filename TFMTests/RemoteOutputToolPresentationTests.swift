@@ -16,7 +16,8 @@ struct RemoteOutputToolPresentationTests {
         let presenter = try #require(AppDependencies.toolPresenter(for: value.descriptor))
         for language in [AppLanguage.english, .simplifiedChinese] {
             let detail = try #require(
-                AgentToolPresentation.detail(for: value, presenter: presenter, locale: language.locale))
+                TermindToolPresentationProfiles.renderer.detail(
+                    for: value, presenter: presenter, locale: language.locale))
             let preview = AgentToolDetailPreview(detail)
             #expect(preview.isShortened)
             #expect(preview.fullText.contains(output))
@@ -69,16 +70,17 @@ struct RemoteOutputToolPresentationTests {
         var value = card("ssh_exec_output", output: String(repeating: "line\n", count: 100))
         let presenter = try #require(AppDependencies.toolPresenter(for: value.descriptor))
         let detail = try #require(
-            AgentToolPresentation.detail(for: value, presenter: presenter, locale: Locale(identifier: "zh-Hans")))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: value, presenter: presenter, locale: Locale(identifier: "zh-Hans")))
         #expect(AgentToolDetailPreview(detail).isShortened)
-        #expect(AgentToolPresentation.truncationNotice(for: value) == nil)
+        #expect(TermindToolPresentationProfiles.renderer.truncationNotice(for: value) == nil)
         value.result?.isTruncated = true
-        #expect(AgentToolPresentation.truncationNotice(for: value) == nil)
+        #expect(TermindToolPresentationProfiles.renderer.truncationNotice(for: value) == nil)
         let marker = AgentTruncateMarker.render(
             ranges: [10...20], totalLines: 20,
             capture: .init(path: "chat/outputs/ssh-exec-output-test.txt", bytes: 100, lines: 20))
         value.result?.truncateMarker = marker
-        #expect(AgentToolPresentation.truncationNotice(for: value) == marker)
+        #expect(TermindToolPresentationProfiles.renderer.truncationNotice(for: value) == marker)
     }
 
     private func card(_ name: String, output: String) -> AgentToolCard {

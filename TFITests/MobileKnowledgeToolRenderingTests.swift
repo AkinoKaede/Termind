@@ -118,7 +118,8 @@ struct MobileKnowledgeToolRenderingTests {
     private func detail(for card: AgentToolCard, language: AppLanguage) throws -> AgentToolDetail {
         let presenter = try #require(
             AgentToolCatalog.builtInPresenters.first { $0.id == card.descriptor.presentation?.presenterID })
-        return try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: language.locale))
+        return try #require(
+            TermindToolPresentationProfiles.renderer.detail(for: card, presenter: presenter, locale: language.locale))
     }
 
     private func snapshot(_ view: UIView, name: String) throws {

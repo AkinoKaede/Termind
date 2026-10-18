@@ -5,7 +5,7 @@ import TermindApplication
 /// Localized SSH projections composed into each app's trusted presenter registry.
 nonisolated public enum SSHExecToolPresentation {
     private static let names: Set<String> = [
-        "ssh_exec", "ssh_wait", TermindToolName.sshExecRun, TermindToolName.sshExecOutput,
+        TermindToolName.sshExecRun, TermindToolName.sshExecOutput,
         TermindToolName.sshExecStdin, TermindToolName.sshExecCancel, TermindToolName.sshExecList,
     ]
 
@@ -27,18 +27,24 @@ nonisolated public enum SSHExecToolPresentation {
             })
     }
 
-    /// Result-less historical cards do not have a result projection to invoke yet.
-    static func pendingDetail(for card: AgentToolCard, locale: Locale) -> AgentToolDetail? {
-        guard card.result == nil, card.descriptor.target != .mcp, names.contains(card.descriptor.name),
-            card.descriptor.presentation?.presenterID == nil
-                || card.descriptor.presentation?.presenterID == "builtin.\(card.descriptor.name)"
-        else { return nil }
-        return .init(
-            items: present(
-                .init(
-                    result: .object([:]), arguments: card.invocation.call.arguments.objectValue ?? [:], locale: locale),
-                name: card.descriptor.name, pending: true))
-    }
+    static let profiles: [String: AgentToolPresentationProfile] = Dictionary(
+        uniqueKeysWithValues: names.map { name in
+            var profile = AgentToolPresentationProfile()
+            profile.phaseSummary = { phase, activity, target, locale in
+                phaseSummary(phase, activity: activity, target: target, locale: locale)
+            }
+            profile.detail = { card, _, locale in
+                guard card.result == nil else { return .useDefault }
+                return .content(
+                    .init(
+                        items: present(
+                            .init(
+                                result: .object([:]), arguments: card.invocation.call.arguments.objectValue ?? [:],
+                                locale: locale),
+                            name: name, pending: true)))
+            }
+            return ("builtin.\(name)", profile)
+        })
 
     private static func present(
         _ input: AgentToolDetailInput, name: String, pending: Bool = false
@@ -104,16 +110,94 @@ nonisolated public enum SSHExecToolPresentation {
         if object["remote_termination_confirmed"]?.boolValue == false {
             items.append(.message(text(S.cancellationNotice), .warning))
         }
-        let stdout = object["output"]?.stringValue ?? object["stdout"]?.stringValue ?? ""
-        let stderr = object["stderr"]?.stringValue ?? ""
-        if !stdout.isEmpty { items.append(block(object["output"] == nil ? S.stdout : S.output, stdout)) }
-        if !stderr.isEmpty { items.append(block(S.stderr, stderr)) }
-        if ["ssh_exec", "ssh_wait", TermindToolName.sshExecRun, TermindToolName.sshExecOutput]
-            .contains(name), stdout.isEmpty, stderr.isEmpty
-        {
+        let output = object["output"]?.stringValue ?? ""
+        if !output.isEmpty { items.append(block(S.output, output)) }
+        if [TermindToolName.sshExecRun, TermindToolName.sshExecOutput].contains(name), output.isEmpty {
             items.append(pending ? .message(text(S.pending), .secondary) : field(S.noOutput))
         }
         if let note = object["note"]?.stringValue { items.append(.message(note, .warning)) }
         return items
     }
+
+    private static func phaseSummary(
+        _ kind: AgentToolDescriptor.Presentation.PhaseKind,
+        activity: String, target: String?, locale: Locale
+    ) -> String? {
+        // Commands already carry their own shell punctuation. English reads
+        // more naturally without another pair of prose quotes around the
+        // entire command, while Chinese and Japanese use quotation marks to separate the
+        // command from the surrounding sentence.
+        if !AgentToolPresentation().usesLocalizedActionTemplates(locale) {
+            return switch kind {
+            case .sshPreparingCommand:
+                target.map { "Preparing to run \(activity) on \($0)" }
+                    ?? "Preparing to run \(activity)"
+            case .sshWaitingForCommand:
+                target.map { "Waiting to run \(activity) on \($0)" }
+                    ?? "Waiting to run \(activity)"
+            case .sshWaitingForAuthentication:
+                target.map { "Waiting to authenticate with \($0)" }
+                    ?? "Waiting for authentication"
+            case .sshConnecting:
+                target.map { "Connecting to \($0)" } ?? "Connecting"
+            case .sshRunningCommand:
+                target.map { "Running \(activity) on \($0)" } ?? "Running \(activity)"
+            case .sshCompletedCommand:
+                target.map { "Ran \(activity) on \($0)" } ?? "Ran \(activity)"
+            case .sshDeniedCommand:
+                target.map { "Did not run \(activity) on \($0)" }
+                    ?? "Did not run \(activity)"
+            case .sshFailedCommand:
+                target.map { "Failed to run \(activity) on \($0)" }
+                    ?? "Failed to run \(activity)"
+            case .sshInterruptedCommand:
+                target.map { "Stopped waiting for \(activity) on \($0)" }
+                    ?? "Stopped waiting for \(activity)"
+            default: nil
+            }
+        }
+        switch kind {
+        case .sshPreparingCommand:
+            return target.map {
+                AppLocalization.resolve("Preparing to run “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Preparing to run “\(activity)”", locale: locale)
+        case .sshWaitingForCommand:
+            return target.map {
+                AppLocalization.resolve("Waiting to run “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Waiting to run “\(activity)”", locale: locale)
+        case .sshWaitingForAuthentication:
+            return target.map {
+                AppLocalization.resolve("Waiting to authenticate with \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Waiting for authentication", locale: locale)
+        case .sshConnecting:
+            return target.map {
+                AppLocalization.resolve("Connecting to \($0)", locale: locale)
+            } ?? AppLocalization.resolve(AppStrings.Connections.connecting, locale: locale)
+        case .sshRunningCommand:
+            return target.map {
+                AppLocalization.resolve("Running “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Running “\(activity)”", locale: locale)
+        case .sshCompletedCommand:
+            return target.map {
+                AppLocalization.resolve("Ran “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Ran “\(activity)”", locale: locale)
+        case .sshDeniedCommand:
+            return target.map {
+                AppLocalization.resolve("Did not run “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Did not run “\(activity)”", locale: locale)
+        case .sshFailedCommand:
+            return target.map {
+                AppLocalization.resolve("Failed to run “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Failed to run “\(activity)”", locale: locale)
+        case .sshInterruptedCommand:
+            return target.map {
+                AppLocalization.resolve("Stopped waiting for “\(activity)” on \($0)", locale: locale)
+            } ?? AppLocalization.resolve("Stopped waiting for “\(activity)”", locale: locale)
+        // Open vocabulary. A phase this app has no wording for falls back to the
+        // ordinary action lifecycle, which is what the caller does with `nil`.
+        default:
+            return nil
+        }
+    }
+
 }

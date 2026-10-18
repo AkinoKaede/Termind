@@ -369,7 +369,7 @@ private struct AgentApprovalCard: View {
     @State private var showsSafetyDetails = false
 
     var body: some View {
-        let presentation = AgentToolPresentation.approval(
+        let presentation = TermindToolPresentationProfiles.renderer.approval(
             for: request,
             presenter: AppDependencies.toolPresenter(for: request.descriptor),
             hostName: request.invocation.targetHostID.map(hostName),

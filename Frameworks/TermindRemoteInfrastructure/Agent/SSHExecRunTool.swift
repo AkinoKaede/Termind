@@ -46,7 +46,7 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
             presentation: .init(
                 symbol: "terminal",
                 activity: .semanticArgument(key: "command", fallback: .sshCommand),
-                output: .streams,
+                output: .field("output"),
                 actionKind: .run,
                 phaseKinds: [
                     "proposed": .sshPreparingCommand,

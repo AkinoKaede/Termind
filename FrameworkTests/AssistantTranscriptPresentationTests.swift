@@ -115,13 +115,16 @@ struct AssistantTranscriptPresentationTests {
             (.waitingForUser, .warning), (.waitingForApproval, .warning), (.completed, .success),
             (.failed, .failure), (.denied, .failure), (.interrupted, .secondary),
         ]
-        for (state, tint) in states { #expect(AgentToolPresentation.tint(for: state) == tint) }
+        for (state, tint) in states { #expect(TermindToolPresentationProfiles.renderer.tint(for: state) == tint) }
         let completed = card(state: .completed)
         let failed = card(state: .failed)
-        #expect(AgentToolPresentation.batchTint(for: [completed, failed]) == .warning)
-        let title = AgentToolPresentation.batchSummary(for: [completed, failed], locale: Locale(identifier: "en"))
+        #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [completed, failed]) == .warning)
+        let title = TermindToolPresentationProfiles.renderer.batchSummary(
+            for: [completed, failed], locale: Locale(identifier: "en"))
         #expect(title.localizedCaseInsensitiveContains("failed"))
-        #expect(AgentToolPresentation.batchTint(for: [completed, card(state: .waitingForApproval)]) == .warning)
+        #expect(
+            TermindToolPresentationProfiles.renderer.batchTint(for: [completed, card(state: .waitingForApproval)])
+                == .warning)
     }
 
     @Test func aDirectDenialBeforeTheChannelDrainsKeepsOneDeniedCard() async throws {
@@ -169,7 +172,7 @@ struct AssistantTranscriptPresentationTests {
         let presenter = AgentToolDetailPresenter(id: "test.answer") { input in
             [.field(.init(label: "Answer", value: input.result.objectValue?["answer"]?.encodedString ?? "missing"))]
         }
-        let detail = try #require(AgentToolPresentation.detail(for: value, presenter: presenter))
+        let detail = try #require(TermindToolPresentationProfiles.renderer.detail(for: value, presenter: presenter))
         #expect(detail.items == [.field(.init(label: "Answer", value: "42"))])
     }
 

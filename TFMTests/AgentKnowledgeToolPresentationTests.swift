@@ -25,7 +25,7 @@ import Testing
                     ])
                 ])
             value.state = state
-            let title = AgentToolPresentation.summary(for: value, locale: locale)
+            let title = TermindToolPresentationProfiles.renderer.summary(for: value, locale: locale)
             #expect(!title.contains("skill"))
             #expect(!title.contains("技能"))
             #expect(!title.contains("private-body"))
@@ -34,7 +34,7 @@ import Testing
         var value = card("memory", arguments: ["operations": .array([])])
         value.state = .completed
         if language == "en" {
-            #expect(AgentToolPresentation.summary(for: value, locale: locale) == "Read memory")
+            #expect(TermindToolPresentationProfiles.renderer.summary(for: value, locale: locale) == "Read memory")
         }
     }
 
@@ -56,7 +56,7 @@ import Testing
         ]
         for (name, args, expected) in cases {
             let value = card(name, arguments: args)
-            #expect(AgentToolPresentation.summary(for: value, locale: english) == expected)
+            #expect(TermindToolPresentationProfiles.renderer.summary(for: value, locale: english) == expected)
         }
     }
 
@@ -64,7 +64,7 @@ import Testing
         let read = card("memory", arguments: ["operations": .array([])])
         var write = card("memory", arguments: ["operations": .array([.object(["action": .string("add")])])])
         write.state = .failed
-        let title = AgentToolPresentation.batchSummary(for: [read, read, write], locale: english)
+        let title = TermindToolPresentationProfiles.renderer.batchSummary(for: [read, read, write], locale: english)
         #expect(title.contains("Read memory"))
         #expect(title.contains("memory (2 times)"))
         #expect(!title.contains("tool calls"))
@@ -94,7 +94,7 @@ import Testing
             ])
         let request = AgentApprovalRequest(
             invocation: value.invocation, descriptor: value.descriptor, userIntent: "Create")
-        let approval = AgentToolPresentation.approval(
+        let approval = TermindToolPresentationProfiles.renderer.approval(
             for: request, presenter: SkillManageTool.presenter, locale: english)
         #expect(approval.title == "Update skills")
         #expect(approval.detail.items.contains(.text(.init(title: "Content", text: body, style: .monospaced))))
@@ -105,7 +105,8 @@ import Testing
         value.state = .failed
         value.result = AgentToolResult(callID: "call", content: "{\"saved\":true}", isError: true)
         let detail = try #require(
-            AgentToolPresentation.detail(for: value, presenter: SkillInstallTool.presenter, locale: english))
+            TermindToolPresentationProfiles.renderer.detail(
+                for: value, presenter: SkillInstallTool.presenter, locale: english))
         #expect(
             !detail.items.contains {
                 if case .message(_, .success) = $0 { return true }
@@ -116,7 +117,7 @@ import Testing
     @Test func titleLimitsDoNotChangeOriginalArguments() {
         let query = "开始\n" + String(repeating: "🧭", count: 160)
         let value = card("session_search", arguments: ["query": .string(query)])
-        let title = AgentToolPresentation.summary(for: value, locale: english)
+        let title = TermindToolPresentationProfiles.renderer.summary(for: value, locale: english)
         #expect(title.count <= 80)
         #expect(!title.contains("\n"))
         #expect(title.contains("…"))

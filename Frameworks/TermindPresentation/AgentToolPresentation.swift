@@ -3,25 +3,31 @@ import Foundation
 import TermindApplication
 
 /// Turns tool protocol data into the small amount of language the transcript needs.
+/// Decoupled from concrete tool definitions and types: the host supplies tool-specific
+/// behavior through presentation profiles and localized activity vocabulary. This
+/// renderer only interprets descriptor metadata, lifecycle states and those policies.
 /// Execution, approval and replay continue to use the original call and result unchanged.
-nonisolated public enum AgentToolPresentation {
+nonisolated public struct AgentToolPresentation: Sendable {
+    private let profile: @Sendable (AgentToolDescriptor) -> AgentToolPresentationProfile
+    private let vocabulary: AgentToolPresentationVocabulary
+
+    public init(
+        profile: @escaping @Sendable (AgentToolDescriptor) -> AgentToolPresentationProfile = { _ in .init() },
+        vocabulary: AgentToolPresentationVocabulary = .init()
+    ) {
+        self.profile = profile
+        self.vocabulary = vocabulary
+    }
+
     public enum BatchTint: Equatable, Sendable {
         case secondary, warning, success, failure
     }
 
-    private static let chatCollaborationToolNames: Set<String> = [
-        "list_models", "create_new_chat", "list_chats", "read_chat", "send_to_chat", "wait_chats",
-    ]
-
-    public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
+    public func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
         truncationNotice(for: card) != nil
     }
 
-    private static func isLocalPaneTool(_ descriptor: AgentToolDescriptor, named name: String) -> Bool {
-        descriptor.target == .local && descriptor.name == name
-    }
-
-    public static func symbol(for card: AgentToolCard) -> String {
+    public func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
 
@@ -31,7 +37,7 @@ nonisolated public enum AgentToolPresentation {
     /// what will be sent. Its arguments therefore remain unredacted here; the
     /// projection is derived from the in-memory request and is never attached
     /// to the durable tool card or model transcript.
-    public static func approval(
+    public func approval(
         for request: AgentApprovalRequest,
         presenter: AgentToolDetailPresenter? = nil,
         hostName: String? = nil,
@@ -42,6 +48,7 @@ nonisolated public enum AgentToolPresentation {
             descriptor: request.descriptor,
             state: .waitingForApproval
         )
+        let policy = profile(card.descriptor)
         return AgentApprovalPresentation(
             symbol: symbol(for: card),
             title: approvalSummary(for: card, hostName: hostName, locale: locale),
@@ -49,7 +56,7 @@ nonisolated public enum AgentToolPresentation {
                 items: approvalArgumentItems(
                     request.invocation.call.arguments, presenter: presenter,
                     hidesHostID: hostName != nil,
-                    hidesSensitiveChatArguments: isChatCollaborationTool(request.descriptor),
+                    requiresProjection: policy.requiresArgumentProjection,
                     locale: locale),
                 layout: presenter?.layout ?? .init()
             )
@@ -59,19 +66,20 @@ nonisolated public enum AgentToolPresentation {
     /// Approval chrome already communicates that the call is waiting. Keep its
     /// action title short and move argument values into the reviewable detail
     /// below, where long commands and paths can scroll without hiding actions.
-    private static func approvalSummary(
+    private func approvalSummary(
         for card: AgentToolCard,
         hostName: String?,
         locale: Locale
     ) -> String {
-        if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale, approval: true) {
+        let policy = profile(card.descriptor)
+        if let operation = policy.operation(card, locale, true) {
             let action = localizedActionVerb(operation.action, locale: locale)
             let title =
                 usesLocalizedActionTemplates(locale)
                 ? uppercaseFirst(localized("Approval tool action: \(action) \(operation.activity)", locale: locale))
                 : uppercaseFirst(actionName(operation.action, form: .infinitive, locale: locale)) + " "
                     + operation.activity
-            return AgentKnowledgeToolPresentation.title(title)
+            return policy.title(title)
         }
         let activity = approvalActivity(for: card, locale: locale)
         guard let kind = actionKind(for: card) else {
@@ -101,34 +109,29 @@ nonisolated public enum AgentToolPresentation {
         return "\(rendered) on \(hostName)"
     }
 
-    private static func approvalActivity(
+    private func approvalActivity(
         for card: AgentToolCard,
         locale: Locale
     ) -> String {
-        if isTerminalSuggestion(card) { return activityName(.suggestion, locale: locale) }
         guard let presentation = card.descriptor.presentation else {
             return humanized(card.descriptor.qualifiedName)
         }
         switch presentation.activity {
         case .label(let label):
-            return legacyActivity(
-                label, descriptorName: card.descriptor.name, locale: locale
-            )
+            return label
         case .argument(_, let fallback):
-            return legacyActivity(
-                fallback, descriptorName: card.descriptor.name, locale: locale
-            )
+            return fallback
         case .arrayCount, .localizedArrayCount, .semanticArrayCount:
             return operation(for: card, locale: locale).text
         case .semanticLabel(let kind), .semanticArgument(_, let kind):
-            return activityName(resolvedActivityKind(kind, for: card), locale: locale)
+            return activityName(kind, locale: locale)
         }
     }
 
     /// While work is live, use the icon of the tool(s) still in flight. After
     /// completion, a homogeneous batch keeps its tool icon; mixed batches use
     /// the generic tools symbol.
-    public static func batchSymbol(for cards: [AgentToolCard]) -> String {
+    public func batchSymbol(for cards: [AgentToolCard]) -> String {
         let unfinished = cards.filter { !$0.state.isTerminal }
         if let live = unfinished.first { return symbol(for: live) }
         guard let first = cards.first else { return "wrench.and.screwdriver" }
@@ -137,7 +140,7 @@ nonisolated public enum AgentToolPresentation {
             ? symbol(for: first) : "wrench.and.screwdriver"
     }
 
-    public static func batchTint(for cards: [AgentToolCard]) -> BatchTint {
+    public func batchTint(for cards: [AgentToolCard]) -> BatchTint {
         if let live = cards.first(where: { !$0.state.isTerminal }) {
             return tint(for: live.state)
         }
@@ -153,30 +156,19 @@ nonisolated public enum AgentToolPresentation {
     /// Converts provider-authored Markdown into the one-line prose a tool
     /// batch header can accommodate. Structure and emphasis remain available
     /// in the live reasoning row; here only the visible words are reused.
-    public static func reasoningTitle(from markdown: String) -> String {
+    public func reasoningTitle(from markdown: String) -> String {
         TermindMarkdownParser.plainText(markdown)
     }
 
-    public static func summary(
+    public func summary(
         for card: AgentToolCard,
         hostName: String? = nil,
         locale: Locale = .current
     ) -> String {
-        if isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes) {
-            return AppLocalization.resolve(AppStrings.Assistant.listTerminals, locale: locale)
-        }
-        if isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) {
-            let name = paneResult(for: card)?["title"]?.stringValue
-            if let name, !name.isEmpty {
-                return AppLocalization.resolve(AppStrings.Assistant.readTerminal(name), locale: locale)
-            }
-            return AppLocalization.resolve(AppStrings.Assistant.readTerminal, locale: locale)
-        }
-        if let summary = AgentKnowledgeToolPresentation.scopedSearchSummary(for: card, locale: locale) {
-            return summary
-        }
-        if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale) {
-            return AgentKnowledgeToolPresentation.title(
+        let policy = profile(card.descriptor)
+        if let summary = policy.summary(card, locale) { return summary }
+        if let operation = policy.operation(card, locale, false) {
+            return policy.title(
                 actionSummary(
                     operation.action, state: card.state, activity: operation.activity,
                     isArgumentValue: operation.isArgument, target: nil, locale: locale))
@@ -190,10 +182,10 @@ nonisolated public enum AgentToolPresentation {
         } else {
             phase = card.state.rawValue
         }
-        if let phaseKind = phaseKind(for: card, phase: phase) {
-            return phaseSummary(
-                phaseKind, activity: operation.text, target: hostName, locale: locale
-            )
+        if let phaseKind = card.descriptor.presentation?.phaseKinds[phase],
+            let summary = policy.phaseSummary(phaseKind, operation.text, hostName, locale)
+        {
+            return summary
         }
         if let actionKind = actionKind(for: card) {
             return actionSummary(
@@ -207,9 +199,7 @@ nonisolated public enum AgentToolPresentation {
             if let hostName, !hostName.isEmpty {
                 rendered = rendered.replacingOccurrences(of: "{target}", with: hostName)
             } else {
-                // A host-shaped tool is not necessarily tied to one server. In
-                // particular, list_hosts and ssh_wait are not; a rejected call
-                // can also fail before its host_id becomes a resolved target.
+                // A call may fail before its target has been resolved.
                 rendered = rendered.replacingOccurrences(of: " on {target}", with: "")
                 rendered = rendered.replacingOccurrences(of: " to {target}", with: "")
                 rendered = rendered.replacingOccurrences(of: " with {target}", with: "")
@@ -240,7 +230,7 @@ nonisolated public enum AgentToolPresentation {
     }
 
     /// The title shown when a batch has no transient reasoning title.
-    public static func batchFallbackTitle(
+    public func batchFallbackTitle(
         for cards: [AgentToolCard], hostName: (UUID) -> String?, locale: Locale = .current
     ) -> String {
         let unfinished = cards.filter { !$0.state.isTerminal }
@@ -254,19 +244,18 @@ nonisolated public enum AgentToolPresentation {
     /// metadata as its individual rows but with repeated activities counted.
     /// Calls in different terminal states stay separate, so one failure can
     /// never be rewritten as a successful action by the batch title.
-    public static func batchSummary(
+    public func batchSummary(
         for cards: [AgentToolCard], locale: Locale = .current
     ) -> String {
         if cards.count == 1, let card = cards.first, card.state == .completed,
-            isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes)
-                || isLocalPaneTool(card.descriptor, named: TermindToolName.readPane)
+            profile(card.descriptor).usesSummaryForSingleCompletedBatch
         {
             return summary(for: card, locale: locale)
         }
         struct Key: Hashable {
             let name: String
             let state: AgentToolCard.State
-            let knowledgeAction: AgentToolDescriptor.Presentation.ActionKind?
+            let operationAction: AgentToolDescriptor.Presentation.ActionKind?
         }
 
         var order: [Key] = []
@@ -274,7 +263,7 @@ nonisolated public enum AgentToolPresentation {
         for card in cards {
             let key = Key(
                 name: card.descriptor.qualifiedName, state: card.state,
-                knowledgeAction: AgentKnowledgeToolPresentation.operation(for: card, locale: locale)?.action)
+                operationAction: profile(card.descriptor).operation(card, locale, false)?.action)
             if grouped[key] == nil { order.append(key) }
             grouped[key, default: []].append(card)
         }
@@ -299,7 +288,7 @@ nonisolated public enum AgentToolPresentation {
             .joined(separator: ", ")
     }
 
-    public static func output(from result: AgentToolResult, presentation: AgentToolDescriptor.Presentation?) -> String {
+    public func output(from result: AgentToolResult, presentation: AgentToolDescriptor.Presentation?) -> String {
         let raw = result.untrustedPayload ?? result.content
         return output(raw, policy: presentation?.output ?? .automatic)
     }
@@ -308,7 +297,7 @@ nonisolated public enum AgentToolPresentation {
     /// in the tool result: people need the former and the model must receive
     /// the latter. The transcript, however, should not print identical text
     /// twice. Distinct execution failures remain visible below the review.
-    public static func detailOutput(
+    public func detailOutput(
         from result: AgentToolResult,
         presentation: AgentToolDescriptor.Presentation?,
         review: GuardianDecision?
@@ -323,111 +312,31 @@ nonisolated public enum AgentToolPresentation {
     /// Projects protocol-shaped tool results into transcript-shaped content.
     /// The model and persistence keep the original JSON; only this projection
     /// is allowed to decide what a person sees.
-    public static func detail(
+    public func detail(
         for card: AgentToolCard, presenter: AgentToolDetailPresenter? = nil, locale: Locale = .current
     ) -> AgentToolDetail? {
-        let presenter = card.descriptor.target == .mcp ? nil : presenter
         guard var detail = detailContent(for: card, presenter: presenter, locale: locale) else { return nil }
         detail.layout = presenter?.layout ?? .init()
         return detail
     }
 
-    private static func detailContent(
+    private func detailContent(
         for card: AgentToolCard, presenter: AgentToolDetailPresenter?, locale: Locale
     ) -> AgentToolDetail? {
-        guard let result = card.result else {
-            return SSHExecToolPresentation.pendingDetail(for: card, locale: locale)
+        let policy = profile(card.descriptor)
+        switch policy.detail(card, presenter, locale) {
+        case .content(let detail): return detail
+        case .hidden: return nil
+        case .useDefault: break
         }
-
-        // Terminal output belongs to the model result, never the visible card.
-        // Handle these names before every raw/error/generic JSON fallback so a
-        // restored card obeys the same boundary as a live one.
-        if isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) {
-            let object = paneResult(for: card) ?? [:]
-            let name = object["title"]?.stringValue
-            let id =
-                object["pane_id"]?.stringValue
-                ?? card.invocation.call.arguments.objectValue?["pane_id"]?.stringValue
-            var items: [AgentToolDetail.Item] = []
-            if let name {
-                items.append(
-                    .field(
-                        .init(
-                            label: AppLocalization.resolve(AppStrings.Assistant.terminalName, locale: locale),
-                            value: name)))
-            }
-            if let id {
-                items.append(
-                    .field(
-                        .init(
-                            label: AppLocalization.resolve(AppStrings.Assistant.paneID, locale: locale),
-                            value: id, isMonospaced: true)))
-            }
-            return AgentToolDetail(items: items)
-        }
-        if isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes) {
-            let panes = paneResult(for: card)?["panes"]?.arrayValue ?? []
-            let rows = panes.compactMap { value -> AgentToolDetail.ListRow? in
-                guard let pane = value.objectValue,
-                    let title = pane["title"]?.stringValue,
-                    let id = pane["pane_id"]?.stringValue
-                else { return nil }
-                var badges: [String] = []
-                if pane["is_active"]?.boolValue == true {
-                    badges.append(AppLocalization.resolve(AppStrings.Assistant.activeTerminal, locale: locale))
-                }
-                if pane["is_current"]?.boolValue == true {
-                    badges.append(AppLocalization.resolve(AppStrings.Assistant.currentTerminal, locale: locale))
-                }
-                return .init(title: title, subtitle: id, badges: badges, symbol: "terminal")
-            }
-            return AgentToolDetail(items: [
-                .list(
-                    .init(
-                        rows: rows,
-                        emptyMessage: AppLocalization.resolve(AppStrings.Assistant.noOpenTerminals, locale: locale)
-                    ))
-            ])
-        }
-
-        if isChatCollaborationTool(card.descriptor) {
-            let fallback = AgentToolDetail(items: [
-                .message(
-                    AppLocalization.resolve(AppStrings.Assistant.chatDetailsUnavailable, locale: locale),
-                    result.isError ? .failure : .secondary)
-            ])
-            if result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted {
-                guard
-                    detailOutput(
-                        from: result, presentation: card.descriptor.presentation,
-                        review: card.review) != nil
-                else { return nil }
-                return fallback
-            }
-            let raw = result.untrustedPayload ?? result.content
-            guard let value = try? AgentJSONValue.decode(Data(raw.utf8)), let presenter else {
-                return fallback
-            }
-            return AgentToolDetail(
-                items: presenter.present(
-                    .init(
-                        result: value,
-                        arguments: card.invocation.call.arguments.objectValue ?? [:],
-                        locale: locale)))
-        }
-
-        // MCP output is remote-defined and intentionally keeps the established
-        // JSON presentation. Built-ins below never fall back to JSON syntax.
-        if card.descriptor.target == .mcp {
+        guard let result = card.result else { return nil }
+        if presenter == nil, policy.preservesUnprojectedJSON {
             guard
                 let output = detailOutput(
-                    from: result, presentation: card.descriptor.presentation,
-                    review: card.review
+                    from: result, presentation: card.descriptor.presentation, review: card.review
                 )
             else { return nil }
-            return AgentToolDetail(items: [
-                .text(.init(title: nil, text: output, style: .monospaced))
-            ])
+            return AgentToolDetail(items: [.text(.init(text: output, style: .monospaced))])
         }
 
         let raw = result.untrustedPayload ?? result.content
@@ -464,25 +373,19 @@ nonisolated public enum AgentToolPresentation {
                 )))
     }
 
-    private static func paneResult(for card: AgentToolCard) -> [String: AgentJSONValue]? {
-        guard let result = card.result else { return nil }
-        let raw = result.untrustedPayload ?? result.content
-        return (try? AgentJSONValue.decode(Data(raw.utf8)))?.objectValue
-    }
-
-    public static func truncationNotice(for card: AgentToolCard) -> String? {
-        guard !isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) else { return nil }
+    public func truncationNotice(for card: AgentToolCard) -> String? {
+        guard !profile(card.descriptor).hidesTruncationNotice else { return nil }
         return card.result?.truncateMarker
     }
 
-    private static func approvalArgumentItems(
+    private func approvalArgumentItems(
         _ arguments: AgentJSONValue,
         presenter: AgentToolDetailPresenter?,
         hidesHostID: Bool,
-        hidesSensitiveChatArguments: Bool,
+        requiresProjection: Bool,
         locale: Locale
     ) -> [AgentToolDetail.Item] {
-        if hidesSensitiveChatArguments {
+        if requiresProjection {
             guard let object = arguments.objectValue,
                 let projected = presenter?.presentArguments(
                     .init(arguments: object, locale: locale))
@@ -510,24 +413,10 @@ nonisolated public enum AgentToolPresentation {
         return AgentToolDetailFormatting.genericItems(.object(visible), locale: locale)
     }
 
-    private static func isChatCollaborationTool(_ descriptor: AgentToolDescriptor) -> Bool {
-        descriptor.target == .local && chatCollaborationToolNames.contains(descriptor.name)
-    }
-
-    private static func output(
+    private func output(
         _ raw: String, policy: AgentToolDescriptor.Presentation.Output
     ) -> String {
         guard let value = try? AgentJSONValue.decode(Data(raw.utf8)) else { return raw }
-
-        if case .streams = policy, let object = value.objectValue {
-            let stdout = object["stdout"]?.stringValue ?? ""
-            let stderr = object["stderr"]?.stringValue ?? ""
-            if !stdout.isEmpty || !stderr.isEmpty {
-                if stdout.isEmpty { return stderr }
-                if stderr.isEmpty { return stdout }
-                return String(localized: "Standard output:\n\(stdout)\nStandard error:\n\(stderr)")
-            }
-        }
 
         if case .field(let key) = policy, let text = value.objectValue?[key]?.stringValue {
             return text
@@ -547,20 +436,10 @@ nonisolated public enum AgentToolPresentation {
         var isArgumentValue: Bool
     }
 
-    private static func operation(
+    private func operation(
         for card: AgentToolCard, locale: Locale
     ) -> RenderedOperation {
-        if isTerminalSuggestion(card) {
-            return RenderedOperation(text: activityName(.suggestion, locale: locale), isArgumentValue: false)
-        }
         guard let presentation = card.descriptor.presentation else {
-            if usesLocalizedActionTemplates(locale),
-                let recovered = recoveredBuiltInOperation(
-                    for: card, locale: locale
-                )
-            {
-                return recovered
-            }
             return RenderedOperation(
                 text: humanized(card.descriptor.qualifiedName), isArgumentValue: false
             )
@@ -568,26 +447,20 @@ nonisolated public enum AgentToolPresentation {
         switch presentation.activity {
         case .label(let label):
             return RenderedOperation(
-                text: legacyActivity(
-                    label, descriptorName: card.descriptor.name, locale: locale
-                ),
+                text: label,
                 isArgumentValue: false
             )
         case .argument(let key, let fallback):
             guard let value = card.invocation.call.arguments.objectValue?[key]?.stringValue else {
                 return RenderedOperation(
-                    text: legacyActivity(
-                        fallback, descriptorName: card.descriptor.name, locale: locale
-                    ),
+                    text: fallback,
                     isArgumentValue: false
                 )
             }
             let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
             guard !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 return RenderedOperation(
-                    text: legacyActivity(
-                        fallback, descriptorName: card.descriptor.name, locale: locale
-                    ),
+                    text: fallback,
                     isArgumentValue: false
                 )
             }
@@ -597,15 +470,7 @@ nonisolated public enum AgentToolPresentation {
                 count > 0
             else {
                 return RenderedOperation(
-                    text: legacyActivity(
-                        fallback, descriptorName: card.descriptor.name, locale: locale
-                    ),
-                    isArgumentValue: false
-                )
-            }
-            if card.descriptor.name == "request_user_input" {
-                return RenderedOperation(
-                    text: countDescription(count, unit: .question, locale: locale),
+                    text: fallback,
                     isArgumentValue: false
                 )
             }
@@ -617,9 +482,7 @@ nonisolated public enum AgentToolPresentation {
                 count > 0
             else {
                 return RenderedOperation(
-                    text: legacyActivity(
-                        fallback, descriptorName: card.descriptor.name, locale: locale
-                    ),
+                    text: fallback,
                     isArgumentValue: false
                 )
             }
@@ -629,25 +492,25 @@ nonisolated public enum AgentToolPresentation {
             )
         case .semanticLabel(let kind):
             return RenderedOperation(
-                text: activityName(resolvedActivityKind(kind, for: card), locale: locale), isArgumentValue: false
+                text: activityName(kind, locale: locale), isArgumentValue: false
             )
         case .semanticArgument(let key, let fallback):
             guard let value = card.invocation.call.arguments.objectValue?[key]?.stringValue else {
-                if card.descriptor.name == "web_search" {
+                if profile(card.descriptor).omitsMissingArgumentActivity {
                     return RenderedOperation(text: "", isArgumentValue: false)
                 }
                 return RenderedOperation(
-                    text: activityName(resolvedActivityKind(fallback, for: card), locale: locale),
+                    text: activityName(fallback, locale: locale),
                     isArgumentValue: false
                 )
             }
             let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
             guard !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                if card.descriptor.name == "web_search" {
+                if profile(card.descriptor).omitsMissingArgumentActivity {
                     return RenderedOperation(text: "", isArgumentValue: false)
                 }
                 return RenderedOperation(
-                    text: activityName(resolvedActivityKind(fallback, for: card), locale: locale),
+                    text: activityName(fallback, locale: locale),
                     isArgumentValue: false
                 )
             }
@@ -667,64 +530,21 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    /// Cards persisted before semantic presentations were stored still know
-    /// their tool name and arguments. Recover the same user-facing activity
-    /// from those stable protocol fields instead of exposing names such as
-    /// `web_search` in a translated summary.
-    private static func recoveredBuiltInOperation(
-        for card: AgentToolCard, locale: Locale
-    ) -> RenderedOperation? {
-        if card.descriptor.name == "request_user_input" {
-            let count = card.invocation.call.arguments.objectValue?["questions"]?.arrayValue?.count
-            return RenderedOperation(
-                text: count.map { countDescription($0, unit: .question, locale: locale) }
-                    ?? activityName(.question, locale: locale),
-                isArgumentValue: false
-            )
-        }
-        guard let metadata = legacyMetadata[card.descriptor.name] else { return nil }
-        if let key = metadata.argumentKey,
-            let value = card.invocation.call.arguments.objectValue?[key]?.stringValue
-        {
-            let oneLine = value.split(whereSeparator: \.isNewline).joined(separator: " ")
-            if !oneLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return RenderedOperation(text: oneLine, isArgumentValue: true)
-            }
-        }
-        let text =
-            card.descriptor.name == "web_search"
-            ? "" : activityName(metadata.activity, locale: locale)
-        return RenderedOperation(text: text, isArgumentValue: false)
-    }
-
-    private static func batchClause(
+    private func batchClause(
         _ cards: [AgentToolCard], locale: Locale
     ) -> String {
         guard let first = cards.first else { return "" }
-        let listsPanes = isLocalPaneTool(first.descriptor, named: TermindToolName.listPanes)
-        if listsPanes || isLocalPaneTool(first.descriptor, named: TermindToolName.readPane) {
-            // Recover the action for persisted cards whose descriptors predate
-            // actionKind, and count reads/listings rather than inferred terminals.
-            let activity = localized(
-                listsPanes ? AppStrings.Assistant.terminalsActivity : AppStrings.Assistant.terminalActivity,
-                locale: locale)
-            return actionSummary(
-                listsPanes ? .list : .read, state: first.state,
-                activity: repeatedActivity(activity, count: cards.count, locale: locale),
-                isArgumentValue: false, target: nil, locale: locale)
+        let policy = profile(first.descriptor)
+        if let operation = policy.batchOperation(cards, locale) {
+            return policy.title(
+                actionSummary(
+                    operation.action, state: first.state, activity: operation.activity,
+                    isArgumentValue: operation.isArgument, target: nil, locale: locale))
         }
-        if isTerminalSuggestion(first) {
-            let activity =
-                cards.count == 1
-                ? activityName(.suggestion, locale: locale)
-                : localized("\(cards.count) suggestions", locale: locale)
-            return actionSummary(
-                .provide, state: first.state, activity: activity, isArgumentValue: false, target: nil, locale: locale)
-        }
-        if let operation = AgentKnowledgeToolPresentation.operation(for: first, locale: locale) {
+        if let operation = policy.operation(first, locale, false) {
             if cards.count == 1 { return summary(for: first, locale: locale) }
             let activity = repeatedActivity(operation.batchActivity, count: cards.count, locale: locale)
-            return AgentKnowledgeToolPresentation.title(
+            return policy.title(
                 actionSummary(
                     operation.action, state: first.state, activity: activity,
                     isArgumentValue: false, target: nil, locale: locale))
@@ -774,11 +594,9 @@ nonisolated public enum AgentToolPresentation {
         return fallbackAction(for: first.state, activity: activity.text, locale: locale)
     }
 
-    /// Repeated calls whose descriptor names a domain activity should count
-    /// that activity, not expose the implementation detail that it was a tool
-    /// call. A task-list call replaces the whole list, so its count describes
-    /// replacements rather than pretending to know how many tasks changed.
-    private static func semanticBatchActivity(
+    /// Repeated calls count the activity declared by their metadata. The injected
+    /// vocabulary decides whether that means objects or repeated operations.
+    private func semanticBatchActivity(
         for card: AgentToolCard,
         count: Int,
         locale: Locale
@@ -787,38 +605,20 @@ nonisolated public enum AgentToolPresentation {
         let kind: AgentToolDescriptor.Presentation.ActivityKind
         switch card.descriptor.presentation?.activity {
         case .semanticArgument(_, let value), .semanticLabel(let value):
-            kind = resolvedActivityKind(value, for: card)
-        case .none, .argument, .label:
-            guard card.descriptor.target != .mcp, let metadata = legacyMetadata[card.descriptor.name] else {
-                return nil
-            }
-            kind = metadata.activity
+            kind = value
         default: return nil
         }
-        let text: String
-        switch kind {
-        case .command, .sshCommand: text = localized("\(count) commands", locale: locale)
-        case .remoteFile: text = localized("\(count) files", locale: locale)
-        case .remoteDirectory: text = localized("\(count) directories", locale: locale)
-        case .scratchFile: text = localized("\(count) scratch files", locale: locale)
-        case .scratchEntry: text = localized("\(count) scratch items", locale: locale)
-        case .url: text = localized("\(count) URLs", locale: locale)
-        case .plan: text = localized("\(count) plans", locale: locale)
-        case .secret: text = localized("\(count) secrets", locale: locale)
-        case .suggestion: text = localized("\(count) suggestions", locale: locale)
-        case .taskList: text = localized("the task list \(count) times", locale: locale)
-        // Lists, searches, comparisons and waits can revisit the same objects.
-        // Count the repetitions without inventing a number of results or files.
-        default: text = repeatedActivity(activityName(kind, locale: locale), count: count, locale: locale)
-        }
+        let text =
+            vocabulary.countedActivity(kind, count, locale)
+            ?? repeatedActivity(activityName(kind, locale: locale), count: count, locale: locale)
         return RenderedOperation(text: text, isArgumentValue: false)
     }
 
-    private static func repeatedActivity(_ activity: String, count: Int, locale: Locale) -> String {
+    private func repeatedActivity(_ activity: String, count: Int, locale: Locale) -> String {
         count == 1 ? activity : localized("\(activity) (\(count) times)", locale: locale)
     }
 
-    private static func replacingQuotedActivity(in template: String, with activity: String) -> String {
+    private func replacingQuotedActivity(in template: String, with activity: String) -> String {
         [
             "“{activity}”", "\"{activity}\"", "‘{activity}’", "'{activity}'",
             "«{activity}»", "‹{activity}›", "「{activity}」", "『{activity}』",
@@ -827,7 +627,7 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func batchActivity(
+    private func batchActivity(
         _ activity: AgentToolDescriptor.Presentation.Activity,
         cards: [AgentToolCard], locale: Locale
     ) -> RenderedOperation {
@@ -863,12 +663,6 @@ nonisolated public enum AgentToolPresentation {
             guard count > 0 else {
                 return RenderedOperation(text: fallback, isArgumentValue: false)
             }
-            if cards.first?.descriptor.name == "request_user_input" {
-                return RenderedOperation(
-                    text: countDescription(count, unit: .question, locale: locale),
-                    isArgumentValue: false
-                )
-            }
             return RenderedOperation(
                 text: count == 1 ? singular : "\(count) \(plural)",
                 isArgumentValue: false
@@ -876,24 +670,24 @@ nonisolated public enum AgentToolPresentation {
         case .argument(_, let fallback):
             return RenderedOperation(
                 text: repeatedActivity(
-                    legacyActivity(fallback, descriptorName: cards[0].descriptor.name, locale: locale),
+                    fallback,
                     count: cards.count, locale: locale),
                 isArgumentValue: false
             )
         case .label(let label):
             return RenderedOperation(
                 text: repeatedActivity(
-                    legacyActivity(label, descriptorName: cards[0].descriptor.name, locale: locale),
+                    label,
                     count: cards.count, locale: locale),
                 isArgumentValue: false
             )
         case .semanticArgument(_, let fallback):
-            if cards.count == 1, cards[0].descriptor.name == "web_search" {
+            if cards.count == 1, profile(cards[0].descriptor).omitsMissingArgumentActivity {
                 return operation(for: cards[0], locale: locale)
             }
             return RenderedOperation(
                 text: repeatedActivity(
-                    activityName(resolvedActivityKind(fallback, for: cards[0]), locale: locale),
+                    activityName(fallback, locale: locale),
                     count: cards.count, locale: locale),
                 isArgumentValue: false
             )
@@ -905,19 +699,13 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func countDescription(
-        _ count: Int, unit: AgentToolDescriptor.Presentation.CountedUnit,
-        locale: Locale
+    private func countDescription(
+        _ count: Int, unit: AgentToolDescriptor.Presentation.CountedUnit, locale: Locale
     ) -> String {
-        switch unit {
-        case .question: localized("\(count) questions", locale: locale)
-        // Open vocabulary — an app that adds a unit and no resource for it gets
-        // a plain count rather than a missing string.
-        default: "\(count)"
-        }
+        vocabulary.count(count, unit, locale)
     }
 
-    private static func fallbackAction(
+    private func fallbackAction(
         for state: AgentToolCard.State, activity: String, locale: Locale
     ) -> String {
         switch state {
@@ -949,35 +737,13 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func actionKind(
+    private func actionKind(
         for card: AgentToolCard
     ) -> AgentToolDescriptor.Presentation.ActionKind? {
-        if isTerminalSuggestion(card) { return .provide }
-        if let kind = card.descriptor.presentation?.actionKind { return kind }
-        return legacyMetadata[card.descriptor.name]?.action
-            ?? (card.descriptor.target == .mcp ? .run : nil)
+        card.descriptor.presentation?.actionKind
     }
 
-    private static func phaseKind(
-        for card: AgentToolCard, phase: String
-    ) -> AgentToolDescriptor.Presentation.PhaseKind? {
-        if let kind = card.descriptor.presentation?.phaseKinds[phase] { return kind }
-        guard ["ssh_exec", TermindToolName.sshExecRun].contains(card.descriptor.name) else { return nil }
-        return switch phase {
-        case "proposed": .sshPreparingCommand
-        case "waitingForApproval": .sshWaitingForCommand
-        case "waitingForUser": .sshWaitingForAuthentication
-        case "running": .sshConnecting
-        case "command": .sshRunningCommand
-        case "completed": .sshCompletedCommand
-        case "denied": .sshDeniedCommand
-        case "failed": .sshFailedCommand
-        case "interrupted": .sshInterruptedCommand
-        default: nil
-        }
-    }
-
-    private static func actionSummary(
+    private func actionSummary(
         _ kind: AgentToolDescriptor.Presentation.ActionKind,
         state: AgentToolCard.State, activity: String, isArgumentValue: Bool,
         target: String?, locale: Locale
@@ -1050,99 +816,14 @@ nonisolated public enum AgentToolPresentation {
         return "\(rendered) on \(target)"
     }
 
-    private static func phaseSummary(
-        _ kind: AgentToolDescriptor.Presentation.PhaseKind,
-        activity: String, target: String?, locale: Locale
-    ) -> String {
-        // Commands already carry their own shell punctuation. English reads
-        // more naturally without another pair of prose quotes around the
-        // entire command, while Chinese and Japanese use quotation marks to separate the
-        // command from the surrounding sentence.
-        if !usesLocalizedActionTemplates(locale) {
-            return switch kind {
-            case .sshPreparingCommand:
-                target.map { "Preparing to run \(activity) on \($0)" }
-                    ?? "Preparing to run \(activity)"
-            case .sshWaitingForCommand:
-                target.map { "Waiting to run \(activity) on \($0)" }
-                    ?? "Waiting to run \(activity)"
-            case .sshWaitingForAuthentication:
-                target.map { "Waiting to authenticate with \($0)" }
-                    ?? "Waiting for authentication"
-            case .sshConnecting:
-                target.map { "Connecting to \($0)" } ?? "Connecting"
-            case .sshRunningCommand:
-                target.map { "Running \(activity) on \($0)" } ?? "Running \(activity)"
-            case .sshCompletedCommand:
-                target.map { "Ran \(activity) on \($0)" } ?? "Ran \(activity)"
-            case .sshDeniedCommand:
-                target.map { "Did not run \(activity) on \($0)" }
-                    ?? "Did not run \(activity)"
-            case .sshFailedCommand:
-                target.map { "Failed to run \(activity) on \($0)" }
-                    ?? "Failed to run \(activity)"
-            case .sshInterruptedCommand:
-                target.map { "Stopped waiting for \(activity) on \($0)" }
-                    ?? "Stopped waiting for \(activity)"
-            default: activity
-            }
-        }
-        switch kind {
-        case .sshPreparingCommand:
-            return target.map {
-                localized("Preparing to run “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Preparing to run “\(activity)”", locale: locale)
-        case .sshWaitingForCommand:
-            return target.map {
-                localized("Waiting to run “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Waiting to run “\(activity)”", locale: locale)
-        case .sshWaitingForAuthentication:
-            return target.map {
-                localized("Waiting to authenticate with \($0)", locale: locale)
-            } ?? localized("Waiting for authentication", locale: locale)
-        case .sshConnecting:
-            return target.map {
-                localized("Connecting to \($0)", locale: locale)
-            } ?? localized(AppStrings.Connections.connecting, locale: locale)
-        case .sshRunningCommand:
-            return target.map {
-                localized("Running “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Running “\(activity)”", locale: locale)
-        case .sshCompletedCommand:
-            return target.map {
-                localized("Ran “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Ran “\(activity)”", locale: locale)
-        case .sshDeniedCommand:
-            return target.map {
-                localized("Did not run “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Did not run “\(activity)”", locale: locale)
-        case .sshFailedCommand:
-            return target.map {
-                localized("Failed to run “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Failed to run “\(activity)”", locale: locale)
-        case .sshInterruptedCommand:
-            return target.map {
-                localized("Stopped waiting for “\(activity)” on \($0)", locale: locale)
-            } ?? localized("Stopped waiting for “\(activity)”", locale: locale)
-        // Open vocabulary. A phase this app has no wording for falls back to the
-        // ordinary action lifecycle, which is what the caller does with `nil`.
-        default:
-            return activity
-        }
-    }
-
-    private static func actionName(
+    private func actionName(
         _ kind: AgentToolDescriptor.Presentation.ActionKind,
         form: ActionForm, locale: Locale
     ) -> String {
         if usesLocalizedActionTemplates(locale) { return localizedActionVerb(kind, locale: locale) }
         let forms: ActionForms =
             switch kind {
-            case .call:
-                .init(
-                    infinitive: localized(AppStrings.MCP.callVerb, locale: locale),
-                    progressive: localized(AppStrings.MCP.calling, locale: locale),
-                    past: localized(AppStrings.MCP.called, locale: locale))
+            case .call: .init(infinitive: "call", progressive: "Calling", past: "Called")
             case .cancel: .init(infinitive: "cancel", progressive: "Cancelling", past: "Cancelled")
             case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
             case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
@@ -1186,11 +867,11 @@ nonisolated public enum AgentToolPresentation {
         return forms[form]
     }
 
-    private static func localizedActionVerb(
+    private func localizedActionVerb(
         _ kind: AgentToolDescriptor.Presentation.ActionKind, locale: Locale
     ) -> String {
         switch kind {
-        case .call: localized(AppStrings.MCP.callVerb, locale: locale)
+        case .call: localized("call", locale: locale)
         case .cancel: localized(AppStrings.Common.cancel, locale: locale)
         case .ask: localized("ask", locale: locale)
         case .compare: localized("compare", locale: locale)
@@ -1221,11 +902,11 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func usesLocalizedActionTemplates(_ locale: Locale) -> Bool {
+    func usesLocalizedActionTemplates(_ locale: Locale) -> Bool {
         ["de", "fr", "zh", "ja", "ko"].contains(locale.language.languageCode?.identifier ?? "")
     }
 
-    private static func quotedActivity(_ activity: String, locale: Locale) -> String {
+    private func quotedActivity(_ activity: String, locale: Locale) -> String {
         switch locale.language.languageCode?.identifier {
         case "de": "„\(activity)“"
         case "fr": "«\u{00A0}\(activity)\u{00A0}»"
@@ -1235,165 +916,29 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func activityName(
+    private func activityName(
         _ kind: AgentToolDescriptor.Presentation.ActivityKind, locale: Locale
     ) -> String {
-        switch kind {
-        case .command: localized("a command", locale: locale)
-        case .commandOutput: localized(AppStrings.SSHExec.commandOutput, locale: locale)
-        case .hosts: localized("hosts", locale: locale)
-        case .metrics: localized("host metrics", locale: locale)
-        case .plan: localized("a plan", locale: locale)
-        case .question: localized("a question", locale: locale)
-        case .remoteCommand: localized("the remote command", locale: locale)
-        case .remoteFile: localized("a file", locale: locale)
-        case .remoteDirectory: localized("a directory", locale: locale)
-        case .scratchEntry: localized("a scratch entry", locale: locale)
-        case .scratchFile: localized("a scratch file", locale: locale)
-        case .scratchFiles: localized("scratch files", locale: locale)
-        case .scratchWorkspace: localized("the scratch workspace", locale: locale)
-        case .secret: localized("a secret", locale: locale)
-        case .skill: localized("a skill", locale: locale)
-        case .skills: localized("skills", locale: locale)
-        case .memory: localized(AppStrings.Assistant.memorySearchScope, locale: locale)
-        case .sessions: localized("saved conversations", locale: locale)
-        case .sshCommand: localized("a command", locale: locale)
-        case .suggestion: localized("a suggestion", locale: locale)
-        case .taskList: localized("the task list", locale: locale)
-        case .url: localized("a URL", locale: locale)
-        case .web: localized("the web", locale: locale)
-        default: kind.rawValue
-        }
+        vocabulary.activity(kind, locale)
     }
 
-    private static func localized(
+    private func localized(
         _ key: LocalizedStringResource, locale: Locale
     ) -> String {
         AppLocalization.resolve(key, locale: locale)
     }
 
-    private static func legacyActivity(
-        _ fallback: String, descriptorName: String, locale: Locale
-    ) -> String {
-        guard let metadata = legacyMetadata[descriptorName] else { return fallback }
-        let legacyFallback = activityName(metadata.activity, locale: Locale(identifier: "en"))
-        let oldFallback =
-            (metadata.activity == .sshCommand && fallback == "the SSH command")
-            || (metadata.activity == .remoteFile && fallback == "a remote file")
-        guard metadata.localizesAnyFallback || fallback == legacyFallback || oldFallback else { return fallback }
-        return activityName(metadata.activity, locale: locale)
-    }
-
-    /// Older semantic descriptors used the file noun for directory operations too.
-    private static func resolvedActivityKind(
-        _ kind: AgentToolDescriptor.Presentation.ActivityKind, for card: AgentToolCard
-    ) -> AgentToolDescriptor.Presentation.ActivityKind {
-        if kind == .remoteCommand, card.descriptor.target == .host,
-            card.descriptor.name == TermindToolName.sshExecOutput
-        {
-            return .commandOutput
-        }
-        if kind == .remoteFile, card.descriptor.target == .host,
-            [TermindToolName.sftpList, TermindToolName.sftpMkdir].contains(card.descriptor.name)
-        {
-            return .remoteDirectory
-        }
-        return kind
-    }
-
-    /// Suggestions create a user-operated card; historical descriptors must not
-    /// turn their command argument into an execution claim in the transcript.
-    private static func isTerminalSuggestion(_ card: AgentToolCard) -> Bool {
-        card.descriptor.target == .user && card.descriptor.name == TermindToolName.terminalSuggest
-    }
-
-    private struct LegacyMetadata {
-        var argumentKey: String?
-        var activity: AgentToolDescriptor.Presentation.ActivityKind
-        var action: AgentToolDescriptor.Presentation.ActionKind
-        var localizesAnyFallback = false
-    }
-
-    private static let legacyMetadata: [String: LegacyMetadata] = [
-        "fetch": .init(argumentKey: "url", activity: .url, action: .fetch),
-        "web_search": .init(argumentKey: "query", activity: .web, action: .search),
-        TermindToolName.listHosts: .init(argumentKey: nil, activity: .hosts, action: .list),
-        TermindToolName.getMetrics: .init(argumentKey: nil, activity: .metrics, action: .read),
-        "ssh_wait": .init(argumentKey: nil, activity: .remoteCommand, action: .wait),
-        "ssh_exec": .init(argumentKey: "command", activity: .sshCommand, action: .run),
-        TermindToolName.terminalSuggest: .init(argumentKey: nil, activity: .suggestion, action: .provide),
-        TermindToolName.sftpList: .init(
-            argumentKey: "path", activity: .remoteDirectory, action: .list,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpStat: .init(
-            argumentKey: "path", activity: .remoteFile, action: .inspect,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpRead: .init(
-            argumentKey: "path", activity: .remoteFile, action: .read,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpWrite: .init(
-            argumentKey: "path", activity: .remoteFile, action: .write,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpMkdir: .init(
-            argumentKey: "path", activity: .remoteDirectory, action: .create,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpMove: .init(
-            argumentKey: "path", activity: .remoteFile, action: .move,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpChmod: .init(
-            argumentKey: "path", activity: .remoteFile, action: .changePermissions,
-            localizesAnyFallback: true
-        ),
-        TermindToolName.sftpDelete: .init(
-            argumentKey: "path", activity: .remoteFile, action: .delete,
-            localizesAnyFallback: true
-        ),
-        "request_user_input": .init(argumentKey: nil, activity: .question, action: .ask),
-        "request_user_secret": .init(argumentKey: "prompt", activity: .secret, action: .request),
-        "scratch_list": .init(
-            argumentKey: "path", activity: .scratchWorkspace, action: .list
-        ),
-        "scratch_read": .init(argumentKey: "path", activity: .scratchFile, action: .read),
-        "scratch_search": .init(argumentKey: "query", activity: .scratchWorkspace, action: .search),
-        "scratch_copy": .init(argumentKey: "from", activity: .scratchEntry, action: .copy),
-        "scratch_move": .init(argumentKey: "from", activity: .scratchEntry, action: .move),
-        "scratch_fetch": .init(argumentKey: "url", activity: .url, action: .fetch),
-        TermindToolName.sftpCopy: .init(argumentKey: "source_path", activity: .remoteFile, action: .copy),
-        "scratch_write": .init(argumentKey: "path", activity: .scratchFile, action: .write),
-        "scratch_edit": .init(argumentKey: "path", activity: .scratchFile, action: .edit),
-        "scratch_diff": .init(
-            argumentKey: "path_a", activity: .scratchFiles, action: .compare
-        ),
-        "scratch_delete": .init(
-            argumentKey: "path", activity: .scratchEntry, action: .delete
-        ),
-        TermindToolName.scratchPull: .init(
-            argumentKey: "remote_path", activity: .remoteFile, action: .pull
-        ),
-        TermindToolName.scratchPush: .init(
-            argumentKey: "remote_path", activity: .remoteFile, action: .push
-        ),
-        "present_plan": .init(argumentKey: "title", activity: .plan, action: .present),
-        "manage_tasks": .init(argumentKey: nil, activity: .taskList, action: .update),
-    ]
-
-    private static func lowercaseFirst(_ text: String) -> String {
+    private func lowercaseFirst(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.lowercased() + String(text.dropFirst())
     }
 
-    private static func uppercaseFirst(_ text: String) -> String {
+    private func uppercaseFirst(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.uppercased() + String(text.dropFirst())
     }
 
-    public static func tint(for state: AgentToolCard.State) -> BatchTint {
+    public func tint(for state: AgentToolCard.State) -> BatchTint {
         switch state {
         case .denied, .failed: .failure
         case .reviewing, .waitingForApproval, .waitingForUser: .warning
@@ -1402,12 +947,12 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func humanized(_ name: String) -> String {
+    private func humanized(_ name: String) -> String {
         name.replacingOccurrences(of: "_", with: " ")
             .replacingOccurrences(of: "-", with: " ")
     }
 
-    private static func prettyJSON(_ value: AgentJSONValue) -> String {
+    private func prettyJSON(_ value: AgentJSONValue) -> String {
         guard let object = try? JSONSerialization.jsonObject(with: value.encodedData),
             let data = try? JSONSerialization.data(
                 withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -1416,7 +961,7 @@ nonisolated public enum AgentToolPresentation {
         return String(decoding: data, as: UTF8.self)
     }
 
-    private static func normalized(_ text: String) -> String {
+    private func normalized(_ text: String) -> String {
         text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }
