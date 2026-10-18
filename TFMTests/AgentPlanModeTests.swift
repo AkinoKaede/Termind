@@ -72,7 +72,7 @@ private func execTool(ran: RanFlag) -> AnyAgentTool {
     ])
     return AnyAgentTool(
         descriptor: AgentToolDescriptor(
-            name: TermindAgentPolicy.sshExecRunToolName, summary: "exec",
+            name: TermindToolName.sshExecRun, summary: "exec",
             inputSchema: schema, target: .host, approvalPolicy: .ask
         ),
         preflight: { invocation in
@@ -96,7 +96,7 @@ private func execTurns(_ command: String) -> [[AgentModelStreamEvent]] {
         [
             .toolCallSnapshot(
                 id: "call-0", providerItemID: nil,
-                name: TermindAgentPolicy.sshExecRunToolName, arguments: arguments
+                name: TermindToolName.sshExecRun, arguments: arguments
             ),
             .finished(.toolCalls),
         ],
@@ -259,7 +259,7 @@ struct AgentPlanModeTests {
                 runID: UUID(),
                 call: AgentToolCall(
                     id: UUID().uuidString,
-                    name: TermindAgentPolicy.sshExecRunToolName,
+                    name: TermindToolName.sshExecRun,
                     arguments: .object([
                         "host_id": .string(host.id.uuidString),
                         "command": .string(command),

@@ -33,7 +33,7 @@ nonisolated public struct ListPanesTool: AgentToolDefinition, AgentToolSchemaBui
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "list_panes",
+            TermindToolName.listPanes,
             "List metadata for open terminal panes on this device, including hidden panes. Use read_pane directly when the intended pane_id is already known from session context or a prior result. is_active is per window; is_current identifies the current terminal in this run's window.",
             properties: [:], required: [], target: .local, approvalPolicy: .approve,
             concurrency: .parallel,
@@ -89,7 +89,7 @@ nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuil
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "read_pane",
+            TermindToolName.readPane,
             "Read the visible viewport of an open terminal pane on this device while preserving focus, scroll position, selection, and clipboard. pane_id is required: use the terminal ID from session context or a prior tool result. Call read_pane directly when the intended ID is known; use list_panes to discover an unknown or unavailable target.",
             properties: ["pane_id": Self.string(max: 64)], required: ["pane_id"],
             target: .local, approvalPolicy: .approve, concurrency: .parallel,

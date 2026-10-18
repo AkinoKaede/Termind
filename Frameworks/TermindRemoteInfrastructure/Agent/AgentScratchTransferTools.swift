@@ -23,7 +23,8 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "scratch_pull", "Copy a remote file into the scratch workspace without returning its contents.",
+            TermindToolName.scratchPull,
+            "Copy a remote file into the scratch workspace without returning its contents.",
             properties: [
                 "host_id": Self.string(), "remote_path": Self.string(max: 4_096),
                 "scratch_path": Self.string(max: AgentScratchWorkspace.Limits.pathBytes),
@@ -91,7 +92,7 @@ nonisolated public struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaB
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "scratch_push", "Copy a scratch file atomically to a remote path.",
+            TermindToolName.scratchPush, "Copy a scratch file atomically to a remote path.",
             properties: [
                 "host_id": Self.string(),
                 "scratch_path": Self.string(max: AgentScratchWorkspace.Limits.pathBytes),

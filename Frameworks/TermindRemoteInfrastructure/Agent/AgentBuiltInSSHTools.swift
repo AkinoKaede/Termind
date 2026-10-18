@@ -11,7 +11,7 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "list_hosts",
+            TermindToolName.listHosts,
             """
             List Vault Hosts and temporary terminal targets without credentials, even when no session context \
             is available, including each target's enabled protocol list. SSH and SFTP tools require a returned \
@@ -73,7 +73,7 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
     )
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "terminal_suggest",
+            TermindToolName.terminalSuggest,
             """
             Create a command card when the user wants a suggestion or needs to interact with a PTY. \
             Only the user can insert or run the card. This tool does not execute commands or return \

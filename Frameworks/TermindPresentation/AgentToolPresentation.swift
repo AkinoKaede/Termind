@@ -162,10 +162,10 @@ nonisolated public enum AgentToolPresentation {
         hostName: String? = nil,
         locale: Locale = .current
     ) -> String {
-        if isLocalPaneTool(card.descriptor, named: "list_panes") {
+        if isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes) {
             return AppLocalization.resolve(AppStrings.Assistant.listTerminals, locale: locale)
         }
-        if isLocalPaneTool(card.descriptor, named: "read_pane") {
+        if isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) {
             let name = paneResult(for: card)?["title"]?.stringValue
             if let name, !name.isEmpty {
                 return AppLocalization.resolve(AppStrings.Assistant.readTerminal(name), locale: locale)
@@ -258,8 +258,8 @@ nonisolated public enum AgentToolPresentation {
         for cards: [AgentToolCard], locale: Locale = .current
     ) -> String {
         if cards.count == 1, let card = cards.first, card.state == .completed,
-            isLocalPaneTool(card.descriptor, named: "list_panes")
-                || isLocalPaneTool(card.descriptor, named: "read_pane")
+            isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes)
+                || isLocalPaneTool(card.descriptor, named: TermindToolName.readPane)
         {
             return summary(for: card, locale: locale)
         }
@@ -342,7 +342,7 @@ nonisolated public enum AgentToolPresentation {
         // Terminal output belongs to the model result, never the visible card.
         // Handle these names before every raw/error/generic JSON fallback so a
         // restored card obeys the same boundary as a live one.
-        if isLocalPaneTool(card.descriptor, named: "read_pane") {
+        if isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) {
             let object = paneResult(for: card) ?? [:]
             let name = object["title"]?.stringValue
             let id =
@@ -365,7 +365,7 @@ nonisolated public enum AgentToolPresentation {
             }
             return AgentToolDetail(items: items)
         }
-        if isLocalPaneTool(card.descriptor, named: "list_panes") {
+        if isLocalPaneTool(card.descriptor, named: TermindToolName.listPanes) {
             let panes = paneResult(for: card)?["panes"]?.arrayValue ?? []
             let rows = panes.compactMap { value -> AgentToolDetail.ListRow? in
                 guard let pane = value.objectValue,
@@ -471,7 +471,7 @@ nonisolated public enum AgentToolPresentation {
     }
 
     public static func truncationNotice(for card: AgentToolCard) -> String? {
-        guard !isLocalPaneTool(card.descriptor, named: "read_pane") else { return nil }
+        guard !isLocalPaneTool(card.descriptor, named: TermindToolName.readPane) else { return nil }
         return card.result?.truncateMarker
     }
 
@@ -701,8 +701,8 @@ nonisolated public enum AgentToolPresentation {
         _ cards: [AgentToolCard], locale: Locale
     ) -> String {
         guard let first = cards.first else { return "" }
-        let listsPanes = isLocalPaneTool(first.descriptor, named: "list_panes")
-        if listsPanes || isLocalPaneTool(first.descriptor, named: "read_pane") {
+        let listsPanes = isLocalPaneTool(first.descriptor, named: TermindToolName.listPanes)
+        if listsPanes || isLocalPaneTool(first.descriptor, named: TermindToolName.readPane) {
             // Recover the action for persisted cards whose descriptors predate
             // actionKind, and count reads/listings rather than inferred terminals.
             let activity = localized(
@@ -962,7 +962,7 @@ nonisolated public enum AgentToolPresentation {
         for card: AgentToolCard, phase: String
     ) -> AgentToolDescriptor.Presentation.PhaseKind? {
         if let kind = card.descriptor.presentation?.phaseKinds[phase] { return kind }
-        guard ["ssh_exec", "ssh_exec_run"].contains(card.descriptor.name) else { return nil }
+        guard ["ssh_exec", TermindToolName.sshExecRun].contains(card.descriptor.name) else { return nil }
         return switch phase {
         case "proposed": .sshPreparingCommand
         case "waitingForApproval": .sshWaitingForCommand
@@ -1282,11 +1282,13 @@ nonisolated public enum AgentToolPresentation {
     private static func resolvedActivityKind(
         _ kind: AgentToolDescriptor.Presentation.ActivityKind, for card: AgentToolCard
     ) -> AgentToolDescriptor.Presentation.ActivityKind {
-        if kind == .remoteCommand, card.descriptor.target == .host, card.descriptor.name == "ssh_exec_output" {
+        if kind == .remoteCommand, card.descriptor.target == .host,
+            card.descriptor.name == TermindToolName.sshExecOutput
+        {
             return .commandOutput
         }
         if kind == .remoteFile, card.descriptor.target == .host,
-            ["sftp_list", "sftp_mkdir"].contains(card.descriptor.name)
+            [TermindToolName.sftpList, TermindToolName.sftpMkdir].contains(card.descriptor.name)
         {
             return .remoteDirectory
         }
@@ -1296,7 +1298,7 @@ nonisolated public enum AgentToolPresentation {
     /// Suggestions create a user-operated card; historical descriptors must not
     /// turn their command argument into an execution claim in the transcript.
     private static func isTerminalSuggestion(_ card: AgentToolCard) -> Bool {
-        card.descriptor.target == .user && card.descriptor.name == "terminal_suggest"
+        card.descriptor.target == .user && card.descriptor.name == TermindToolName.terminalSuggest
     }
 
     private struct LegacyMetadata {
@@ -1309,40 +1311,40 @@ nonisolated public enum AgentToolPresentation {
     private static let legacyMetadata: [String: LegacyMetadata] = [
         "fetch": .init(argumentKey: "url", activity: .url, action: .fetch),
         "web_search": .init(argumentKey: "query", activity: .web, action: .search),
-        "list_hosts": .init(argumentKey: nil, activity: .hosts, action: .list),
-        "get_metrics": .init(argumentKey: nil, activity: .metrics, action: .read),
+        TermindToolName.listHosts: .init(argumentKey: nil, activity: .hosts, action: .list),
+        TermindToolName.getMetrics: .init(argumentKey: nil, activity: .metrics, action: .read),
         "ssh_wait": .init(argumentKey: nil, activity: .remoteCommand, action: .wait),
         "ssh_exec": .init(argumentKey: "command", activity: .sshCommand, action: .run),
-        "terminal_suggest": .init(argumentKey: nil, activity: .suggestion, action: .provide),
-        "sftp_list": .init(
+        TermindToolName.terminalSuggest: .init(argumentKey: nil, activity: .suggestion, action: .provide),
+        TermindToolName.sftpList: .init(
             argumentKey: "path", activity: .remoteDirectory, action: .list,
             localizesAnyFallback: true
         ),
-        "sftp_stat": .init(
+        TermindToolName.sftpStat: .init(
             argumentKey: "path", activity: .remoteFile, action: .inspect,
             localizesAnyFallback: true
         ),
-        "sftp_read": .init(
+        TermindToolName.sftpRead: .init(
             argumentKey: "path", activity: .remoteFile, action: .read,
             localizesAnyFallback: true
         ),
-        "sftp_write": .init(
+        TermindToolName.sftpWrite: .init(
             argumentKey: "path", activity: .remoteFile, action: .write,
             localizesAnyFallback: true
         ),
-        "sftp_mkdir": .init(
+        TermindToolName.sftpMkdir: .init(
             argumentKey: "path", activity: .remoteDirectory, action: .create,
             localizesAnyFallback: true
         ),
-        "sftp_move": .init(
+        TermindToolName.sftpMove: .init(
             argumentKey: "path", activity: .remoteFile, action: .move,
             localizesAnyFallback: true
         ),
-        "sftp_chmod": .init(
+        TermindToolName.sftpChmod: .init(
             argumentKey: "path", activity: .remoteFile, action: .changePermissions,
             localizesAnyFallback: true
         ),
-        "sftp_delete": .init(
+        TermindToolName.sftpDelete: .init(
             argumentKey: "path", activity: .remoteFile, action: .delete,
             localizesAnyFallback: true
         ),
@@ -1356,7 +1358,7 @@ nonisolated public enum AgentToolPresentation {
         "scratch_copy": .init(argumentKey: "from", activity: .scratchEntry, action: .copy),
         "scratch_move": .init(argumentKey: "from", activity: .scratchEntry, action: .move),
         "scratch_fetch": .init(argumentKey: "url", activity: .url, action: .fetch),
-        "sftp_copy": .init(argumentKey: "source_path", activity: .remoteFile, action: .copy),
+        TermindToolName.sftpCopy: .init(argumentKey: "source_path", activity: .remoteFile, action: .copy),
         "scratch_write": .init(argumentKey: "path", activity: .scratchFile, action: .write),
         "scratch_edit": .init(argumentKey: "path", activity: .scratchFile, action: .edit),
         "scratch_diff": .init(
@@ -1365,10 +1367,10 @@ nonisolated public enum AgentToolPresentation {
         "scratch_delete": .init(
             argumentKey: "path", activity: .scratchEntry, action: .delete
         ),
-        "scratch_pull": .init(
+        TermindToolName.scratchPull: .init(
             argumentKey: "remote_path", activity: .remoteFile, action: .pull
         ),
-        "scratch_push": .init(
+        TermindToolName.scratchPush: .init(
             argumentKey: "remote_path", activity: .remoteFile, action: .push
         ),
         "present_plan": .init(argumentKey: "title", activity: .plan, action: .present),

@@ -99,9 +99,6 @@ nonisolated public enum TermindAgentPolicy {
           staged content according to their exact Host, path, payload, reversibility, and production impact.
         """
 
-    public static let sshExecRunToolName = "ssh_exec_run"
-    public static let sshExecStdinToolName = "ssh_exec_stdin"
-
     public static func guardianCacheKey(conversationID: UUID) -> String {
         "guardian:\(conversationID.uuidString.lowercased())"
     }

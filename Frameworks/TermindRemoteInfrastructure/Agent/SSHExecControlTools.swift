@@ -52,7 +52,7 @@ nonisolated public struct SSHExecOutputTool: AgentToolDefinition, AgentToolSchem
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec_output",
+            TermindToolName.sshExecOutput,
             "Return the current cumulative ssh_exec_run snapshot immediately. Reads do not consume output or extend retention. No waiting or timeout. Combined output uses complete-line tail selection at 64 KiB / 2000 lines; truncation notices include the generated scratch path for scratch_read or scratch_search.",
             properties: ["handle": Self.string(max: 64)], required: ["handle"],
             target: .host, approvalPolicy: .approve, concurrency: .parallel,
@@ -89,7 +89,7 @@ nonisolated public struct SSHExecStdinTool: AgentToolDefinition, AgentToolSchema
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec_stdin",
+            TermindToolName.sshExecStdin,
             """
             Write to the stdin of the existing background command identified by handle, on that command's host. \
             type=text requires stdin (empty is a zero-byte write); \
@@ -221,7 +221,7 @@ nonisolated public struct SSHExecCancelTool: AgentToolDefinition, AgentToolSchem
     }
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec_cancel",
+            TermindToolName.sshExecCancel,
             """
             Cancel the local command task and retire its handle, or release a finished result. \
             Does not send TERM/KILL and does not confirm remote termination. Read output before cancelling. \
@@ -250,7 +250,7 @@ nonisolated public struct SSHExecListTool: AgentToolDefinition, AgentToolSchemaB
     }
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec_list",
+            TermindToolName.sshExecList,
             """
             List this conversation/session's confirmed commands, newest first. Optional host_id filters by host; \
             include_finished defaults to false. Returns commands with handle, host_id, command, status, stdin_closed, \

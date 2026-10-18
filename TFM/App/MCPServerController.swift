@@ -202,8 +202,10 @@ final class MCPServerController {
 
     private static func readDisabledTools(_ defaults: UserDefaults) -> Set<String> {
         var names = Set((defaults.array(forKey: DesktopSettingsKey.mcpServerDisabledTools) as? [String]) ?? [])
-        if names.remove("ssh_exec") != nil { names.formUnion(["ssh_exec_run", "ssh_exec_stdin"]) }
-        if names.remove("ssh_wait") != nil { names.insert("ssh_exec_output") }
+        if names.remove("ssh_exec") != nil {
+            names.formUnion([TermindToolName.sshExecRun, TermindToolName.sshExecStdin])
+        }
+        if names.remove("ssh_wait") != nil { names.insert(TermindToolName.sshExecOutput) }
         names.formIntersection(MCPServerTools.exportedNames)
         defaults.set(Array(names).sorted(), forKey: DesktopSettingsKey.mcpServerDisabledTools)
         return names

@@ -5,7 +5,8 @@ import TermindApplication
 /// Localized SSH projections composed into each app's trusted presenter registry.
 nonisolated public enum SSHExecToolPresentation {
     private static let names: Set<String> = [
-        "ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel", "ssh_exec_list",
+        "ssh_exec", "ssh_wait", TermindToolName.sshExecRun, TermindToolName.sshExecOutput,
+        TermindToolName.sshExecStdin, TermindToolName.sshExecCancel, TermindToolName.sshExecList,
     ]
 
     /// Replace only the SSH result projections. Tool-owned layout, approval arguments,
@@ -80,7 +81,7 @@ nonisolated public enum SSHExecToolPresentation {
         if let command = args["command"]?.stringValue {
             items.append(block(S.command, command, isCollapsible: false))
         }
-        if name == "ssh_exec_run" {
+        if name == TermindToolName.sshExecRun {
             items.append(field(args["run_in_background"]?.boolValue == true ? S.background : S.foreground))
         }
         if let handle = object["handle"]?.stringValue ?? args["handle"]?.stringValue {
@@ -107,7 +108,9 @@ nonisolated public enum SSHExecToolPresentation {
         let stderr = object["stderr"]?.stringValue ?? ""
         if !stdout.isEmpty { items.append(block(object["output"] == nil ? S.stdout : S.output, stdout)) }
         if !stderr.isEmpty { items.append(block(S.stderr, stderr)) }
-        if ["ssh_exec", "ssh_wait", "ssh_exec_run", "ssh_exec_output"].contains(name), stdout.isEmpty, stderr.isEmpty {
+        if ["ssh_exec", "ssh_wait", TermindToolName.sshExecRun, TermindToolName.sshExecOutput]
+            .contains(name), stdout.isEmpty, stderr.isEmpty
+        {
             items.append(pending ? .message(text(S.pending), .secondary) : field(S.noOutput))
         }
         if let note = object["note"]?.stringValue { items.append(.message(note, .warning)) }

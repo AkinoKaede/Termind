@@ -132,7 +132,7 @@ final class ToolAuditModel {
             begin(invocation, descriptor: descriptor)
         case .toolFinished(let invocation, let result):
             finish(invocation, result: result)
-        case .toolProgress(let invocation, let result) where invocation.call.name == "sftp_copy":
+        case .toolProgress(let invocation, let result) where invocation.call.name == TermindToolName.sftpCopy:
             if let id = rowsByInvocation[invocation.id], var row = value(id: id),
                 let payload = result.untrustedPayload,
                 let object = try? AgentJSONValue.decode(Data(payload.utf8)).objectValue
@@ -149,7 +149,10 @@ final class ToolAuditModel {
     private func begin(_ invocation: AgentToolInvocation, descriptor: AgentToolDescriptor) {
         guard rowsByInvocation[invocation.id] == nil else { return }
         var hostID = invocation.targetHostID
-        if ["ssh_wait", "ssh_exec_output", "ssh_exec_stdin", "ssh_exec_cancel"].contains(descriptor.name),
+        if [
+            "ssh_wait", TermindToolName.sshExecOutput, TermindToolName.sshExecStdin,
+            TermindToolName.sshExecCancel,
+        ].contains(descriptor.name),
             let raw = invocation.call.arguments.objectValue?["handle"]?.stringValue,
             let handle = UUID(uuidString: raw), let mapped = handleHosts[handle]
         {
@@ -183,14 +186,14 @@ final class ToolAuditModel {
         {
             row.exitCode = object["exit_code"]?.integerValue
             row.bytesRead = object["bytes"]?.integerValue
-            if invocation.call.name == "sftp_copy" { row.bytesWritten = object["bytes"]?.integerValue }
-            if ["ssh_exec", "ssh_exec_run"].contains(invocation.call.name),
+            if invocation.call.name == TermindToolName.sftpCopy { row.bytesWritten = object["bytes"]?.integerValue }
+            if ["ssh_exec", TermindToolName.sshExecRun].contains(invocation.call.name),
                 let raw = object["handle"]?.stringValue, let handle = UUID(uuidString: raw),
                 let hostID = row.hostID
             {
                 handleHosts[handle] = (hostID, row.hostDisplayName)
             }
-            if invocation.call.name == "ssh_exec_cancel",
+            if invocation.call.name == TermindToolName.sshExecCancel,
                 let raw = invocation.call.arguments.objectValue?["handle"]?.stringValue,
                 let handle = UUID(uuidString: raw)
             {
@@ -239,44 +242,46 @@ final class ToolAuditModel {
                 .replacingOccurrences(of: "\n", with: "\\n")
         }
         switch call.name {
-        case "sftp_download": return oneLine(arguments["remote_path"]?.stringValue ?? "")
-        case "sftp_download_status": return "Download \(arguments["download_id"]?.stringValue ?? "")"
-        case "sftp_upload":
+        case TermindToolName.sftpDownload: return oneLine(arguments["remote_path"]?.stringValue ?? "")
+        case TermindToolName.sftpDownloadStatus: return "Download \(arguments["download_id"]?.stringValue ?? "")"
+        case TermindToolName.sftpUpload:
             return "\(oneLine(arguments["remote_path"]?.stringValue ?? "")) "
                 + "[bytes=\(arguments["byte_count"]?.integerValue ?? 0), "
                 + "overwrite=\(arguments["overwrite"]?.boolValue ?? false)]"
-        case "sftp_upload_status": return "Upload \(arguments["upload_id"]?.stringValue ?? "")"
-        case "ssh_exec", "ssh_exec_run": return oneLine(arguments["command"]?.stringValue ?? "")
-        case "ssh_wait", "ssh_exec_output", "ssh_exec_cancel", "ssh_exec_stdin":
+        case TermindToolName.sftpUploadStatus: return "Upload \(arguments["upload_id"]?.stringValue ?? "")"
+        case "ssh_exec", TermindToolName.sshExecRun:
+            return oneLine(arguments["command"]?.stringValue ?? "")
+        case "ssh_wait", TermindToolName.sshExecOutput, TermindToolName.sshExecCancel,
+            TermindToolName.sshExecStdin:
             return "Handle \(arguments["handle"]?.stringValue ?? "")"
-        case "sftp_move":
+        case TermindToolName.sftpMove:
             return "\(oneLine(arguments["path"]?.stringValue ?? "")) → "
                 + oneLine(arguments["destination"]?.stringValue ?? "")
-        case "sftp_copy":
+        case TermindToolName.sftpCopy:
             return "\(arguments["source_host_id"]?.stringValue ?? ""):"
                 + "\(oneLine(arguments["source_path"]?.stringValue ?? "")) → "
                 + "\(arguments["destination_host_id"]?.stringValue ?? ""):"
                 + "\(oneLine(arguments["destination_path"]?.stringValue ?? "")) "
                 + "[\(arguments["conflict_policy"]?.stringValue ?? "skip")]"
-        case "sftp_chmod":
+        case TermindToolName.sftpChmod:
             return "\(oneLine(arguments["path"]?.stringValue ?? "")) "
                 + (arguments["mode"]?.stringValue ?? "")
         case let name where name.hasPrefix("sftp_"):
             return oneLine(arguments["path"]?.stringValue ?? "")
-        case "list_hosts": return String(localized: AppStrings.MCP.listSavedHosts)
+        case TermindToolName.listHosts: return String(localized: AppStrings.MCP.listSavedHosts)
         default: return ""
         }
     }
 
     private static func bytesWritten(for call: AgentToolCall) -> Int? {
-        guard call.name == "sftp_write",
+        guard call.name == TermindToolName.sftpWrite,
             let content = call.arguments.objectValue?["content"]?.stringValue
         else { return nil }
         return content.lengthOfBytes(using: .utf8)
     }
 
     private static func risk(for call: AgentToolCall) -> ExternalToolCall.Risk {
-        if ["ssh_exec", "ssh_exec_run"].contains(call.name),
+        if ["ssh_exec", TermindToolName.sshExecRun].contains(call.name),
             let command = call.arguments.objectValue?["command"]?.stringValue
         {
             switch CommandRiskClassifier.assess(command).risk {
@@ -286,15 +291,16 @@ final class ToolAuditModel {
             }
         }
         if [
-            "list_hosts", "get_metrics", "request_user_secret", "ssh_wait", "ssh_exec_output", "ssh_exec_list",
-            "ssh_exec_cancel",
-            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
+            TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret", "ssh_wait",
+            TermindToolName.sshExecOutput, TermindToolName.sshExecList, TermindToolName.sshExecCancel,
+            TermindToolName.sftpList, TermindToolName.sftpStat, TermindToolName.sftpRead,
+            TermindToolName.sftpUploadStatus, TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
         ].contains(call.name) {
             return .readOnly
         }
         let replacingCopy =
-            call.name == "sftp_copy"
+            call.name == TermindToolName.sftpCopy
             && call.arguments.objectValue?["conflict_policy"]?.stringValue == "replace"
-        return call.name == "sftp_delete" || replacingCopy ? .destructive : .modifiesState
+        return call.name == TermindToolName.sftpDelete || replacingCopy ? .destructive : .modifiesState
     }
 }

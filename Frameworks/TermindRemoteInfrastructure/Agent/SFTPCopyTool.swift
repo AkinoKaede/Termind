@@ -21,7 +21,7 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "sftp_copy",
+            TermindToolName.sftpCopy,
             "Copy a regular file or directory recursively between hosts using streamed SFTP. "
                 + "Preserves names and empty directories, not permissions or timestamps. Never deletes the source.",
             properties: [

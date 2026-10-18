@@ -27,7 +27,7 @@ nonisolated public struct SSHExecRunTool: AgentToolDefinition, AgentToolSchemaBu
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec_run",
+            TermindToolName.sshExecRun,
             """
             Run a non-PTY SSH command. Discover host_id with list_hosts when needed; Termind handles login. \
             run_in_background defaults to false: wait for completion without a runtime timeout and close stdin. \

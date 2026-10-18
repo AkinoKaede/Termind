@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import TermindApplication
 
 actor MCPServerProtocol {
     static let sessionHeader = "mcp-session-id"
@@ -248,12 +249,14 @@ actor MCPServerProtocol {
         let successful = response.value.objectValue?["result"]?.objectValue?["isError"] == .bool(false)
         let retainsState =
             suppliedHandle != nil
-            || (message.params?["name"]?.stringValue == "ssh_exec_run"
+            || (message.params?["name"]?.stringValue == TermindToolName.sshExecRun
                 && response.value.objectValue?["result"]?.objectValue?["structuredContent"]?.objectValue?["handle"]
                     != nil)
             || (successful
-                && ["request_user_secret", "sftp_upload", "sftp_download", "ssh_exec_run"].contains(
-                    message.params?["name"]?.stringValue ?? ""))
+                && [
+                    "request_user_secret", TermindToolName.sftpUpload, TermindToolName.sftpDownload,
+                    TermindToolName.sshExecRun,
+                ].contains(message.params?["name"]?.stringValue ?? ""))
         if !retainsState { await removeSession(operationID) }
         var envelope = response.value.objectValue ?? [:]
         if var result = envelope["result"]?.objectValue {
@@ -552,17 +555,22 @@ actor MCPServerProtocol {
 
     private static func toolJSON(_ descriptor: AgentToolDescriptor) -> AgentJSONValue {
         let readOnly = [
-            "list_hosts", "get_metrics", "request_user_secret", "ssh_exec_output", "ssh_exec_list",
-            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
+            TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret",
+            TermindToolName.sshExecOutput, TermindToolName.sshExecList,
+            TermindToolName.sftpList, TermindToolName.sftpStat, TermindToolName.sftpRead,
+            TermindToolName.sftpUploadStatus, TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
         ].contains(descriptor.name)
         let destructive = [
-            "ssh_exec_run", "ssh_exec_stdin", "sftp_write", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete",
-            "sftp_upload",
+            TermindToolName.sshExecRun, TermindToolName.sshExecStdin,
+            TermindToolName.sftpWrite, TermindToolName.sftpMove, TermindToolName.sftpCopy,
+            TermindToolName.sftpChmod, TermindToolName.sftpDelete,
+            TermindToolName.sftpUpload,
         ]
         .contains(descriptor.name)
         let openWorld = ![
-            "list_hosts", "ssh_exec_output", "ssh_exec_list", "ssh_exec_cancel", "request_user_secret",
-            "sftp_upload_status", "sftp_download_status",
+            TermindToolName.listHosts, TermindToolName.sshExecOutput, TermindToolName.sshExecList,
+            TermindToolName.sshExecCancel, "request_user_secret",
+            TermindToolName.sftpUploadStatus, TermindToolName.sftpDownloadStatus,
         ]
         .contains(descriptor.name)
         return .object([
@@ -572,7 +580,7 @@ actor MCPServerProtocol {
             "annotations": .object([
                 "readOnlyHint": .bool(readOnly),
                 "destructiveHint": .bool(destructive),
-                "idempotentHint": .bool(descriptor.name == "sftp_chmod"),
+                "idempotentHint": .bool(descriptor.name == TermindToolName.sftpChmod),
                 "openWorldHint": .bool(openWorld),
             ]),
         ])

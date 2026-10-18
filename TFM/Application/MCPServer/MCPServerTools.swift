@@ -7,11 +7,14 @@ import TermindRemoteInfrastructure
 @MainActor
 final class MCPServerTools {
     static let exportedNames: Set<String> = [
-        "list_hosts", "get_metrics", "request_user_secret", "ssh_exec_run", "ssh_exec_output", "ssh_exec_stdin",
-        "ssh_exec_cancel", "ssh_exec_list",
-        "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
-        "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload", "sftp_upload_status",
-        "sftp_download", "sftp_download_status",
+        TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret",
+        TermindToolName.sshExecRun,
+        TermindToolName.sshExecOutput, TermindToolName.sshExecStdin,
+        TermindToolName.sshExecCancel, TermindToolName.sshExecList,
+        TermindToolName.sftpList, TermindToolName.sftpStat, TermindToolName.sftpRead, TermindToolName.sftpWrite,
+        TermindToolName.sftpMkdir, TermindToolName.sftpMove, TermindToolName.sftpCopy, TermindToolName.sftpChmod,
+        TermindToolName.sftpDelete, TermindToolName.sftpUpload, TermindToolName.sftpUploadStatus,
+        TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
     ]
 
     private let channel: AgentEventChannel
@@ -82,8 +85,8 @@ final class MCPServerTools {
                 try await stream.close()
             }
         }
-        uploads.setEnabled(!disabledTools.contains("sftp_upload"))
-        downloads.setEnabled(!disabledTools.contains("sftp_download"))
+        uploads.setEnabled(!disabledTools.contains(TermindToolName.sftpUpload))
+        downloads.setEnabled(!disabledTools.contains(TermindToolName.sftpDownload))
         approval = AgentApprovalBroker(
             reviewer: nil,
             manualApproval: { _ in
@@ -114,8 +117,8 @@ final class MCPServerTools {
         connections: AgentConnectionPool, authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands
     ) {
-        uploads.setEnabled(!disabledTools.contains("sftp_upload"))
-        downloads.setEnabled(!disabledTools.contains("sftp_download"))
+        uploads.setEnabled(!disabledTools.contains(TermindToolName.sftpUpload))
+        downloads.setEnabled(!disabledTools.contains(TermindToolName.sftpDownload))
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads

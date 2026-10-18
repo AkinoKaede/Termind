@@ -13,7 +13,7 @@ nonisolated public struct GetMetricsTool: AgentToolDefinition, AgentToolSchemaBu
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "get_metrics",
+            TermindToolName.getMetrics,
             "Read cached Termind host metrics and a five-minute trend summary without connecting or sampling. "
                 + "Use list_hosts for host_id. Optional details may be missing or stale; no data is refreshed. "
                 + "Times are UTC ISO 8601, sizes are bytes, rates are bytes/second, utilization is percent. "
