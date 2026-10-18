@@ -249,6 +249,11 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         return nil
     }
 
+    public var preferredFirstTerminalProtocols: [HostTerminalProtocol] {
+        guard let preferred = preferredTerminalProtocol else { return [] }
+        return [preferred] + supportedTerminalProtocols.filter { $0 != preferred }
+    }
+
     public func supports(_ requirement: HostProtocolRequirement) -> Bool {
         switch requirement {
         case .anyTerminal: preferredTerminalProtocol != nil

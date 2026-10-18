@@ -35,12 +35,28 @@ nonisolated enum HostOpenTarget: Hashable, Sendable {
     case telnetSession
     case sftpChannel
 
-    func accessProtocol(for host: Host) -> HostTerminalProtocol {
-        switch self {
-        case .preferredTerminal: host.preferredTerminalProtocol ?? .ssh
-        case .telnetSession: .telnet
-        default: .ssh
+    static func terminal(_ transport: HostTerminalProtocol) -> Self {
+        switch transport {
+        case .ssh: .sshSession
+        case .mosh: .moshSession
+        case .eternalTerminal: .eternalTerminalSession
+        case .telnet: .telnetSession
         }
+    }
+
+    func connectionKind(for host: Host) -> ConnectionHistoryEntry.Kind? {
+        switch self {
+        case .preferredTerminal: .preferredTerminal(for: host)
+        case .sshSession: .ssh
+        case .moshSession: .mosh
+        case .eternalTerminalSession: .eternalTerminal
+        case .telnetSession: .telnet
+        case .sftpChannel: .sftp
+        }
+    }
+
+    func accessProtocol(for host: Host) -> HostTerminalProtocol {
+        connectionKind(for: host) == .telnet ? .telnet : .ssh
     }
 }
 
@@ -1077,6 +1093,7 @@ final class AppModel {
         as target: HostOpenTarget,
         in window: WindowModel
     ) -> Workspace? {
+        guard let kind = target.connectionKind(for: host) else { return nil }
         guard
             admitHostOpen(
                 host, protocol: target.accessProtocol(for: host), in: window,
@@ -1088,20 +1105,12 @@ final class AppModel {
         configureConnectionHistory(in: window)
         beginOpening(host, as: target)
 
-        switch target {
-        case .preferredTerminal:
-            switch host.preferredTerminalProtocol {
-            case .ssh: return window.openSSHSession(host: host)
-            case .mosh: return window.openSSHSession(host: host, transport: .mosh)
-            case .eternalTerminal: return window.openSSHSession(host: host, transport: .eternalTerminal)
-            case .telnet: return window.openTelnetSession(host: host)
-            case nil: return window.openTelnetSession(host: host)
-            }
-        case .sshSession: return window.openSSHSession(host: host)
-        case .moshSession: return window.openSSHSession(host: host, transport: .mosh)
-        case .eternalTerminalSession: return window.openSSHSession(host: host, transport: .eternalTerminal)
-        case .telnetSession: return window.openTelnetSession(host: host)
-        case .sftpChannel: return window.openSFTPChannel(host: host)
+        switch kind {
+        case .ssh: return window.openSSHSession(host: host)
+        case .mosh: return window.openSSHSession(host: host, transport: .mosh)
+        case .eternalTerminal: return window.openSSHSession(host: host, transport: .eternalTerminal)
+        case .telnet: return window.openTelnetSession(host: host)
+        case .sftp: return window.openSFTPChannel(host: host)
         }
     }
 
@@ -1110,7 +1119,7 @@ final class AppModel {
         if target.isSaved {
             return open(
                 target.host,
-                as: target.connectionProtocol == .ssh ? .sshSession : .telnetSession,
+                as: .terminal(target.connectionProtocol),
                 in: window)
         }
         for node in target.route.hosts {
@@ -1303,7 +1312,8 @@ final class AppModel {
         layout: BatchLayout = .separateWorkspaces,
         in window: WindowModel
     ) {
-        if let pending = hosts.first(where: {
+        let eligibleHosts = hosts.filter { target.connectionKind(for: $0) != nil }
+        if let pending = eligibleHosts.first(where: {
             do {
                 try self.hosts.requireHostAccess($0, protocol: target.accessProtocol(for: $0))
                 return false
@@ -1318,7 +1328,7 @@ final class AppModel {
             }
             return
         }
-        let hosts = hosts.filter { admitHostOpen($0, protocol: target.accessProtocol(for: $0), in: window) }
+        let hosts = eligibleHosts.filter { admitHostOpen($0, protocol: target.accessProtocol(for: $0), in: window) }
         guard !hosts.isEmpty else { return }
         configureConnectionHistory(in: window)
         switch layout {

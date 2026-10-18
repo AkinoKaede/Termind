@@ -28,6 +28,35 @@ struct MobileBatchStartupTests {
         #expect(selections == [.sftp, .sftp])
     }
 
+    @Test(arguments: HostTerminalProtocol.allCases)
+    func pickerRecentsAndBatchUseTheSameDefaultTransport(transport: HostTerminalProtocol) throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer {
+            app.testWorkspaceSession.closeAll()
+            app.outbox.stop()
+        }
+        var host = Host(name: "Default", host: "server.invalid", telnetEnabled: true)
+        host.sshEnabled = transport != .telnet
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        if transport != .telnet { host.terminalTransports.defaultTransport = transport }
+        #expect(app.library.saveHost(host))
+        var selections: [ConnectionHistoryEntry.Kind] = []
+        let picker = MobileConnectionPickerModel { _, kind in selections.append(kind) }
+
+        picker.select(host)
+        #expect(selections == [.terminal(transport)])
+        #expect(MobileConnectionHistory.preferredKind(for: host) == .terminal(transport))
+        let ids = app.testWorkspaceSession.batchStartup(hostIDs: [host.id], connectionProtocol: .ssh)
+        #expect(ids.count == 1)
+        #expect(app.workspaces.last?.descriptor.kind == .terminal(transport))
+        #expect(app.connectionHistory.entries(for: host.id).map(\.kind) == [.terminal(transport)])
+        if host.sshEnabled {
+            _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+            #expect(app.workspaces.last?.descriptor.kind == .ssh)
+        }
+    }
+
     @Test func switchingProtocolsRetainsSearchAndOnlyCompatibleSelections() {
         let ssh = Host(name: "Alpha", host: "ssh.invalid")
         let telnet = Host(

@@ -233,11 +233,9 @@ final class MobileWorkspaceSessionModel {
         let wanted = Set(hostIDs)
         let targets = app.library.hosts(matching: "", for: .snippetExecution)
             .filter { wanted.contains($0.id) }
-        let opened = targets.map { host in
-            makeWorkspace(
-                host: host,
-                kind: .terminal(host.terminalTransports.preferred(isTailscaleManaged: host.isTailscaleManaged)),
-                startup: .command(snippet.body))
+        let opened = targets.compactMap { host -> MobileWorkspace? in
+            guard let kind = ConnectionHistoryEntry.Kind.preferredTerminal(for: host) else { return nil }
+            return makeWorkspace(host: host, kind: kind, startup: .command(snippet.body))
         }
         addWorkspaces(opened)
         return opened.map(\.id)

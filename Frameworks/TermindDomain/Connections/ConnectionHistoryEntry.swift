@@ -35,6 +35,10 @@ public nonisolated struct ConnectionHistoryEntry: Identifiable, Codable, Hashabl
             }
         }
 
+        public static func preferredTerminal(for host: Host) -> Self? {
+            host.preferredTerminalProtocol.map(terminal)
+        }
+
         public var label: String {
             switch self {
             case .ssh: String(localized: "SSH")

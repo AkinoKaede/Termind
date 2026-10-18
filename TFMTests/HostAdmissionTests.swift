@@ -54,6 +54,23 @@ struct HostAdmissionTests {
         #expect(app.proAccess.isPaywallPresented)
     }
 
+    @Test func unavailableDefaultDoesNotEnterAdmissionOrMarkTheHostConnecting() {
+        let host = Host(name: "Disabled", host: "disabled.invalid", sshEnabled: false)
+        let app = AppModel(
+            hosts: HostLibraryModel(hosts: [host]), proAccess: .testing(status: .verificationFailed))
+        let window = WindowModel()
+        defer { app.shutdownForTermination() }
+
+        #expect(app.open(host, as: .preferredTerminal, in: window) == nil)
+        for layout in [BatchLayout.separateWorkspaces, .oneWorkspace] {
+            app.open([host], as: .preferredTerminal, layout: layout, in: window)
+        }
+        #expect(window.workspaces.isEmpty)
+        #expect(window.hostAccessError == nil)
+        #expect(!app.proAccess.isPaywallPresented)
+        #expect(app.hostLibrary.status(of: host.id) == .disconnected)
+    }
+
     @Test func loadingBatchWaitsBeforeOpeningAnyTelnetPanes() async throws {
         let hosts = fixtures()
         let app = AppModel(hosts: HostLibraryModel(hosts: hosts), proAccess: .testing(status: .loading))

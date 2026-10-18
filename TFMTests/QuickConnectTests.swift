@@ -120,6 +120,30 @@ struct QuickConnectParserTests {
 
 @Suite @MainActor
 struct QuickConnectRouteTests {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func explicitSSHCommandDoesNotUseTheSavedHostsDefault(transport: HostTerminalProtocol) throws {
+        var host = Host(name: "prod", host: "server.invalid")
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        host.terminalTransports.defaultTransport = transport
+        let library = HostLibraryModel(hosts: [host])
+        let app = AppModel(hosts: library)
+        let window = WindowModel()
+        defer {
+            window.closeAll()
+            app.shutdownForTermination()
+        }
+
+        let preferred = try #require(app.open(host, as: .preferredTerminal, in: window))
+        #expect(preferred.focusedPane.sshSession?.transport == transport)
+        let target = try resolve("ssh prod", in: library)
+        #expect(target.isSaved)
+        let explicit = try #require(app.openQuickConnect(target, in: window))
+        #expect(explicit.focusedPane.sshSession?.transport == .ssh)
+        let files = try #require(app.open(host, as: .sftpChannel, in: window))
+        #expect(files.focusedPane.sftpChannel != nil)
+    }
+
     @Test func aliasesReuseMetadataAndOverriddenUserDoesNotInheritCredentials() throws {
         let originalIdentity = Identity(name: "Production", username: "root", credentialRef: "original")
         let original = Host(name: "prod", host: "server.invalid", identityID: originalIdentity.id)

@@ -1071,20 +1071,13 @@ final class WindowModel {
     @discardableResult
     func openWorkspace(_ hosts: [Host], as target: HostOpenTarget) -> Workspace? {
         let panes: [Pane] = hosts.compactMap { host in
-            switch target {
-            case .preferredTerminal:
-                switch host.preferredTerminalProtocol {
-                case .ssh: .sshSession(host: host)
-                case .mosh: .sshSession(host: host, transport: .mosh)
-                case .eternalTerminal: .sshSession(host: host, transport: .eternalTerminal)
-                case .telnet: .telnetSession(host: host)
-                case nil: nil
-                }
-            case .sshSession: .sshSession(host: host)
-            case .moshSession: .sshSession(host: host, transport: .mosh)
-            case .eternalTerminalSession: .sshSession(host: host, transport: .eternalTerminal)
-            case .telnetSession: .telnetSession(host: host)
-            case .sftpChannel: .sftpChannel(host: host)
+            guard let kind = target.connectionKind(for: host) else { return nil }
+            switch kind {
+            case .ssh: return .sshSession(host: host)
+            case .mosh: return .sshSession(host: host, transport: .mosh)
+            case .eternalTerminal: return .sshSession(host: host, transport: .eternalTerminal)
+            case .telnet: return .telnetSession(host: host)
+            case .sftp: return .sftpChannel(host: host)
             }
         }
         guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
@@ -1101,10 +1094,9 @@ final class WindowModel {
     /// submits the same command independently after login.
     @discardableResult
     func openSnippetWorkspace(hosts: [Host], command: String) -> Workspace? {
-        let panes = hosts.filter(\.sshEnabled).map { host in
-            Pane.sshSession(
-                host: host, initialCommand: command,
-                transport: host.terminalTransports.preferred(isTailscaleManaged: host.isTailscaleManaged))
+        let panes = hosts.compactMap { host -> Pane? in
+            guard host.sshEnabled, let transport = host.preferredTerminalProtocol else { return nil }
+            return .sshSession(host: host, initialCommand: command, transport: transport)
         }
         guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
 

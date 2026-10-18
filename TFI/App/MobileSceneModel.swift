@@ -231,8 +231,8 @@ final class MobileSceneModel {
     func activateHost(_ hostID: Host.ID) {
         guard let host = app.library.host(hostID) else { return }
         guard let workspace = workspaceActivatedByHostRow(for: host) else {
-            guard let connectionProtocol = host.preferredTerminalProtocol else { return }
-            open(hostID: hostID, kind: .terminal(connectionProtocol))
+            guard let kind = ConnectionHistoryEntry.Kind.preferredTerminal(for: host) else { return }
+            open(hostID: hostID, kind: kind)
             return
         }
         selectWorkspace(workspace.id)

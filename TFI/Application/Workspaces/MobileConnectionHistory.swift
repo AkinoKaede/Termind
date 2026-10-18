@@ -99,13 +99,7 @@ enum MobileConnectionHistory {
     }
 
     static func preferredKind(for host: Host) -> ConnectionHistoryEntry.Kind? {
-        switch host.preferredTerminalProtocol {
-        case .ssh: .ssh
-        case .mosh: .mosh
-        case .eternalTerminal: .eternalTerminal
-        case .telnet: .telnet
-        case nil: nil
-        }
+        .preferredTerminal(for: host)
     }
 
     private static func matches(

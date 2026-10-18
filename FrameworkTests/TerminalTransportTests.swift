@@ -28,6 +28,32 @@ struct TerminalTransportTests {
         #expect(host.terminalTransports.eternalTerminalEnabled)
     }
 
+    @Test(arguments: [HostTerminalProtocol.ssh, .mosh, .eternalTerminal])
+    func preferredOrderingAndConnectionKindShareTheDefaultPolicy(transport: HostTerminalProtocol) {
+        var host = Host(name: "Server", host: "server.invalid", telnetEnabled: true)
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        host.terminalTransports.defaultTransport = transport
+        let canonical = [HostTerminalProtocol.ssh, .mosh, .eternalTerminal, .telnet]
+
+        #expect(host.supportedTerminalProtocols == canonical)
+        #expect(host.preferredFirstTerminalProtocols == [transport] + canonical.filter { $0 != transport })
+        #expect(ConnectionHistoryEntry.Kind.preferredTerminal(for: host) == .terminal(transport))
+
+        host.terminalTransports.moshEnabled = false
+        host.terminalTransports.eternalTerminalEnabled = false
+        #expect(host.preferredFirstTerminalProtocols == [.ssh, .telnet])
+        #expect(ConnectionHistoryEntry.Kind.preferredTerminal(for: host) == .ssh)
+
+        host.sshEnabled = false
+        #expect(host.preferredFirstTerminalProtocols == [.telnet])
+        #expect(ConnectionHistoryEntry.Kind.preferredTerminal(for: host) == .telnet)
+
+        host.telnetEnabled = false
+        #expect(host.preferredFirstTerminalProtocols.isEmpty)
+        #expect(ConnectionHistoryEntry.Kind.preferredTerminal(for: host) == nil)
+    }
+
     @Test func rangeValidationCannotInjectBootstrapArguments() {
         for valid in ["", "1", "65535", "60001-60999", "1-65535"] {
             #expect(HostTerminalTransports.isValidMoshPortRange(valid))
