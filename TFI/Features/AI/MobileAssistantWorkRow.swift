@@ -2,7 +2,6 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindPresentation
-import TermindRemoteInfrastructure
 
 struct MobileAssistantWorkRow: View {
     let group: AgentWorkGroup

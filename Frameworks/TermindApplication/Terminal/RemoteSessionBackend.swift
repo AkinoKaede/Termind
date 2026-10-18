@@ -16,13 +16,9 @@ public nonisolated struct RemoteSessionLaunch: Sendable {
 
 public nonisolated struct SSHPTYStartupPlan: Sendable {
     public let command: String
-    public let shellEventToken: String?
     public let runtimeAttachment: RemoteSessionReference?
-    public init(
-        command: String, shellEventToken: String? = nil, runtimeAttachment: RemoteSessionReference? = nil
-    ) {
+    public init(command: String, runtimeAttachment: RemoteSessionReference? = nil) {
         self.command = command
-        self.shellEventToken = shellEventToken
         self.runtimeAttachment = runtimeAttachment
     }
 }

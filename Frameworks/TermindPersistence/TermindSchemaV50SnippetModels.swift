@@ -25,14 +25,6 @@ public enum TermindSchemaV50SnippetModels {
             targetHostIDs = value.targetHostIDs
             sortIndex = value.sortIndex
         }
-
-        public var value: Snippet {
-            Snippet(
-                id: id, title: title, body: body,
-                packageID: packageID, targetHostIDs: targetHostIDs,
-                sortIndex: sortIndex
-            )
-        }
     }
 
 }

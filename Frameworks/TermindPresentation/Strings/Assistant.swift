@@ -313,10 +313,6 @@ extension AppStrings {
             "Open System Settings"
         }
 
-        public static var outputShortenedForDisplay: LocalizedStringResource {
-            "Output shortened for display"
-        }
-
         public static var pastedImage: LocalizedStringResource {
             "Pasted image"
         }

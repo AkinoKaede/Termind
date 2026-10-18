@@ -220,9 +220,9 @@ public actor GRDBMemoryStore: MemoryPersisting {
             events: rows.compactMap { row in
                 guard let id = UUID(uuidString: row["event_id"]),
                     let source = UUID(uuidString: row["source_message_id"]),
-                    let kind = MemoryActivityKind(rawValue: row["kind"])
+                    MemoryActivityKind(rawValue: row["kind"]) != nil
                 else { return nil }
-                return MemoryLearningEvent(id: id, sourceMessageID: source, kind: kind)
+                return MemoryLearningEvent(id: id, sourceMessageID: source)
             })
     }
     public func correctionWasReviewed(_ messageID: UUID, conversationID: UUID) throws -> Bool {

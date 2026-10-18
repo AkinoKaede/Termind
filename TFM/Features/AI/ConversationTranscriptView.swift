@@ -3,7 +3,6 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
-import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 

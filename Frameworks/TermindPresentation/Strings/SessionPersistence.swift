@@ -26,7 +26,6 @@ extension AppStrings {
             "Detached from the remote session. Reconnect to attach again."
         }
         public static var ended: LocalizedStringResource { "The remote session has ended." }
-        public static var reattached: LocalizedStringResource { "Reattached to the existing remote session." }
         public static func counts(windows: String, clients: String) -> LocalizedStringResource {
             "\(windows), \(clients)"
         }

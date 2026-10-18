@@ -35,7 +35,6 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
     }
 
     public let charset: RemoteCharset
-    public let direction: Direction
 
     private let descriptor: iconv_t?
     private let lock = NSLock()
@@ -43,7 +42,6 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
 
     public init(charset: RemoteCharset, direction: Direction) throws {
         self.charset = charset
-        self.direction = direction
         let source = direction == .encoding ? RemoteCharset.utf8.iconvName : charset.iconvName
         let destination = direction == .encoding ? charset.iconvName : RemoteCharset.utf8.iconvName
         let descriptor = iconv_open(destination, source)

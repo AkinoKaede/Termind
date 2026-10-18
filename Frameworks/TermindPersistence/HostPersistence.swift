@@ -50,24 +50,6 @@ public enum TermindSchemaV7HostModels {
             colorTag = value.colorTag.rawValue
             sortIndex = value.sortIndex
         }
-
-        public var value: Host {
-            var host = Host(
-                id: id, name: name, host: address, port: port,
-                identityID: identityID, groupID: groupID, tags: tags,
-                colorTag: TagColor(rawValue: colorTag) ?? .none,
-                sortIndex: sortIndex
-            )
-            host.jumpHostID = jumpHostID
-            host.sftpChannelInitialPath = sftpSessionInitialPath
-            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-                host.proxy = HostProxy(
-                    kind: kind, hostname: proxyHostname, port: proxyPort,
-                    username: proxyUsername, identityID: proxyIdentityID
-                )
-            }
-            return host
-        }
     }
 }
 
@@ -118,27 +100,6 @@ public enum TermindSchemaV8Models {
             detectedDistributionID = value.detectedDistribution?.id
             detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
             sortIndex = value.sortIndex
-        }
-
-        public var value: Host {
-            var host = Host(
-                id: id, name: name, host: address, port: port,
-                identityID: identityID, groupID: groupID, tags: tags,
-                colorTag: TagColor(rawValue: colorTag) ?? .none,
-                detectedDistribution: detectedDistributionID.flatMap {
-                    DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
-                },
-                sortIndex: sortIndex
-            )
-            host.jumpHostID = jumpHostID
-            host.sftpChannelInitialPath = sftpSessionInitialPath
-            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-                host.proxy = HostProxy(
-                    kind: kind, hostname: proxyHostname, port: proxyPort,
-                    username: proxyUsername, identityID: proxyIdentityID
-                )
-            }
-            return host
         }
     }
 }
@@ -321,15 +282,6 @@ public enum TermindSchemaV7Models {
             colorTag = value.colorTag.rawValue
             sortIndex = value.sortIndex
         }
-
-        public var value: Identity {
-            Identity(
-                id: id, name: name, username: username, credentialRef: credentialRef,
-                passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-                keyID: keyID, notes: notes,
-                colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
-            )
-        }
     }
 
     @Model
@@ -368,19 +320,6 @@ public enum TermindSchemaV7Models {
             createdAt = value.createdAt
             colorTag = value.colorTag.rawValue
             sortIndex = value.sortIndex
-        }
-
-        public var value: SSHKeyRef {
-            SSHKeyRef(
-                id: id, label: label,
-                algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
-                publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
-                credentialRef: credentialRef,
-                storage: KeyStorage(rawValue: storage) ?? .iCloud,
-                keySize: keySize, hasPassphrase: hasPassphrase,
-                requiresUserPresence: requiresUserPresence, createdAt: createdAt,
-                colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
-            )
         }
     }
 }

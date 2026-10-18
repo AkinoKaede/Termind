@@ -471,7 +471,6 @@ private final class ChatReviewFixture {
     let store: AssistantConversationStore
     let repository = InMemoryAgentRunRepository()
     let receipts: any AssistantChatCollaborationStoring
-    let controller: AssistantExecutionController
     let coordinator: AssistantChatCoordinator
     let sourceModel: AIModelRef
     let targetModel: AIModelRef
@@ -493,7 +492,6 @@ private final class ChatReviewFixture {
             ai: ai, skills: SkillLibraryModel(), repository: repository, modelSelections: selections,
             authorize: { true }, makeRegistry: { _, _, _, _, _, _, _ in AgentToolRegistry([]) },
             title: { _ in "Generated" })
-        self.controller = controller
         coordinator = AssistantChatCoordinator(
             conversations: store, ai: ai, modelSelections: selections, collaborationStore: receipts,
             prepareDelivery: { text, origin, target in

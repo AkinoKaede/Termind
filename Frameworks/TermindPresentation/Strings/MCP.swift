@@ -73,10 +73,6 @@ extension AppStrings {
 
         public static var secondsSuffix: LocalizedStringResource { "s" }
 
-        public static var destination: LocalizedStringResource {
-            "Destination"
-        }
-
         public static var externalToolCallsAreNoLongerAuthorized: LocalizedStringResource {
             "External tool calls are no longer authorized."
         }

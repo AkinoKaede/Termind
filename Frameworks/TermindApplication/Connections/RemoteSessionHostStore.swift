@@ -152,7 +152,7 @@ extension RemoteSessionHostStore {
             password = nil
         }
         var configuration = TelnetConnectionConfiguration(
-            hostID: host.id, host: host.host, port: host.telnetPort,
+            host: host.host, port: host.telnetPort,
             username: username?.isEmpty == false ? username : nil,
             password: password, charset: host.telnetCharset)
         configuration.accessCheck = connectionAccessCheck(for: [host.id])

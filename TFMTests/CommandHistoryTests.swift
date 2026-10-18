@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import TermindApplication
 import TermindDomain
-import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing

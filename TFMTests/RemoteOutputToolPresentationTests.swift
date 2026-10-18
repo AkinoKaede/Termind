@@ -3,7 +3,6 @@ import AppKit
 import Foundation
 import TermindApplication
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind

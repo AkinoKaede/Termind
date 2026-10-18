@@ -4,8 +4,6 @@ import TermindDomain
 import TermindPersistence
 import Testing
 
-@testable import Termind
-
 @Suite @MainActor
 struct SettingsDetailControlTests {
     @Test func themeSelectionPreservesIndependentTextAndPendingEdits() {

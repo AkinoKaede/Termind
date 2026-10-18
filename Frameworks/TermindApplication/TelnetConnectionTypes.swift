@@ -1,12 +1,9 @@
 import Foundation
 import TermindDomain
 
-import struct TermindDomain.Host
-
 public nonisolated struct TelnetConnectionConfiguration: Sendable {
     public var accessCheck: HostOperationAccessCheck?
     public var beforeConnect: ConnectionWakeAction?
-    public var hostID: Host.ID
     public var host: String
     public var port: Int
     public var username: String?
@@ -15,11 +12,10 @@ public nonisolated struct TelnetConnectionConfiguration: Sendable {
     public var proxy: TerminalTransportProxy?
 
     public init(
-        hostID: Host.ID, host: String, port: Int, username: String? = nil,
+        host: String, port: Int, username: String? = nil,
         password: SSHSecret? = nil, charset: RemoteCharset = .utf8,
         proxy: TerminalTransportProxy? = nil
     ) {
-        self.hostID = hostID
         self.host = host
         self.port = port
         self.username = username

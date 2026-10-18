@@ -3,7 +3,6 @@ import Foundation
 import TermindApplication
 import TermindDomain
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind

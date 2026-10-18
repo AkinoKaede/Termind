@@ -1,5 +1,4 @@
 import SwiftUI
-import TermindApplication
 
 public struct MetricsHostLockNotice: View {
     public init() {}

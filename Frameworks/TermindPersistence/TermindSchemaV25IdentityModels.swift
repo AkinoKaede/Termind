@@ -36,16 +36,5 @@ public enum TermindSchemaV25IdentityModels {
             ownerHostID = value.ownerHostID
             customPurpose = value.customPurpose?.rawValue
         }
-
-        public var value: Identity {
-            Identity(
-                id: id, name: name, username: username, credentialRef: credentialRef,
-                passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-                keyID: keyID, notes: notes,
-                colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex,
-                ownerHostID: ownerHostID,
-                customPurpose: customPurpose.flatMap(HostCustomIdentityPurpose.init(rawValue:))
-            )
-        }
     }
 }

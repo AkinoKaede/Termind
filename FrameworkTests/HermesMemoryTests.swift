@@ -241,7 +241,7 @@ struct HermesMemoryTests {
             messages.append(.init(role: .assistant, text: "Done \(index)"))
         }
         let tools = (0..<14).map { _ in
-            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[1].id, kind: .tool)
+            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[1].id)
         }
         let reviewer = CountingMemoryReviewModel()
         await memory.recordActivity(
@@ -267,7 +267,7 @@ struct HermesMemoryTests {
         #expect(await reviewer.count == 1)
 
         let moreTools = (0..<15).map { _ in
-            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[19].id, kind: .tool)
+            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[19].id)
         }
         await memory.recordActivity(
             conversationID: conversationID, userMessageIDs: [], toolInvocations: Array(moreTools.prefix(14)),
@@ -950,7 +950,7 @@ private actor MemoryLifecycleStore: MemoryPersisting {
         _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
         conversationID: UUID
     ) -> MemoryLearningProgress {
-        progress.events.append(.init(id: id, sourceMessageID: sourceMessageID, kind: kind))
+        progress.events.append(.init(id: id, sourceMessageID: sourceMessageID))
         if kind == .turn { progress.turns += 1 } else { progress.tools += 1 }
         return progress
     }

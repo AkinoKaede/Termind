@@ -11,7 +11,6 @@ import TermindRemoteInfrastructure
 @MainActor
 final class TranscriptMarkdownCache {
     final class Package {
-        let source: String
         let rendered: TermindMarkdownRenderedDocument
 
         init(
@@ -19,7 +18,6 @@ final class TranscriptMarkdownCache {
             tone: TermindMarkdownTone,
             colorScheme: ColorScheme
         ) {
-            self.source = source
             rendered = TermindMarkdownRenderedDocument(
                 source: source,
                 theme: TermindMarkdownTheme.make(tone: tone, colorScheme: colorScheme)

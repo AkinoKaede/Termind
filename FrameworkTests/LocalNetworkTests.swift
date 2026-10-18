@@ -384,6 +384,5 @@ private nonisolated final class RecordingWakeSender: WakeOnLANSending, @unchecke
 
 @MainActor
 private final class WakeTestState {
-    var allowed = false
     var clock = 10.0
 }

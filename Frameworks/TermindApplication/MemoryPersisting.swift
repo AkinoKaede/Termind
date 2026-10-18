@@ -28,11 +28,9 @@ public nonisolated enum MemoryActivityKind: String, Equatable, Sendable { case t
 public nonisolated struct MemoryLearningEvent: Sendable {
     public var id: UUID
     public var sourceMessageID: UUID
-    public var kind: MemoryActivityKind
-    public init(id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind) {
+    public init(id: UUID, sourceMessageID: UUID) {
         self.id = id
         self.sourceMessageID = sourceMessageID
-        self.kind = kind
     }
 }
 

@@ -23,7 +23,6 @@ extension AppStrings {
             "Unable to update preview: \(error)"
         }
 
-        public static var devices: LocalizedStringResource { "Devices" }
         public static var optionalSync: LocalizedStringResource { "Optional Sync" }
         public static var signInToSync: LocalizedStringResource { "Sign in to iCloud to sync." }
 
@@ -243,10 +242,6 @@ extension AppStrings {
 
         public static func discoveredTools(server: String, count: Int) -> LocalizedStringResource {
             "\(server) — \(count) tools"
-        }
-
-        public static var dismissError: LocalizedStringResource {
-            "Dismiss error"
         }
 
         public static var draft: LocalizedStringResource {
@@ -720,10 +715,6 @@ extension AppStrings {
             "Theme"
         }
 
-        public static var thisConfigurationIsAvailableWithTermindPro: LocalizedStringResource {
-            "This configuration is available with Termind Pro."
-        }
-
         public static var thisPermanentlyRemovesAllSavedMcpCallRecords: LocalizedStringResource {
             "This permanently removes all saved MCP call records."
         }
@@ -758,10 +749,6 @@ extension AppStrings {
 
         public static var vertexAi: LocalizedStringResource {
             "Vertex AI"
-        }
-
-        public static var viewTermindPro: LocalizedStringResource {
-            "View Termind Pro"
         }
 
         public static var waitingProgress: LocalizedStringResource {

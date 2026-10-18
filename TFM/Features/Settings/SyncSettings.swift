@@ -48,22 +48,22 @@ struct SyncSettings: View {
     private var syncCategories: [CloudSyncCategoryPresentation] {
         [
             .init(
-                id: "vault", title: AppStrings.Navigation.vault, status: app.vaultSync?.status,
+                id: "vault", status: app.vaultSync?.status,
                 retry: { app.vaultSync?.retry() }, merge: { app.vaultSync?.confirmAccountSwitchMerge() }),
             .init(
-                id: "history", title: AppStrings.Common.history, isSelected: includesHistory,
+                id: "history", isSelected: includesHistory,
                 status: app.connectionHistorySync?.status, retry: { app.connectionHistorySync?.retry() },
                 merge: { app.connectionHistorySync?.confirmAccountSwitchMerge() }),
             .init(
-                id: "devices", title: AppStrings.Settings.devices,
+                id: "devices",
                 status: app.deviceSync?.status,
                 retry: { app.deviceSync?.retry() }, merge: { app.deviceSync?.confirmAccountSwitchMerge() }),
             .init(
-                id: "metrics", title: AppStrings.Navigation.metrics, isSelected: includesMetrics,
+                id: "metrics", isSelected: includesMetrics,
                 status: app.metricsSync?.status, retry: { app.metricsSync?.retry() },
                 merge: { app.metricsSync?.confirmAccountSwitchMerge() }),
             .init(
-                id: "settings", title: AppStrings.Navigation.settings, isSelected: includesSettings,
+                id: "settings", isSelected: includesSettings,
                 status: app.settingsSync?.status, retry: { app.settingsSync?.retry() },
                 merge: { app.settingsSync?.confirmAccountSwitchMerge() }),
         ]

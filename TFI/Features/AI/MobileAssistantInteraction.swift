@@ -2,7 +2,6 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindPresentation
-import TermindRemoteInfrastructure
 
 struct MobileAssistantInteraction: View {
     @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240

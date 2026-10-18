@@ -99,51 +99,5 @@ public enum TermindSchemaV56HostModels {
             detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
             sortIndex = value.sortIndex
         }
-
-        public var value: Host {
-            var host = Host(
-                id: id, name: name, host: address, port: port, identityID: identityID,
-                charset: RemoteCharset(rawValue: charset) ?? .utf8,
-                sshEnabled: sshEnabled, telnetEnabled: telnetEnabled, telnetPort: telnetPort,
-                telnetIdentityID: telnetIdentityID,
-                telnetCharset: RemoteCharset(rawValue: telnetCharset) ?? .utf8,
-                groupID: groupID, tags: tags,
-                colorTag: TagColor(rawValue: colorTag) ?? .none,
-                detectedDistribution: detectedDistributionID.flatMap {
-                    DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
-                },
-                iconOverrideID: iconOverrideID, sortIndex: sortIndex,
-                shellIntegrationMode: HostShellIntegrationMode(rawValue: shellIntegrationMode)
-                    ?? .followGlobalSettings,
-                startupSnippetID: startupSnippetID, agentForwardingEnabled: agentForwardingEnabled,
-                sessionPersistence: SessionPersistencePreferences(
-                    enabled: sessionPersistenceEnabled, backend: .init(rawValue: sessionPersistenceBackend),
-                    onConnect: .init(rawValue: sessionPersistenceOnConnect) ?? .ask),
-                environmentVariables: zip(environmentVariableNames, environmentVariableValues).map {
-                    HostEnvironmentVariable(variable: $0, value: $1)
-                },
-                portForwardingMaxConnections: portForwardingMaxConnections
-                    ?? Host.defaultPortForwardingMaxConnections
-            )
-            host.wakeOnLAN = .init(macAddress: wakeMACAddress, automaticallyWake: automaticallyWake)
-            host.terminalTransports =
-                terminalTransportsData.flatMap {
-                    try? JSONDecoder().decode(HostTerminalTransports.self, from: $0)
-                } ?? .init()
-            host.jumpHostID = jumpHostID
-            host.sftpChannelInitialPath = sftpSessionInitialPath
-            if let telnetProxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: telnetProxyProtocol) {
-                host.telnetProxy = HostProxy(
-                    kind: kind, hostname: telnetProxyHostname, port: telnetProxyPort,
-                    username: telnetProxyUsername, identityID: telnetProxyIdentityID)
-            }
-            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-                host.proxy = HostProxy(
-                    kind: kind, hostname: proxyHostname, port: proxyPort,
-                    username: proxyUsername, identityID: proxyIdentityID
-                )
-            }
-            return host
-        }
     }
 }

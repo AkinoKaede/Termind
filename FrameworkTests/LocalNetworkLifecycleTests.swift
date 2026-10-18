@@ -95,7 +95,7 @@ struct LocalNetworkLifecycleTests {
         await ssh.value
         #expect(await counter.count == 1)
         let telnet = Task {
-            var config = TelnetConnectionConfiguration(hostID: UUID(), host: "never-dial.invalid", port: 23)
+            var config = TelnetConnectionConfiguration(host: "never-dial.invalid", port: 23)
             config.beforeConnect = before
             do {
                 try await TelnetConnection(output: { _ in }).connect(using: config)

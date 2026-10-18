@@ -53,13 +53,6 @@ public final class TerminalContextCoordinator {
         inspectionID = nil
     }
 
-    public func invalidate() {
-        revision &+= 1
-        active = nil
-        status = .unknown
-        issue = .inspectionUnavailable
-    }
-
     public func noteInput() { revision &+= 1 }
 
     public func ticket(requiring capability: TerminalContextCapabilities) -> Ticket? {

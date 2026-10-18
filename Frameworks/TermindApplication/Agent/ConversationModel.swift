@@ -3084,7 +3084,7 @@ public final class ConversationModel: Identifiable {
                     $0.role == .user && $0.origin == nil && messageRunIDs[$0.id] == run.id
                 }.map(\.id) : []
             let tools = (startedMemoryTools.removeValue(forKey: run.id) ?? [:]).map {
-                MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value, kind: .tool)
+                MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value)
             }
             finishedMemoryTools.removeValue(forKey: run.id)
             memoryRunFinished?(run, userIDs, tools, transcript)
@@ -3098,7 +3098,7 @@ public final class ConversationModel: Identifiable {
             {
                 memoryToolBatchFinished?(
                     finished.map {
-                        MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value, kind: .tool)
+                        MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value)
                     }, transcript)
             }
             activeReasoningMessageID = nil

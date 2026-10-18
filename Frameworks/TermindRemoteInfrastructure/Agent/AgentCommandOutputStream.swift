@@ -9,7 +9,7 @@ nonisolated public final class AgentCommandOutputStream: @unchecked Sendable {
     private let accumulator: AgentOutputAccumulator
     private var lastReportedAt: ContinuousClock.Instant?
     private let interval: Duration
-    private var report: @Sendable (String, String) -> Void
+    private let report: @Sendable (String, String) -> Void
 
     public init(
         interval: Duration = .milliseconds(150),
@@ -22,14 +22,6 @@ nonisolated public final class AgentCommandOutputStream: @unchecked Sendable {
     }
 
     public var captureID: UUID { accumulator.id }
-
-    public func redirect(to report: @escaping @Sendable (String, String) -> Void) {
-        lock.withLock {
-            self.report = report
-            lastReportedAt = nil
-        }
-        report(accumulator.preview, "")
-    }
 
     public var handler: SSHExecOutputHandler {
         { [self] chunk, _ in append(chunk) }

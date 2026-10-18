@@ -431,7 +431,7 @@ struct TermindApp: App {
             return menu
         }
 
-        @objc private func newWindowFromDock(_ sender: NSMenuItem) {
+        @objc private func newWindowFromDock(_: NSMenuItem) {
             guard app?.mainWindows.newWindow() != nil else { return }
             NSApp.activate(ignoringOtherApps: true)
         }

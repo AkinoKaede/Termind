@@ -52,17 +52,6 @@ nonisolated struct HistoryConnectionEntryV2: Codable, Identifiable {
     var connectedAt: Date = Date()
     var sourceDeviceID: UUID?
     var endedAt: Date?
-    init(
-        id: UUID = UUID(), hostID: Host.ID, kind: Kind, connectedAt: Date = Date(),
-        sourceDeviceID: UUID? = nil, endedAt: Date? = nil
-    ) {
-        self.id = id
-        self.hostID = hostID
-        self.kind = kind
-        self.connectedAt = connectedAt
-        self.sourceDeviceID = sourceDeviceID
-        self.endedAt = endedAt
-    }
     init(_ value: TermindDomain.ConnectionHistoryEntry) {
         self.id = value.id
         self.hostID = value.hostID

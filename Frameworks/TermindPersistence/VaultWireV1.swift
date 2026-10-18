@@ -74,46 +74,6 @@ nonisolated enum VaultWireV1 {
         var portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
         var detectedDistribution: DetectedDistribution?
         var sortIndex: Double = 0
-        init(
-            id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
-            jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpChannelInitialPath: String = "",
-            charset: RemoteCharset = .utf8,
-            sshEnabled: Bool = true, telnetEnabled: Bool = false, telnetPort: Int = 23,
-            telnetIdentityID: Identity.ID? = nil, telnetCharset: RemoteCharset = .utf8,
-            telnetProxy: HostProxy? = nil,
-            groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
-            detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
-            shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
-            startupSnippetID: Snippet.ID? = nil,
-            environmentVariables: [HostEnvironmentVariable] = [],
-            portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
-        ) {
-            self.id = id
-            self.name = name
-            self.host = host
-            self.sshEnabled = sshEnabled
-            sshPort = port
-            sshIdentityID = identityID
-            sshCharset = charset
-            self.telnetEnabled = telnetEnabled
-            self.telnetPort = telnetPort
-            self.telnetIdentityID = telnetIdentityID
-            self.telnetCharset = telnetCharset
-            self.telnetProxy = telnetProxy
-            self.jumpHostID = jumpHostID
-            self.proxy = proxy
-            self.sftpChannelInitialPath = sftpChannelInitialPath
-            self.groupID = groupID
-            self.tags = tags
-            self.colorTag = colorTag
-            self.detectedDistribution = detectedDistribution
-            self.sortIndex = sortIndex
-            self.shellIntegrationMode = shellIntegrationMode
-            self.startupSnippetID = startupSnippetID
-            self.environmentVariables = environmentVariables
-            self.portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
-                portForwardingMaxConnections)
-        }
         private enum CodingKeys: String, CodingKey {
             case id, name, host, port, identityID, jumpHostID, proxy
             case sftpChannelInitialPath = "sftpSessionInitialPath"
@@ -248,16 +208,6 @@ nonisolated enum VaultWireV1 {
         var parentID: HostGroup.ID?
         var sortIndex: Double = 0
         var isExpanded: Bool = true
-        init(
-            id: UUID = UUID(), name: String, parentID: HostGroup.ID? = nil, sortIndex: Double = 0,
-            isExpanded: Bool = true
-        ) {
-            self.id = id
-            self.name = name
-            self.parentID = parentID
-            self.sortIndex = sortIndex
-            self.isExpanded = isExpanded
-        }
         init(_ value: TermindDomain.HostGroup) {
             self.id = value.id
             self.name = value.name
@@ -458,17 +408,6 @@ nonisolated enum VaultWireV1 {
         var algorithm: SSHKeyAlgorithm = .ed25519
         var fingerprint: String = ""
         var addedAt: Date = Date(timeIntervalSince1970: 0)
-        init(
-            id: UUID = UUID(), hostname: String, port: Int = 22, algorithm: SSHKeyAlgorithm = .ed25519,
-            fingerprint: String = "", addedAt: Date = Date(timeIntervalSince1970: 0)
-        ) {
-            self.id = id
-            self.hostname = hostname
-            self.port = port
-            self.algorithm = algorithm
-            self.fingerprint = fingerprint
-            self.addedAt = addedAt
-        }
         init(_ value: TermindDomain.KnownHostEntry) {
             self.id = value.id
             self.hostname = value.hostname
@@ -495,17 +434,6 @@ nonisolated enum VaultWireV1 {
         var packageID: SnippetPackage.ID?
         var targetHostIDs: [Host.ID] = []
         var sortIndex: Double = 0
-        init(
-            id: UUID = UUID(), title: String, body: String, packageID: SnippetPackage.ID? = nil,
-            targetHostIDs: [Host.ID] = [], sortIndex: Double = 0
-        ) {
-            self.id = id
-            self.title = title
-            self.body = body
-            self.packageID = packageID
-            self.targetHostIDs = targetHostIDs
-            self.sortIndex = sortIndex
-        }
         init(_ value: TermindDomain.Snippet) {
             self.id = value.id
             self.title = value.title
@@ -531,16 +459,6 @@ nonisolated enum VaultWireV1 {
         var parentID: SnippetPackage.ID?
         var sortIndex: Double = 0
         var isExpanded: Bool = true
-        init(
-            id: UUID = UUID(), name: String, parentID: SnippetPackage.ID? = nil, sortIndex: Double = 0,
-            isExpanded: Bool = true
-        ) {
-            self.id = id
-            self.name = name
-            self.parentID = parentID
-            self.sortIndex = sortIndex
-            self.isExpanded = isExpanded
-        }
         init(_ value: TermindDomain.SnippetPackage) {
             self.id = value.id
             self.name = value.name
@@ -630,11 +548,6 @@ nonisolated enum VaultWireV1 {
         var id: UUID
         var name: String
         var layout: WorkspaceTemplateLayout
-        init(id: UUID = UUID(), name: String, layout: WorkspaceTemplateLayout) {
-            self.id = id
-            self.name = name
-            self.layout = layout
-        }
         init(_ value: TermindDomain.WorkspaceTemplate) throws {
             self.id = value.id
             self.name = value.name
@@ -656,17 +569,6 @@ nonisolated enum VaultWireV1 {
         var connectedAt: Date = Date()
         var sourceDeviceID: UUID?
         var endedAt: Date?
-        init(
-            id: UUID = UUID(), hostID: Host.ID, kind: Kind, connectedAt: Date = Date(),
-            sourceDeviceID: UUID? = nil, endedAt: Date? = nil
-        ) {
-            self.id = id
-            self.hostID = hostID
-            self.kind = kind
-            self.connectedAt = connectedAt
-            self.sourceDeviceID = sourceDeviceID
-            self.endedAt = endedAt
-        }
         init(_ value: TermindDomain.ConnectionHistoryEntry) {
             self.id = value.id
             self.hostID = value.hostID
@@ -689,10 +591,6 @@ nonisolated enum VaultWireV1 {
     struct DeviceRecord: Codable, Identifiable {
         var id: UUID
         var displayName: String
-        init(id: UUID, displayName: String) {
-            self.id = id
-            self.displayName = displayName
-        }
         init(_ value: TermindDomain.DeviceRecord) {
             self.id = value.id
             self.displayName = value.displayName
@@ -707,10 +605,6 @@ nonisolated enum VaultWireV1 {
     struct HostEnvironmentVariable: Codable {
         var variable: String
         var value: String
-        init(variable: String, value: String) {
-            self.variable = variable
-            self.value = value
-        }
         init(_ value: TermindDomain.HostEnvironmentVariable) {
             self.variable = value.variable
             self.value = value.value
@@ -729,16 +623,6 @@ nonisolated enum VaultWireV1 {
         var port: Int = 8080
         var username: String = ""
         var identityID: Identity.ID?
-        init(
-            kind: ProtocolKind = .http, hostname: String = "", port: Int = 8080, username: String = "",
-            identityID: Identity.ID? = nil
-        ) {
-            self.kind = kind
-            self.hostname = hostname
-            self.port = port
-            self.username = username
-            self.identityID = identityID
-        }
         init(_ value: TermindDomain.HostProxy) {
             self.kind = ProtocolKind(rawValue: value.kind.rawValue)!
             self.hostname = value.hostname

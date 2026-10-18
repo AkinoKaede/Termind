@@ -63,34 +63,5 @@ public enum TermindSchemaV27HostModels {
             detectedDistributionLikeIDs = value.detectedDistribution?.likeIDs ?? []
             sortIndex = value.sortIndex
         }
-
-        public var value: Host {
-            var host = Host(
-                id: id, name: name, host: address, port: port,
-                identityID: identityID, groupID: groupID, tags: tags,
-                colorTag: TagColor(rawValue: colorTag) ?? .none,
-                detectedDistribution: detectedDistributionID.flatMap {
-                    DetectedDistribution(id: $0, likeIDs: detectedDistributionLikeIDs)
-                },
-                sortIndex: sortIndex,
-                shellIntegrationMode: HostShellIntegrationMode(rawValue: shellIntegrationMode)
-                    ?? .followGlobalSettings,
-                startupSnippetID: startupSnippetID,
-                environmentVariables: zip(environmentVariableNames, environmentVariableValues).map {
-                    HostEnvironmentVariable(variable: $0, value: $1)
-                },
-                portForwardingMaxConnections: portForwardingMaxConnections
-                    ?? Host.defaultPortForwardingMaxConnections
-            )
-            host.jumpHostID = jumpHostID
-            host.sftpChannelInitialPath = sftpSessionInitialPath
-            if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
-                host.proxy = HostProxy(
-                    kind: kind, hostname: proxyHostname, port: proxyPort,
-                    username: proxyUsername, identityID: proxyIdentityID
-                )
-            }
-            return host
-        }
     }
 }

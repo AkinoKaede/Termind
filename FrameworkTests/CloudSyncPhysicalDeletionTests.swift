@@ -1286,7 +1286,6 @@ private final class MigratedPhysicalDeletionFixture {
     let container: ModelContainer
     let defaults: UserDefaults
     let defaultsName = "MigratedPhysicalDeletionTests.\(UUID())"
-    let network: LifecycleNetwork
     private let adapter: MigratedDeletionAdapter
 
     var lifecycle: CloudSyncLifecycle { adapter.lifecycle }
@@ -1298,7 +1297,6 @@ private final class MigratedPhysicalDeletionFixture {
         container = try TermindPersistence.makeContainer(url: url)
         defaults = UserDefaults(suiteName: defaultsName)!
         let fixtureNetwork = LifecycleNetwork()
-        network = fixtureNetwork
         for key in [
             SettingsKey.iCloudSyncEnabled, SettingsKey.vaultSyncEnabled,
             SettingsKey.settingsSyncEnabled, SettingsKey.metricsSyncEnabled, SettingsKey.historySyncEnabled,

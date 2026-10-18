@@ -4,17 +4,15 @@ import TermindDomain
 /// Apps inject state/actions; Presentation never owns or starts a sync engine.
 public struct CloudSyncCategoryPresentation: Identifiable {
     public let id: String
-    public let title: LocalizedStringResource
     public let isSelected: Bool
     public let status: VaultSyncStatus
     public let retry: () -> Void
     public let merge: () -> Void
     public init(
-        id: String, title: LocalizedStringResource, isSelected: Bool = true,
+        id: String, isSelected: Bool = true,
         status: VaultSyncStatus?, retry: @escaping () -> Void, merge: @escaping () -> Void
     ) {
         self.id = id
-        self.title = title
         self.isSelected = isSelected
         self.status = status ?? .checkingAccount
         self.retry = retry

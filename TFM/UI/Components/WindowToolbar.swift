@@ -412,7 +412,7 @@ struct NativeSearchField: NSViewRepresentable {
             }
         }
 
-        @objc func clear(_ sender: Any?) {
+        @objc func clear(_: Any?) {
             field.text = ""
         }
 
