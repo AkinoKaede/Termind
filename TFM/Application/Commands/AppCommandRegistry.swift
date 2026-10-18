@@ -192,18 +192,40 @@ final class AppCommandRegistry {
 
     private func hostCommands(_ host: Host) -> [AppCommandDescriptor] {
         let keywords = [host.host] + host.supportedTerminalProtocols.map { host.displayAddress(for: $0) } + host.tags
-        var commands: [AppCommandDescriptor] = []
+        var protocols = host.supportedTerminalProtocols
+        if let preferred = host.preferredTerminalProtocol {
+            protocols.removeAll { $0 == preferred }
+            protocols.insert(preferred, at: 0)
+        }
+        var commands = protocols.map { transport in
+            let address = host.displayAddress(for: transport)
+            let action: HostConnectAction
+            let subtitle: LocalizedStringResource
+            switch transport {
+            case .ssh:
+                action = .ssh
+                subtitle = AppStrings.Connections.connectWithSsh(address)
+            case .mosh:
+                action = .mosh
+                subtitle = AppStrings.Connections.connectWithMosh(address)
+            case .eternalTerminal:
+                action = .eternalTerminal
+                subtitle = AppStrings.Connections.connectWithEternalTerminal(address)
+            case .telnet:
+                action = .telnet
+                subtitle = AppStrings.Connections.connectWithTelnet(address)
+            }
+            return AppCommandDescriptor(
+                id: "host.\(transport.rawValue).\(host.id.uuidString)",
+                title: host.name,
+                subtitle: String(localized: subtitle),
+                symbol: action.symbol,
+                section: .hosts,
+                keywords: keywords + [transport.rawValue, transport.displayName],
+                target: .connectHost(host.id, action.target)
+            )
+        }
         if host.sshEnabled {
-            commands.append(
-                AppCommandDescriptor(
-                    id: "host.ssh.\(host.id.uuidString)",
-                    title: host.name,
-                    subtitle: String(localized: AppStrings.Connections.connectWithSsh(host.displayAddress(for: .ssh))),
-                    symbol: "apple.terminal",
-                    section: .hosts,
-                    keywords: keywords + ["ssh"],
-                    target: .connectHost(host.id, .sshSession)
-                ))
             commands.append(
                 AppCommandDescriptor(
                     id: "host.sftp.\(host.id.uuidString)",
@@ -214,15 +236,6 @@ final class AppCommandRegistry {
                     keywords: keywords + ["sftp", "files"],
                     target: .connectHost(host.id, .sftpChannel)
                 ))
-        }
-        if host.telnetEnabled {
-            commands.append(
-                AppCommandDescriptor(
-                    id: "host.telnet.\(host.id.uuidString)", title: host.name,
-                    subtitle: String(
-                        localized: AppStrings.Connections.connectWithTelnet(host.displayAddress(for: .telnet))),
-                    symbol: MenuSymbol.telnet, section: .hosts, keywords: keywords + ["telnet"],
-                    target: .connectHost(host.id, .telnetSession)))
         }
         return commands
     }

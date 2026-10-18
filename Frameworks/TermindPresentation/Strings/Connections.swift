@@ -134,6 +134,12 @@ extension AppStrings {
         public static func connectWithSsh(_ value: String) -> LocalizedStringResource {
             "Connect with SSH · \(value)"
         }
+        public static func connectWithMosh(_ value: String) -> LocalizedStringResource {
+            "Connect with Mosh · \(value)"
+        }
+        public static func connectWithEternalTerminal(_ value: String) -> LocalizedStringResource {
+            "Connect with Eternal Terminal · \(value)"
+        }
         public static func connectWithTelnet(_ value: String) -> LocalizedStringResource {
             "Connect with Telnet · \(value)"
         }
