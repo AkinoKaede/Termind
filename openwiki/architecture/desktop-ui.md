@@ -5,7 +5,7 @@ description: How macOS navigation divides shared app services, per-window routes
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -95,7 +95,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 ---
 
 # Desktop UI and Window Ownership
@@ -295,7 +295,7 @@ Navigator layout interaction is window-scoped: `WindowModel.dragging` carries th
 
 The window titlebar contributes creation actions from `WindowModel.creationActions` for the **foreground destination**: a single action is a plus button, several form a New menu, and Settings/Metrics detail can replace that position with Back or contextual controls. A Vault row's context menu calls `creationActions(for:)` through `creationMenu(for:locale:)`, so it can offer that page's creation verbs even when another page is in front. Switching the sidebar from Navigator to Assistant does not change the titlebar's New or Find target.
 
-`WindowModel.findKind` resolves the foreground Vault page, full Assistant, Metrics list/process detail, Settings **terminal-theme libraries** (built-in schemes and custom themes), or the **focused** SSH/Telnet/Serial terminal or SFTP pane. Welcome has its own content search and no titlebar Find; other Settings routes and unsearchable panes offer none. `findContext()` binds the toolbar to the actual page/window query or session query, with SSH/Serial terminal navigation and cancel callbacks and SFTP query cancellation. Direct query bindings use `Bindable` projections; transformed terminal and theme-map bindings still dispatch through their owners. A focused Telnet pane reports `.terminal` from `findKind` and `focusToolbarFind()` presents its terminal search, but `findContext()` currently has no Telnet binding: unlike SSH/Serial it cannot render a usable titlebar field through that path. Vault page queries and each Settings theme scheme's query survive route switches. `TermindCommands` routes Find to the focused window model, which stands down pane focus *before* presenting terminal search, increments the focus request and invokes the mounted toolbar field's focus handler. Welcome instead increments its content-field request; with no searchable target it does nothing.
+`WindowModel.findKind` resolves the foreground Vault page, full Assistant, Metrics list/process detail, Settings **terminal-theme libraries** (built-in schemes and custom themes), or the **focused** SSH/Telnet/Serial terminal or SFTP pane. Welcome has its own content search and no titlebar Find; other Settings routes and unsearchable panes offer none. `findContext()` binds the toolbar to the actual page/window query or session query, with SSH/Serial terminal navigation and cancel callbacks and SFTP query cancellation. Direct query bindings use `Bindable` projections; transformed terminal and theme-map bindings still dispatch through their owners. A focused Telnet pane reports `.terminal` from `findKind` and `focusToolbarFind()` presents its terminal search, but `findContext()` currently has no Telnet binding: unlike SSH/Serial it cannot render a usable titlebar field through that path. Vault page queries survive page switches. Built-in terminal-theme queries are retained independently for `.light` and `.dark` appearance schemes in `terminalThemeQueries`; the custom-theme library uses the separate `customThemeQuery`. Entering a custom-theme editor removes Find, and Back restores the library's retained query. `TermindCommands` routes Find to the focused window model, which stands down pane focus *before* presenting terminal search, increments the focus request and invokes the mounted toolbar field's focus handler. Welcome instead increments only `welcomeSearchFocusRequest`: it neither increments `findFocusRequest` nor calls the titlebar focus handler or claims toolbar keyboard focus. This keeps ⌘F available for Welcome's content search without adding a second toolbar field. With no searchable target it does nothing.
 
 ```mermaid
 sequenceDiagram
@@ -452,7 +452,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Managed selection/reordering | `CardMarqueeSelectionTests` pins directional rectangles, partial overlap, Shift extension and true-canvas exclusion. `KeychainOrderTests.dropPoliciesExpressFixedAndExchangeableSections` and `dropResolverFindsGridSlotsAndCollapsedSectionEnd` check policy and placement boundaries; resource-specific move tests check mutations. |
 | Feature-owned review top content | `FrameworkTests/AppReviewControllerTests` covers seven-day eligibility, entry snapshots, filtering, cross-window responses and rejected URL opens. `TFMTests/AppReviewControllerTests` checks accepted store-link handling, localized narrow/wide rendering without preference mutation, and invitation geometry excluded from blank canvas. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
-| Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing, Welcome focus, per-page queries and the theme-scheme Settings Find route; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
+| Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing and per-page queries. `themeSearchUsesToolbarAndPreservesEachAppearanceQuery` checks independent light/dark and custom-library queries, no editor Find, and restoration on Back; `welcomeOffersNoTitlebarFind` and `focusingFindOnWelcomeRequestsItsContentSearchField` check content-only Welcome search without titlebar focus requests. `focusingFindStartsTheTerminalSearch` checks terminal presentation and direct focus dispatch, while the empty-workspace case checks a no-op; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
 | Welcome Recents, device names, connection-history limits or pane close tracking | `ConnectionHistoryTests` checks local-only recents, stable device IDs and rename lookup; `VaultSyncTests` and workspace close/reopen tests cover synchronization and pane lifetime. |
 
 Some rendering tests explicitly require a visible window; routine checks should not enable those globally. The narrow-editor rendering cases cover English, Simplified Chinese and Traditional Chinese. This guide was derived from implementation and tests; it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](../operations/build-test-and-release.md) for the appropriate verification commands.

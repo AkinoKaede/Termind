@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e92bbcc488880409bcecd9db48ed8b9b25da8763454fa203123b63885b15151d",
+  "pageVersion": "sha256:ba7a6243988378f5a5c5c8ffbab03baf5277b49128a5009d20c5d981170ec4e4",
   "claims": [
     {
       "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
@@ -71,10 +71,42 @@
           "version": "repo-file-v1:sha256:d2c89a6664abf8588df0db4c1d8b6898dfa027e60ba2dbae594512d4f600d3e1"
         }
       ]
+    },
+    {
+      "id": "claim_4c328473ca77426e906d1465c11a05af",
+      "statement": "Benchmark reproduction uses the retained Python drivers rather than the removed Scripts/Tests/test_port_forwarding_benchmark.py suite; the Termind driver rejects nonzero runner exits and runs that emit no FORWARDING_METRIC records.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py",
+          "version": "repo-file-v1:sha256:450032eadc5831780f7290b6ea0a72abab016e6c1479f30dd6d182f3b3214881"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L83-L106",
+          "version": "repo-lines-v1:sha256:d20bef1d2ee4f4292f8c208111362edb97c3e6c8a635be8ce7945c38f9c9d316:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZmUyNDVhZDA1MDk0MmFmOWViM2I5MDU4NzIwNmU2MTljNjA3M2Y3MmY3NjdhMTlhMGMxYzBlZGEwNDFhZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxODNhYWZmYmExNjY0ZGUzZmYzOTkwMzczY2ZjNGQzNjM2YTZhYTIwNTA1ZGUxNzNlMDI2ZmZmZWQ5YmEzOWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyYjgwYTNkNWMzZTQ4MTRiY2RhNjkyY2RiN2Y4N2Q2NmI4NTNmZGMxNDBhNzkyZTQzYzQ4ZjU5MTcxMmRiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYWEyZmFiMzgyODdhN2QwZWMyMjBjYjM0Y2ViZmQ2MTYxYjhjOTY2MDhlNTVjMzBmZTcxNDEyNGE4ZTE5NGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b75b7336bd34421584118b225b1402a1",
+      "statement": "SSHForwardingWireTests provides serialized, TERMIND_SSH_FIXTURE-gated functional coverage of pool shrink/re-expansion, admission recovery during draining, slow consumers, and backpressured disconnect independently of timed benchmark measurements.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L225-L243",
+          "version": "repo-lines-v1:sha256:249cadba8edfcc565961b5c521f69c300afb01a335521343d388503c8cbd156e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNDI4Nzc1NmUxNGQxZGE0YTAxYWEzYjUyYTMyOTgwZjdkZWJmYTFlYTIyMDI2ODFiMmY2MWU1NzEwZjFkNTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNThjMzMyMTBmNzVmMTYzZjVhMjlkZDA3YzQyNWZkYzk4YjllMzFiYmIxNTA2MzNkODBjMzkzMGJjYjdlYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2YjYxODBmZjUwOWQyNTYxOWUxZTBmZDBkMDY3ZGFhZGY1YmYzZjVlNjM4OWY3MzI5MDIwNjg5NmI1ODM5ZDMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L286-L317",
+          "version": "repo-lines-v1:sha256:7b45be6bc1559861d8d487bcfd1f9d4e930cd61b41c4188e27944fc36676b1e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5OGIwNzIyOTM5NjJhY2VkOWRkMmU0NWU5ZWZhNjgzZGJiZWYwNThhYWQzMjFkMzZmYjFmNTkzNGZmOTVlNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMzNkYjVlNjk0MzU3MjUzNDAwZDYwODFlNmU2NDFhMTQ5Y2E5ZGY5OWQzOTlkMGNmNWQ4YTg5NGQzNGI4OGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3OWZlZjdjOTI1OTZlZWU4ZTA1OWY0YTIyYzM0MDQ1ZTMyNzNjMDUzMjMwZTJlYjZmZTJkMDU5OTZiZGE5ZWEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L9-L105",
+          "version": "repo-lines-v1:sha256:0c6e4f8794f195ce3f2d40e91d09efec28667bf45c843a646a1631540120c343:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4YzU3NmQyZDFjYjVkZTQyYTYwZDVmMmExNzM0MDdjODI0ODI5YTcxZGNiNTA0NWY0YmFkY2Y5YjZiYmMyZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ZTgxY2E5ZDYxZDUwOTYxZTA1ZjYyYjQ4N2UyNTFjN2JhYTExYzI4YTRhMzE2ZTJkNDIwNTZjZTdkZDg5ZjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNGM2OTVlMTdjOTZiN2U4MjJlYjAyMTAwMDcwZTkxZDgzZjlkNzk5N2Y4YWI2YWQ0YjNiOTk1OGNlNDc1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwYWRjNjk2ODY5ODViMjc1NDM5NzQ2NzMwZjA4YzkyYzU3MmE2NjMyZmUxMzdkMjA3Yjk5ZTc4YjM0MzRmYjQifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-16T22:23:31.119Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

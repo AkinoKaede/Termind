@@ -82,6 +82,8 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
+  - id: openwiki-source-c52cd56852d12b2dee153082
+    resource: repo://TFM/App/AppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -96,10 +98,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Module and Dependency Map
@@ -124,7 +126,7 @@ Use [System Boundaries](system-boundaries.md) for contracts, [Engineering Invari
 | `Frameworks/TermindPresentation` | Reusable SwiftUI content, forms, formatting, transcript policy, and terminal appearance. | Not a persistence or native-app owner; some shared views use conditional AppKit/UIKit for platform-specific rendering. |
 | `TFM` / `TFI` | Native composition, interaction, navigation, adapters, and runtime lifetimes. | Desktop windows own their workspaces; on mobile each persistent UIKit scene session owns a workspace collection through an app-managed `MobileWorkspaceSessionModel`. |
 | `Frameworks/Resources` | Shared bundle assets, localization, model catalogs, and privacy metadata. | A resource group, not a seventh framework. |
-| `AgentKit` | Reference checkout of the separately versioned, host-neutral agent package. | Xcode consumes the resolved remote package, not this checkout. |
+| AgentKit remote package | Separately versioned, host-neutral agent runtime and built-in tools. | Not a repository-local module or maintenance submodule; Termind owns host-specific tool registration. |
 | Supporting products | MCP stdio bridge, Live Activity extension, and standalone forwarding benchmark. | Different executable/extension boundaries, not app feature folders. |
 
 Host artwork is a concrete example of shared Presentation ownership. `HostIconCatalog` loads `HostIcons.json` from the main bundle (falling back to an empty catalog on load/decode failure), resolves an explicit `iconOverrideID` before detected distribution matching, and otherwise matches the distribution ID before its `likeIDs`, falling back to the generic Linux entry when neither matches. An unknown explicit override returns no catalog entry rather than falling through to detection. `HostDistributionIcon` composes that choice with `HostSystemIcon`; tint precedence is the host's color tag, then `HostIconBrandColor`, then the accent color. `HostIconBrandColor` owns the conditional AppKit/UIKit semantic-color adaptation, adjusting brand foregrounds toward the label color for contrast on the tinted icon surface. `TFMTests/HostIconPresentationTests.swift` checks bundled assets, override priority, and light/dark contrast. These are shared rendering responsibilities, not connection or app-lifecycle ownership.
@@ -166,7 +168,6 @@ flowchart LR
     Activity["WorkspaceActivitySupport"] -.->|source compiled into both| Mobile
     Activity -.->|source compiled into both| Widget
     Package["Resolved AgentKit package products"] -.->|linked by owning consumers| Shared
-    Checkout["AgentKit reference checkout"] -.->|not an Xcode path dependency| Package
     Benchmark["Port-forwarding benchmark"] -->|depends on| Remote["Remote Infrastructure + Application + Domain"]
 ```
 
@@ -174,9 +175,9 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** `.gitmodules` names the repository-root `AgentKit/` maintenance submodule. It is not wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `3.0.1`, and `Package.resolved` pins the released version `3.0.1` at revision `3661d156202e9da8d59e5e36ac461913c8bd8536`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** AgentKit is a remote package, not a repository-root maintenance submodule or local Xcode package path. The project declares a remote `upToNextMinorVersion` requirement starting at `4.0.0`, and `Package.resolved` pins version `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. Change the package requirement/resolution to change the build input; do not look for a local AgentKit maintenance tree. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable. Presenter lookup requires a presentation ID and rejects MCP descriptors; there is no legacy tool-name fallback in `TermindAgentTools`. Both native dependency assemblies layer `SSHExecToolPresentation` onto the shared presenter registry, keeping native SSH card presentation separate from host-tool registration. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
-**Maintenance versus remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate from maintenance checkout HEADs:
+**Remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate checks:
 
 | Remote input | Current Xcode requirement | Selected version and revision |
 | --- | --- | --- |
@@ -184,7 +185,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026101502` | `2.2.2026101502`, `42bacd1339f323a693ddbca779295f4f77e5a697` |
 | `AkinoKaede/libtailscale-spm` | `upToNextMinorVersion` from `1.0.3` | `1.0.3`, `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
 
-`.gitmodules` lists libssh2 and libtailscale maintenance checkouts, but no Ghostty checkout. Their gitlinks are not Xcode package inputs. `TailscaleKit` links directly into Remote Infrastructure and is not a shared framework target. For any package, `project.pbxproj` defines the allowed remote input and `Package.resolved` records the selected revision. Resolved-only verification uses `-onlyUsePackageVersionsFromResolvedFile`; update and release procedures are in [Build, Test, and Release](../operations/build-test-and-release.md).
+`.gitmodules` now lists only `com.akinokaede.termind`; AgentKit, libssh2, libtailscale, and Ghostty have no declared maintenance submodules. Treat the SSH and Tailscale packages as remote inputs, not repository maintenance trees. `TailscaleKit` links directly into Remote Infrastructure and is not a shared framework target. For any package, `project.pbxproj` defines the allowed remote input and `Package.resolved` records the selected revision. Resolved-only verification uses `-onlyUsePackageVersionsFromResolvedFile`; update and release procedures are in [Build, Test, and Release](../operations/build-test-and-release.md).
 
 ## How responsibilities meet
 

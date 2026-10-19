@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Composition
+title: Platform Runtime and Lifetimes
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -122,13 +122,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
-# Platform Runtime and Composition
+# Platform Runtime and Lifetimes
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -168,7 +168,7 @@ This page explains runtime composition and lifetime boundaries. For the componen
 
 ## Build platforms and native capabilities
 
-The current Debug and Release configurations keep the apps platform-specific: `TFM` uses `SDKROOT = macosx`, `SUPPORTED_PLATFORMS = macosx` and a macOS 15.0 deployment target; `TFI` uses `SDKROOT = iphoneos`, `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"`, an iOS 18.0 deployment target and `TARGETED_DEVICE_FAMILY = "1,2"` (iPhone and iPad). The `MACOSX_DEPLOYMENT_TARGET` value also present in TFI's settings does not add a macOS build platform. Do not infer a Catalyst or desktop lifecycle from that metadata: the native entrypoints remain `TermindApp` with its AppKit delegate and `TermindIOSApp` with its UIKit delegate. See [Build, Test, and Release](../operations/build-test-and-release.md) for build operations.
+The current Debug and Release configurations in the [Xcode project](../../Termind.xcodeproj/project.pbxproj) keep the apps platform-specific: `TFM` uses `SDKROOT = macosx`, `SUPPORTED_PLATFORMS = macosx` and a macOS 15.0 deployment target; `TFI` uses `SDKROOT = iphoneos`, `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"`, an iOS 18.0 deployment target and `TARGETED_DEVICE_FAMILY = "1,2"` (iPhone and iPad). The `MACOSX_DEPLOYMENT_TARGET` value also present in TFI's settings does not add a macOS build platform. Do not infer a Catalyst or desktop lifecycle from that metadata: the native entrypoints remain `TermindApp` with its AppKit delegate and `TermindIOSApp` with its UIKit delegate. See [Build, Test, and Release](../operations/build-test-and-release.md) for build operations.
 
 Capabilities authorize platform integrations; they do not own service lifetimes:
 
@@ -197,7 +197,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindPersistence.makeContainer` fixes the shared versioned SwiftData schema and migration plan for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
+[`TermindPersistence.makeContainer`](../../Frameworks/TermindPersistence/TermindPersistence.swift) fixes the shared versioned SwiftData schema and migration plan for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
 
 The desktop root captures `launchLanguage` once during initialization and injects its locale into both main and external-authentication scenes. The Settings picker stores a new `AppLanguage` and shows a next-launch notice when it differs from the captured selection; it does **not** automatically quit or relaunch the application. The new selection applies on the next launch, rather than replacing the root's captured locale in place. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 

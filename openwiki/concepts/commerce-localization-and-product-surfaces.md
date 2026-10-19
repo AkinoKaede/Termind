@@ -58,24 +58,18 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
   - id: openwiki-source-079b35134aa7d0dc22681651
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift
-  - id: openwiki-source-eae5d91412d0e2847dacd5b6
-    resource: repo://FrameworkTests/AppReviewControllerTests.swift
   - id: openwiki-source-6e2febd4a2646c8786d30db3
     resource: repo://FrameworkTests/HostAccessTests.swift
   - id: openwiki-source-d4dc435e4e9f6262c9e07564
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
-  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
-    resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-d125bef219ce9eee56abf917
     resource: repo://Scripts/check-localization.py
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
-  - id: openwiki-source-051c73f47cb05bef42b9cb63
-    resource: repo://Scripts/Tests/test_localization.py
   - id: openwiki-source-9fc915d39c61b81a60426eb3
     resource: repo://StoreKit/Termind.storekit
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -108,10 +102,10 @@ sources:
     resource: repo://TFITests/MobileAppReviewTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-3c3024b6fd97b1c4edfd5131
+    resource: repo://TFITests/MobileCompactCardTests.swift
   - id: openwiki-source-8d34d9ba6456e86e57933569
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
-  - id: openwiki-source-205304536d13b39bf2e7e666
-    resource: repo://TFITests/Screenshots/MobileCardRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -122,8 +116,6 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
-  - id: openwiki-source-02eecf143fd9df60be910051
-    resource: repo://TFM/Features/Hosts/HostsPageView.swift
   - id: openwiki-source-bf08592e56aa88a7189a7fb5
     resource: repo://TFM/Features/KnownHosts/KnownHostsPageView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
@@ -136,10 +128,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 ## Commerce ownership and configuration
@@ -237,33 +229,13 @@ The invitation appears above the desktop Hosts cards and in the unfiltered mobil
 
 `AppReviewInvitationView` offers a user-initiated App Store link and decline action, with horizontal-to-vertical layout fallback, shared localized copy and accessible action targets. Decline persists `.declined`. Opening `https://apps.apple.com/app/id6805856690?action=write-review` persists `.openedReview` **only when the URL handler accepts it**. Rejection leaves the invitation available. Either response hides all windows immediately and survives relaunch, without any claim that a rating was submitted. The permanent Settings review link uses the same opener independently of invitation visibility.
 
-```mermaid
-flowchart TD
-    Init["Enabled controller loads local first use and response"] --> Entry["Hosts or Vault page entry"]
-    Entry --> Snapshot{"Seven days, hosts and no response"}
-    Snapshot -->|no| Hidden["Hidden for this visit"]
-    Snapshot -->|yes| Visible{"Hosts remain and no filtering or response"}
-    Visible -->|no| Suppressed["Hidden without consuming invitation"]
-    Visible -->|yes| Card["Show invitation"]
-    Card --> Decline["Decline persists declined"]
-    Card --> Open["User opens review URL"]
-    Open --> Accepted{"URL handler accepts"}
-    Accepted -->|no| Card
-    Accepted -->|yes| Intent["Persist openedReview intent"]
-    Decline --> Shared["Hide across windows and future launches"]
-    Intent --> Shared
-    Hidden --> Entry
-    Suppressed --> Visible
-```
-The real invitation path snapshots entry eligibility and consumes the invitation only on decline or accepted URL opening, never on a completed-rating signal.
-
 The presentation boundary is the shared [`AppReviewLink` and `AppReviewInvitationView`](../../Frameworks/TermindPresentation/AppReviewInvitationView.swift), not a platform review presenter or a StoreKit automatic prompt. The button delegates to SwiftUI's environment `openURL`, so acceptance is an OS URL-opening result rather than store feedback. Keep invitation eligibility in the controller/visit pair and URL handling in this presentation adapter when extending either app.
 
-Developer preview is a separate transient path: `setPreviewEnabled` resets `previewResponse`, bypasses age, host, enabled and real-response gates, but still hides while filtering. Preview accept does **not** open an external URL; both actions change only `previewResponse`, never defaults or the real response. Toggling preview resets it, and relaunch does not restore it. [Controller tests](../../FrameworkTests/AppReviewControllerTests.swift) cover seven-day boundaries, clock rollback, persistence, rejected opens, visit snapshots, filtering, cross-window response and preview isolation. [Mobile review tests](../../TFITests/MobileAppReviewTests.swift) check shared injection and render English and both Chinese variants at phone/tablet widths with light/standard and dark/accessibility-size layouts; these renders do not establish all-language visual approval.
+Developer preview is a separate transient path: `setPreviewEnabled` resets `previewResponse`, bypasses age, host, enabled and real-response gates, but still hides while filtering. Preview accept does **not** open an external URL; both actions change only `previewResponse`, never defaults or the real response. Toggling preview resets it, and relaunch does not restore it. [Controller tests](../../FrameworkTests/AppReviewControllerTests.swift) cover seven-day boundaries, clock rollback, persistence, rejected opens, visit snapshots, filtering, cross-window response and preview isolation. [Mobile review tests](../../TFITests/MobileAppReviewTests.swift) check that in-memory models disable invitations and share an injected controller, including preview state. They do not render localized invitations; inspect actual layouts separately.
 
 ## App localization
 
-App UI copy, including platform-specific strings and the native paywall **fallback** text, belongs to semantic `LocalizedStringResource` definitions in `Frameworks/TermindPresentation/Strings` and the shared manual `Frameworks/Resources/Localizable.xcstrings`; `InfoPlist.xcstrings` owns bundle metadata. Keep diagnostic codes, protocol values like remote paywall `state`, identifiers and user-authored content outside translated UI copy. RevenueCat's dashboard paywall text and StoreKit product metadata are **separate** copy owners. The app catalogs must have finished `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` and `fr` units for changed English keys. `Scripts/normalize-string-catalogs.py --write` canonicalizes catalog format and manual extraction without deleting stale keys or changing translations and refuses duplicate JSON keys before writing; `Scripts/check-localization.py` checks both app catalogs by default for normalization, valid JSON, all six non-English translations, positional format arguments, language-specific plurals and spacing. The separate AgentKit runtime catalog needs its own localization build step; native catalog checks do not establish website copy correctness. `Scripts/check-appstrings.sh` detects selected app-local UI literals via SwiftSyntax and `ArchitectureBoundaryTests` guards the shared copy owner, but neither proves all UI text is localized.
+App UI copy, including platform-specific strings and the native paywall **fallback** text, belongs to semantic `LocalizedStringResource` definitions in `Frameworks/TermindPresentation/Strings` and the shared manual `Frameworks/Resources/Localizable.xcstrings`; `InfoPlist.xcstrings` owns bundle metadata. Keep diagnostic codes, protocol values like remote paywall `state`, identifiers and user-authored content outside translated UI copy. RevenueCat's dashboard paywall text and StoreKit product metadata are **separate** copy owners. The app catalogs must have finished `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` and `fr` units for changed English keys. `Scripts/normalize-string-catalogs.py --write` canonicalizes catalog format and manual extraction without deleting stale keys or changing translations and refuses duplicate JSON keys before writing; `Scripts/check-localization.py` checks both app catalogs by default for normalization, valid JSON, all six non-English translations, positional format arguments, language-specific plurals and spacing. The default check covers only the two shared app catalogs, not dependency-owned runtime catalogs or website copy. `ArchitectureBoundaryTests` guards the shared copy owner and its dependency boundary, and rejects `.swiftUIKey` bridges in alert and confirmation-dialog titles. It does not prove that all UI text is localized; there is no current standalone AppStrings literal checker.
 
 ### Catalog and formatting contracts
 
@@ -274,15 +246,15 @@ The available checker is **`python3 Scripts/check-localization.py`**, not `Scrip
 - Entries marked `shouldTranslate: false` are exempt. Otherwise all six supported non-English languages must contain finished, nonempty translation units (an empty key may have an empty value).
 - Interpolation must preserve the **position, type and multiplicity** of format arguments, including literal `%%`. Reordered translations need positional specifiers: `%lld on %@` may become `%2$@で%1$lld件`, but changing types or reordering implicit arguments fails. For metadata keys, the English localized value supplies the format contract rather than the key name.
 - When English has plural variations, or a translation introduces them, Chinese, Japanese and Korean require exactly `other`; German requires `one` and `other`; French requires `one` and `other` with optional `many`. Selected count resources have English `one` and `other`. Translate every nested unit, not only a top-level string.
-- Japanese rejects spaces between Japanese scripts and Latin text, digits or placeholders. Chinese also checks punctuation and spacing around separators when Han text is present. The `Type %@` key-card subtitle has a narrow label/value spacing exception; this is not permission to add arbitrary mixed-script spaces. These restrictions do not apply to Korean word spacing or German/French typography, including French nonbreaking spaces. Contextual terminology tests distinguish Metrics `Memory` from assistant `memory`, model tokens from security tokens, key association from file attachments, and Korean dynamic labels that cannot assume a provider name's final consonant.
+- Japanese rejects spaces between Japanese scripts and Latin text, digits or placeholders. Chinese also checks punctuation and spacing around separators when Han text is present. The `Type %@` key-card subtitle has a narrow label/value spacing exception; this is not permission to add arbitrary mixed-script spaces. These restrictions do not apply to Korean word spacing or German/French typography, including French nonbreaking spaces. Runtime tests additionally check Korean dynamic labels that cannot assume a provider name's final consonant.
 
-`Scripts/Tests/test_localization.py` exercises these failure cases and exceptions. CI runs it and the normalizer tests before the checker. These are structural checks, not translation-quality or visual-layout approval.
+The [localization workflow](../../.github/workflows/localization.yml) runs `python3 Scripts/check-localization.py` directly on Ubuntu for pull requests and pushes to `main` affecting the shared catalogs, either localization script or the workflow. It no longer runs Python localization or normalizer test suites. The checker compares normalized bytes without writing files. These are structural checks, not translation-quality or visual-layout approval.
 
 ### Language selection and launch lifecycle
 
 `AppLanguage` offers Follow System first, then canonical choices sorted by tag: German (`de`), English (`en`), French (`fr`), Japanese (`ja`), Korean (`ko`), Simplified Chinese (`zh-Hans`) and Traditional Chinese (`zh-Hant`). Explicit choices are persisted in `SettingsKey.appLanguage` and as a one-element canonical `AppleLanguages` array. Follow System stores `system` but **removes** `AppleLanguages`, restoring Bundle negotiation rather than writing a system-language array.
 
-Reading a legacy preference migrates only Chinese identifiers whose resolved script is `Hans` (tested examples include `zh`, `zh-CN`, `zh_CN` and regional `zh-Hans` tags). Unsupported preferences, including noncanonical regional Traditional Chinese stored values, return `.system` without rewriting the stored value. This preference migration differs from **catalog lookup**: `AppLocalization` resolves Chinese by script (`Hant` selects `zh-Hant`, otherwise `zh-Hans`), maps regional English, German, French, Japanese and Korean identifiers to `en`, `de`, `fr`, `ja` and `ko` respectively. It loads that main-bundle `.lproj` when available and otherwise falls back to the main bundle. Tests cover Traditional Chinese system locales such as `zh-TW`, `zh-HK` and `zh-MO`, comparing their Settings label with the Traditional catalog and distinguishing it from Simplified Chinese. The Traditional Chinese picker label becomes `正體中文` only for device region `TW` when the Taiwan flag can be displayed; otherwise it remains `繁體中文`.
+Reading a legacy preference migrates only Chinese identifiers whose resolved script is `Hans` (tested examples include `zh`, `zh-CN`, `zh_CN` and regional `zh-Hans` tags). Unsupported preferences, including noncanonical regional Traditional Chinese stored values, return `.system` without rewriting the stored value. This preference migration differs from **catalog lookup**: `AppLocalization` resolves Chinese by script (`Hant` selects `zh-Hant`, otherwise `zh-Hans`), maps regional English, German, French, Japanese and Korean identifiers to `en`, `de`, `fr`, `ja` and `ko` respectively. It loads that main-bundle `.lproj` when available and otherwise falls back to the main bundle. Regional Traditional Chinese locales therefore select the Traditional catalog at lookup time even though noncanonical stored preference tags fall back to Follow System. The Traditional Chinese picker label becomes `正體中文` only for device region `TW` when the Taiwan flag can be displayed; otherwise it remains `繁體中文`.
 
 On desktop, `TermindApp` captures the stored language at initialization and injects its locale into scene content; Settings does not replace that launch-time locale. The picker writes the preference without automatically relaunching. When its selected language differs from the Settings view's captured `launchLanguage`, it shows “The new language will be used after Termind relaunches.” resolved explicitly in the **selected** language (Follow System uses `.autoupdatingCurrent`). Normal UI adopts the new explicit choice on a subsequent launch, not an immediate whole-app language refresh.
 
@@ -300,11 +272,11 @@ flowchart TD
 ```
 The desktop picker persists the next launch's choice while rendering only the notice in the newly selected language.
 
-Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests preference migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations, and Host-access error presentation. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
+Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests unknown-preference fallback, Simplified Chinese preference migration, the region/flag-dependent Traditional Chinese name, Korean dynamic labels, localized demo conversations, and Host-access error presentation. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
 
 ### Library cards and compact mobile surfaces
 
-Ordinary product labels illustrate the split: iOS Vault search opens Snippets and Known Hosts, whose pages distinguish an empty collection from empty search results. Known Hosts offers add/edit/copy-fingerprint/delete and an editor title that changes with the entry; the macOS empty state additionally offers import or manual add and deletion warns that trust will need verifying on the next connection, with count-sensitive confirmation. Snippets has new snippet/package/subpackage actions and a keep-or-remove-snippets package deletion choice. Shared `SnippetCardContent` supplies colored icons, valid SSH-target counts, risk chips and relative timestamps to both apps, while each owns the surrounding surface and actions. `SnippetTimestamp` supplies a stable local fallback for legacy baseline dates. Card timestamps use the view locale; hostnames, fingerprints, paths and scripts remain user content. `MobileCardTests` checks add/edit titles; opt-in `MobileCardRenderingTests` mounts real views in three app languages with light/dark and selected large-type captures. Inspect actual views as well as catalogs after UI changes.
+Ordinary product labels illustrate the split: iOS Vault search opens Snippets and Known Hosts, whose pages distinguish an empty collection from empty search results. Known Hosts offers add/edit/copy-fingerprint/delete and an editor title that changes with the entry; the macOS empty state additionally offers import or manual add and deletion warns that trust will need verifying on the next connection, with count-sensitive confirmation. Snippets has new snippet/package/subpackage actions and a keep-or-remove-snippets package deletion choice. Shared `SnippetCardContent` supplies colored icons, valid SSH-target counts, risk chips and relative timestamps to both apps, while each owns the surrounding surface and actions. `SnippetTimestamp` supplies a stable local fallback for legacy baseline dates. Card timestamps use the view locale; hostnames, fingerprints, paths and scripts remain user content. `MobileCardTests` checks add/edit titles, tag bounds and connection timestamps; `MobileCompactCardTests` checks compact-card warnings, snippet risk labels and the Compact setting's translations. These behavioral tests do not establish multilingual visual approval. Inspect actual views as well as catalogs after UI changes.
 
 On mobile, the persisted `mobile.compactCards` preference selects reduced card content for Hosts, Known Hosts and Snippets; it does not change the underlying records or per-card actions. Standard host cards show the supplied login address, at most two tags and a locale-formatted last-connection timestamp (or “Never”); compact host cards use the title, icon and status instead. Standard Known Hosts cards show the algorithm and localized added-at time, while compact cards retain the title/icon. Tests cover the two-tag bound, recording SSH/SFTP opens for host timestamps, and add/edit Known Host titles. Review both density modes rather than assuming shared Snippet content is rendered in compact mode. See [Mobile UI](../architecture/mobile-ui.md).
 
@@ -313,25 +285,6 @@ On mobile, the persisted `mobile.compactCards` preference selects reduced card c
 `TermindWidgets` contains only a workspace Live Activity, not another workspace engine. The app serializes starts, updates and ends, restores at most one active/stale activity and ends duplicates before updating. Ordinary updates cannot resurrect a dismissed activity; a new explicit workspace-open intent can start one when the app can request it. **The local workspace snapshot is authoritative, not the system activity's recovery payload.** After a successful load, saved descriptors publish disconnected summaries even before live workspaces are constructed; orphaned system entries are dropped, and an empty authoritative snapshot ends the activity. A failed snapshot read does not authorize updating or ending system cards, including duplicates.
 
 The payload excludes credentials and terminal output, but can carry a versioned host/kind recovery descriptor and an opaque encoded `RemoteSessionReference`. Snapshots order the focused session first (falling back to the last session), cap summaries at six, truncate titles and drop whole trailing entries until the encoded state fits 3,500 bytes. Do not truncate identity/reference data to meet the budget. Generated links address `termind://workspaces` or a UUID workspace without recovery queries. The parser still accepts exactly `v=1`, a host UUID and `kind` (`ssh`, `mosh`, `eternalTerminal`, `sftp` or `telnet`) on legacy workspace links, but the scene uses only the workspace ID to find its local owner. The remote-session reference stays out of URLs, and extra query parameters are rejected. Missing local ownership shows an unavailable workspace rather than rebuilding it from the link or system card. An existing owner in another scene is activated; a local saved descriptor can construct a workspace only while its host and protocol remain usable. SSH restoration can retain its remote-session attachment without forcing selection; resumable transports are marked as requiring transport recovery rather than silently recreating a session. [Restoration tests](../../TFITests/MobileLiveActivityRestorationTests.swift) cover cold launch without connecting, authoritative removal of orphaned entries, failed snapshot reads, duplicate cleanup, dismissal, explicit close and close/open races; [payload tests](../../TFITests/MobileWorkspaceStoreTests.swift) cover whole-entry budgeting and link rejection.
-
-```mermaid
-flowchart TD
-    Load["Load local workspace snapshot"] --> Valid{"Read succeeded"}
-    Valid -->|no| Preserve["Preserve system cards unchanged"]
-    Valid -->|yes| Restore["Restore one active or stale activity"]
-    Restore --> Retain["Publish local live and saved workspace summaries"]
-    Retain --> Queue["Serialize snapshot and end duplicates on restore"]
-    Explicit["Explicit workspace open"] --> Pending["Record start intent"]
-    Pending --> Queue
-    Queue --> Empty{"Authoritative workspace count is zero"}
-    Empty -->|yes| Finish["End activity"]
-    Empty -->|no| Existing{"Active or stale activity exists"}
-    Existing -->|yes| Update["Update bounded snapshot"]
-    Existing -->|no| Allowed{"Pending intent and start allowed"}
-    Allowed -->|yes| Request["Request activity"]
-    Allowed -->|no| Wait["Do not create activity"]
-```
-The Live Activity queue reconciles authoritative local records only after a successful read and requires explicit user intent to create an activity.
 
 DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` or `fr` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
@@ -348,7 +301,7 @@ Once source is available, follow the documented website workflow (`cd com.akinok
 - Native entitlement policy and gates: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests, `HostAccessTests` and platform-specific gate tests. Preserve deterministic Host ordering, pre-mutation quota checks, jump-host admission and current-policy checks in cached connections. Check live entitlement configuration and account migration separately from the local StoreKit metadata fixture. [RevenueCat configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift) and [service configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift) explain the native SDK boundary, not public-site promises.
 - RevenueCat dashboard-owned paywalls and legal copy: inspect the remote layouts, visibility rules, translations, offer terms and legal destinations independently. Compare them with the native [paywall variable contract](../../Frameworks/TermindPresentation/ProPaywallState.swift), [mobile wrapper](../../TFI/Features/Commerce/MobileProView.swift), [desktop wrapper](../../TFM/Features/Commerce/ProPaywallView.swift) and [state tests](../../FrameworkTests/ProPaywallStateTests.swift). These tests verify status mapping, not remote wording or live purchases.
 - Apple storefront metadata: verify live product availability, localized descriptions, prices, introductory-offer eligibility, Family Sharing and purchase/restore behavior in App Store Connect and Sandbox. Neither website prices nor the local fixture establish the offer a particular user receives. See [Storefront Commerce Release Checks](../operations/storefront-commerce-release.md).
-- Review invitations: run `AppReviewControllerTests` and `MobileAppReviewTests`; preserve elapsed-time and entry-snapshot semantics, shared-window response invalidation, rejected-open behavior and preview isolation. Use `TERMIND_REVIEW_PREVIEW=1` to attach the mobile invitation renders; inspect layouts rather than treating successful rendering as translation approval.
-- Mobile cards and Live Activity: check both card densities and run `MobileCardTests`, opt-in `MobileCardRenderingTests`, `MobileLiveActivityRestorationTests` and `MobileWorkspaceStoreTests`. Keep recovery references out of URLs and preserve whole-entry payload budgeting.
-- App catalogs: run `python3 Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `python3 Scripts/check-localization.py`, `python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md). Language preferences and sync ownership are discussed in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md); visual copy checks complement [UI Design Principles](ui-design-principles.md).
+- Review invitations: run `AppReviewControllerTests` and `MobileAppReviewTests`; preserve elapsed-time and entry-snapshot semantics, shared-window response invalidation, rejected-open behavior and preview isolation. Inspect invitation layouts separately; the mobile review suite tests injection, not localized rendering.
+- Mobile cards and Live Activity: check both card densities and run `MobileCardTests`, `MobileCompactCardTests`, `MobileLiveActivityRestorationTests` and `MobileWorkspaceStoreTests`. Keep recovery references out of URLs and preserve whole-entry payload budgeting.
+- App catalogs: run `python3 Scripts/normalize-string-catalogs.py --write` after app catalog edits, `python3 Scripts/check-localization.py`, `ArchitectureBoundaryTests`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md). Language preferences and sync ownership are discussed in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md); visual copy checks complement [UI Design Principles](ui-design-principles.md).
 - Independently authored website claims: obtain the website source and inspect the deployed site before comparing its FAQ, offers, prices, privacy/security disclosures and localized routes with native entitlement and sync behavior. Build and visually check the routes actually present in that checkout. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.

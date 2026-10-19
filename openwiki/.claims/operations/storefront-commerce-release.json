@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cae2c10c1170161a6b7ee24f7d64a5d16ea8c778ecd4361a45406d2ff07c9abf",
+  "pageVersion": "sha256:82d0fae38821417c72562320aab2387b243e412dbb2765c5fb4a8ffa17c843b8",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -92,7 +92,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://FrameworkTests/ProPaywallStateTests.swift",
@@ -150,7 +150,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         }
       ]
     },
@@ -220,7 +220,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         }
       ]
     },
@@ -320,17 +320,25 @@
     },
     {
       "id": "claim_1cb1e24791994626aabf7e058bec95e6",
-      "statement": "Native Release settings use marketing version 1.17.1 for both apps with target-specific build numbers 105 for Mac TFM and 94 for mobile TFI, overriding the project-level CURRENT_PROJECT_VERSION of 68; release artifact version checks must use resolved target settings rather than the project default.",
+      "statement": "Native Release settings use marketing version 1.17.1 for both apps with target-specific build numbers 107 for Mac TFM and 96 for mobile TFI, overriding the project-level CURRENT_PROJECT_VERSION of 70; release artifact version checks must use resolved target settings rather than the project default.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2340-L2380",
+          "version": "repo-lines-v1:sha256:815bff9224689f3b0e87e427973e24af26d7c45f5930eb13b9e98c32ab2fbd11:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2526-L2588",
+          "version": "repo-lines-v1:sha256:6dba2ef6897b548798325db59435802ec6cd804b839432c9c22041a276bdb306:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MTNkZjIzZmQ0MGQ1NTU2MDQxZWRlMGMxNzIxNDg0MjBkYzcwZjI3NjA0NzExMTYxNjM1NmMyMDRkNmQ2MjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzN2NmOTZkOTg2OGE1OTNjYWZkYzk0NGNkOWU2MmZmOTQ1MDNkODRmNjIwMGU0ZTk1MjYwNGZlYjdlZjcwOGQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2628-L2668",
+          "version": "repo-lines-v1:sha256:60519cc0151f04dcea6f0e4621ec2390a2636aab8f6eb6c6be16ba3072f05700:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNmZiOGVmOGFkNTliY2JkYmNjZDBmNTc3N2QxOTA2MTI5MzY0YmY4MTgyMzgxZTNlZmM4OTM2ZGM1MjRiN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5ZTZjYTAzY2VlOTg1OTZkMzcxOTViOTAxMzMyMTI5ZDhlOWZjNzhjNmU2MjQzMWFhNzhkOTE2M2JkOTAyMTUifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

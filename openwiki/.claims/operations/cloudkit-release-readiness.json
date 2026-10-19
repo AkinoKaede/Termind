@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ab613bd80fb30d8ff31e61e9a18af80b3badbf8a4e9b8aeb6e4981e9d58341fa",
+  "pageVersion": "sha256:2a6ed8d58ff7734e3b44fee2e11b63d39675e5d623a26abd7faa6124f9c53f36",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -77,8 +77,8 @@
       "statement": "SFTP preferences default to 30 global and 10 per-Host transfers with Smart topology; global values are bounded to 1–100, per-Host values to 1–50, and per-Host is clamped to the global value.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SFTPSettingsTests.swift#L8-L30",
-          "version": "repo-lines-v1:sha256:6085469df5e2336612327c77699e00fa7b868b41acbde1fc2c0de1bd30d62b97:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjZTY5NmQxNmRhZmM1NjBmODMwYmI4YzNlN2EwOGFiMGQ3YjI5ODU4Y2ExOTUxMzFjNzBiYzc0MDc0MGEzMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5YmZkNDlkN2U5ZDI3MDIxZTA5OTM1OGRjNjlmYzIxZTQzNzVlMDZmZWNkYmQxMDM2ZmY2MmJjZGFmNDI4ODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhOWM0YzViZDNiNWU3N2MzY2I5ZmI0YjU4YjM0OGEwNWMwNGE2MzAzY2NjZGY5ODYwMjJiOGViNzhiZDkwOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZDZlNjVlOGUzMDliOThiODdmYmI1OGMxMTU2NDk0Y2U0ODkwMmI5NTQ4NGY2ODQwM2Y4MzNjMjBmYmNkMzgifQ"
+          "resource": "repo://FrameworkTests/SFTPSettingsTests.swift#L8-L22",
+          "version": "repo-lines-v1:sha256:d9ac31510aa191d5818a16a9ff139f60b88261d6e71748234b2ab40f059e6fbd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhNjBiNmM1YmJhZTU0ZDhlYmU5ZWNkMDQzOGZjMzNhMmNiYmE0MDdiMDdjYjAwYmQ4NDAzZDBlYjMxZGVmODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5YmZkNDlkN2U5ZDI3MDIxZTA5OTM1OGRjNjlmYzIxZTQzNzVlMDZmZWNkYmQxMDM2ZmY2MmJjZGFmNDI4ODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhOWM0YzViZDNiNWU3N2MzY2I5ZmI0YjU4YjM0OGEwNWMwNGE2MzAzY2NjZGY5ODYwMjJiOGViNzhiZDkwOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZDZlNjVlOGUzMDliOThiODdmYmI1OGMxMTU2NDk0Y2U0ODkwMmI5NTQ4NGY2ODQwM2Y4MzNjMjBmYmNkMzgifQ"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift#L3-L45",
@@ -224,19 +224,19 @@
     },
     {
       "id": "claim_d9bd498c7bb54f79af60a63cf83c303c",
-      "statement": "The shared container uses V58 without CloudKit mirroring and excludes endpoints V29/V32/V33. V51 adds Snippet color, V52 retires highlighting, V53 sessions, V54 artwork, V55 transports, V56 Wake-on-LAN, V57 themes and V58 creation ordering without invented dates; successive V50–V58 stages are lightweight and independent of wire formats.",
+      "statement": "The shared container uses V59 without CloudKit mirroring and excludes migration endpoints V29/V32/V33. V51 adds Snippet color, V52 retires highlighting, V53 sessions, V54 artwork, V55 transports, V56 Wake-on-LAN, V57 themes, V58 creation ordering without invented dates, and V59 separate discovered MCP server description metadata preserving historical MCP server shapes. Successive V50–V59 stages are lightweight and independent of wire formats.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SnippetColorTests.swift",
-          "version": "repo-file-v1:sha256:ad55ac92cf1589c68b116a45f6f95ebea62075cfe969857f34f2d74492b61b40"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L884-L1095",
+          "version": "repo-lines-v1:sha256:e12506b336a4b2fd55abb7994b137e6a5e4d35fa86f7b0bd01de09693f6a144e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0ZjAzNWMyMjQ2OGZiZGNhMzk2MmI4ZThkZGEzOTk0NDNhMTlmNTViZjI1NTY1MzQ0MDcyNzU3MGQ4ZjgwMzRmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI2ZDIzMzYxZTFjZjYyNzFiOWRiOTc3MGQ4NjdjNDE5ZDU4NjAwZTgzYjNlZWNmMmFhNzQ3Zjg3NTliMzA2YjBjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0ZjUyZGE5NTY2OTg3YWU4ZWZmMjBmNjc4Mzk2ZTMwOGI5NzZjNTNjOGJkOThmYjExYjVkMWJjMWY5YWJjYzE5In0"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:53eff7f269e4ea85297c28396d5e7f31ac258f30f02b8048904de3f25b13afb0"
+          "resource": "repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift",
+          "version": "repo-file-v1:sha256:f66335ee1acf885f329b370978f58d51e7c0061bdf575d1535af57db17c31924"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40",
+          "version": "repo-lines-v1:sha256:e874502acc5ea893ca02d82899aa6dc72aa73b5bbad893aaff465a0df4b13609:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
         }
       ]
     },
@@ -584,7 +584,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         }
       ]
     },
@@ -630,7 +630,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/HostIconTests.swift",
-          "version": "repo-file-v1:sha256:71a57a6593fabfacbf27a40024c0da50f5449746b1e51786873a9e9bb1bd7204"
+          "version": "repo-file-v1:sha256:ca925af600bc65b30e21e2d65d64a71402f51fa2a75f8f6f8e35b4e671bcfa8b"
         },
         {
           "resource": "repo://FrameworkTests/SessionPersistenceTests.swift",
@@ -689,10 +689,38 @@
           "version": "repo-lines-v1:sha256:c2285db523b4cb8069e135b4df2b9e8a12264fc57b3528eec63aa6d4467d7454:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMDM4OTE2ZDI0ZGRmNTA1ZGEwZGI1NDc3NjBlZTg2YmFlODk5ODQxNDk2ZjVlMmI4YTM1YzQzNGU2MzcyZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyNTUzMzVmNThiNmQ3YTkxZGY0YzhkYzdmODE2NzJmMDA4YzIzZTFkMWY1YTk0NTVjOWZjZjdmMjE0ZTdlN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
+    },
+    {
+      "id": "claim_158d66e1fac24830b2dd1067b955a30e",
+      "statement": "SFTPSettingsModel persists normalized local edits before publishing preferences or notifying the runtime; failed saves preserve preferences and emit no notification. Remote snapshots notify only on change without saving again, as covered by SFTPSettingsTests.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsTests.swift#L17-L49",
+          "version": "repo-lines-v1:sha256:e48007e16ec60ee50da1cf36c16bf667009574e17e242f7b53b139de730e4472:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4YzFkNTI2YjFmMGYwNmUwMTVlZDMzNDgxZmU4YmNmNDQ1MGJmZDBjNWNmZWEwNzNlOWU4NzZlMWY2ZjgwMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5NTZkM2RlMGQ2NTMwNTNjYmI0MjI2NTNjOTE1ZjNjMGFkZWRjZGE5MGEyZDRmMTFkYzFkOWFiNzk5ZGY3ZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjMWY2MTg1MTMxM2I4YWQ3ZGY4NWJkNTRiZDA1MjM0ZmIyZDYzMDFlZTAxNTIzYzFlZjY0MzVkMjE3MmQzYWMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift",
+          "version": "repo-file-v1:sha256:d71dd51859fa2bd8f4a16129e0fcaa723ac94f0b66774ddbe75908b6447bbf17"
+        }
+      ]
+    },
+    {
+      "id": "claim_43467622a9cb43f999114d5d327c5b86",
+      "statement": "Legacy SFTP JSON without strategy retains its saved limits and defaults to Smart, while unknown strategy values fail decoding; SFTPSettingsTests covers both cases.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsTests.swift#L51-L68",
+          "version": "repo-lines-v1:sha256:c2c9a5fcad888305cd1920e96e321d3f7f9acbad7e8ddfb6f2b5155834464dfb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NTYyNjNmYmRlMjkzZTgxOWYwYWIwZWRkYTY3YjEwOWJhNTdhMGM1MzUzMDdmNTAxMDc2MjNhYTJlOTMyOTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OTczZjU5MjMwNjVkN2QyMzNlOTEwMjkzOTJhODU3NmRhZjRhMDY3ZjYwNTE1OTMyMzAxOGI0YjEzNGI4YmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift#L48-L64",
+          "version": "repo-lines-v1:sha256:880d94824dc86acd21f18dab2e6c55c165ca78a595de70e5f0a945796621795a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTdjOWNjZTZhYWY4OTM2Yjk0NTVhN2ZmOTA3MWMxNjNjZjNmMGViMDQxY2JmZjViOTQ3YWRjYTBkNTVlOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3YTI0YTc4ZTlkOGQyN2Y1ZWQwM2QyNzkxNzdjOGM4YjYwYjg3ZTdkZmFiYzAyZWVhMTIxMTA3Y2FmMzk4YzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

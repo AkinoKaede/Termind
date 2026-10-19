@@ -4,6 +4,8 @@ title: System Boundaries
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -22,8 +24,16 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-743e6dcf5fbbd1fcc58c991e
+    resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
+  - id: openwiki-source-5b42af91dbdc738123786a99
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-7e27e66540bd1ea5c642a652
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
   - id: openwiki-source-0d8bc8948aed7b3cc4944dbf
     resource: repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift
+  - id: openwiki-source-6ab30745153a4cbf15c4b18c
+    resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-cd4e1048d6e972f3f86d27e3
@@ -72,14 +82,16 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-7c65a9e84644dfdb436d849d
+    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # System Boundaries
@@ -181,7 +193,7 @@ Focused tests complement the source guards: `ResumableTerminalEngineTests` cover
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the current schema (`TermindSchemaV58`) and builds a `ModelContainer` using `TermindMigrationPlan`. V39 added persistent assistant model selection; V40 removed retired per-category quarantine tables while keeping scoped quarantine; V41 added shared notification preferences; V42 adds agent-message provenance, chat creation relations, and durable collaboration delivery receipts without changing historical model shapes. V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model with Security Key reference metadata, and V46 adds terminal keyword-highlight preferences. The migration plan contains lightweight stages from V38 through V58, including V47/V48 Tailscale data, V49 history-model removal, V50 profile cleanup, V51 Snippet color, V52 removal of retired terminal keyword-highlighting preferences, V53/V54 Host-model replacements, V55 terminal transport preferences, V56 Wake-on-LAN preferences, V57 custom terminal themes and appearance selections, and V58 Host creation ordering without inventing dates for historical hosts. The pre-color Snippet model is frozen for V1–V50; the colored model is substituted starting in V51 and retained by subsequent schemas. Local schema migrations do not change the independently versioned CloudKit envelopes. The factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled. On macOS, before opening or migrating a disk store, it takes a nonblocking exclusive `flock` on a stable `.lock` file keyed by the canonical store URL; same-process containers share the lease and the container retains it until its lifetime ends. An in-memory container skips this lock. Platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container. The authoritative entrypoints are the [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift) and [schema/migration plan](../../Frameworks/TermindPersistence/HostPersistence.swift); see [Persistence and Secrets](../concepts/persistence-and-secrets.md) for the storage and credential model.
+`TermindPersistence` exports the current schema (`TermindSchemaV59`) and builds a `ModelContainer` using `TermindMigrationPlan`. V39 added persistent assistant model selection; V40 removed retired per-category quarantine tables while keeping scoped quarantine; V41 added shared notification preferences; V42 adds agent-message provenance, chat creation relations, and durable collaboration delivery receipts without changing historical model shapes. V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model with Security Key reference metadata, and V46 adds terminal keyword-highlight preferences. The migration plan contains lightweight stages from V38 through V59, including V47/V48 Tailscale data, V49 history-model removal, V50 profile cleanup, V51 Snippet color, V52 removal of retired terminal keyword-highlighting preferences, V53/V54 Host-model replacements, V55 terminal transport preferences, V56 Wake-on-LAN preferences, V57 custom terminal themes and appearance selections, V58 Host creation ordering without inventing dates for historical hosts, and V59 optional MCP implementation descriptions discovered from remote servers. The pre-color Snippet model is frozen for V1–V50; the colored model is substituted starting in V51 and retained by subsequent schemas. Local schema migrations do not change the independently versioned CloudKit envelopes. The factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled. On macOS, before opening or migrating a disk store, it takes a nonblocking exclusive `flock` on a stable `.lock` file keyed by the canonical store URL; same-process containers share the lease and the container retains it until its lifetime ends. An in-memory container skips this lock. Platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container. The authoritative entrypoints are the [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift) and [schema/migration plan](../../Frameworks/TermindPersistence/HostPersistence.swift); see [Persistence and Secrets](../concepts/persistence-and-secrets.md) for the storage and credential model.
 
 Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models. `DeviceDirectoryModel` registers the current installation at initialization and resolves names by ID from its cached repository snapshot, falling back to the supplied local name for the current device. The constructor defaults to an in-memory directory when no repository is supplied. Registration failure records `storageError` but still attempts a read, so already-saved names may remain visible; `reload()` clears the snapshot on read failure, records `storageError`, and increments `revision` even on failure. Explicit renaming calls `upsert` and updates the local name only after the write succeeds, then reloads the snapshot; a failed rename retains the previous local name and records the error. The SwiftData adapter's launch-time `registerIfNeeded` deliberately leaves a remotely deleted directory entry deleted, whereas an explicit `upsert` commits a changed name or new record with the History journal snapshot and notifies the injected device-sync callback after a successful mutation.
 
@@ -281,7 +293,7 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `3.0.1`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `3.0.1` at revision `3661d156202e9da8d59e5e36ac461913c8bd8536`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `4.0.0`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. Xcode builds that resolved remote package, not an external working tree. AgentKit is not a Termind submodule; upstream checkout paths are not repository source paths.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 
@@ -290,7 +302,26 @@ Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfr
 Execution registration and localized rendering are separate extension points:
 
 - **Execution availability belongs to the remote catalog.** `TermindAgentTools` registers separate acting and planning variants of SSH run/stdin tools. SFTP mutations and scratch push are acting-only registrations; read-oriented tools remain available without that restriction. Preserve these mode declarations when extending the catalog rather than relying on UI visibility to restrict execution.
-- **Localized SSH result rendering belongs to Presentation, assembled by the apps.** Both `AppDependencies` and `MobileAppDependencies` decorate `TermindAgentTools.presenterRegistry` with `SSHExecToolPresentation.registering(in:)`. The decorator replaces selected SSH result projections while retaining persisted presenter IDs, tool-owned layout, argument presentation, and operation policy. Descriptor lookup first passes through the remote catalog's trusted lookup (which rejects MCP descriptors and uses a closed legacy-name fallback), then selects the decorated presenter by ID. This lets shared Presentation localize results without importing Remote Infrastructure, and keeps historical `ssh_exec`/`ssh_wait` cards renderable without reintroducing their executable tools. See the [presentation decorator](../../Frameworks/TermindPresentation/SSHExecToolPresentation.swift) and [desktop composition](../../TFM/App/AppDependencies.swift).
+- **Localized SSH result rendering belongs to Presentation, assembled by the apps.** Both `AppDependencies` and `MobileAppDependencies` decorate `TermindAgentTools.presenterRegistry` with `SSHExecToolPresentation.registering(in:)`. The decorator replaces selected SSH result projections while retaining persisted presenter IDs, tool-owned layout, and operation policy; argument rendering delegates to the original presenter, falling back to generic argument items if needed. Descriptor lookup first passes through the remote catalog's trusted lookup, which rejects MCP descriptors and requires an explicit registered presenter ID, then selects the decorated presenter by ID. There is no legacy tool-name fallback or separate `ssh_exec`/`ssh_wait` presenter registration. This lets shared Presentation localize results without importing Remote Infrastructure. See the [presentation decorator](../../Frameworks/TermindPresentation/SSHExecToolPresentation.swift) and [desktop composition](../../TFM/App/AppDependencies.swift).
+- **Tool-family policy is injected into a generic renderer.** `AgentToolPresentation` interprets descriptor metadata and lifecycle through an injected profile resolver and activity vocabulary, rather than resolving concrete tool behavior by protocol name. `TermindToolPresentationProfiles.renderer` composes knowledge, SSH, pane, and chat profiles with localized vocabulary; profiles control summaries, phases, pending detail, approval projection requirements, and truncation notices. Rendering leaves execution, approval, and replay payloads unchanged. An unknown or absent presenter ID does not recover SSH semantics from a matching tool name.
+- **Privacy suppression is distinct from generic fallback.** Profile detail can return `.useDefault`, `.content`, or `.hidden`; hidden output must not leak through raw JSON or error rendering. Local pane/chat privacy profiles apply by name independently of presenter availability, not as semantic presenter recovery. MCP profiles preserve unprojected JSON and cannot select local presenter code through remote metadata. A presenter explicitly supplied by trusted calling code can still project an MCP card.
+
+```mermaid
+flowchart TD
+    Catalog["Remote catalog built-in and Termind presenters"] --> Apps["AppDependencies and MobileAppDependencies"]
+    Decorator["Presentation SSH result decorator"] --> Apps
+    Descriptor["Persisted tool descriptor"] --> Lookup["Reject MCP and require registered presenter ID"]
+    Apps --> Lookup
+    Lookup --> Presenter["Trusted decorated presenter or none"]
+    Profiles["Termind profiles and localized vocabulary"] --> Renderer["Generic AgentToolPresentation"]
+    Presenter --> Renderer
+    Card["Card metadata lifecycle and result"] --> Renderer
+    Renderer --> Native["Native transcript and approval views"]
+```
+
+The apps compose trusted presenters across the remote/presentation boundary; injected profiles control rendering without changing executable registrations.
+
+[`AgentToolPresentationProfileTests`](../../TFMTests/AgentToolPresentationProfileTests.swift) covers injected phase/detail/approval/truncation policies, custom vocabulary, ID-based profile selection, missing-ID fallback, and MCP isolation with explicit trusted projection.
 
 Pane integration is **optional capability injection**, not part of AgentKit's host-neutral catalog. `TermindAgentTools` constructs `list_panes` and `read_pane` only when `AgentPaneAccess` is supplied; absent access omits their executable definitions, while the presenter registry remains available for persisted cards. Similarly, host-facing scratch pull/push definitions require a supplied workspace. On mobile, `MobileSceneModel` supplies `app.paneAccess(for: self)` to its assistant scene model. The app adapter lists connected terminal workspaces with readable viewport surfaces and distinguishes closed, disconnected, and missing-surface reads; it derives active/current metadata from session and scene ownership. This keeps native terminal surfaces behind closures rather than importing UI into AgentKit or the tool catalog.
 
@@ -309,9 +340,9 @@ flowchart TD
 
 The registry assembles host-neutral runtime capabilities and separately injected Termind capabilities without allowing additional or MCP names to shadow built-ins. The external MCP-facing boundary is documented in [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
 
-### Remote packages versus maintenance checkouts
+### Remote packages versus upstream checkouts
 
-The [submodule configuration](../../.gitmodules) includes `AgentKit/`, `libssh2-spm/`, and `libtailscale-spm/`, but the Xcode project uses remote package references, not local package references. A maintenance checkout is a place to develop or publish a dependency, not an implicit build override. In particular, current project requirements for AgentKit, libssh2, and Ghostty use `upToNextMinorVersion`; older guidance describing libssh2 as exact-version or Ghostty as up-to-next-major is not the current project contract. For dependency work, check the project requirement and resolved pin together, release upstream changes before consumption, and keep the maintenance gitlink aligned where applicable. See [Module and Directory Architecture Map](module-map.md) for ownership landmarks and [Build, Test, and Release](../operations/build-test-and-release.md) for validation commands.
+The [submodule configuration](../../.gitmodules) contains only the public website/assets submodule. AgentKit, libssh2-spm, and libtailscale-spm are remote SPM dependencies, not maintenance submodules or local package overrides. In particular, current project requirements for AgentKit, libssh2, and Ghostty use `upToNextMinorVersion`; guidance describing Ghostty as up-to-next-major does not match the current project requirement. For dependency work, check the project requirement and resolved pin together and publish upstream changes before consumption. Do not treat a missing upstream checkout as a repository file or assume its edits affect the resolved build. See [Module and Directory Architecture Map](module-map.md) for ownership landmarks and [Build, Test, and Release](../operations/build-test-and-release.md) for validation commands.
 
 ## How to make a dependency-safe change
 

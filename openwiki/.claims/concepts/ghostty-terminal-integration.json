@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9be701c9b59d7a97aabff1b06485a5f6732d67fb7a9d594584d878551220407e",
+  "pageVersion": "sha256:bab1690513ca58bf80ff681178a27696cce5e8ebea239ca8650fc0c6ac20e1bc",
   "claims": [
     {
       "id": "claim_5374ba64d60a4b61b1474770c4d3b1a1",
@@ -17,30 +17,12 @@
       ]
     },
     {
-      "id": "claim_13f629d7d53b4f2ab312e8d18684ee1e",
-      "statement": "Termind's mobile menu tests directly exercise both touch-menu contexts, including selectedText in the selection context, and expect Copy only with selection, Select only without selection, Paste when pasteboard text is supplied, and Select All in both; these tests establish host hook composition rather than package gesture dispatch.",
-      "evidence": [
-        {
-          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L25-L61",
-          "version": "repo-lines-v1:sha256:7349041f3f5c577ab55a95a5af2d0e7a8be7790f636605b0b2268f1c16ce524f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4NmE0MGM3YzFmMmU1YmRjMDA5MzQ5ZWM3NmY1ZDcyMjM3ZjM0NjkzODdiOWRhNTNhYzU4OWI4OThjMDYwYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0MjNmNzg0MzVkN2M2MTJlZTM2NmJjMzFhZjU4M2JkNWI2NDQ1MmM4YzQxNTVmMjJjMzUyM2RiN2NhNGE1N2IifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift#L9-L45",
-          "version": "repo-lines-v1:sha256:ad6ac9af9bcb771e5b610bde63d951b3397bdfd379d6fe623c40c3e38ca39347:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlMDIxMzE3MTkxOTFlMjQzYzY5YjBhMzdhYjVlNWY0NTVlYWQxOTczMTFiMDc2MmQ3OTU5N2QwODljYTFiNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmOTU3NTVhYTVmYWZmNDQ1ZGI1OWFmZDZhZTVmMmI4Yzg3NjNiMjRkN2E2OWNkMjRiNzJjNTAxNWM3OTlkMTkifQ"
-        }
-      ]
-    },
-    {
       "id": "claim_e17a2fba92734048b6af6b6c8f22606f",
-      "statement": "MobileTerminalView overrides both touch-menu hooks, localizes inherited actions by stable identifier and groups editing actions separately from a Termind-owned Upload File submenu with Photos and Files; the upload group is absent without a handler and its actions recheck live availability at execution.",
+      "statement": "MobileTerminalView overrides both touch-menu hooks, localizes inherited actions by stable identifier and groups editing actions separately from a Termind-owned Upload File submenu with Photos and Files; the upload group is absent without a handler and its actions recheck live availability at execution. This contract is supported by the host implementation rather than the removed MobileTerminalUploadMenuTests suite.",
       "evidence": [
         {
-          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift",
-          "version": "repo-file-v1:sha256:895a5865b1b564006b0529677fbf1c7d6d73f341c631746f1b8b5226a2a12260"
-        },
-        {
-          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift",
-          "version": "repo-file-v1:sha256:90a5f051f972aa425febb49d994b4ffac67c24bdc897de82204d9233e28a8bd2"
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L25-L85",
+          "version": "repo-lines-v1:sha256:8c109840d2d453e8e800498b30b408177ba49cdf0bd47dbf2062e065d3e4c27f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkOWRiNDhlZjZhNjNhNjA4ZWZjNzlhYWVhOGYxNTQ0YzE4ZjM5NmU3OWU1ZWFjNTE1ODI2M2M0N2I5YTc1NzkifQ"
         }
       ]
     },
@@ -202,7 +184,7 @@
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "version": "repo-file-v1:sha256:36ad067a81b9568dc3b1f0271917e3c2ecb6a5a00e9a7c07b9a1817ed5b9a4a5"
         }
       ]
     },
@@ -222,33 +204,25 @@
     },
     {
       "id": "claim_dfe06bf8be0e4e45af4ec9cb94978622",
-      "statement": "Mobile touch-menu tests verify that an injected system AutoFill menu remains after the editing and upload groups, without establishing when UIKit provides such a menu.",
+      "statement": "MobileTerminalView preserves inherited non-action menu elements and unrecognized actions after its editing and upload groups; this supports retaining a supplied system menu but does not establish when UIKit supplies AutoFill.",
       "evidence": [
         {
           "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L33-L61",
-          "version": "repo-lines-v1:sha256:d210fc746449ea76cd9a26260fef09453e55a1ab60f8c0ac6c0b0461f739b06b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NzhjOTgxZDkxOGNkYmZhNzg1ODdlMmY2ZDEyNGEyZTc1YWIyN2FiNTMzZTlhNTljZGRmY2JkZTQzMTMzYTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4NmE0MGM3YzFmMmU1YmRjMDA5MzQ5ZWM3NmY1ZDcyMjM3ZjM0NjkzODdiOWRhNTNhYzU4OWI4OThjMDYwYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI1Y2VmYWZiOTUyNjM0OGI1NTA4NWYyMTc5MzFkZDg1Y2MyODIyNzBjY2NlNWFhYmQ5MzdiYTU0MWVmYmRmYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0MjNmNzg0MzVkN2M2MTJlZTM2NmJjMzFhZjU4M2JkNWI2NDQ1MmM4YzQxNTVmMjJjMzUyM2RiN2NhNGE1N2IifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift#L9-L45",
-          "version": "repo-lines-v1:sha256:ad6ac9af9bcb771e5b610bde63d951b3397bdfd379d6fe623c40c3e38ca39347:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlMDIxMzE3MTkxOTFlMjQzYzY5YjBhMzdhYjVlNWY0NTVlYWQxOTczMTFiMDc2MmQ3OTU5N2QwODljYTFiNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmOTU3NTVhYTVmYWZmNDQ1ZGI1OWFmZDZhZTVmMmI4Yzg3NjNiMjRkN2E2OWNkMjRiNzJjNTAxNWM3OTlkMTkifQ"
+          "version": "repo-lines-v1:sha256:d210fc746449ea76cd9a26260fef09453e55a1ab60f8c0ac6c0b0461f739b06b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NzhjOTgxZDkxOGNkYmZhNzg1ODdlMmY2ZDEyNGEyZTc1YWIyN2FiNTMzZTlhNTljZGRmY2JkZTQzMTMzYTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4NmE0MGM3YzFmMmU1YmRjMDA5MzQ5ZWM3NmY1ZDcyMjM3ZjM0NjkzODdiOWRhNTNhYzU4OWI4OThjMDYwYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI1Y2VmYWZiOTUyNjM0OGI1NTA4NWYyMTc5MzFkZDg1Y2MyODIyNzBjY2NlNWFhYmQ5MzdiYTU0MWVmYmRmYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0NTYzNWUzYTRiMDBjOTdjYTU3MjlhZjE1ZDUzMTllOWU2ODQ4Nzk2OTA0YzdmNzM1MDc5MGFjOWMxYTMwMjEifQ"
         }
       ]
     },
     {
       "id": "claim_6a4b124d469a4827b306b1510c4790c4",
-      "statement": "Termind consumes Lakr233/libghostty-spm directly as a remote dependency with no local Ghostty maintenance submodule. Xcode specifies upToNextMinorVersion with minimumVersion 2.2.2026101502, while Package.resolved pins version 2.2.2026101502 at revision 42bacd1339f323a693ddbca779295f4f77e5a697. Termind's overrides and tests establish the two iOS touch-menu hook contracts and app-owned localization/upload composition, not upstream gesture dispatch, indirect-pointer routing or legacy fallback internals.",
+      "statement": "Termind consumes Lakr233/libghostty-spm directly as a remote dependency with no local Ghostty maintenance submodule. Xcode specifies upToNextMinorVersion with minimumVersion 2.2.2026101502, while Package.resolved pins version 2.2.2026101502 at revision 42bacd1339f323a693ddbca779295f4f77e5a697. Termind's mobile overrides establish its use of two iOS touch-menu hooks and app-owned localization/upload composition, not upstream gesture dispatch, indirect-pointer routing or legacy fallback internals.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
         },
         {
           "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L25-L85",
-          "version": "repo-lines-v1:sha256:2791d80b7e32a1dac0189fa2e1cfffbc9cf81d141c79b46b456e39cf710be987:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkOWRiNDhlZjZhNjNhNjA4ZWZjNzlhYWVhOGYxNTQ0YzE4ZjM5NmU3OWU1ZWFjNTE1ODI2M2M0N2I5YTc1NzkifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift#L9-L75",
-          "version": "repo-lines-v1:sha256:3af4bf5d7ea343067d35507e91244119b96591225e61e83b1505258083f4da59:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlMDIxMzE3MTkxOTFlMjQzYzY5YjBhMzdhYjVlNWY0NTVlYWQxOTczMTFiMDc2MmQ3OTU5N2QwODljYTFiNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "version": "repo-lines-v1:sha256:8c109840d2d453e8e800498b30b408177ba49cdf0bd47dbf2062e065d3e4c27f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkOWRiNDhlZjZhNjNhNjA4ZWZjNzlhYWVhOGYxNTQ0YzE4ZjM5NmU3OWU1ZWFjNTE1ODI2M2M0N2I5YTc1NzkifQ"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L2971-L2978",
@@ -262,15 +236,19 @@
     },
     {
       "id": "claim_36957f15f376450c88750822689746fb",
-      "statement": "Theme previews use isolated noninteractive in-memory surfaces with sample ANSI output and no-op I/O, not remote shells, and previewing does not apply or enable settings. Historical highlighting migration cleanup and isolation remain covered by RetiredTerminalHighlightingTests.",
+      "statement": "Theme previews use isolated noninteractive in-memory surfaces with sample ANSI output and no-op I/O, not remote shells; preview updates do not apply settings, and the mobile editor saves its draft through a separate action. This is implementation-backed rather than coverage from the removed MobileTerminalThemeTests suite. RetiredTerminalHighlightingTests separately covers historical highlighting migration cleanup without disrupting other preferences.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift",
-          "version": "repo-file-v1:sha256:8a87875f43610f66a6c08e7372bd2671cf38490e43beb75e29a6e6bbebf90354"
+          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L14-L56",
+          "version": "repo-lines-v1:sha256:d4c49050475db6a21a703b42301825ece16b972c15f5bcb2e94aafc4c7987664:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5MzA1Mjc3ZTZiM2ZiNWQxMzVlZDA2YTEwYzlmYmZjM2E4MjI1NzYwMmIwMjgwZmE4M2ZmMTBjNzFmZGE5MWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNzEwZjBiMzE5NmFhNjdjNjVjOTFjMDZlYmNmZGM5Zjg1MThmN2U2ZDI5YjY4NTNjNTY2OTAwMDA3YjQ5OWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYjkyZDlmMzY1NDg1M2IyZDA4YzdkNTA4N2FmNmYzMWU2ZDdjZDQzMzgxYzAwYTYyMWJlYWRkZjgyMWNiZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZGIwNjcyMGU3ZTBlNjJmYzk5YzYzNTUwYWYzNTQyMzQ3YTFmY2MzZjg1NmNhNDRjYTFkMzU1ZTIzOGEyZTAifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalThemeTests.swift",
-          "version": "repo-file-v1:sha256:a3d46a99ce5228eb256b2457c9b326668af0a5ae1ffe14a37fc73997df4e79d8"
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift#L6-L112",
+          "version": "repo-lines-v1:sha256:b6f1c9fc32c27d3faea4895e9c26635202d9440690588130a2ec4e24531da3c9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhMjkwYWM0ZTRkZWNmM2NlYjBjOTU1MjVkMjFiNDk5NWU1ZGNkYzMxY2E4YTAwODAyNGMyZjY3MWZkNTBkNjJjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMDkyNDI0OTgyNzMxNGQ5MzBlMzFmMTI5ZGY4NTViZmE4NDAxYjFiNDRmZDc3NzJhMmYwNGY4N2QxODFiMTM3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5ZmY4NTU4NDA1MWZlYzZlY2Y2Nzg5NDU4OWFhYzJhYzBlZmM5YjNkZTU1YThlZTBlYzhkZDVkNjU4MTUzYjMyIn0"
+        },
+        {
+          "resource": "repo://TFI/Features/Settings/MobileCustomThemeEditorSheet.swift#L17-L55",
+          "version": "repo-lines-v1:sha256:0ab6d24e6b3549fc4d3375ad3bbb08c8ce03694892d1051ff7b75009073fb76b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExYTAxYmY1MmFjYzgzODhhY2M0N2ZhZTM5ZDBmMzZhZWViZTRlN2UxN2UxYTI0MTE0YTM4M2YzYjFmZmQyZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmYmNhOTU1YzEzNzYyMzM3MmYyYzU3NmY1MWVkNGI4ZjMwMDI2ZTM1NmNlOGJkZjYzNzY1ZGFjMGViZTExZDEifQ"
         }
       ]
     },
@@ -439,6 +417,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T17:39:35.546Z"
+    "at": "2026-10-19T04:32:02.799Z"
   }
 }

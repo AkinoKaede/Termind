@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f02bdf2c30578599ec7f557a88a5ed3247d484efc11a277c1c078a2f120da815",
+  "pageVersion": "sha256:82065d802de6bfd18f945d316b5cc45dc46e7d890d18a7d9d84e09397b15713f",
   "claims": [
     {
       "id": "claim_5ca6241ea6cc4ebbb915ccbe304f8430",
@@ -620,16 +620,8 @@
     },
     {
       "id": "claim_92f1b8a00a314cc2977a7855ab515e24",
-      "statement": "sftp_read exposes 1-based line pagination with schema offsets 1–10,000,000 and limits 1–2,000, defaults to 2,000 lines, and returns up to 64 KiB of whole-line UTF-8 content with continuation metadata; the reader normalizes CRLF and rejects invalid selected UTF-8, past-EOF offsets, and oversized lines.",
+      "statement": "sftp_read declares 1-based offsets 1–10,000,000 and limits 1–2,000, advertises pages up to 2,000 lines or 64 KiB, defaults offset to 1 and the line limit to AgentTextPageReader.defaultLineLimit, and maps the upstream page to content, byte count and continuation metadata.",
       "evidence": [
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift",
-          "version": "repo-file-v1:sha256:3a86ee343ab054e9c5faf47239e8252b6f779edb8bf9832277204bce6107e149"
-        },
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentTruncateResult.swift",
-          "version": "repo-file-v1:sha256:c6cdf7eddae5bebf9d26e07e7fe38dce8987c749a95024a80d1127d5975c044c"
-        },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170",
           "version": "repo-lines-v1:sha256:e749fc81e27312adf9df5aef0fe8685599d9be3884afb255b254f9be23081515:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MmRmZjk1OWQ5Yjc1Y2RlMWM2NGI1ODQ4NzIyOGYwNzk1ZjEyYWQxMDBkYWQ2NDJhZDY1ZDMxYWZhMzhhNjIifQ"
@@ -656,34 +648,18 @@
     },
     {
       "id": "claim_06d10c06caf049d0ae196ea5c2f9dd45",
-      "statement": "sftp_read marks results as bounded model content, selecting redacted page-aware projection that budgets escaped JSON and framing and corrects returned_lines, next_offset and eof when fewer lines fit; raw and external-client results are untouched by model projection.",
+      "statement": "sftp_read sets hasBoundedModelContent on its result before returning it to AgentKit; the local SFTP tool supplies page metadata rather than implementing subsequent model-output projection.",
       "evidence": [
         {
-          "resource": "repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L129-L175",
-          "version": "repo-lines-v1:sha256:fe99da2985d8654a711a7a5eec8f63b0be3de41691ed18b4c07182ee526b831e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0ODQ4YWI1Y2UyNTZiMWQ2NmNiZjJkZjJlZjVlNDM3NWUzMTIzMGM4NmFmOTJlYjQwNDk1NGRlMTlhMjUxYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmNGY3OTIyZjBmODVmOTVjYWY4NzA2NjdkZDQ0NjIwNGJiMGY4NmRkYWFlZGZjY2NlODU1YTRlOGYxYWNkYjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZmM2Yjg3YzA0M2I3NjQ0YmZmOWJjNDVkNmNjMjBkYzlhOGI0ODA1NzU2ZGY5NjFlMjcyY2NiYzgzYmFiZjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyM2QwY2U4NDQ5ZDUyNzQ1NzQ2ZDZhZDBjMWFhMDE4ODUyMzk2Yjg0MGJkNmFkOTg3Y2JjNmQ3M2QyMjc4MWQifQ"
-        },
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L22-L50",
-          "version": "repo-lines-v1:sha256:ce29d5145254d4676b92ba5b0f59bbcfc72a867a82ccc03cdaef4ab2fd685be9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4MmM4MmU0YzdkZDcyYjc4Nzk4OGY2NTQ4MWNmYWFhN2I2ZjdhNGYyYTVlNTBiYjA0ZTFiNTJhMDM1MWQyYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYmJiN2Y1YTE1NjIwYzQ2YTQ5N2I1MDM3NDQ0MTIxOWE0MTQ0ZjJkZDFmMDQwZTMyOTNlMzlmZWQzNDhiM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwYjI1ZWQ5ZjVkNjk3ZjgwNjVjYjQwNTkyMjljZGU1Mzg2Mzc0N2ViNTM0OTA2ZWU5Yjg2N2NlNzJmNzhjZTkifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L160-L170",
-          "version": "repo-lines-v1:sha256:84476cb8a424119b074389dfe61cc674bf94ae5fafc5170340b511dba6c51dc1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYzMyZGNhMDI4YjM0YWE0ZTc4YjVjZTU3YjlmOGNhNzIxZWI1OTBhNWNmMTYyY2VhODQ4NDQ2ZjVlNDEzYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmMGEzZjI2MmVkMTA4M2Y3ODg5ODBjMDI0MDE1NWZhYTU4NGQ4ZDgzN2U5OTU0OTk3MDBhODlmZTg3NzM1ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MmRmZjk1OWQ5Yjc1Y2RlMWM2NGI1ODQ4NzIyOGYwNzk1ZjEyYWQxMDBkYWQ2NDJhZDY1ZDMxYWZhMzhhNjIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L156-L170",
+          "version": "repo-lines-v1:sha256:1117007aa51f24a8baac455fc0cd577cf60fb8ba1da8b29d19b6a614ba955c1f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmZTU5ZDA2YmY0MmZjNjZmZWQ5NWRmN2Q5MTdmMTVhYzRjYzQ4ZTk4MzNkMjcxNjE1ODIzZjI0N2RiZmI3OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYxYjE2Zjk0YTM2NGUyMDAwZDJjYmE2MjliOTVhOGJmNmIzMDY3MmI4NWFiMmRkNWFiMzNmMzQxZjFiOGYyZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MmRmZjk1OWQ5Yjc1Y2RlMWM2NGI1ODQ4NzIyOGYwNzk1ZjEyYWQxMDBkYWQ2NDJhZDY1ZDMxYWZhMzhhNjIifQ"
         }
       ]
     },
     {
       "id": "claim_a74b0eb27aa14fcaab851040bafaf4c6",
-      "statement": "sftp_read declares .approve with inherited parallel concurrency and sftp_write declares .ask with inherited sequential concurrency, independently of both tools' data-transfer admission; write content is schema-limited to 131,072 characters, estimates UTF-8 bytes for scheduling, and defaults overwrite to false.",
+      "statement": "sftp_read declares .approve with inherited parallel concurrency and sftp_write declares .ask with inherited sequential concurrency, independently of data-transfer admission; write declares content via string(max: 131_072), estimates UTF-8 bytes for scheduling, and defaults overwrite to false.",
       "evidence": [
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentJSONSchemaValidator.swift#L58-L58",
-          "version": "repo-lines-v1:sha256:f989d5eda53f66488d264c466965e9abbab3fae21aceb11980d9e2522c98420a:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjk4OWQ1ZWRhNTNmNjY0ODhkMjY0YzQ2Njk2NWU5YWJiYWIzZmFlMjFhY2ViMTE5ODBkOWUyNTIyYzk4NDIwYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjk4OWQ1ZWRhNTNmNjY0ODhkMjY0YzQ2Njk2NWU5YWJiYWIzZmFlMjFhY2ViMTE5ODBkOWUyNTIyYzk4NDIwYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTBhNjIzYmVjOGJlZGVhOTI3MTgyMDQ1ZjhiODAzYjA5YzA3NmE3NjUxNzg0MDQyNDQ4MzY2MzkzODI0MzMwMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWNjZWEyZjExMmFjNDRmYTk2OWM1NmViNGY5ODQwMzNkMjgxMjE0ZjI3OTAzNmMzNmRjMTdlZGQxNzQwMDQ1ZCJ9"
-        },
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentToolSchema.swift#L54-L54",
-          "version": "repo-lines-v1:sha256:3f01da26896c23e2cda904d34742eaa3fb7a965ebec800555cff1b520e986aeb:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2YwMWRhMjY4OTZjMjNlMmNkYTkwNGQzNDc0MmVhYTNmYjdhOTY1ZWJlYzgwMDU1NWNmZjFiNTIwZTk4NmFlYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2YwMWRhMjY4OTZjMjNlMmNkYTkwNGQzNDc0MmVhYTNmYjdhOTY1ZWJlYzgwMDU1NWNmZjFiNTIwZTk4NmFlYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTdjZmJhZTdlMDQ2ZmJhYTYwMzYyMTdjZjZlYTIxODQ4M2VjMjNlZGVkZDUzZjEzNjdhMmQ1NzYxYTAwYTc4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjU4MjY0MDZlNWQyZWExOTYzMjhlNWZmZGUyYzY4MDRkYzVkYTE4OThmYjIxZDk3M2M0NGQ4MDYyNDlmNDNkYiJ9"
-        },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208",
           "version": "repo-lines-v1:sha256:37be3b56f028020b116d78b52d09509f693e2b6ae901589afe2f3ee1c589c869:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjdlYzM0MTVkN2YyM2M2Mjk5NDA1NzE1NTk1NDY1ZGFhZTAzNTcyMTc3ZTI0ZDhhNTcxY2Q0ZTgwNGFmNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2NDE2YWU4ODRhOGU5MjNkMDBlZTdkYzk3NmI2NDViYzg5OWM3ZGQ2OTBlMTdjMWYyMjgzNjA5MGY3NDk5OTgifQ"
@@ -705,30 +681,20 @@
       ]
     },
     {
-      "id": "claim_43b9205ebcf84b96a8c20d2a02d25319",
-      "statement": "AgentTextPageTests cover split multibyte characters and CRLF, whole-line byte bounds and continuation, empty files, invalid offsets, oversized lines, and invalid UTF-8 at the reader level.",
-      "evidence": [
-        {
-          "resource": "repo://AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift#L8-L46",
-          "version": "repo-lines-v1:sha256:c4f501055e4c14b7bf0e98256957ec3202c9f3966babb6158650d09f5ece5fde:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlMmM3YmRjZTIyZjY0YzYxZmRlNWZhYzQ5M2RkN2FlYTE0YmZhMTA0OTk5NDkwODg4Y2M3MjgwY2U3YTJkYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        }
-      ]
-    },
-    {
       "id": "claim_825bb8d413eb401ab8542ee613ceb578",
-      "statement": "The application consumes AgentKit 3.0.1; its scratch workspace uses shared device-local Application Support storage across conversations, and compatibility copyScope/removeScope hooks neither duplicate nor delete files on conversation lifecycle events.",
+      "statement": "The application pins remote AgentKit 4.0.0 and composes a shared scratch workspace; repository tests establish shared files across conversation workspaces and preservation of those files after removeScope.",
       "evidence": [
         {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L238-L306",
-          "version": "repo-lines-v1:sha256:2d216a2ae133ea74d831f81ca7a0650198000668e4e3713d071633e83d311f27:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjOTU3Yzg2NTVhZDk5NmRhYzU0MzU4NzY5NWU0OWZlNjVkMGMxYjMyYTZlMjZlNDAyNjhmMTBhYjFkODAwMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzNTNlODE1YzcyNGM1MzVkNjg1YzBlN2YyZTJlMjcxMWY2OGYwNDU5NzU1YzExYTQ3OWNjMjgyM2JlMWY0MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1Mjc5Mjc5MDUxODJjNjFjMzUyZGMxYzg5YjRiNWQwZTc3N2Q4NmUzYjU4YzQyZTY4NTE3ZGZhMWEyODA2MDcifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:db7004434c270182d531bb9c47aaf1be35bcdd7e8ca1926c6ac2646d0d04c5f9"
         },
         {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L713-L716",
-          "version": "repo-lines-v1:sha256:d9a3aaaa391489571d8c36ab33ce4ca193439b83a546c416e8fd315156551488:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2U5NzE1YzlmMTRkNjEzYjY1MzNjN2UyMmJmYjRhMjQwMmE1NTRhNmM1NjYxZGFlYWFlNjg3YWY1NTFlODZiZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjI2ODAxMzQzODEyNGNiNTVmNzRhNTc2M2JjNWE3ZGZiYTQ3MWJhZjFlY2RiNjUzMjM2NzA5MWUyNTFkZWQyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTlhMmZiODM1ZjMzOGM4ZjBhOTYxMzI4MjNiMWU1MGM3ZThiNDg3MWQ2ZThhNTlkNDI1N2E3M2RhNzE0YjQyMSJ9"
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L66-L79",
+          "version": "repo-lines-v1:sha256:e05be350fc82220f5f1682f3b5143ae095b6b2365a36778f87ba89f7ad5f2c25:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljNjc4ZTU1YTVmZWQ2YzY1OTQ4ODM3MDdlODdlODY4MjRiZTZiNDkzN2ZiYzgxYTA0ZTMxZmFhYTEzMjM3OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZDliZjVjMTcwODUxZDRiMTVkZmY0ODFmZWE3YThlNzliYmQ0Yjk0MDUwMjVjYzUyMGU0YzI3NGNkNjlhMzQifQ"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20",
-          "version": "repo-lines-v1:sha256:ff502d3d8d54765969d33692974a0e705755875572428b03c5fa7ac9f77609e8:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
+          "version": "repo-lines-v1:sha256:5aa8f9a37e8cbff8126709e07eb643289736208400925fd0c94a842be8e45cd3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
         }
       ]
     },
@@ -737,10 +703,6 @@
       "statement": "Scratch paths are constrained to the local workspace and reject escaping paths and symlinks, including symlink aliases inside the workspace.",
       "evidence": [
         {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L722-L850",
-          "version": "repo-lines-v1:sha256:3d41b37d21a45aed82789bf396455d6a5201a65e53fc16866edcba0cc5ce852c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ZGM5MWU5ZTZiMzY5ODVhNmZjNWIyYjhiZDNhYTNhZjJjMjM4Y2VmYTQzYjczMTkyYmE5YTlhZmQzZDg3ZDA1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5MmM2ZmQxMTIzMmIxYjczODFkNTU5NGIxYzQ5NmM5Y2RiMGQ3ZmJjODhlYWI0NWIwNDU3NTAzMWM4YzA4NzZlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhZTE3ZWNiMDk3OGY5NmRkYjIzNDdlNjhiYmI4ZjNkNDY3OGM0MDJmZWM2MjljMGZjMjBkODhhNjU1MjUwNWZlIn0"
-        },
-        {
           "resource": "repo://TFMTests/AgentScratchTests.swift#L17-L64",
           "version": "repo-lines-v1:sha256:20a3f6d124fab631b04f502db312817402ca7e51bd7d5c3bbb9c18ecbbb15432:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiOGJmM2I0NTg2NGRlZjJjMzU3N2VkY2QxODlkMTBkMzYzODUzYjFiZjkyMjU3ZmIxZTk4NzQ3ZDdmZDFlZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlMjdhZTQyYWUwOTgzMzRiMWQwN2MzODVmYWU0YzdmNjNlNTI3MzA2NDNjMDZhMzY3MzQwMzFlMDcwMWYxZmUifQ"
         }
@@ -748,19 +710,15 @@
     },
     {
       "id": "claim_40ade0d7d8f743ad981d4b9c22b88f61",
-      "statement": "scratch_pull validates both paths in preflight, reads the whole remote file with maximumBytes .max through admitted SFTP, then atomically stages the bytes locally and returns metadata rather than contents; it is not streaming local staging and accepts files beyond the former 8-MiB limit.",
+      "statement": "scratch_pull validates both paths in preflight, reads the whole remote file with maximumBytes .max through admitted SFTP, then passes the complete data to workspace.write and returns metadata rather than contents; it is not streaming local staging and accepts files beyond the former 8-MiB limit.",
       "evidence": [
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L436-L447",
-          "version": "repo-lines-v1:sha256:fe85ebec583ba0388ce0cd31ec0d1aaa33096f67723217667ef23a179579cd99:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyYWFmYjBkMmIyYWEzYzU3NDM1NTc1MGRkMzU4ZjhlMWZlNmYzZDFiOWYzY2I2ZTIwZmVkYTRlNjA1MDFiMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkZTYwNmM5ZTM4MjllZjFkNTQ2NjRjNzIyMjg2YjQ1MjJjNTY3Y2U2YTg2YmE5OWRmMjEyZGIwNjNlYjg1YzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4ZjlmZDkxNjFlYWFiZDEyMjZjMmI1MjllZTQxNjZlZmI2NzQ5ZjY2NGExMjRiM2QwYWNlYzg2OGVhMjZlMjYifQ"
-        },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L41-L72",
           "version": "repo-lines-v1:sha256:a555c3674d6c1bd2bdd0bd376dd35c846724a75f113d51b81ef8d6e099f8580d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4OTY1YThjNWYyYTUzODM0MjNkMzFiZTg2MmNjNzQzZDQyMzUyOTFjZjJjNzg1ZGIxM2E1OTUzZGIwNzk3YWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1NGI4YzVmNGJhYTBjOWYxMjg3ZjFjODMxOTFiY2IxMzQ3YmYxNDQ1MjI5MzcyMGY1Y2IyODhmYmY4MjMzYzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExMjMyNjI1MGIyOGY3Yzg0NmRmODVkODZhMWM1MmM1MjBhNjM1Y2Y5ZGIzMTY3MjFhNTE1MDdjY2E2NjE4NGYifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentScratchTests.swift#L651-L721",
-          "version": "repo-lines-v1:sha256:95f450f2ab7a802f006f29435bc882cb9d9d455114c0992848f6700706232193:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhNmI2YmU3NGQzZDAxNjExYjAzYWNkYmFhOGUzNzZlZDc5MzU3NmQ2NDcyZmU3NjZlNWRiYjk4M2NkMmE1MDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZTg0ZDAwNjA5MTA1N2U4ZWQ2NTVmODNjNTY1ODBkZTkzMDg4NjdiYTkwMDFiOTY1NzhkMmZjZDAyZDMwNjUifQ"
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L651-L718",
+          "version": "repo-lines-v1:sha256:d059c44b7d28fe158b5d75ec24553819c23f18b19e69d3cbd0f9e40c90b279dd:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZjI2M2Y0NzQxNDY3OTQyY2ZhNmZmZmQ5YTYxNjJjMWQ2NWJhMTMxMjQ1MjA5MTJhZWU3ZmNkMzY3YjdkMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ZWIwODUzZDFhZTVkMTU3ZTIyMThiN2IwYTk3NjJjODMxNWZiNzE5Nzk3ZDI4ZGFlMmY4MWZlYWFjYzUxMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZTg0ZDAwNjA5MTA1N2U4ZWQ2NTVmODNjNTY1ODBkZTkzMDg4NjdiYTkwMDFiOTY1NzhkMmZjZDAyZDMwNjUifQ"
         }
       ]
     },
@@ -777,7 +735,7 @@
           "version": "repo-lines-v1:sha256:3886cd14c965cc5fe30314fd1c296a8d0ad9d9e7dfc04c621bed69898e9ac42f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2YmYxYmZkMTA4N2VhMGIxNjQ3OGQ4ZmM4MDg1NzE2NTgxMDU1NmNkNDZiNWJlYzE3ZDYwN2Y0ZTIwNzRkYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4MzUwYzdhMGYwNjJhZTRjYTZlODU3Y2VmMzZiOGU0YTUzMjNiMGU5YjVlYzlkNzY2YzA2ZWY3NzAwZTRlZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5ZGE3YmE5YThmM2FmMmJiZDY0ZTQzNWU5ZGZhNjhjZGMwZDhlNjMyNTdkZmY5ZjE3YjNlMjc4Nzc0ZjYzNmUifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentScratchTests.swift#L727-L799",
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L724-L796",
           "version": "repo-lines-v1:sha256:8fd065dd80f9e66ae0808b5d72853864224491d5088b616a216cd90c4ce879bc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNDcwN2EzMmNhM2Y0Nzc5ZjQxYWRhOGQ1NzEzMmE0NWQ0YWI5NTI1YWEyMTc5MTgyYjE4MzhlMmIwZmU4NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwMjYxZmI3NzkyODljNWM2Y2RmZGI3ZGYxZDczMTA3YjUxOWYxNDRmNzMyYWM3ZWExNzE2YmY4NDczODE4NjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3OGE0M2Q3NGMyNWVjNzBiZTMzNDk2MjA3MWI3NTY2ZGEwMmE1NDU4YmYzMTUzMmMzOTAxMmYxOTY0N2JmNGEifQ"
         }
       ]
@@ -787,7 +745,7 @@
       "statement": "AgentScratchTests exercise shared storage, containment, metadata-only pull, above-former-limit transfers, preflight path validation, redacted push evidence, approved-byte substitution rejection and binary round trips with a stub SFTP client.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AgentScratchTests.swift#L1144-L1158",
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L1141-L1155",
           "version": "repo-lines-v1:sha256:530806441022e75d66aa0c50f40fad85de66c7c5a8f58f050d8cbee98cd16695:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiMTNkNWE2MDkxOWE1ZDE1OGRhYjZkMDYwMDRmOGI4MjIwNDI4YWE5MDQxYmViNzI5NzMyN2YxYzE3MTZjNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3OWNjYWUzOGMzNWY1ZGFiZGVkMjk4NTliZTAzZWU1NmNhM2VhNzhhYmRhYzBmYWYxNWFmZmE5Mzc3NmI0ZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyOTcyMDI5N2M5N2FhZTkzMDY0NjY4MGQ5NmM4OGNmYTZjYjkwMmRmZGVlNzNkMWY4OGU3NzIxN2E4Nzc2NjkifQ"
         },
         {
@@ -795,7 +753,7 @@
           "version": "repo-lines-v1:sha256:70243ac4338298f50db930bdb5681d25c5b98dd292a650ececb84b13e4aaa83c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiOGJmM2I0NTg2NGRlZjJjMzU3N2VkY2QxODlkMTBkMzYzODUzYjFiZjkyMjU3ZmIxZTk4NzQ3ZDdmZDFlZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZDliZjVjMTcwODUxZDRiMTVkZmY0ODFmZWE3YThlNzliYmQ0Yjk0MDUwMjVjYzUyMGU0YzI3NGNkNjlhMzQifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentScratchTests.swift#L651-L835",
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L648-L832",
           "version": "repo-lines-v1:sha256:96568446e9e7b49cbe0935cc909433b9ba410c1aa2ff40043765282d2c52bdce:eyJzZWxlY3RlZExpbmVDb3VudCI6MTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmZWUyYzJjZmUxYTkxOTE4ZmY4ZjBlYTIwMzQ0ZDA2ZDE1ZjhiZTRkMzhkYmI5M2ZiZTg3MTQxNTYzMDVlZmI3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2YTZiNmJlNzRkM2QwMTYxMWIwM2FjZGJhYThlMzc2ZWQ3OTM1NzZkNjQ3MmZlNzY2ZTVkYmI5ODNjZDJhNTAyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0ODM3MGRmZTk4MWU0MWI0ZTgzNGQ3NzY1MGFjZThlZTVlM2UwOTAwMzQ4NDYzNjViYjQ5NGM4ZmZkNzMzZmQ3In0"
         }
       ]
@@ -803,6 +761,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

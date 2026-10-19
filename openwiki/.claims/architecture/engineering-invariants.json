@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:870dcfd3bfe6b3029a4c8ee3f100f81f2ded84eb975813d525af50a5d5ce43c8",
+  "pageVersion": "sha256:83b518f3d06d6183be6cb6a714ca0cb0042666de8d7510a874ef16d382a5e71d",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
+          "version": "repo-file-v1:sha256:4da1f06327f164e0dec3456bf2b0075c4b3b3609d3365cc6c987b8a766944853"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
@@ -106,11 +106,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:6d593e954178e58c2ecd7ddaff84cf706a804d9be71c8e59827214ff5b31af24"
+          "version": "repo-file-v1:sha256:b010e213a32e6f2837d0dd219fbaf3c89e4e001bb7bba0a97d6d743ae41d402e"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -176,7 +176,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
@@ -266,33 +266,37 @@
     },
     {
       "id": "claim_e9d194c36350453093030ee401cf1f18",
-      "statement": "AssistantExecutionController captures turn content and configuration synchronously before memory or compaction awaits, after optional model-selection persistence. Output, selections and file contents require explicit payload-carrying ContextChips; detach removes payload and accepted capture consumes attachments once. Full composed extraction and images remain in replay while bubbles render authored text or legacy visiblePrompt and attachment references. Original non-image bytes support reopening, not model input; legacy file references fall back to extracted text.",
-      "evidence": [
-        {
-          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L24-L186",
-          "version": "repo-lines-v1:sha256:2fdf07eee5fd211de9f9f367eef45c9357daaf5f2eca525800b9fab4fdd515b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwNzg2OTQ1NjE5M2IxMGVmMThiZmEwNDQwMGJlYmZhNjRjMThlNDAwZWRjNDZkNTA3ODdjNTFjZDQxYTE1OTU2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGE5YmJlNWQ0ZmE5ZGFkNGZjNzNjNDY0YmRiMDhlOTQxMDQ2ZmU1YjAzMDMzMDNhYmRlYjA0N2QxY2Q2ODU5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMTIzMjYyNTBiMjhmN2M4NDZkZjg1ZDg2YTFjNTJjNTIwYTYzNWNmOWRiMzE2NzIxYTUxNTA3Y2NhNjYxODRmIn0"
-        },
-        {
-          "resource": "repo://TFMTests/ChatComposerStateTests.swift#L1953-L2037",
-          "version": "repo-lines-v1:sha256:ac95020215876b6733d39a586315c8a8d59388363de246794a2551bdcb7b087a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyNmZjMjAyZDZmZmYzZDkyODFhMTNmNWMxMjhlNTQ1OTVmOTMwNjZiMzdkN2M5ZjAwMDA4NjAxMDcwZGEzZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4YjY1NzJjZjg1MTZiOGQ1Zjg3NDM1ZjA3ZDAzNzRkOGYzMWZkN2I4ZmZhNzY5MzM0OWIxOTU0YWIxYmJkZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3NWUzYzkwNWE2ZTMwMzlhZjhkMjE5MDYzODFhNDk4MjZlZmE5YTkxYjgxNjAwMTM5MTRlYTVmZmVmODhlMDgifQ"
-        }
-      ]
-    },
-    {
-      "id": "claim_bbae8e4110c5473b83d5d2803745fea5",
-      "statement": "While an Assistant capture is preparing, cancellation makes its identity noncurrent synchronously and joins tracked edit/history and preparation work before attempting an interrupted save; interruption is projected only on successful save, whereas stop alone does not await it. In the separate savingFailure phase cancellation joins the existing failed-snapshot save rather than replacing it with interruption; archive/delete wait, manual compaction refuses active preparation, and selection changes do not cancel it.",
+      "statement": "AssistantExecutionController captures turn content and configuration synchronously after optional model-selection persistence and before memory/compaction awaits, freezing model/provider, credentials, permission/reasoning, native search, skills, registry, guardian and compaction/review choices. Later credentials cannot revive a captured missing-credential turn. Explicit ContextChips disclose payloads; detach removes payload and capture consumes attachments once. Replay retains extraction/images while bubbles show authored text or legacy visiblePrompt plus references; original non-image bytes support reopening rather than implicit upload.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
           "version": "repo-file-v1:sha256:a61e44492a31b857dc02e0271ab3be917775c1074e4da7feb87092eb4f75a6f2"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift",
-          "version": "repo-file-v1:sha256:916fb3f6cbce6e1a06872bfd4f625e42fe7b982d0ac56fcc14efcaa302ecab81"
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
+          "version": "repo-file-v1:sha256:5a6592c81f57ae9693491a8d07bcd48bcdf6ec6936a45860edd782a7a3bb9cd4"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L795-L935",
-          "version": "repo-lines-v1:sha256:5eb07e2918c705619a0b8608212c1b0acf4a5c450be7f9c1adce84f19334cad0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NWEyZmM4NWY3MmI1MzQ3MWY5OTcwOWRjM2ZlMzgyZDFiMDBmNTljMjVlYmU0MjNmOTNhYWI0ZTIxMzRmZjcxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4NzVkZDcxOTdjZGMzM2M2MDAwMDg2NzJjNjYxMmRhZjVlMjJjMzMwMjQ3YTNhZjBiZjgyZTQ4MDJmMzZlZTIzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YzZjN2NkYzhjNGVjMGJjOWRlOGU2OTE4ZmFlMGFhOTg0NDEyYjQyY2U1YzM2OWVhMWUzMzI4NDdmOGYyMjliIn0"
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
+          "version": "repo-file-v1:sha256:a41dbad4052557307cb7c5c90852d9267673c1cc433d0a10f7d26178f411a78c"
+        },
+        {
+          "resource": "repo://TFMTests/ChatComposerStateTests.swift",
+          "version": "repo-file-v1:sha256:061f7141b68ca7580c65fbfbf80d7c3e140f53477f97b5f3b189d69ef47ea86d"
+        }
+      ]
+    },
+    {
+      "id": "claim_bbae8e4110c5473b83d5d2803745fea5",
+      "statement": "While an Assistant capture is preparing, cancellation makes its identity noncurrent synchronously and joins tracked edit/history and preparation work before attempting an interrupted save; interruption is projected only on successful save, whereas stop alone does not await it. In savingFailure cancellation joins the existing failed-snapshot save; archive/delete wait, manual compaction refuses preparation, and selection changes do not cancel it.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
+          "version": "repo-file-v1:sha256:a61e44492a31b857dc02e0271ab3be917775c1074e4da7feb87092eb4f75a6f2"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
+          "version": "repo-file-v1:sha256:5a6592c81f57ae9693491a8d07bcd48bcdf6ec6936a45860edd782a7a3bb9cd4"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
@@ -320,15 +324,15 @@
     },
     {
       "id": "claim_fd359e43825344cb87abb3a4938e1663",
-      "statement": "A successfully edited message starts in a same-message-ID staging run; the first real saved snapshot reassigns only that staged row and removes staging while preserving chronology and old replay ownership. Live running, interrupted, and failed-run adoption uses the same guarded provenance; missing-model/credential preparation failures hold the preparation until their asynchronous save commits before projecting failure, and failed saves report an error without adopting staging. Repository-instance retired IDs reject late writes.",
+      "statement": "An edited replacement starts in a same-message-ID staging run; the first real saved snapshot adopts that row and removes staging while preserving chronology and old replay ownership. Running, interrupted and failed-run adoption is guarded; missing-model/credential failure holds preparation until save commits before projecting failure, and failed saves do not adopt staging. Repository-instance retired IDs reject late writes.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
           "version": "repo-file-v1:sha256:a61e44492a31b857dc02e0271ab3be917775c1074e4da7feb87092eb4f75a6f2"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L853-L935",
-          "version": "repo-lines-v1:sha256:6d146eff97275cd62487bfad2c03014fc984feffae2753012b1c6107e541c5f4:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YjhlMjRkZDNlZmY5YzY3YTZiNzg3ZWMwMjA3ZmMxZTI0ZGMxZTcwZmRlZWViNmFjOTljOGFkNjA1Yzk3YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3NWRkNzE5N2NkYzMzYzYwMDAwODY3MmM2NjEyZGFmNWUyMmMzMzAyNDdhM2FmMGJmODJlNDgwMmYzNmVlMjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhNzdhMDY4Y2ZiMmUwMWRiMDJlMTAyZDRiODhhOWMzYWRlOTU3YTNhMWMzYjczOGE3ZTBjMWNmMTc5MTUwMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjNmM3Y2RjOGM0ZWMwYmM5ZGU4ZTY5MThmYWUwYWE5ODQ0MTJiNDJjZTVjMzY5ZWExZTMzMjg0N2Y4ZjIyOWIifQ"
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
+          "version": "repo-file-v1:sha256:5a6592c81f57ae9693491a8d07bcd48bcdf6ec6936a45860edd782a7a3bb9cd4"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
@@ -418,21 +422,21 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         }
       ]
     },
     {
       "id": "claim_ece93976c37a44359339e07fb010a4f4",
-      "statement": "AgentToolPresentation decodes local result JSON for injected presenters or generic formatting, passing failure state and suppressing duplicate denial reasons; both apps register localized SSH result presenters while preserving tool-owned layout and approval policy. Only result-less SSH cards use the dedicated pending-detail path. MCP ignores injected presenters and retains remote JSON; failed knowledge results cannot render success detail.",
+      "statement": "AgentToolPresentation decodes result JSON for injected presenters or generic formatting, passing failure state and suppressing duplicate denial reasons; both apps register localized SSH result presenters preserving tool-owned layout and approval policy, with pending detail only for result-less SSH cards. MCP retains JSON without a presenter but accepts explicitly injected trusted presenters; remote metadata cannot select local code. Failed knowledge results must not render success detail.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift",
-          "version": "repo-file-v1:sha256:7acbd37abba29fdff72e6e5bdcc36bd26bfc9eb7143b297dce7d3ebb1224b3f3"
+          "version": "repo-file-v1:sha256:d521c370d8f3641b5269fc4a4b37bce16ec93cec854bc9f8798e741809035c12"
         },
         {
           "resource": "repo://TFI/App/MobileAppDependencies.swift",
@@ -444,7 +448,11 @@
         },
         {
           "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:f86d1bd8e52efab7b0694825ded77a3ef3bed97ae410f6d70a62e9fcd97cff44"
+          "version": "repo-file-v1:sha256:dbb44bb5fae9f0332c402febdb4ba2e6327bc7b8819eefa4bce3bcb138e90e1e"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
+          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
         }
       ]
     },
@@ -458,7 +466,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/AssistantCompactToolDetails.swift",
@@ -466,11 +474,11 @@
         },
         {
           "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:f86d1bd8e52efab7b0694825ded77a3ef3bed97ae410f6d70a62e9fcd97cff44"
+          "version": "repo-file-v1:sha256:dbb44bb5fae9f0332c402febdb4ba2e6327bc7b8819eefa4bce3bcb138e90e1e"
         },
         {
           "resource": "repo://TFMTests/RemoteOutputToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:d4598f63b63ea1dc95061357c10b6e7844d38779c2d81fcfb41dc154321a9675"
+          "version": "repo-file-v1:sha256:542f0488349a418eb9d811ab59c799cb950600a6a29621e262fbc7d97c2d50dd"
         }
       ]
     },
@@ -569,12 +577,12 @@
       "statement": "App-facing copy, including single-platform wording, is defined as LocalizedStringResource entries under TermindPresentation/Strings using AppStrings for both apps to reuse, with protocol values, identifiers and diagnostic codes excluded; catalog entries remain in shared Resources.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L80-L101",
-          "version": "repo-lines-v1:sha256:896b55d9b16e3248709e74e8380c7837a3486b7c68e4c732a88d71ecedf60f56:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNWQxY2Y4N2NlYzQwNDY3NTlmYmYwNThmMWJhYTcwNzE2NTU0ZmE5YjFhNTIzYWRkYWRiMWEwOTllNjBmNzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "resource": "repo://AGENTS.md#L63-L83",
+          "version": "repo-lines-v1:sha256:e2fddda443dac247e3a456c2c53a93536df8f78be46789238324a8dd48f74714:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhMTg2YzAzNmQ4YmE2ZGFmNjE5YWQ5NTczNzVmYzkwYmRlODFkNGU3YWY5NzgzM2QzY2UxMjQzZTEzMzczMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:4a680c9ac031c6daf2019c6de14dc20390ed2e92487c25ae89fb9676e5d34fe5"
+          "version": "repo-file-v1:sha256:93a3789fc7797bfa76fad720b1de12c0ae488fad4e3ae430304ee76f7d6085fc"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
@@ -584,15 +592,15 @@
     },
     {
       "id": "claim_3ac8bf529e4442b6b368643cd0fd33c9",
-      "statement": "Selected SwiftSyntax literal checks complement the Python localization checker now named in guidance; neither proves every displayed translation.",
+      "statement": "Contributor guidance requires Scripts/check-localization.py in the commit pipeline even without intentional localization edits; former check-appstrings SwiftSyntax tooling is no longer a current verification step, and catalog checking does not prove native displayed translations.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "resource": "repo://.github/workflows/localization.yml",
+          "version": "repo-file-v1:sha256:2c774994984c057aeb30fcb6792b3530aac03ae073423de16c12c9fcf14db97c"
         },
         {
-          "resource": "repo://Scripts/check-appstrings.swift",
-          "version": "repo-file-v1:sha256:9ce787b44bde44930a02b4ff7140eeba373eab11d5e75ebc9d2dc71abbdd9226"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -627,7 +635,7 @@
       "statement": "The macOS app is its own XCTest host: DEBUG test detection uses an in-memory SwiftData container, suppresses automatic windows and restoration for ordinary tests, and requires an explicit visible-window opt-in for tests that show windows or take focus.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L66-L78",
+          "resource": "repo://AGENTS.md#L49-L61",
           "version": "repo-lines-v1:sha256:04dfd508f128a761f8fd9357396732dbcecf9f0eea25dd82f057400ee2d50583:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
@@ -646,7 +654,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
@@ -664,25 +672,17 @@
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L1911-L2895",
-          "version": "repo-lines-v1:sha256:064e748478bde5988c4db59531a4d60f8bc483570244d18e68f2ac96af89dd07:eyJzZWxlY3RlZExpbmVDb3VudCI6OTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
+          "version": "repo-lines-v1:sha256:d1162633ebdc37092a0497bc2997f5d48f37db1c9194be8c0cd44193a04116e4:eyJzZWxlY3RlZExpbmVDb3VudCI6OTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
         }
       ]
     },
     {
       "id": "claim_30fa6fb3a20846278d3e974449f71b27",
-      "statement": "Localization checks complement rendering coverage: SwiftSyntax flags selected UI literals; check-localization.py validates canonical manual catalogs, finished zh-Hans/zh-Hant/ja/ko/de/fr translations, positional argument types and percents, plural branches and Chinese/Japanese spacing. Plurals require other-only for Chinese/Japanese/Korean, one/other for German, and one/other with optional many for French. Path-filtered Ubuntu CI runs normalizer/localization unit tests and the Python checker on pull requests and main pushes, not native rendering or SwiftSyntax copy checks.",
+      "statement": "check-localization.py validates canonical manual catalogs, finished zh-Hans/zh-Hant/ja/ko/de/fr translations, positional argument types and percents, plurals and Chinese/Japanese spacing. Plurals require other-only for Chinese/Japanese/Korean, one/other for German, and optional many additionally for French. Path-filtered Ubuntu CI runs the Python checker on pull requests and main pushes, not removed Scripts/Tests suites, native rendering or SwiftSyntax checks.",
       "evidence": [
         {
           "resource": "repo://.github/workflows/localization.yml",
-          "version": "repo-file-v1:sha256:b3f933f584d9fea5620d9d7675de1047d350cc8930a732754bade540d9d00f95"
-        },
-        {
-          "resource": "repo://Scripts/Tests/test_localization.py",
-          "version": "repo-file-v1:sha256:2a19ac575e3835cda0c8859997082ebf44ef2280decf823a7080eb6621083a67"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.swift",
-          "version": "repo-file-v1:sha256:9ce787b44bde44930a02b4ff7140eeba373eab11d5e75ebc9d2dc71abbdd9226"
+          "version": "repo-file-v1:sha256:2c774994984c057aeb30fcb6792b3530aac03ae073423de16c12c9fcf14db97c"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -932,7 +932,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         }
       ]
     },
@@ -1000,7 +1000,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f1e530b03edf62b849ac9a26b8205b6bcdc56b391ad52054922c8842e41c4374"
+          "version": "repo-file-v1:sha256:4da1f06327f164e0dec3456bf2b0075c4b3b3609d3365cc6c987b8a766944853"
         }
       ]
     },
@@ -1129,7 +1129,7 @@
       "statement": "MobileTerminalSearchIntegrationTests is an opt-in serialized key-window suite covering repeated native and programmatic dismissal with retained terminal queries, repeated SFTP filter reopening, and search-host identity across Journey for SSH/SFTP; terminal identity is asserted for SSH, not a Telnet-specific integration case.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L78-L78",
+          "resource": "repo://AGENTS.md#L61-L61",
           "version": "repo-lines-v1:sha256:20f70f81c29f72ceb3b8c0d0ed710e433bbc08043f50f8fa17d7544dbd06708d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkzZWE4Y2ZiY2Y1YWVmY2JhNDU4MWE0ZWY2NDljNDcwYjFkYWE0NGM3MjIzN2U1ZTBmOTkyMGJjYjIxZDViMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
         },
         {
@@ -1190,17 +1190,45 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         },
         {
           "resource": "repo://TFMTests/RemoteOutputToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:d4598f63b63ea1dc95061357c10b6e7844d38779c2d81fcfb41dc154321a9675"
+          "version": "repo-file-v1:sha256:542f0488349a418eb9d811ab59c799cb950600a6a29621e262fbc7d97c2d50dd"
+        }
+      ]
+    },
+    {
+      "id": "claim_9be78445615f4cb596ef1b636733ffa5",
+      "statement": "AgentKit, libssh2-spm and libtailscale-spm are remote SPM dependencies rather than Termind submodules; Ghostty is consumed directly from Lakr233/libghostty-spm without a local maintenance submodule. Project requirements and Package.resolved pins must remain aligned; prescribed native builds use -onlyUsePackageVersionsFromResolvedFile to avoid implicit updates.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+        }
+      ]
+    },
+    {
+      "id": "claim_7ae40d8d6694416fa4396d7ba7d9233e",
+      "statement": "AgentToolPresentation renders descriptor metadata and lifecycle state through injected profiles and vocabulary without rewriting original execution, approval, persistence or replay data. TermindToolPresentationProfiles composes ordinary tool semantics by registered presenter ID, refuses unknown-ID name fallback, and enforces local pane/chat privacy independently of presenter availability.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
+          "version": "repo-file-v1:sha256:c9d67b4b871d3bbd2c7dc81ca1f5382f812f6bb90607fd068a9e3edd3ccfbd0a"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
+          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

@@ -1,9 +1,11 @@
 ---
 type: workflow
-title: SSH Session Lifecycle
+title: Terminal Connection and Session Lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 sources:
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-b7659044185b653107841c20
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
@@ -26,6 +28,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
+  - id: openwiki-source-ee4e94c8b189e0881ec4fd15
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
@@ -152,13 +156,13 @@ sources:
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
-# SSH Session Lifecycle
+# Terminal Connection and Session Lifecycle
 
 Terminal lifetime has three independent dimensions: the local pane/workspace owner, the remote shell or multiplexer session, and the network transport. SSH reconnection authenticates a new transport; a managed backend can preserve the shell across that replacement. Mosh and Eternal Terminal (ET) instead recover their protocol session, optionally with a managed multiplexer running inside it. Neither a transport checkpoint nor a display name grants permission to terminate a remote session.
 
@@ -256,8 +260,11 @@ flowchart TD
     Known -->|no| Existing{"Expected set nonempty"}
     Existing -->|yes| Reject
     Existing -->|no| Prompt["Ask shared authorizer"]
-    Prompt -->|accept| Auth
-    Prompt -->|reject| Reject
+    Prompt -->|Continue Once| Temporary["Store identity in live controller only"]
+    Prompt -->|Trust and Continue| Persist["Write Known Hosts before resuming"]
+    Temporary --> Auth
+    Persist --> Auth
+    Prompt -->|reject or cancel| Reject
 ```
 
 *Known Hosts remains authoritative; provisional URI constraints only narrow what may be accepted.*
@@ -343,7 +350,25 @@ sequenceDiagram
 
 *The Agent shares its own transport across tools, not a workspace's interactive session; prompts and one-use secrets belong to the connection attempt.*
 
-`ssh_exec_run` preflight classifies safe commands for parallel execution and asks approval for unproven commands. Foreground execution closes stdin and waits without a runtime timeout. Explicit background execution returns a conversation-scoped handle only after confirmed startup and leaves stdin open. `ssh_exec_output`, `ssh_exec_stdin`, `ssh_exec_cancel` and `ssh_exec_list` operate on those handles; secret stdin uses a one-shot broker handle, not an SSH login credential. Only connection failure before session startup is retryable. Cancellation retires the local handle without claiming remote process termination.
+`ssh_exec_run` preflight classifies safe commands for parallel execution and asks approval for unproven commands. Foreground execution closes stdin and waits without a runtime timeout, but when `sshInterjectionEnabled` is enabled (as in Assistant execution), user interjection can end the **wait**, returning the current snapshot while the command remains tracked. It does not reopen stdin or cancel the command. Explicit background execution returns a conversation-scoped handle only after confirmed startup and leaves stdin open. Both modes use `AgentBackgroundCommands`. Only `connectionUnavailable` before `session.started` permits a single replacement-connection retry; a started command is never replayed.
+
+`ssh_exec_output`, `ssh_exec_stdin`, `ssh_exec_cancel` and `ssh_exec_list` operate on scoped handles; secret stdin uses a one-shot broker handle, not an SSH login credential. Output reads return immediate cumulative snapshots without consuming output or extending retention. Running commands do not expire; finished results default to ten minutes from completion. Listing excludes unconfirmed starts and, by default, finished commands. Cancellation removes the local handle, wakes completion waiters and cancels the task/session; a finished result is released instead. It sends no TERM/KILL and always reports `remote_termination_confirmed=false`. Read output before cancellation because the retired handle is no longer accessible.
+
+```mermaid
+flowchart TD
+    Started["Confirmed foreground command with closed stdin"] --> Wait["Wait for completion or enabled interjection"]
+    Wait -->|completion| Finished["Return finished snapshot"]
+    Wait -->|user interjection| Snapshot["Return current snapshot and keep command tracked"]
+    Wait -->|task cancellation| Cancel["Cancel local handle"]
+    Control["ssh_exec_cancel for scoped handle"] --> Cancel
+    Cancel --> Remove["Remove entry and wake waiters"]
+    Remove --> Retire["Cancel task and session or release finished result"]
+    Retire --> Result["Remote termination not confirmed"]
+```
+
+*Abandoning a foreground wait through interjection preserves command tracking; explicit cancellation retires it without promising remote termination.*
+
+Sources: [exec entrypoint](../../Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift), [command owner](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift), and [control tools](../../Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift).
 
 ## Managed remote sessions: selection, ownership, and PTY startup
 
@@ -478,7 +503,7 @@ PTY startup and focus activation are distinct. `SSHPTYActivationState` queues op
 
 ## Retry, retirement, and workspace behavior
 
-Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it installs the window's history callbacks, optimistically sets terminal host status to connecting, and asks that window to create a new SSH, Telnet or SFTP pane/workspace (or a chosen batch layout). The pane's status then drives `HostLibraryModel`'s per-connection status projection: a connected sibling wins over connecting, reconnecting or failed siblings. A connection-history event is recorded **at pane opening**, not after authentication; only saved hosts are recorded, with kind and source device ID. Closing the pane ends that event without deleting it; moving or reparenting a pane does not end its session or history. Recents derive from latest events, deduplicated by saved Host ID, and the local-only projection filters by stable device ID (events with a missing or different device ID are not local). Clearing history leaves Host records and credentials untouched. The history model trims to a global 250 entries, including on load; a failed write reports `storageError` instead of inventing a successful history event. Desktop single-host, batch and snippet openings install the same window history callbacks, so these pane kinds follow the same opening/closing rule.
+Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it installs the window's history callbacks, optimistically sets terminal host status to connecting, and asks that window to create a new SSH, Telnet or SFTP pane/workspace (or a chosen batch layout). The pane's status then drives `HostLibraryModel`'s per-connection status projection: a connected sibling wins over connecting, reconnecting or failed siblings. A connection-history event is recorded **at pane opening**, not after authentication; only saved hosts are recorded, with kind and source device ID. Closing the pane ends that event without deleting it; moving or reparenting a pane does not end its session or history. Welcome recents derive from the latest **local** events, deduplicated by saved Host ID through `recentLocalHosts`; `lastConnectedLocallyAt` likewise excludes other devices. The full timeline still includes remote events. Local filtering uses stable device ID (events with a missing or different device ID are not local). Clearing history leaves Host records and credentials untouched. The history model trims to a global 250 entries, including on load; a failed write reports `storageError` instead of inventing a successful history event. Desktop single-host, batch and snippet openings install the same window history callbacks, so these pane kinds follow the same opening/closing rule.
 
 For a desktop SSH pane, an explicit launch command takes precedence over the Host's startup snippet. Each attempt resolves the current snippet when no explicit command is pending. On the plain-shell path it is submitted once readiness permits; managed creation instead passes it into backend startup, and attachment or reattachment clears local pending commands without typing or replaying them. Disconnect discards both pending commands. Mobile uses the same precedence and startup-plan distinction; reopened connection intent does not replay prior one-shot commands.
 

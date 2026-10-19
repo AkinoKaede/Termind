@@ -8,6 +8,12 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-54a517e25bf7220eb9067177
+    resource: repo://com.akinokaede.termind/assets/README.md
+  - id: openwiki-source-0246c48ce8a82949613e5d20
+    resource: repo://com.akinokaede.termind/design/README.md
+  - id: openwiki-source-cdbd4afdca339b59b83eee2e
+    resource: repo://Configuration/HostIcons/linux-distribution-icons.json
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-aec5c30e7c4ab1864f968273
@@ -16,14 +22,10 @@ sources:
     resource: repo://fastlane/lib/screenshot_frames.rb
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
     resource: repo://fastlane/lib/screenshots.rb
-  - id: openwiki-source-26bdff114608543f8cc38ddd
-    resource: repo://Frameworks/Resources/HostIcons.json
   - id: openwiki-source-239f864516a76b0f7c0543bc
     resource: repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md
   - id: openwiki-source-ac4b9ccbbbd2382cffc03d61
     resource: repo://Frameworks/Resources/HostIcons/Tabler.LICENSE
-  - id: openwiki-source-4143deeb06ebc3198de62e2b
-    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-866341f196647650530299c9
     resource: repo://Frameworks/TermindDomain/Hosts/DetectedDistribution.swift
   - id: openwiki-source-18713c72c4812e786f8b4a30
@@ -44,26 +46,16 @@ sources:
     resource: repo://FrameworkTests/HostIconTests.swift
   - id: openwiki-source-eefd85c14b9b6cec85a25f0e
     resource: repo://FrameworkTests/RemoteSystemInfoTests.swift
-  - id: openwiki-source-594e862c8015f1a9436bd748
-    resource: repo://Scripts/linux-distribution-icons.json
-  - id: openwiki-source-88fc7ecb318dc280f6715036
-    resource: repo://Scripts/render-pro-paywall-icon.swift
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
-  - id: openwiki-source-4a3da903a25eadf04e18c0fe
-    resource: repo://Scripts/Tests/test_screenshots.rb
   - id: openwiki-source-8cf5084412ee85381e0ef517
     resource: repo://Scripts/update-host-icons.py
-  - id: openwiki-source-66092b0aa632065907bc7606
-    resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-407fd8a7c64006c458cce603
     resource: repo://TFI/Resources/AppIcon.icon/icon.json
-  - id: openwiki-source-5a1bb33feb7c647b6d7ec714
-    resource: repo://TFITests/Screenshots/MobileIconRenderingTests.swift
   - id: openwiki-source-779ce1e482a2591d146f565f
     resource: repo://TFITests/Screenshots/MobileScreenshotTests.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
@@ -82,17 +74,17 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-17T05:01:23.054Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Marketing Assets and App Icons
 
 This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; `AGENTS.md` assigns the public website and marketing/brand assets to the independent `com.akinokaede.termind` submodule. Native builds do not require that checkout.
 
-**Verification boundary:** at baseline `20f67cdc0b0e88115415c20af2cda7e12f51dfa6`, the available submodule directory is empty. Its asset/template READMEs, image files and website source cannot be inspected here. This is an uninitialized checkout, not evidence that those assets were removed. Paths and dimensions below describe parent tooling contracts, not an inventory of existing external files. No focus-taking captures or visual artwork approval were performed for this documentation repair.
+**Verification boundary:** this guide follows the `fd88d6` tooling baseline. The available website/assets checkout is initialized; its READMEs identify asset and design responsibilities. Dimensions below are primarily parent tooling contracts, not a fresh visual audit of external files. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
 
 The former MockUPhone pipeline, feature-first `Marketing/` layout, `LandingPage/` project and Pro Max captures are obsolete. The current pipeline uses **fastlane `run_tests` (scan)** with hosted Swift Testing fixtures, **frameit** plus local Apple templates, locale/device-first asset paths, iPhone 18 Pro and optional Duo displays, and native 14-inch Mac Workspace captures. This is not XCUITest `snapshot` automation.
 
@@ -114,7 +106,7 @@ Ordinary pinned native builds do not need the website/assets checkout. Default c
 | Platform Icon Composer sources | `TFM/Resources/AppIcon.icon`, `TFI/Resources/AppIcon.icon` | App-owned, compiled by Xcode independently of public assets. |
 | Tooling, tests, Ruby lockfile | `fastlane/`, `Scripts/`, `TFMTests/Screenshots/`, `TFITests/Screenshots/`, `Gemfile.lock` | Application-owned orchestration and fixtures. |
 
-Tool-generated filenames use lowercase underscore-separated words. Locale directories are `en`, `zh-hans`, `zh-hant`, `ja`; lane locale options are `en`, `zh-Hans`, `zh-Hant`, `ja`. Capture/frame directories are `iphone-6.3`, `ipad-15`, `mac-14`, `iphone-duo-outer`, `iphone-duo-inner`. Command selectors remain `iphone`, `ipad`, `mac` and the two explicit Duo selectors. Final store canvas naming must be verified separately.
+Tool-generated filenames use lowercase underscore-separated words. Locale directories are `en`, `zh-hans`, `zh-hant`, `ja`, `ko`, `de`, `fr`; lane locale options are `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, `fr`. Capture/frame directories are `iphone-6.3`, `ipad-15`, `mac-14`, `iphone-duo-outer`, `iphone-duo-inner`. Command selectors remain `iphone`, `ipad`, `mac` and the two explicit Duo selectors. Final store canvas naming must be verified separately.
 
 Commit and push reviewed asset changes **first**, via SSH, then commit the updated gitlink in the application repository. Keep the public HTTPS clone URL in `.gitmodules`; use an SSH push URL rather than changing that clone URL. Deployment configuration is not verified by the parent repository. Keep credentials, internal release records and licensed source downloads out of public changes.
 
@@ -167,7 +159,7 @@ bundle exec fastlane ios screenshots devices:ipad runtime:com.apple.CoreSimulato
 bundle exec fastlane ios screenshots scenes:ssh devices:iphone locales:en output:/absolute/review/captures
 ```
 
-Mac defaults to **Workspace only**, in four languages. Mobile defaults to all five scenes on iPhone and iPad in four languages: 40 captures. Each opt-in Duo display also has five scenes × four languages when unfiltered. `Scripts/run-mac-screenshots.sh` and `Scripts/run-mobile-screenshots.sh` delegate to these lanes and accept the same options.
+Mac defaults to **Workspace only**, in seven languages. Mobile defaults to all five scenes on iPhone and iPad in seven languages: 70 captures. Each opt-in Duo display has five scenes × seven languages when unfiltered. Use the fastlane lanes directly; the former `Scripts/run-mac-screenshots.sh` and `Scripts/run-mobile-screenshots.sh` wrappers are no longer present.
 
 Environment defaults are `TERMIND_MAC_SCREENSHOT_SCENES`, `TERMIND_MAC_SCREENSHOT_LOCALES`, and `TERMIND_SCREENSHOT_{SCENES,DEVICES,LOCALES,RUNTIME}`. Explicit lane options win. Invalid, duplicate and empty comma-separated members fail before building; use explicit script/lane options rather than the retired `TERMIND_*MARKETING*` selectors.
 
@@ -251,11 +243,11 @@ The runner ignores stale capture IDs and already acknowledged tokens, fails mism
 
 Mac capture requires macOS **27.x**, native 2× backing and the real focused production `WindowGroup`. Workspace alone goes full-screen on the built-in display, currently **3024×1964**. Other scenes, including Command Generator, use **2360×1480** ordinary-window captures. The full-screen export captures only the app window; an excluded camera strip of at most 160 pixels is padded black at the top, without stretching content or capturing personal desktop/menu/Dock UI. Framing separately requires the exact 3024×1964 Workspace source.
 
-`ScreenshotDemoConfiguration` is a DEBUG-only launch mode with one `--termind-demo=<scene>:<en|zh-Hans|zh-Hant|ja>` argument. Missing means normal launch; malformed, duplicate and unsupported values abort demo launch. `Scripts/run-screenshot-demo.sh` supports manual review, including `metrics-detail` and `app-settings`; scan accepts only the six export scenes above.
+`ScreenshotDemoConfiguration` is a DEBUG-only launch mode with one `--termind-demo=<scene>:<en|zh-Hans|zh-Hant|ja|ko|de|fr>` argument. Missing means normal launch; malformed, duplicate and unsupported values abort demo launch. `Scripts/run-screenshot-demo.sh` supports manual review, including `metrics-detail` and `app-settings`; scan accepts only the six export scenes above.
 
 Demo startup chooses its requested locale and in-memory SwiftData container, creates demo Hosts, AI, unrestricted test access, frozen Metrics and a demo `WindowModel`, then returns before ordinary persisted Settings, Keychain, sync and live model assembly. Scrubber setup and previous-session attachment cleanup still occur before that return; this isolation is not a promise of zero startup side effects. The initial nil-request main scene receives the demo window; explicitly requested new windows use ordinary creation. Tests/demos disable main-scene restoration; demo test windows are not suppressed by the ordinary XCTest host-window gate.
 
-The app delegate's `TERMIND_DEMO_READY` diagnostic is not capture readiness. `MacScreenshotTests` prepares the actual window, uses light appearance, validates active/key focus and 2× backing, and emits **`TERMIND_MAC_SCREENSHOT_READY`** with scene, locale, native window number, token and pixel dimensions. The runner captures by window number, then waits for scan completion before validating and promoting the image. Focus must remain active through the five-second capture interval. Scan injects `-showStatusBar YES` and `-statusBar.expanded YES` in the process argument domain so captures show the expanded status bar without changing the user's saved preference.
+The app delegate's `TERMIND_DEMO_READY` diagnostic is not capture readiness. `MacScreenshotTests` prepares the actual window, uses light appearance, validates active/key focus and 2× backing, and emits **`TERMIND_MAC_SCREENSHOT_READY`** with scene, locale, native window number, token and pixel dimensions. The runner captures by window number, then waits for scan completion before validating and promoting the image. Focus must remain active through the five-second capture interval. Scan injects `-statusBar.expanded YES` in the process argument domain without changing the user's saved preference; it does not inject a status-bar visibility override.
 
 Before export, the test delivers a pointer move **inside** the window to clear stale SwiftUI row hover, moves it outside content, waits for stable focused rendering, then temporarily ignores mouse events. Moving directly outside can leave a row highlighted. Normal input and the pointer are restored afterward.
 
@@ -280,7 +272,7 @@ bundle exec fastlane frames devices:iphone-duo-inner scenes:sftp
 bundle exec fastlane frames devices:mac locales:en
 ```
 
-The default is 28 jobs: iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in four locales. **Duo remains opt-in**; explicit Duo selectors default to all five mobile scenes. `WEBSITE_SCENES` is the parent selection policy, not proof of current site consumption. Mac frames support Workspace only.
+The default is 49 jobs: iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in seven locales. **Duo remains opt-in**; explicit Duo selectors default to all five mobile scenes. `WEBSITE_SCENES` is the parent selection policy, not proof of current site consumption. Mac frames support Workspace only.
 
 `input:` and `output:` support review directories; supply **both** to work without the submodule. `plan:true` lists jobs without importing templates or changing images. Every selected source/template size is checked before rendering. The lane stages copies, masks their screen apertures, renders all selected jobs, verifies each PNG, then publishes `<locale>/<device>/<feature>.png`. A frameit action that only logs an error and omits an output still fails publication. Validation prevents a failed render batch from replacing existing frames; per-file rename does not make the final publication loop crash-atomic. Raw captures are never masked or resized.
 
@@ -318,7 +310,7 @@ The mask algorithm expects transparency both outside the device and inside its d
 
 ## External composition, website and store delivery
 
-`AGENTS.md` identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. That parent guidance does not verify current website imports, responsive Hero composition, routes, copy, image renditions or deployment settings.
+`AGENTS.md` identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. The initialized checkout's [README](../../com.akinokaede.termind/README.md) is the entrypoint for website development and publication; its [asset guide](../../com.akinokaede.termind/assets/README.md) distinguishes final `screenshots/`, `header/` and `search_results/` artwork from captures and frames. These documents do not substitute for inspecting image pixels, current consumers or deployed settings.
 
 Before publishing, initialize and inspect the external repository separately:
 
@@ -332,7 +324,7 @@ This page makes no current claim about a 96-board inventory, Overview filenames,
 
 ## Brand, layered app icons and Pro handoff
 
-External brand masters and website variants must be inspected in the initialized submodule before editing; their contents and styling are not verifiable here.
+External brand masters and website variants belong to the submodule. Its design README identifies `brand/termind.svg` as the master and `public/brand_mark.svg` / `public/favicon.svg` as website variants. Inspect the actual SVGs before editing; README guidance is not visual approval.
 
 Platform `AppIcon.icon` documents remain app-owned and selected as `AppIcon` by Xcode. Their SVG groups are Terminal, FrontWindow, MiddleWindow, BackWindow; preserve order, shared-square platform declaration, lighting, disabled glass/specular/translucency, no Terminal shadow and the subtle 0.08 neutral window shadows. Icon Composer/Xcode own platform padding, masks and compatibility renditions. Do not introduce another flattened appiconset or manually generated size matrix. Build both platform sources with pinned dependencies; TestFlight processing is a separate release check, and a temporary macOS bundle identifier can bypass local icon cache during manual review.
 
@@ -347,13 +339,9 @@ A separate website rendition can be exported from the Mac source to an initializ
 
 Shared `Frameworks/Resources/Assets.xcassets` owns runtime AccentColor and vector/template host artwork, separately from marketing frames and compiled app icons. See the host-artwork workflow below.
 
-```sh
-swift Scripts/render-pro-paywall-icon.swift
-```
+Paywall illustrations are externally owned under `com.akinokaede.termind/design/paywall/`; follow the checkout's [design guidance](../../com.akinokaede.termind/design/README.md). The former `Scripts/render-pro-paywall-icon.swift` renderer is absent: there is no current parent generation command or guaranteed 80×72-point export contract. Native `ProPaywallView` / `MobileProView` embed `RevenueCatUI.PaywallView` when using RevenueCat. Editing handoff artwork does not publish a remote paywall; review and upload through the commerce workflow intentionally.
 
-The renderer checks the initialized asset checkout and writes `design/paywall/pro_hero_light.png` and `pro_hero_dark.png`, at 4× an 80×72-point SwiftUI canvas. These are remote RevenueCat image-component handoffs. Native `ProPaywallView` / `MobileProView` embed `RevenueCatUI.PaywallView`; rendering files neither updates native app icons nor publishes a remote paywall. Review/re-upload intentionally after symbol/color changes.
-
-`MobileIconRenderingTests` is a separate opt-in in-app icon/UI-label rendering suite under `TERMIND_ICON_SCREENSHOTS=<locale>`. Its temporary PNGs are not release captures, App Store boards or Icon Composer output.
+The former `MobileIconRenderingTests` suite is also absent. Use the current `MobileScreenshotTests` capture fixture for supported product scenes, and Icon Composer/Xcode for app-icon review; neither is a replacement claim of automated icon-label coverage.
 
 ## Runtime host artwork
 
@@ -395,11 +383,9 @@ Run from the application repository, independently of the website submodule:
 
 ```sh
 python3 Scripts/update-host-icons.py --simple-icons-version 16.29.0 --tabler-version 3.49.0
-# Retained compatibility entry point (Simple Icons version only):
-Scripts/update-linux-distribution-icons.sh 16.29.0
 ```
 
-The shell compatibility wrapper **still exists** and delegates to the host updater; do not describe it as removed. The Python updater requires explicit release-shaped versions rather than moving tags, checks npm metadata version and SHA-512 tarball integrity, and uses `Scripts/linux-distribution-icons.json` as the Linux selection/alias input. It adds macOS, generic Linux and BSD-family artwork from Simple Icons (including the DragonFly-to-BSD alias), and Windows from Tabler's filled `brand-windows.svg`. Extend Linux distribution selections/aliases in the JSON input; extend these OS-family additions in the Python updater. General-purpose choices instead belong to `HostGeneralIcon` and use system symbols, so they do not require downloading or generating SVGs.
+Use the Python updater directly; the former `Scripts/update-linux-distribution-icons.sh` wrapper is absent. The updater defaults to Simple Icons `16.29.0` and Tabler `3.49.0`, accepts only release-shaped versions rather than moving tags, checks npm metadata version and SHA-512 tarball integrity, and uses `Configuration/HostIcons/linux-distribution-icons.json` as the Linux selection/alias input. It adds macOS, generic Linux and BSD-family artwork from Simple Icons (including the DragonFly-to-BSD alias), and Windows from Tabler's filled `brand-windows.svg`. Extend Linux distribution selections/aliases in the JSON input; extend these OS-family additions in the Python updater. General-purpose choices instead belong to `HostGeneralIcon` and use system symbols, so they do not require downloading or generating SVGs.
 
 Generation parses SVGs, rejects scripts, foreign objects, embedded images and links, and substitutes black for `currentColor` so Xcode can rasterize them. It emits universal vector-preserving template imagesets, `Frameworks/Resources/HostIcons.json` with source/version/integrity and per-entry provenance/color metadata, and `Frameworks/Resources/HostIcons/` license files. All inputs are staged and validated before generated outputs are replaced; replacement deletes/copies directories and is **not** a crash-atomic transaction. Review all three outputs together and keep stable IDs when extending the selection input.
 
@@ -412,18 +398,19 @@ Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: gener
 Quiet tooling checks do not open screenshot windows:
 
 ```sh
-bundle exec ruby Scripts/Tests/test_screenshots.rb
 ruby -c fastlane/lib/screenshots.rb
 ruby -c fastlane/lib/screenshot_frames.rb
-zsh -n Scripts/run-mobile-screenshots.sh Scripts/run-mac-screenshots.sh
-Scripts/check-appstrings.sh
-python3 Scripts/check-cjk-localization.py
+zsh -n Scripts/run-screenshot-demo.sh
+python3 Scripts/check-localization.py
+bundle exec fastlane mac screenshots plan:true
+bundle exec fastlane ios screenshots plan:true
+bundle exec fastlane frames plan:true
 git diff --check
 ```
 
-The Ruby regression suite covers absent-submodule fail-before-write behavior, external review paths, selector validation, pinned scan configuration, native-device rejection, capture failures/backup hashes, camera-strip padding, container reinstalls, Duo display selection, native-scale composition, aperture masks and all-render-before-publish failure handling. Native fixtures and Figma/website rendering still need their own opt-in/manual validation; this guide does not claim a fresh capture or visual approval.
+`Scripts/Tests/test_screenshots.rb` is no longer present. Do not use its historical mocked-command and synthetic-image coverage as a current regression gate. The checks above validate syntax, localization and job planning, not pixel correctness or failure recovery. Capture/backup and aperture-mask guarantees described here come from the current Ruby implementation; the SHA-256 manifest is recorded, not automatically verified by the runner.
 
-The Ruby suite uses temporary repositories, mocked scan/system commands and synthetic PNGs/templates. Its failure-propagation, byte-preservation and mask-pixel checks establish orchestration behavior, not correctness of real Apple templates, final artwork or the live site. Neighboring native fixtures enforce focused-window and software-keyboard conditions only when explicitly enabled. The suite was inspected, not executed, for this repair.
+Current native fixtures are `TFITests/Screenshots/MobileScreenshotTests.swift` and `TFMTests/Screenshots/MacScreenshotTests.swift`, with demo behavior covered by `TFMTests/Screenshots/ScreenshotDemoTests.swift`. Focused-window and software-keyboard requirements are enforced in opt-in captures. External composition and website rendering require their own review. No tests or captures were executed for this documentation update.
 
 For website work after initialization:
 

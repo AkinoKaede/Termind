@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b7d62f22f6f3696752172ddd76bc0d504c8f9ff870bb5000ce1f5fd93c04af41",
+  "pageVersion": "sha256:8ab91fc623ef6c68a98f5fa1f00adb0cedd32b4dd6c601cbf6a4a30ed62abcdd",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -34,7 +34,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostIconPicker.swift",
-          "version": "repo-file-v1:sha256:1b5d4413405947add6bdccbd7a56909d6d48865b4b8e8813e7d9872787a4c176"
+          "version": "repo-file-v1:sha256:b0105f27d9584d36f668b3f7753763831f2ca229746041157abd68b6e7e50119"
         },
         {
           "resource": "repo://TFM/Design/DesignTokens.swift",
@@ -96,7 +96,7 @@
         },
         {
           "resource": "repo://TFITests/MobileCompactCardTests.swift",
-          "version": "repo-file-v1:sha256:9b71647647981db9c1b074e8e9e82351087e6f3dd7341f9f8fabf329bb612d9d"
+          "version": "repo-file-v1:sha256:c5a5001b7fb352e018898a36220301aee21a5c63cc38551772a58ba2e3688559"
         }
       ]
     },
@@ -152,7 +152,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:556dd61ab0e59ef8ed41b7d4d3202967c424362423404c3570a856943a63bdd7"
+          "version": "repo-file-v1:sha256:bab4d4c36465804d69d4adc794063a96dc73cffb14d4e1244e4456d210c79b63"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -256,7 +256,7 @@
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileCustomThemeEditorSheet.swift",
-          "version": "repo-file-v1:sha256:b6097274f09bf1c347623b789aaa30f79b59cfb26f9fc1bb34127cb55ec83c19"
+          "version": "repo-file-v1:sha256:e09832ba4f5386d826e83e5ed15b5f84ed251697b3fe895296c0a2cae82eaaf1"
         },
         {
           "resource": "repo://TFM/Features/Settings/TerminalCustomConfigurationEditorPage.swift",
@@ -274,15 +274,11 @@
     },
     {
       "id": "claim_adb6b4c166494ec084899f3ae35c379d",
-      "statement": "Terminal tests cover all loadable families including proportional fonts, family fallback/reset and size precedence, controller identity, theme fallback/overlays and zero writes opening desktop Settings; mobile renders cover English and both Chinese scripts.",
+      "statement": "Desktop terminal tests cover family fallback/reset ordering, manual size precedence, controller identity, nonmutating theme fallback and zero writes opening Settings; the former mobile font rendering suite is not current coverage.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileTerminalFontTests.swift",
-          "version": "repo-file-v1:sha256:251cd37906b9184306dbd0fdf19607936070ca0165ab62647548df9a35d94797"
-        },
-        {
           "resource": "repo://TFMTests/TerminalFontRenderingTests.swift",
-          "version": "repo-file-v1:sha256:5d9c19486cf8f42de838c97cf885d62173f32d0542a5e16dc7ecf9925419f7d8"
+          "version": "repo-file-v1:sha256:9812cc463831c810bb2762ed30344e71fda729ba05f37a2d1d4f4492b85fe0b1"
         },
         {
           "resource": "repo://TFMTests/TerminalThemeTests.swift",
@@ -328,7 +324,7 @@
         },
         {
           "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:cebc14b639988368732b24c94a536e711a93c7858e3d006322f52949194c7f57"
+          "version": "repo-file-v1:sha256:fc080fcc54768dbdaa64008f10d1e60deff83abca657c8a8fcd634a82e263159"
         },
         {
           "resource": "repo://TFM/Features/Snippets/SnippetsPageView.swift",
@@ -396,11 +392,11 @@
         },
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:556dd61ab0e59ef8ed41b7d4d3202967c424362423404c3570a856943a63bdd7"
+          "version": "repo-file-v1:sha256:bab4d4c36465804d69d4adc794063a96dc73cffb14d4e1244e4456d210c79b63"
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:b3b24c947dc5aa6b4c4856f98b65155541b14f58122365ffb40bdb76a112613a"
+          "version": "repo-file-v1:sha256:57d52f1beff345b7d9f0f422bf8266f8ab0ee4f08df2f66f8d922cc3fe8bf440"
         }
       ]
     },
@@ -554,55 +550,47 @@
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "version": "repo-file-v1:sha256:36ad067a81b9568dc3b1f0271917e3c2ecb6a5a00e9a7c07b9a1817ed5b9a4a5"
         }
       ]
     },
     {
       "id": "claim_f8e11156b4024feea9bd224c69a504eb",
-      "statement": "AgentToolPresentation projects summaries/details without modifying execution/replay data: approval uses in-memory request arguments with restricted sensitive-chat projection, MCP keeps remote-defined JSON presentation, and failed, denied or interrupted results pass failure state to registered presenters, with knowledge presenters using failure-safe generic details. The string preview retains full transformed text; desktop typed tool details use compact/full items with per-card Show More/Show Less disclosure and selectable native labels.",
+      "statement": "Tool presentation leaves original execution/replay data unchanged. Approval projects in-memory request arguments rather than durable cards/model transcripts, requiring restricted chat argument projection. Ordinary JSON failures pass failure state to presenters; knowledge tests reject success messages on failure. Typed previews retain full items and desktop disclosure is per-card with selectable native labels.",
       "evidence": [
         {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/MemoryTool%2BPresentation.swift",
-          "version": "repo-file-v1:sha256:95259298caef4c92cfd1f3061469b872aa3119b465dd439fb5134d6f88d5bdb0"
-        },
-        {
-          "resource": "repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/SkillReadFileTool%2BPresentation.swift",
-          "version": "repo-file-v1:sha256:b78205b833f9ce8da83667e8cdf2ad130f8aaf0a3b7e02825b70c4f8b926fee6"
-        },
-        {
-          "resource": "repo://AgentKit/Tests/AgentKitTests/AgentKnowledgePresentationTests.swift",
-          "version": "repo-file-v1:sha256:ce18b808703615936b564e7e90dad6624279b2e9ec4650c6da099c1a1fbb118a"
+          "resource": "repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift",
+          "version": "repo-file-v1:sha256:aded24151ee24b9b43d765700259fa13a3e4817494815c1c47ce39aef41fd0b3"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         },
         {
           "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift",
-          "version": "repo-file-v1:sha256:f3723ab0d8fca8ead5452fe4c49b6adc8ac02348beacf6e84738f243a09e612b"
+          "version": "repo-file-v1:sha256:892ccf10c9500ad120421878cc60911c1c56735eca81cad8a5fb2bccfd4ce67e"
+        },
+        {
+          "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift",
+          "version": "repo-file-v1:sha256:dbb44bb5fae9f0332c402febdb4ba2e6327bc7b8819eefa4bce3bcb138e90e1e"
         }
       ]
     },
     {
       "id": "claim_aaf091c40c4343e7a12df62c0dfd52f1",
-      "statement": "MobileCardTests checks tags and brand contrast; MobileCardLayoutTests measures balanced padding and header/timestamp stability across tags, languages, widths, appearances and large text plus snippet folder stability. MobileCompactCardTests checks columns, accessibility growth and preference persistence. Serialized key-window toolbar tests cover localized Cancel, Save and failures, and More actions remaining beside Save while disabled during saving.",
+      "statement": "MobileCardTests checks the two-tag limit; current MobileCompactCardTests checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording rather than geometry/persistence. MobileEditorToolbarTests covers localized Cancel, in-flight and failed Save, and More actions beside Save disabled during saving.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileCardLayoutTests.swift",
-          "version": "repo-file-v1:sha256:f67a480756a03a46f63044d4fc4a52c73269bbd5721d1ffca1bc3578586af5fb"
-        },
-        {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:b11553354707628b46ae1b2d3ee3008ada0151ea329ffbeeb25a1889bf04bc96"
+          "version": "repo-file-v1:sha256:e0132edcd2174019d47b26930b2d63aa8fe22bb7bd11dde818058270fbbcc39a"
         },
         {
           "resource": "repo://TFITests/MobileCompactCardTests.swift",
-          "version": "repo-file-v1:sha256:9b71647647981db9c1b074e8e9e82351087e6f3dd7341f9f8fabf329bb612d9d"
+          "version": "repo-file-v1:sha256:c5a5001b7fb352e018898a36220301aee21a5c63cc38551772a58ba2e3688559"
         },
         {
-          "resource": "repo://TFITests/MobileEditorToolbarTests.swift#L10-L109",
-          "version": "repo-lines-v1:sha256:f455053deed51c0d0713c1cd4c688f1766a1aa4c0fd7ff2c626b3c5c64df487b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjMTgwMjUwNGYyNWJhM2NkMGI4ZmYxMDBiOTRiZWI1MjZkNWVlMjU0MWMyZDg5MGQ4MWYzYTQ5NjYzYjEyMWMwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyZDRkNjFiY2NlZDFlZDkwYTI3ZWQ1MTA2MjE3MmVkN2I2MzMxNzllYjlhMmEyMGI0Y2ZlOTg2YWJlNTBkNWViIn0"
+          "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
+          "version": "repo-file-v1:sha256:371a3e95e2a1ab1b404a3a3e428aaaf33ab522290f5c11dbd681b0af2e198f12"
         }
       ]
     },
@@ -616,7 +604,7 @@
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileAppSettingsView.swift",
-          "version": "repo-file-v1:sha256:dc625d14ab678b2e81091a8cf260aeadcb4ef606786c1e0ff2783b24d596aa39"
+          "version": "repo-file-v1:sha256:7b7cc895aefe9b934086d2e2b8527c2b9c2c6788f4dc2222d599fcd244ef51a6"
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L402-L456",
@@ -728,7 +716,7 @@
         },
         {
           "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:cebc14b639988368732b24c94a536e711a93c7858e3d006322f52949194c7f57"
+          "version": "repo-file-v1:sha256:fc080fcc54768dbdaa64008f10d1e60deff83abca657c8a8fcd634a82e263159"
         }
       ]
     },
@@ -777,12 +765,8 @@
           "version": "repo-lines-v1:sha256:3abda17d60766c4654f70664e5f9cba7a2a484cd34819bfe123ca26d8c45d3f4:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3ODgzNDNlYzllOTY0NmMzZWY4MmI3ZjNlNDNjMDI2MTE2Y2VmNDdmMzNiZGNjZjBkNTNjYzdhMGEwYjQ1ZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMDk1MjljMTEyNTMyYjU3ODY0YWExYjk1OTlhZjczM2QxZmM1ZDg3NTVkOTMyZDJjY2ZiZjFlZTQ3MzQ4OWQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L336-L423",
-          "version": "repo-lines-v1:sha256:48ec68765af443ef4960101f8f59513b14da55c7b062cd58745589c91a9e421c:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGMyZTg3ZDhlMTIxMDViNmQ1MWZmN2MyZDE2NTFhYWRkNzAyNjU4MjA2ZDBmZTEzM2RmMzRkMzU5ZDg4NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0ZmQ5NWZhOTFmNjVhYmY0NzNlNDE1ZGZjMmMwZGEwNDJhMzhmMTFmYzc3OGRjMWVhZTQxNjhlYWVhYzljNTcifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ListViewMigrationTests.swift#L119-L194",
-          "version": "repo-lines-v1:sha256:c253a265449c87802d28965ef05184442441b0493286b0d8486369939b79b617:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyMzljM2U5NzQ0MTUyNWFjODNjYmY4OWRjYjdiNDIzM2E2M2YwYjEwNTAzMGExZTA0Yzk3Njg2ZTkyNWY1NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjN2I0ZWQ3YTI4YTQzMDA0MmFkZjAzMTE0NmIwNWU2OTVhZDhiMjIxZDcwZDk3MzFmZGU5YTg1YWJmNzQwYzEifQ"
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L336-L403",
+          "version": "repo-lines-v1:sha256:92be2e73ceeef77f3f44fd1ea2536ee9e0d9b4af3043ca2b84bcaab18671d79a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGMyZTg3ZDhlMTIxMDViNmQ1MWZmN2MyZDE2NTFhYWRkNzAyNjU4MjA2ZDBmZTEzM2RmMzRkMzU5ZDg4NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzNDc4MzNkMjFiZmY2MDZjZjEzYzU4NjQyMmNlZmRjMTNmNjE1MGJjNTM0NDU0ZTc1ODlmOWRmNzA0Y2IxOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlODY4YjNlNGIyNzBmZTQ4ZTYwY2Y1NjBkNTBjNWM4YzVlYTg3MDE3NDIyMGQ2ZTczNDZhODg0YzY0ZmQ0YzIifQ"
         }
       ]
     },
@@ -791,24 +775,8 @@
       "statement": "The compact Snippets shelf persists expansion independently from the full Snippets page; collapsing removes rows without replacing the section header's identity, while the shelf's own footer search filters its sidebar list instead of the foreground titlebar Find query.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L224-L282",
-          "version": "repo-lines-v1:sha256:76b9b922cfec03a2fef27dcb44e80e758ee095eee0272311fe5fef4cbe41333c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczNzBhNmFmYzRjYjI5NGJlNWI4NTlhNTU3NGRhNDhkNGIyYzhmOTY3ZWI3NWNmYjE5ZjIyODYwNjA0MTdmMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOGZhNTE0NGY3YjJhNDE3MjUzZTlmMTRlZDE3OTliYzliOTA4MGJkNDExNGU3OWViMjI2YmE0NmNjYTViNTcifQ"
-        },
-        {
-          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L302-L333",
-          "version": "repo-lines-v1:sha256:3f5ff16a9f9b5ebb3dd8a7a19c56f3cd215ce28962f4e39caa7f2721991a38ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwNDllZDhhMGNiN2ViMWEzYzdiYTM0OWY5NzE5NTc3OWNiN2Y3ODJlNWI3YTI2MTc0OGMwM2ZjNjY1YmEyYjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhYjg5OTNlZTE1MTExMjNmZDM0YTFiZTg1ZWUzNmVjMjRkNjJiMTU1M2U3Mzg4YjUxYTM4ZDRmMGFkMTU2ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzNTc0MWEzNmY1YmRmNzhhZDllOTRhNzAxNGUzY2JmMDhjYjNhZDNjZDU2NDlmNmNlNmIwNDZkZDA5NmIyYjAifQ"
-        },
-        {
-          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L530-L614",
-          "version": "repo-lines-v1:sha256:aa1384ae7a8f3bc296c1296ae9ba39ab6c3b2824fac31cb691163959c2a3f6a1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiYTRlYmRlY2Y2MTZmN2Q5MjI0YzhkMGQwOWRlODA4MzEyNWVhYmMyZjQwMWRkZjQwODAwOWIyZmE1MWYxOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwMjUyODQ0N2VmYmE5YTQwY2QyNzA5MDcxYzc2NzM2NzIxNmU0ZDUyODMxODY0N2E1MDE1NTJhY2U1MzE1NTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjODI4ZDE4ODA3OGNjMTZmMWIyMTM1NGZkMDVlNjFkYjNjODI0M2ZlMTA0YzEzMGU0ZjM2ZTA0ZDJmZDA5MDYifQ"
-        },
-        {
-          "resource": "repo://TFM/UI/Components/SidebarRow.swift#L391-L405",
-          "version": "repo-lines-v1:sha256:b3f48471d9b2ef561c4b7a7672e951af9b3a9f49c26fb7953103522032c30bad:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlNTIzMjFmNmJmMjI1OGEwNTQwNzMyZThhYWRhNTdlNjJkYzA4NDIzNTFjYmIwODQ0NTQ4MDk4NjcxNmE4YjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYjcxNTNkNzYxYzhlOGU4YzI5NzJmZGExYjU0ZjMzZjliOTk2YjlmZmZkNGI0ZTNkZGEzNDBhNTc1MjQyODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ListViewMigrationTests.swift#L196-L230",
-          "version": "repo-lines-v1:sha256:395852e83f1a1bf73b837b2794e7720f904c1598821c4d13d66990c54487a72d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkM2ZhZWIzODg2MjFmNDI0MDZkNzE1MzQ1NWEwNDI0ZjcxNWFjMzU0YmMyNTVlODIyZTY5ZjJhNmYwNDgxY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyMzlmNTJkOWE1M2MwYWQ1YmZiZTVmMTQ5NDMxZDEyMzc2YTg3MTk1OTQ0N2M3M2UwMWEyMGI0NzhkMzYyOTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
+          "version": "repo-file-v1:sha256:be3de8e2d5338364f8f39955a1f8ebbdf72972cc1d9e32d08dbc8203122a9dbf"
         }
       ]
     },
@@ -882,7 +850,7 @@
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "version": "repo-file-v1:sha256:36ad067a81b9568dc3b1f0271917e3c2ecb6a5a00e9a7c07b9a1817ed5b9a4a5"
         }
       ]
     },
@@ -892,7 +860,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Platform/MobileTerminalSurface.swift",
-          "version": "repo-file-v1:sha256:895a5865b1b564006b0529677fbf1c7d6d73f341c631746f1b8b5226a2a12260"
+          "version": "repo-file-v1:sha256:5da9c894468493b9d4257886e0329dd8114fbc287653b21593f71dd98b70ee80"
         },
         {
           "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L225-L296",
@@ -920,11 +888,11 @@
     },
     {
       "id": "claim_f7f811442bb944fd8998e7636538ce5f",
-      "statement": "Local read_pane tool details expose terminal name and pane ID rather than terminal output before raw/error fallbacks; list_panes details render terminal rows.",
+      "statement": "Local read_pane cards expose only terminal name and pane ID, with argument-ID fallback, suppress truncation notices and never fall through to raw output even for malformed or failed results; list_panes renders terminal rows with active/current badges.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:576a4a2d1465cc61ae661993e5874dec6cb09476a4a0737fd51bda35deafdda9"
+          "resource": "repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift",
+          "version": "repo-file-v1:sha256:30a43572cc3dae6da49fc1fecdad8111d7c81dd32667003d7c4cbddc50fe0cf7"
         }
       ]
     },
@@ -944,7 +912,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:556dd61ab0e59ef8ed41b7d4d3202967c424362423404c3570a856943a63bdd7"
+          "version": "repo-file-v1:sha256:bab4d4c36465804d69d4adc794063a96dc73cffb14d4e1244e4456d210c79b63"
         },
         {
           "resource": "repo://TFI/UI/Components/MobileNativeList.swift",
@@ -955,10 +923,56 @@
           "version": "repo-file-v1:sha256:036a58b33b970dbc0742ec29fbfd182ff3779151c96210e3e6cac988b4fd2561"
         }
       ]
+    },
+    {
+      "id": "claim_ba66177813594d9fa99ec461ec18b5d4",
+      "statement": "AgentToolPresentation accepts injected profiles and vocabulary; profiles override summaries, operations, batches, phases, details and truncation policy, and distinguish hidden details from default fallback.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
+          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift",
+          "version": "repo-file-v1:sha256:1937a7d0ca1dc86e3777b9457193d92c761f79b59ce221e28377ae89fe3d6eed"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
+          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
+        }
+      ]
+    },
+    {
+      "id": "claim_104842d314fd47b4b6228bf3dd103a8c",
+      "statement": "TermindToolPresentationProfiles composes registered policies by presenter ID, leaves unknown IDs generic, applies local pane/chat privacy independently of presenter availability and keeps MCP JSON unless a caller explicitly supplies a presenter; remote metadata cannot select local executable presentation code.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
+          "version": "repo-file-v1:sha256:c9d67b4b871d3bbd2c7dc81ca1f5382f812f6bb90607fd068a9e3edd3ccfbd0a"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L63-L104",
+          "version": "repo-lines-v1:sha256:2e683a7cfc6d1a0324b452c5e5cc75140e46613ecc04f2f42bf371828fbd836a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_acf47013dbdb476baa2f7f02995e1db8",
+      "statement": "Approval omits redundant host_id when a Host name is supplied; required argument projection fails closed to empty items without a presenter. Chat malformed, failed or missing-presenter details never fall back to raw bodies; matching Guardian denial output is suppressed as duplicate feedback.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift",
+          "version": "repo-file-v1:sha256:aded24151ee24b9b43d765700259fa13a3e4817494815c1c47ce39aef41fd0b3"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L296-L414",
+          "version": "repo-lines-v1:sha256:ea1a2d9987b1a8156bb1b466e479e6c5b53974bf9f7fc9d41dbae4e2ad7b681c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNjQ3M2JkZThmNjk5MmRhZDhmOWM4ZmE3MzdkMTkwMWRjNWRjNDg1MWE1ZGYxNjljZmM2NTFmYjJmODlmNTUxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1ZThkNjRhY2JiMmI3YTkyMmFjOWI4ODI3ZDFmY2JjY2Y3ODgxNzE4YTg5YjYyZjQ0NGQ4YWRjNzRkNTMyYTMwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiODIwYzlkNjNmMGJkZjBiYTVjMmFjZDc0YzIyMTUzYmM0MDUzNDljNmFlYWNiNzgxMDYwNmNkYzcxMjgyNTlmIn0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

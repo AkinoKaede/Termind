@@ -18,10 +18,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-16T22:23:31.119Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-16T22:23:31.119Z
+  - by: openwiki/0.7.2
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Port Forwarding Benchmarks
@@ -174,5 +174,11 @@ python3 Scripts/benchmark-external-port-forwarding.py \
 ```
 
 The deliberately delayed remote-listener case uses a temporary environment with `paramiko==4.0.0` and `python Scripts/ssh-authentication-fixture.py --metadata /tmp/ssh-fixture.json`, substituting that metadata path. Other wire/lifecycle cases run against both fixtures.
+
+### Validation after test pruning
+
+`Scripts/Tests/test_port_forwarding_benchmark.py` is no longer present; do not use it as a reproduction prerequisite or evidence of current regression coverage. The executable drivers remain the measurement entrypoints: [Termind driver](../../Scripts/benchmark-port-forwarding.py), [external/system-SSH driver](../../Scripts/benchmark-external-port-forwarding.py), and their [shared workload and JSON helpers](../../Scripts/port_forwarding_benchmark_common.py). The Termind driver rejects failed runner processes and successful exits without `FORWARDING_METRIC` records; these runtime checks are not a replacement Python test suite.
+
+For focused functional validation, [SSHForwardingWireTests](../../TFMTests/SSHForwardingWireTests.swift) is serialized and enabled only when `TERMIND_SSH_FIXTURE` is set to fixture metadata. It covers pool shrink/re-expansion, admission recovery while connections drain, slow consumers, and disconnect under backpressure separately from timed measurements. Consult [Build, Test, and Release](build-test-and-release.md) for test execution; historical passes above do not imply these tests ran for a new benchmark sample.
 
 See [Remote Services: Terminal, Metrics, and Port Forwarding](../concepts/remote-services-and-forwarding.md) for current runtime behavior and [SSH, Telnet, Trust, and Workspace Session Lifecycle](../workflows/ssh-session-lifecycle.md) for authentication and transport ownership.

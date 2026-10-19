@@ -12,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-cd830b9886c3f5d3d7181662
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
+  - id: openwiki-source-d7d857d696a915d0708e13b4
+    resource: repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift
   - id: openwiki-source-ff7e1a7fb4c2e41f0599b10c
     resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalCustomThemeDraft.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
@@ -22,6 +24,10 @@ sources:
     resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
+  - id: openwiki-source-36d16adefef02f0ed0cdc428
+    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
+  - id: openwiki-source-46ef2fcd9e3aba751015021b
+    resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -62,10 +68,14 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-f1caa8a8fe50f79a0e6087b9
+    resource: repo://Frameworks/TermindPersistence/PersistentSFTPPreferences.swift
   - id: openwiki-source-6df73854db20ee83905a634c
     resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
+  - id: openwiki-source-5bfb44617fb594292c716f44
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
   - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
@@ -102,6 +112,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWorkspaceWireV2.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
+  - id: openwiki-source-6c30416f939593ee31f56380
+    resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
   - id: openwiki-source-e77eccb0637ba395d80ada96
     resource: repo://Frameworks/TermindPresentation/HostIntegrationSection.swift
   - id: openwiki-source-004087118989bdae6d2071e6
@@ -124,6 +136,8 @@ sources:
     resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-b41ffbd407a598b50512e10b
     resource: repo://FrameworkTests/HostIconTests.swift
+  - id: openwiki-source-1a0ee9f0072e44cc1e605224
+    resource: repo://FrameworkTests/MCPServerMetadataTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -132,6 +146,8 @@ sources:
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-ffc9054d578eba7be684b885
     resource: repo://FrameworkTests/SessionPersistenceTests.swift
+  - id: openwiki-source-a6f48b126bfcd6573fe06736
+    resource: repo://FrameworkTests/SFTPSettingsTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
   - id: openwiki-source-7a96834e0ec247f0a7610fde
@@ -158,10 +174,10 @@ sources:
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Settings and Cloud Sync
@@ -202,6 +218,12 @@ flowchart TD
     Snapshot --> Live
 ```
 Local edits persist before updating live models; remote snapshots reach them after commit without replaying a local edit. The cloud lifecycle gate is independent of local save success. [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L148-L211), [ModelContext.commit](../../Frameworks/TermindPersistence/ModelContext+Commit.swift#L9-L17), [AppModel](../../TFM/App/AppModel.swift#L440-L448).
+
+### SFTP concurrency is a synced preference, not queue state
+
+`SFTPPreferences` stores the global/per-host limit pair and strategy (`smart`, `channels_only`, `connections_preferred`). Defaults are 30 global, 10 per host and Smart. Local normalization clamps global concurrency to 1–100 and per-host concurrency to 1–50 without exceeding the global limit; reducing the global limit can therefore commit both numbers together. JSON decoding deliberately retains invalid numeric values for envelope validation rather than silently normalizing remote input. Missing strategy defaults to Smart for older payloads, but an unknown strategy string fails decoding. [SFTPPreferences](../../Frameworks/TermindDomain/Transfers/SFTPPreferences.swift), [SettingsEnvelope validation](../../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift#L268-L277).
+
+`SFTPSettingsModel` saves before publishing limits or strategy. Failure preserves the live preferences and emits no runtime callback; a changed remote snapshot clears the error and notifies once without saving again. Both app models wire `didChange` into connection/transfer preference reconciliation. The local singleton stores normalized JSON and mirrors all three values into defaults; the snapshot emits the `.sftp` record, not transfer jobs. `SFTPSettingsTests` pins paired-limit commits, failed-save isolation, remote deduplication and legacy/unknown strategy decoding. [Model](../../Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift), [Local storage](../../Frameworks/TermindPersistence/PersistentSFTPPreferences.swift), [Desktop callback](../../TFM/App/AppModel.swift#L459-L461), [Mobile callback](../../TFI/App/MobileAppModel.swift#L432-L434), [Tests](../../FrameworkTests/SFTPSettingsTests.swift).
 
 ## Device-local desktop language selection
 
@@ -432,7 +454,9 @@ flowchart TD
 ```
 Host preference edits use the Vault journal and wire contract, while sharing the lifecycle's fetch-before-send protection with Settings.
 
-The Vault coordinator validates and merges fetched records and conflicts through `HostPersistence.applyRemote`, committing metadata and unblock before publishing accepted snapshots. Desktop and mobile replace their library projections through their existing remote-change plans; Tailscale projection rebuilds restore the group-backed choices. Artwork remains separate from system detection: saving a draft preserves the latest detected distribution, choosing Automatic clears the override, unknown icon IDs round-trip, and artwork-only changes do not trigger connection-route callbacks. [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L172-L209), [HostIconTests](../../FrameworkTests/HostIconTests.swift#L23-L51), [HostIconTests round trips](../../FrameworkTests/HostIconTests.swift#L83-L183), [AppModel](../../TFM/App/AppModel.swift#L505-L534), [MobileAppModel](../../TFI/App/MobileAppModel.swift#L620-L648).
+The Vault coordinator validates and merges fetched records and conflicts through `HostPersistence.applyRemote`, committing metadata and unblock before publishing accepted snapshots. Desktop and mobile replace their library projections through their existing remote-change plans; Tailscale projection rebuilds restore the group-backed choices. Artwork remains separate from system detection: saving a draft preserves the latest detected distribution, choosing Automatic clears the override, unknown icon IDs round-trip, and artwork-only changes do not trigger connection-route callbacks. [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L172-L209), [HostIconTests](../../FrameworkTests/HostIconTests.swift#L49-L78), [HostIconTests round trips](../../FrameworkTests/HostIconTests.swift#L143-L209), [AppModel](../../TFM/App/AppModel.swift#L505-L534), [MobileAppModel](../../TFI/App/MobileAppModel.swift#L620-L648).
+
+General icon choices resolve to system images without becoming distribution matches. An explicit unknown override remains stored but renders the server fallback (`server.rack`), rather than falling through to detected artwork. Automatic artwork instead tries an exact distribution match, then the first matching `likeIDs` entry, then generic Linux; no detection falls back to the server icon. The expanded icon tests exercise general choices through ordinary Host persistence and group-backed rediscovery as well as wire round trips. [Artwork resolver](../../Frameworks/TermindPresentation/HostIconCatalog.swift#L34-L69), [Icon regressions](../../FrameworkTests/HostIconTests.swift#L13-L37), [Saved choices](../../FrameworkTests/HostIconTests.swift#L155-L209).
 
 `SessionPersistenceTests` checks historical disabled defaults, backend/policy round trips, refusal of lossy old writes, group preference round trips and V52 disk migration/reopen. `HostIconTests` checks ordinary and Tailscale remote application, clearing and unknown IDs, failed-save rollback, old-format rejection, tombstones, and V53 migration followed by artwork save/reopen. Those cases verify codecs/local stores, not signed-device CloudKit delivery. The suite also exercises runtime session behavior with fake backends: SSH reconnect retains its attachment without replaying the startup snippet, and restoring Mosh/Eternal Terminal skips startup preparation while preserving the attachment. These runtime checks do not make recovery checkpoints synced Settings data. See [Session persistence](../concepts/session-persistence.md) and [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L14-L79).
 
@@ -472,6 +496,12 @@ Custom-theme content and selection share the Settings transaction and lifecycle,
 Terminal keyword highlighting is **retired**, not another active Settings singleton. V52 removes its historical local model; preparation discards inactive envelopes and excludes it from active bootstrap/capability/upload state. The legacy `TerminalHighlightPreferencesItem` type and `v1/terminalHighlighting/default` key are recognized only to ignore fetched/conflict/deletion records **before** reconciliation and payload validation. Even malformed retired records cannot replace other preferences or create quarantine through that path. Historical server types and old clients require separate rollout review; do not recreate the deleted live models or editor. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and the retirement regression fixtures.
 
 The notification model loads persisted preferences on construction; an invalid or failed edit does not change its live value, whereas a committed remote snapshot replaces it without writing or echoing. An active scene requests initial system authorization at most once per app-level model, only when loaded settings call for system delivery and no load error occurred; disabled notifications and bell-only terminal delivery do not prompt. The shared view modifier runs on active-scene transitions, but the model's one-shot guard deduplicates concurrent scenes and reactivation. [NotificationSettingsModel](../../Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L4-L47), [InitialNotificationAuthorization](../../Frameworks/TermindPresentation/InitialNotificationAuthorization.swift#L4-L20), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L12-L53), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L77-L93).
+
+## MCP metadata in the Settings data contract
+
+`SyncedMCPServer` carries optional `serverDescription` alongside server identity, transport, tools, OAuth configuration and credential references. `SettingsSyncSnapshot` includes it in the per-server payload; older JSON without the description remains readable as `nil`. Locally, `AIPersistence` joins `PersistentMCPServerMetadata` by server ID when loading and replaces metadata rows within the caller-owned replacement transaction, inserting a row only for a non-nil description. This local storage shape is independent of `SettingsEnvelope.currentFormatVersion` (still 1); adding a SwiftData row does not itself upgrade a cloud wire contract. [SyncedMCPServer](../../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift#L117-L150), [Snapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L35-L58), [AI persistence](../../Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift#L66-L135).
+
+`MCPServerMetadataTests` verifies that tool rediscovery replaces or clears the description without resetting an existing tool access policy, that missing-description payloads decode, and that a V58 store migrates and retains a subsequently saved description after reopening. These are configuration and local compatibility checks, not CloudKit delivery evidence. [Metadata tests](../../FrameworkTests/MCPServerMetadataTests.swift).
 
 ## Hardware key metadata at the Vault boundary
 

@@ -4,6 +4,8 @@ title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 sources:
+  - id: openwiki-source-d7d857d696a915d0708e13b4
+    resource: repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
@@ -38,6 +40,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-9b1d7edbd0fef02b4998e432
+    resource: repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
     resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
@@ -108,10 +112,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # CloudKit Release Readiness
@@ -214,6 +218,8 @@ SFTP preferences synchronize as `v1/sftp/default`; transfer jobs and byte progre
 
 Current defaults are 30 global transfers, 10 per Host, and Smart topology. The accepted global range is 1–100; per-Host is 1–50 and is additionally clamped to the global value. Historical V21 migration imports an existing local value once, including older 3/2 or 15/5 choices; saved values are not silently reset to the new defaults.
 
+[SFTPSettingsTests](../../FrameworkTests/SFTPSettingsTests.swift#L8-L68) checks normalization, failed-save rollback without runtime notification, and remote snapshots that notify only once without saving again. Local edits persist the normalized pair before publishing it. Legacy JSON without `strategy` retains its saved limits and defaults to Smart; an unknown strategy throws instead of silently defaulting. These are model/codec checks, not live Settings delivery evidence.
+
 For a release check, change 30/10 to 100/50, close Settings, and verify that another device adopts the new pair without interrupting active transfers. Repeat while offline and while the Settings category or master switch is paused, then resume. Include a device retaining 3/2 and, where compatibility testing is available, an older client that continues syncing the pre-existing record types while ignoring `SFTPPreferencesItem`.
 
 ## Native theme release gate
@@ -224,14 +230,14 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed-store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps use `TermindPersistence.makeContainer` for normal local-store creation: mobile accepts an injected `dependencies.container`, otherwise uses an in-memory container when `inMemory` is true or Hosts are supplied, and passes its Application Support `Termind.store` URL for disk storage. macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V58** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps use `TermindPersistence.makeContainer` for normal local-store creation: mobile accepts an injected `dependencies.container`, otherwise uses an in-memory container when `inMemory` is true or Hosts are supplied, and passes its Application Support `Termind.store` URL for disk storage. macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V59** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
-Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52→V53→V54→V55→V56→V57→V58, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52→V53→V54→V55→V56→V57→V58→V59, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical-schema disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["Historical migration stages through V58"]
+    Factory --> Local["Historical migration stages through V59"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -304,7 +310,7 @@ See [Settings, Vault, Metrics, and Cloud Sync Workflow](../workflows/settings-an
 
 ## Current local and wire compatibility gates
 
-Do not equate **local SwiftData V58**, per-kind `formatVersion`, and stable `v1/...` record identities. The [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40) selects V58 without enabling SwiftData CloudKit mirroring; [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L60) independently selects each wire reader/writer.
+Do not equate **local SwiftData V59**, per-kind `formatVersion`, and stable `v1/...` record identities. The [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40) selects V59 without enabling SwiftData CloudKit mirroring; [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L60) independently selects each wire reader/writer.
 
 | Kind | Current writer | Accepted readers |
 | --- | --- | --- |
@@ -318,7 +324,7 @@ Do not equate **local SwiftData V58**, per-kind `formatVersion`, and stable `v1/
 | Device | V1 | V1 |
 | Terminal custom theme and appearance selection | V1 native fields | V1 |
 
-Tailscale group configuration is part of HostGroup; managed peer Hosts cannot encode as standalone Vault Host records. Sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup, V51 adds Snippet color over the frozen historical Snippet model, and V52 removes highlighting. V53 replaces the local Host model for session-persistence preferences; V54 replaces it again for `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight migration stages, not CloudKit format upgrades. V55 adds terminal transport preferences, V56 Wake-on-LAN, V57 named themes and appearance selections, and V58 Host creation ordering without inventing dates for historical Hosts; all four subsequent stages are lightweight too.
+Tailscale group configuration is part of HostGroup; managed peer Hosts cannot encode as standalone Vault Host records. Sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup, V51 adds Snippet color over the frozen historical Snippet model, and V52 removes highlighting. V53 replaces the local Host model for session-persistence preferences; V54 replaces it again for `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight migration stages, not CloudKit format upgrades. V55 adds terminal transport preferences, V56 Wake-on-LAN, V57 named themes and appearance selections, and V58 Host creation ordering without inventing dates for historical Hosts; all four subsequent stages are lightweight too. [V59](../../Frameworks/TermindPersistence/HostPersistence.swift#L942-L977) adds `PersistentMCPServerMetadata` for discovered server descriptions via a lightweight V58→V59 stage. This separate metadata model preserves historical MCP server shapes; it is not a CloudKit wire-version bump.
 
 ### Host upload and decode checks
 
@@ -336,7 +342,7 @@ Also retain the Settings acknowledgement race in [CloudSyncCoordinatorLifecycleT
 
 | Check | Repository assertion and boundary |
 | --- | --- |
-| [HostIconTests](../../FrameworkTests/HostIconTests.swift#L166-L288) | Saved ordinary Host choices pass through the journal and wire codec to another store, including unknown IDs and clearing to Automatic. Tailscale choices survive rediscovery and HostGroup wire round trips. Older Host formats reject lossy artwork writes; Host tombstones round-trip in V1/V2/V4/V5. A V53 disk store migrates, retains existing fields, saves artwork and reopens through the current factory. |
+| [HostIconTests](../../FrameworkTests/HostIconTests.swift#L155-L278) | Saved ordinary Host choices pass through the journal and wire codec to another store, including unknown IDs and clearing to Automatic. Tailscale choices survive rediscovery and HostGroup wire round trips. Older Host formats reject lossy artwork writes; Host tombstones round-trip in V1/V2/V4/V5. A V53 disk store migrates, retains existing fields, saves artwork and reopens through the current factory. |
 | [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L118-L184) | Legacy Host/group formats reject nondefault session preferences; a V52 disk Host store opens twice through the current factory with persistence disabled. This is not a save-and-reopen test of a newly enabled session setting. |
 | [SnippetColorTests](../../FrameworkTests/SnippetColorTests.swift#L61-L141) | A V50 disk store retains content and relationships, saves color and reopens. V1 rejects colored writes; a newer received V1 clears color to none; both Snippet tombstone versions round-trip. |
 | [TailscaleSyncSafetyTests](../../FrameworkTests/TailscaleSyncSafetyTests.swift#L13-L86) | A simulated older HostGroup capability plus quarantine causes restart to discard the cursor, reread, merge, unblock and advance to the current capability. Metrics similarly replays an unsupported selection. Despite the `v3ReplayAcceptsIndependentConnectionsToTheSameTailnet` name, its record uses the current default writer; this is **not** a frozen V3 payload or a Host-V5-specific replay fixture. |

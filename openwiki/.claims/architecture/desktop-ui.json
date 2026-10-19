@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:411afa453148f09a53a2edc3f282758f9997e34ca9e696b0fdd085081323f32f",
+  "pageVersion": "sha256:b87c423b0dee7d117a6036bf81342bb1a470997c108f0d65d65c6300e74602a5",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -386,47 +386,51 @@
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "version": "repo-file-v1:sha256:36ad067a81b9568dc3b1f0271917e3c2ecb6a5a00e9a7c07b9a1817ed5b9a4a5"
         }
       ]
     },
     {
       "id": "claim_42920ad7109749758fe31c53f2bff3ac",
-      "statement": "Find follows foreground destination and focused pane, binding retained Vault, Assistant, Metrics, built-in-theme scheme and custom-theme-library queries or focused SSH/Serial/SFTP queries. Welcome owns content search; other Settings routes and empty panes have none. Telnet reports terminal Find and presents it but lacks a toolbar query binding.",
+      "statement": "Find follows the foreground destination and focused pane, binding retained Vault, Assistant and Metrics queries or focused SSH/Serial/SFTP queries. Settings built-in theme libraries retain independent light/dark appearance queries, and the custom-theme library retains a separate query across editor entry and Back; the editor and other Settings routes have no Find. Welcome owns content search rather than a second toolbar field, and empty panes have none. Telnet reports and presents terminal Find but lacks a toolbar query binding.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:a898163e9251838426ffeedfbd9cd4abd649bd12c53fc8bb26042356f97286aa"
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L432-L495",
+          "version": "repo-lines-v1:sha256:e329bc5dea51cb08cf572054226a06ed04004d8901e3341307d15e609c290f3a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5Zjk5OWM1ZTg1NzJjYWI0ZDEwNGRlNjQ5MmE0OTVkZDA0ZTI2NDliZTUxMjczNTRmNzQzMDBjOTBhY2U1OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhZTE4ZGIyMGQyNTM0ZTgxNzg2MjZlZDNhZjU3YWRkYThlYWNiNmMzZTY2MzA5YzE0NDVlZjkxZjA3MDY4MjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhOGYxZTlhYjU4NWQ0Zjg3ODkwNDAwZDRiZDJjZWY2MGMzMzhmYzlhNWFiMjQ5YjUwY2E4YTQzOGQ2NzllYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5OTA4ZmRhMWY1Zjc1YWM2Zjg0Nzk5OGE4OWI4MDE3NmYxNzE4ZjU1YTQ3YTQ5ODA0MjU4ODdiMDhlNTc2MmEifQ"
         },
         {
-          "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:0a24cb472f12afce317c136446fe287ea7cdab0a18354d8d40ab94de4785597e"
+          "resource": "repo://TFM/UI/Components/WindowToolbar.swift#L890-L982",
+          "version": "repo-lines-v1:sha256:18b33450383e21b03fccb8cce8e2eae4e73d23e0184304b58705f635769a046e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NmRmNDUxMDlmODMzY2QxOWE2YmE2MDdjMDcwZTliMjliZjU1OWFmZGU3Mjc1ZjZlZjBlMmFlZTY0NWRjZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyYTExNTg5MjFiYjFjOTFlY2NiMGMzNTE0MDlkNGIzYjdhZjU3OTg5ODdmOWNkNGE1MmJjYTBmODA2MDIwNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxY2ViNzRiYzA1Nzg0ZmI3ZDI4ZjU1NzU2NWQyNGU3N2Q4ZDBkMDBiZWZhNDZlNWQ0YTk5YzA1ZTEwMzhhYTkifQ"
         },
         {
-          "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "resource": "repo://TFMTests/WindowToolbarFindTests.swift#L25-L130",
+          "version": "repo-lines-v1:sha256:0a0a685c1c245dd5fe4bdf7f90e752afead97e432f09b5cf1b263d8f3f43303c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ZWUyNjQ5ZmQ4Y2E0ZjY2MDQ5ZDJlYTE1NjNkZDBkZWQ1ZDYwYmMwZTNlZDI4YjE3NzI1M2UxMTA2NDQzN2IxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNmVhMzliZmZhYTg2OTMyZTNlNTRmZjAwMGZiNTRkMzJkYjAxNzBlZDI1YTJmN2I4NTAyMzBiNjU1NWY1ZjBkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4OTdkZWNjMjU0OGU1MzM2YTM3ZWFjOTEwMGU4Y2FhYTJhZDBiOTc3M2QyZDYyMDlmN2JkMjYyZDVmOWZmZmIyIn0"
         }
       ]
     },
     {
       "id": "claim_0211cbb51b0240f99474a49d7381d168",
-      "statement": "Find commands target the focused window model, which suppresses pane keyboard claims before activating terminal search and focusing the toolbar control; Welcome redirects focus into its content field and unsearchable destinations do nothing. Toolbar focus ownership is released on explicit user exit so panes may reclaim the keyboard.",
+      "statement": "Find commands target the focused window model, which suppresses pane keyboard claims before presenting terminal search and requesting toolbar focus. Welcome increments only its content-search focus request, without incrementing the toolbar request, invoking its handler or claiming toolbar focus; unsearchable destinations do nothing. Toolbar keyboard ownership is released on explicit user exit so panes can reclaim focus.",
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindCommands.swift",
           "version": "repo-file-v1:sha256:7f5b1cca69f9cd795c50aa5020e3d7c13d6052192071766ff9de87049c6bc3ea"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:a898163e9251838426ffeedfbd9cd4abd649bd12c53fc8bb26042356f97286aa"
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L405-L495",
+          "version": "repo-lines-v1:sha256:6d84c1e7dbe9f5f95f58cbf67a3c57933b185330cdc9be9de562dd4a4a63c616:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxOTgwMTM1NWFhMmNkZDEzZDE2YmM3YzU4Nzc2MTA0NTM0Mjc4M2RjNTQ0NzdhYmE4NjMwOWVhYzEzNDY4NDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhZTE4ZGIyMGQyNTM0ZTgxNzg2MjZlZDNhZjU3YWRkYThlYWNiNmMzZTY2MzA5YzE0NDVlZjkxZjA3MDY4MjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMjUyNmQwZDVhNjhmYjA5N2Y3OTQwZTk0ZmY4ZDZiNTIyYzU2YjJhMGM5ZTA5NGNhM2M5MGNmMTc1NDFhNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5OTA4ZmRhMWY1Zjc1YWM2Zjg0Nzk5OGE4OWI4MDE3NmYxNzE4ZjU1YTQ3YTQ5ODA0MjU4ODdiMDhlNTc2MmEifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L854-L871",
+          "version": "repo-lines-v1:sha256:3ce8ba0a2cac188363670a052a4a88435082e0db0a95fa46ad73a5ba6bcb8257:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxOGNhZWI5MmQ1MTJlZjMwNzBmOTBmZGE1NWVjYTA1MmM3MGE3ZDAyMjQ5NGQ0ZGQ0NjczMTgyYjY3YTlkYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiOWRiYzFmMDQ5YTIwNDhlYWE2NmU3OTVjNDkzODkzYjg2ZDNjZDI5NTEzM2E5ODQwMzRmNjM5MzI2ODMwNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjNGUzMzE5MTZkODZjODc0ZjViODIyNmMxNWMzNGRiMGM5NzY5ODEzODJiZGE4OTUyOTJhZTljNzRjOGY5YmYifQ"
         },
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
           "version": "repo-file-v1:sha256:0a24cb472f12afce317c136446fe287ea7cdab0a18354d8d40ab94de4785597e"
         },
         {
-          "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
-          "version": "repo-file-v1:sha256:89507f271c1184f885c62d28b883053e45e31f93b862a2d66715193dfede2c87"
+          "resource": "repo://TFMTests/WindowToolbarFindTests.swift#L80-L160",
+          "version": "repo-lines-v1:sha256:7e6297720b3b856da22cf4ab52bffb7043c91c76c7ffa3cbbee4b306101f4832:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2Njc2MjJiODU3ZWI1ZDAyYTQzN2YwNGFkOWY0NDE3NTU3YjIxYTc2ZDZjNjA3NjNlNmRhODRlZmI2MzBkOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1ZmNkYzA4MmRkZWRkMTFkNDhmNTI1ODdiMGI4MDFiOWI1NzBjYmFmNGU5ZDFhNzUzMWJlZTJmOTNhMzUxZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExOGNhYjZkNzgwMjk5ZWY5NzVkMjRhZTFjZGYyMzVkNTE5OGY1MzYyNjA3NWNkZGU0YjY5OGQ3MzE2MzlmMWEifQ"
         }
       ]
     },
@@ -1025,6 +1029,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }

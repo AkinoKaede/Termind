@@ -1,23 +1,9 @@
 ---
 type: workflow
-title: SFTP Transfer and External Editing
+title: SFTP Transfers and External Editing
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
-  - id: openwiki-source-9e41b4dad085bd7548570d6e
-    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift
-  - id: openwiki-source-d526cefab2a8fa2d443cd695
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentJSONSchemaValidator.swift
-  - id: openwiki-source-564ff49b7948000c3dab1409
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift
-  - id: openwiki-source-78f2d492b39976732fe3a4cc
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentToolSchema.swift
-  - id: openwiki-source-8495a20ec939d431dc4bd46f
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentTruncateResult.swift
-  - id: openwiki-source-e6c541cdb3cbf96d9f0d4b97
-    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift
-  - id: openwiki-source-032cb23cf9ee2e5c982fe794
-    resource: repo://AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift
   - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
@@ -30,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
+  - id: openwiki-source-1c845e5af67c400566be83bd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-f2860ea1e34da1a6d9ec1510
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift
   - id: openwiki-source-de03b453e9349cc11ea90e3c
@@ -86,10 +74,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 ## Scope and operating model
@@ -293,9 +281,9 @@ Do not copy browser-context assumptions wholesale into the Agent pool: browser a
 
 ### Scratch exchange: staged bytes, not an external-editor session
 
-The consumed AgentKit pin is **3.0.1**. Its scratch workspace is a device-local directory shared across conversations, normally under Application Support at `<applicationName>/Scratch`, not a conversation-scoped cache. `copyScope` and `removeScope` are compatibility no-ops: deleting or forking a conversation does not delete or duplicate these files. Relative paths are contained in the workspace and symlinks are refused. Do not confuse this persistent staging with process-local transfer checkpoints. [^scratch-storage]
+The consumed AgentKit pin is **4.0.0**, fetched as a remote Swift package rather than maintained under a local `AgentKit/` source directory. Application composition requests `AgentScratchWorkspace.shared(applicationName:)`; repository tests establish that conversations share staged files and `removeScope` does not remove them. Relative paths are contained in the workspace and symlinks are refused, including aliases within it. Do not confuse this shared staging with process-local transfer checkpoints. [^scratch-storage]
 
-`scratch_pull` validates the remote and scratch paths in preflight, reads the whole remote file with `maximumBytes: .max`, releases its authenticated SFTP operation, and then atomically writes the bytes to scratch (creating parent directories). It returns paths, size, SHA-256, UTF-8 status and line count, **not file contents**. It has no former 8-MiB file ceiling and is not a streaming download into the workspace; whole-file memory and local write failures still matter. [^scratch-roundtrip]
+`scratch_pull` validates the remote and scratch paths in preflight, reads the whole remote file with `maximumBytes: .max`, releases its authenticated SFTP operation, and then passes the bytes to `workspace.write` for local staging. It returns paths, size, SHA-256, UTF-8 status and line count, **not file contents**. It has no former 8-MiB file ceiling and is not a streaming download into the workspace; whole-file memory and local write failures still matter. [^scratch-roundtrip]
 
 `scratch_push` declares `.ask`. Preflight reads the staged bytes and supplies size/hash plus a redacted text preview (or binary summary) to approval, binding the SHA-256 in execution metadata. Execution rereads the file and rejects a mismatch with that approved digest before remote I/O. It sends the captured bytes through `writeFile`, defaults `overwrite` to false, and returns metadata rather than contents. It neither consumes nor deletes the staged file; remote temporary-file cleanup is the inline channel's best-effort failure cleanup, not resumable queue cleanup. [^scratch-push]
 
@@ -310,7 +298,7 @@ sequenceDiagram
     Tools->>Pool: admit data operation and lease channel
     Pool->>Remote: read whole file
     Remote-->>Tools: bytes
-    Tools->>Scratch: atomic local write
+    Tools->>Scratch: workspace.write with complete bytes
     Tools-->>Assistant: metadata only
     Assistant->>Scratch: local read or edit tools
     Assistant->>Tools: scratch_push preflight
@@ -329,28 +317,27 @@ The UI edit service below tracks remote versions and explicit upload snapshots; 
 
 Focused `AgentScratchTests` cover containment and symlink refusal, conversation-independent storage, metadata-only pull, files above the former ceiling, preflight validation before host access, redacted approval evidence, refusal of substituted approved bytes, and binary round trips. These use a stub SFTP client; they do not establish streaming memory bounds. [^scratch-tests]
 
-[^scratch-storage]: [consumed pin](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20); [workspace ownership](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L238-L306); [lifecycle hook](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L713-L716).
-[^scratch-roundtrip]: [pull implementation](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L41-L72); [atomic staging](../../AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace.swift#L436-L447).
+[^scratch-storage]: [consumed pin](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20); [shared workspace composition](../../Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift); [storage and containment tests](../../TFMTests/AgentScratchTests.swift#L17-L79).
+[^scratch-roundtrip]: [pull implementation](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L41-L72); [metadata and large-file tests](../../TFMTests/AgentScratchTests.swift#L651-L718).
 [^scratch-push]: [push approval and execution](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L93-L170); [inline write cleanup](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L264-L281).
 [^scratch-tests]: [storage and containment tests](../../TFMTests/AgentScratchTests.swift#L17-L79); [transfer tests](../../TFMTests/AgentScratchTests.swift#L651-L835).
 
 ### Bounded Agent reads and writes
 
-`sftp_read` is a **line-paged UTF-8 tool**, not a byte-range download. Its schema accepts a 1-based `offset` (1–10,000,000) and `limit` (1–2,000); defaults are offset 1 and 2,000 lines. A source page contains at most 64 KiB of text and returns `path`, `content`, `bytes`, `offset`, `returned_lines`, `next_offset`, and `eof`. Continue using `next_offset`, not a guessed byte position. The reader returns whole lines, normalizes CRLF to LF, and reports invalid selected UTF-8, an offset past EOF, or an oversized line as errors. [^agent-page]
+`sftp_read` is a **line-paged UTF-8 tool**, not a byte-range download. Its declared schema accepts a 1-based `offset` (1–10,000,000) and `limit` (1–2,000); execution defaults offset to 1 and delegates the default line limit to `AgentTextPageReader.defaultLineLimit`. The tool advertises pages of at most 2,000 lines or 64 KiB and returns `path`, `content`, `bytes`, `offset`, `returned_lines`, `next_offset`, and `eof` from the page result. Continue using `next_offset`, not a guessed byte position. Reader normalization and error semantics belong to the upstream AgentKit dependency, not a locally maintained reader. [^agent-page]
 
 The page limit is **not a network-read or memory limit**. The current default `SFTPChannelProtocol.readTextPage` calls `readFile(maximumBytes: .max)` and accumulates the whole file before feeding it to `AgentTextPageReader`; the former 8-MiB scratch ceiling no longer applies. The concrete channel reads in chunks of up to 64 KiB, with an overflow probe when a finite limit is supplied. Requesting a small page therefore does not bound the download or whole-file allocation. The scheduler estimate for `sftp_read` remains 64 KiB, not the actual bytes fetched. [^agent-page-io]
 
-Read results set `hasBoundedModelContent`, which selects page-aware model projection rather than exempting the result from output limits. Projection redacts decoded fields and accounts for JSON escaping and envelope size; if fewer whole lines fit, it updates `returned_lines`, `next_offset`, and `eof` accordingly. Raw results and external-client responses are not changed by this model projection. Use the continuation in the response actually received. [^agent-page-projection]
+Read results set `hasBoundedModelContent` before returning to AgentKit. This is the application's output-projection integration boundary; the remote package owns subsequent model projection. The local tool does not itself implement JSON-envelope budgeting, redaction, or continuation rewriting. Use the continuation in the response actually received. [^agent-page-projection]
 
-`sftp_read` declares approval policy `.approve` and inherits parallel concurrency; `sftp_write` declares `.ask` and inherits sequential concurrency. Both still request logical-file admission—approval policy, model-output bounds, and transfer scheduling are independent controls. Write's schema bounds `content` to 131,072 characters, while its scheduling estimate counts UTF-8 **bytes**; do not interpret the schema limit as a 128-KiB byte cap. `overwrite` defaults to false. The channel writes a sibling `.termind-write-<UUID>` temporary, closes it, rechecks destination conflicts, and renames it into place; failure attempts temporary cleanup. This inline write is distinct from the coordinator's resumable queue workflow. [^agent-inline-write]
+`sftp_read` declares approval policy `.approve` and inherits parallel concurrency; `sftp_write` declares `.ask` and inherits sequential concurrency. Both still request logical-file admission—approval policy, model-output bounds, and transfer scheduling are independent controls. Write declares `content` with `string(max: 131_072)`, while its scheduling estimate explicitly counts UTF-8 **bytes**. Schema construction and validation are supplied by AgentKit; the declaration is not a local byte-length guard. `overwrite` defaults to false. The channel writes a sibling `.termind-write-<UUID>` temporary, closes it, rechecks destination conflicts, and renames it into place; failure attempts temporary cleanup. This inline write is distinct from the coordinator's resumable queue workflow. [^agent-inline-write]
 
-Focused reader tests cover split multibyte characters, CRLF, whole-line byte limits, continuation offsets, empty files, invalid offsets, oversized lines, and invalid UTF-8. These are reader-level tests, not proof that SFTP pages use streaming network reads. [^agent-page-tests]
+The repository's SFTP adapter establishes whole-file acquisition before pagination; it does not establish upstream reader edge-case coverage. Check the pinned AgentKit revision when changing pagination or output policy rather than relying on removed local dependency tests.
 
-[^agent-page]: [read tool contract](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170); [line reader](../../AgentKit/Sources/AgentKit/Tools/AgentTextPage.swift#L13-L108).
+[^agent-page]: [read tool contract](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L170).
 [^agent-page-io]: [default page implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L173-L178); [inline reads](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L240-L261).
-[^agent-page-projection]: [projection dispatch](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L22-L50); [page projection](../../AgentKit/Sources/AgentKit/Runtime/AgentToolOutputProjection.swift#L129-L175).
+[^agent-page-projection]: [bounded-result handoff](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L160-L170).
 [^agent-inline-write]: [tool policies and concurrency](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L32); [read and write tools](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L133-L208); [atomic inline write](../../Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L265-L282).
-[^agent-page-tests]: [AgentTextPageTests](../../AgentKit/Tests/AgentKitTests/AgentTextPageTests.swift#L8-L46).
 
 ## From a file lease to libssh2 turns
 

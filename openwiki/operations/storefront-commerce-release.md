@@ -58,10 +58,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Storefront and Commerce Release
@@ -89,7 +89,7 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ### Inspect the release artifact, not just the project
 
-The current native release settings use marketing version `1.17.1` for both apps, but separate build numbers: Mac `TFM` is `105` and mobile `TFI` is `94`. The project-level `CURRENT_PROJECT_VERSION` is `68`, so it is not the app artifact's build number: the app targets override it. Match the resolved version and build number to the intended App Store Connect submission for each platform rather than copying the project-level value. These are source settings, not evidence that either build has been uploaded. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2378) and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2628-L2668).
+The current native release settings use marketing version `1.17.1` for both apps, but separate build numbers: Mac `TFM` is `107` and mobile `TFI` is `96`. The project-level `CURRENT_PROJECT_VERSION` is `70`, so it is not the app artifact's build number: the app targets override it. Match the resolved version and build number to the intended App Store Connect submission for each platform rather than copying the project-level value. These are source settings, not evidence that either build has been uploaded. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2378) and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2628-L2668).
 
 For each platform, retain the build-settings output for the actual archive invocation and inspect the app that will be delivered (again after export if signing changes). Check:
 

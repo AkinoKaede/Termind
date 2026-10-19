@@ -1,15 +1,9 @@
 ---
 type: design guide
-title: UI Design Principles
+title: UI Design and Presentation Contracts
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
-  - id: openwiki-source-adcb8f7b3a14118f32d7d0fd
-    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/MemoryTool%2BPresentation.swift
-  - id: openwiki-source-bb1e200e9ef38a93ca29c9de
-    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Skills/SkillReadFileTool%2BPresentation.swift
-  - id: openwiki-source-2867e18bf56b8d157f5966ab
-    resource: repo://AgentKit/Tests/AgentKitTests/AgentKnowledgePresentationTests.swift
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
@@ -22,8 +16,14 @@ sources:
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
+  - id: openwiki-source-a575d2eb3628c3d9d4bd93bc
+    resource: repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift
+  - id: openwiki-source-743e6dcf5fbbd1fcc58c991e
+    resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-7e27e66540bd1ea5c642a652
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
@@ -54,6 +54,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
+  - id: openwiki-source-6ab30745153a4cbf15c4b18c
+    resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
   - id: openwiki-source-01fd62d857f198c9f92cb8a5
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -110,16 +112,12 @@ sources:
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-7b4fb63b477bd12a15ae65d6
     resource: repo://TFITests/MobileAssistantTranscriptTests.swift
-  - id: openwiki-source-192476341e5997fa80bb12fa
-    resource: repo://TFITests/MobileCardLayoutTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
   - id: openwiki-source-3c3024b6fd97b1c4edfd5131
     resource: repo://TFITests/MobileCompactCardTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
-  - id: openwiki-source-8194e1eb3652c7ad61d75cfa
-    resource: repo://TFITests/MobileTerminalFontTests.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
@@ -166,10 +164,12 @@ sources:
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-f941c4bd7cfa47476dcdb53f
     resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
+  - id: openwiki-source-6b422a5b70cf5532c58c730e
+    resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
+  - id: openwiki-source-7c65a9e84644dfdb436d849d
+    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-  - id: openwiki-source-f73abfc9c1839decd235710e
-    resource: repo://TFMTests/ListViewMigrationTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
@@ -188,13 +188,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
-# UI Design Principles
+# UI Design and Presentation Contracts
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -251,7 +251,7 @@ Explicit TFM glass controls use system glass on macOS 26 and native material fal
 
 The compact Snippets and History shelves use `SidebarListItem` with stable record IDs and AppKit `ListView` hosting, not a shared mobile list. History card heights are uniform except while naming a command; presentation changes such as a renamed address do not change its row ID. Snippets shelf expansion is stored separately from the full Snippets page and collapsing a section removes rows without replacing its header identity. Native blank-area menus have their own container target, distinct from row menus; the shelf's local search footer filters the sidebar, whereas titlebar Find targets foreground content.
 
-Mobile card columns follow available width and accessibility text sizes force one column; cards use a 106-point minimum height and show at most two tags. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
+Standard mobile card columns use a 320-point minimum width and 12-point gaps; accessibility text sizes force one column. Cards use a 106-point minimum height and Host cards show at most two tags. Opting-in collections read device-local `mobile.compactCards`: compact columns scale from a 76-point minimum, cap at four, and use square-or-taller cards without changing primary taps or secondary menus. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
 
 ### Host artwork is a presentation contract
 
@@ -317,7 +317,7 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 `TerminalThemeOptions` is a read-only projection of preferences plus `TerminalThemeLibrary`. Missing, empty or wrong-appearance built-in names and missing custom selections produce a localized availability notice and display-time fallback, not storage repair. Each light/dark browser lists compatible named custom themes and built-in themes; custom themes are managed separately, with name, appearance, base theme and configuration. Built-in selection uses a native library selection when supported (or when selections already exist), clearing custom selection; the legacy preferences path saves the base name and disables its overlay in one edit. Selecting a custom tile validates its ID and appearance before saving a library selection. Both browsers leave only after a successful save and otherwise show `storageError`.
 
-Rendering resolves the base, applies enabled configuration and incorporates local typography without rewriting stored choices. Local family is prepended as the preferred family while theme families remain fallbacks; empty theme family resets reinsert that preference. Manual local size is appended last unless size follows the theme. Desktop `TerminalCustomConfigurationEditorPage` debounces edits by 300 ms and imports UTF-8 text; `WindowModel` attempts saving before Back or changing destinations. Invalid, deleted or failed-save drafts protect navigation with discard confirmation. Cancelling keeps the draft; discarding clears the owner before deferred navigation, preventing pending autosave from resurrecting it. Autosave avoids trimming a trailing name-space while typing; navigation can normalize the name. Mobile `MobileCustomThemeEditorSheet` explicitly saves its draft and can import UTF-8 text. Deleted themes cannot be overwritten by stale drafts; editors offer Save Copy instead. Tests cover loadable font membership (including proportional families), family fallback/reset ordering, size precedence, controller identity, nonmutating theme fallback and zero writes on opening desktop Settings. Mobile font rendering covers English and both Chinese scripts.
+Rendering resolves the base, applies enabled configuration and incorporates local typography without rewriting stored choices. Local family is prepended as the preferred family while theme families remain fallbacks; empty theme family resets reinsert that preference. Manual local size is appended last unless size follows the theme. Desktop `TerminalCustomConfigurationEditorPage` debounces edits by 300 ms and imports UTF-8 text; `WindowModel` attempts saving before Back or changing destinations. Invalid, deleted or failed-save drafts protect navigation with discard confirmation. Cancelling keeps the draft; discarding clears the owner before deferred navigation, preventing pending autosave from resurrecting it. Autosave avoids trimming a trailing name-space while typing; navigation can normalize the name. Mobile `MobileCustomThemeEditorSheet` explicitly saves its draft and can import UTF-8 text. Deleted themes cannot be overwritten by stale drafts; editors offer Save Copy instead. Desktop terminal tests cover family fallback/reset ordering, size precedence, controller identity, nonmutating theme fallback and zero writes on opening Settings. The former `MobileTerminalFontTests.swift` is not present in the current checkout; do not treat its earlier language-render matrix as current coverage.
 
 Sources: [theme projection](../../Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift), [selection and persistence](../../Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift), [desktop editor](../../TFM/Features/Settings/TerminalCustomConfigurationEditorPage.swift), [mobile editor](../../TFI/Features/Settings/MobileCustomThemeEditorSheet.swift), [navigation regressions](../../TFMTests/SettingsNavigationTests.swift).
 
@@ -339,7 +339,37 @@ flowchart TD
 
 Selection is a persisted user action; a missing stored theme is a display-time fallback, not a migration.
 
-`AgentToolPresentation` projects localized Assistant tool summaries and details from original execution data without owning approval or replay. Live approval shows reviewable request arguments from memory, not a durable tool card or model transcript; sensitive chat collaboration arguments use a restricted presenter. MCP output keeps its remote-defined JSON presentation. Failed, denied or interrupted results carry failure state into registered presenters; knowledge presenters use failure-safe generic details rather than success-shaped output. The string preview helper bounds head/tail output while retaining full transformed text, but desktop tool details use `AgentToolDetailPreview`: Show More/Show Less switches between compact and full typed items with disclosure state keyed by tool-card ID. Native detail labels are selectable; do not infer a dedicated full-output Copy action from the preview helper. Local `read_pane` details expose terminal name and pane ID, never terminal output, before raw/error fallbacks; `list_panes` renders terminal rows. Extend presentation metadata/projectors and test failure and disclosure behavior rather than changing protocol payloads.
+### Profile-driven tool cards
+
+`AgentToolPresentation` is a generic projection of descriptor metadata and lifecycle state, not an execution or replay owner. The app uses `TermindToolPresentationProfiles.renderer` to inject tool-family policies and localized vocabulary. Profiles can override summary, operation, batch operation, phase wording, detail and truncation notices. Detail decisions distinguish `.hidden` from `.useDefault`: suppression must not accidentally enter a generic JSON/error fallback.
+
+The trusted composition selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors cannot select local code: without an explicitly supplied presenter they retain JSON presentation; a caller-supplied MCP presenter can project typed details.
+
+Live approval projects the **in-memory request**, not durable-card or model-transcript arguments. Ordinary arguments remain reviewable without redaction; resolved Host names allow hiding redundant `host_id`. Sensitive chat tools require argument projection and return no argument items when the presenter is unavailable, rather than exposing raw prompt/message fields. Short approval titles keep argument bodies in the detail area.
+
+```mermaid
+flowchart TD
+    Request[Live approval request] --> Approval[Approval argument projection]
+    Catalog[Trusted profiles and vocabulary] --> Approval
+    Catalog --> Renderer[Tool card projection]
+    Card[Card metadata and lifecycle state] --> Renderer
+    Presenter[Explicit trusted detail presenter] --> Approval
+    Presenter --> Renderer
+    Renderer --> Policy{Profile detail decision}
+    Policy -->|hidden| Hidden[No detail]
+    Policy -->|content| Typed[Typed detail]
+    Policy -->|useDefault| Fallback[JSON decoding and presenter or generic fallback]
+    Fallback --> Typed
+    Typed --> Preview[Compact and full native disclosure]
+    Approval --> Review[User-only review surface]
+```
+The presentation branches consume execution data without rewriting the original call/result or attaching live approval details to persistence or model transcripts.
+
+Failed, denied or interrupted ordinary JSON results pass failure state to registered presenters; knowledge-tool regressions ensure failures cannot draw success messages. Matching Guardian denial text is suppressed in result detail to avoid printing the same reason twice. Chat failure/malformed/missing-presenter paths use bounded unavailable-details feedback, not raw bodies. Local `read_pane` shows only terminal name and pane ID (with argument-ID fallback), including malformed/error results; it never reaches raw-output fallback and hides truncation notices. `list_panes` renders terminal rows with active/current badges.
+
+`AgentToolDetailPreview` retains full typed items while providing compact items. Desktop Show More/Show Less disclosure is keyed by tool-card ID, and native detail labels remain selectable. Extend profiles and registered projectors rather than changing protocol payloads. `AgentToolPresentationProfileTests` checks injected overrides, explicit MCP presenters and unknown-ID isolation; `AgentKnowledgeToolPresentationTests` checks approval bodies, failure-safe details, title limits without argument mutation, preview budgets and independent disclosure.
+
+Sources: [generic renderer](../../Frameworks/TermindPresentation/AgentToolPresentation.swift), [profile contract](../../Frameworks/TermindPresentation/AgentToolPresentationProfile.swift), [trusted composition](../../Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift), [pane privacy](../../Frameworks/TermindPresentation/AgentPaneToolPresentation.swift), [chat privacy](../../Frameworks/TermindPresentation/AgentChatToolPresentation.swift).
 
 ## Native rendering, accessibility and continuity
 
@@ -361,7 +391,7 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit and distribution-brand contrast. `MobileCardLayoutTests` measures balanced minimum-height padding, stable Host headers/timestamps across 0–2 tags in English and both Chinese scripts at 320/600 points, light/dark appearance and large text, plus snippet header stability with/without a folder. `MobileCompactCardTests` pins standard/compact column counts, scaled widths, accessibility one-column layout, square-or-taller sizing, mounted preference updates and persistence, warning badges and snippet risk. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; Sidebar row IDs, editing height and independent shelf expansion remain source-level contracts; the former `ListViewMigrationTests.swift` is absent from this checkout. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit. Current `MobileCompactCardTests` checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording; it no longer contains the earlier geometry/persistence assertions. `MobileCardLayoutTests.swift` is absent from the current checkout, so balanced padding and multilingual header stability require fresh rendering verification rather than reliance on that former suite. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
 
 For review changes, `MobileAppReviewTests.invitationFitsPhoneAndTabletWidths` renders English and both Chinese scripts at 320, 430 and 768 points, comparing light/standard text with dark/accessibility3 and requiring the accessible layout to grow vertically without recording a response. `TERMIND_REVIEW_PREVIEW=1` records PNG attachments; it does not enable the controller's developer preview. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 

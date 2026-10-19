@@ -1,13 +1,9 @@
 ---
 type: Remote service ownership
-title: Remote Services and Forwarding
+title: Remote Services and Forwarding Boundaries
 description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 sources:
-  - id: openwiki-source-223c5dfa7c31d1600e490d1a
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentOutputAccumulator.swift
-  - id: openwiki-source-dfa48d89c2a9237db894392c
-    resource: repo://AgentKit/Sources/AgentKit/Tools/BuiltIn/Scratch/AgentScratchWorkspace%2BShared.swift
   - id: openwiki-source-0dba6aaa3f80b8ef8e74ebe9
     resource: repo://Frameworks/TermindApplication/Connections/HostOperationAccess.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
@@ -36,6 +32,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-6d31fde4399bc6391f30aaf0
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/GetMetricsTool.swift
+  - id: openwiki-source-7b0bd5b2df4c45dd572abbac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/PlanningSSHExecRunTool.swift
   - id: openwiki-source-f976589f19e3ab05e6ea5a44
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
   - id: openwiki-source-cd4e1048d6e972f3f86d27e3
@@ -98,10 +96,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 
@@ -223,7 +221,7 @@ Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that frami
 
 ## Agent tools: host services, not terminal or forwarding sessions
 
-The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH execution/control tools, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is application-shared across runs and conversations, not a conversation isolation boundary; SSH output capture paths are namespaced by conversation ID. Plans are emitted through the ordered Agent event channel; `ssh_exec_stdin` consumes one-shot secret handles for an existing background command, **not** SSH login.
+The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH execution/control tools, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs register executable definitions and detail presenters. `TermindAgentTools.presenter(for:)` resolves a persisted presenter ID only for non-MCP descriptors; a missing ID returns no presenter, with no tool-name fallback. The catalog selects acting or planning SSH definitions: planning denies destructive commands during preflight and otherwise delegates to the ordinary exec tool. The registry requests `AgentScratchWorkspace.shared(applicationName:)` using the application policy name and injects that workspace into both runtime built-ins and host transfer tools, rather than constructing a workspace per conversation. SSH output capture paths are namespaced by conversation ID. The accessible app code establishes this shared-workspace integration, not the upstream workspace's disk location, quota, or cleanup guarantees. Plans are emitted through the ordered Agent event channel; `ssh_exec_stdin` consumes one-shot secret handles for an existing background command, **not** SSH login.
 
 ```mermaid
 sequenceDiagram
@@ -255,14 +253,17 @@ When changing this integration, check `TFITests/MobileAssistantTests.swift` for 
 
 `AgentBackgroundCommands` owns command tasks independently of the tool's wait. `ssh_exec_run` defaults to foreground execution with stdin closed and no runtime timeout; background mode keeps stdin open and returns only after confirmed startup. Startup failure leaves no usable handle. When SSH interjection is enabled, a user interjection ends the foreground wait and returns a running snapshot without cancelling the command; cancellation of the wait instead requests local cleanup. Handles are scoped to the conversation/session, even though the connection pool and scratch workspace are shared. Running commands do not expire; finished results expire ten minutes after completion, and reads do not extend retention. Cancel removes the local handle and cancels its work but explicitly reports `remote_termination_confirmed: false`; it does not send TERM/KILL. Read any needed output before cancelling, because the retired handle cannot be read afterward.
 
-Output is not accumulated by blocking the SSH pump on filesystem writes. `AgentCommandOutputStream` merges stdout and stderr in callback-arrival order into AgentKit's `AgentOutputAccumulator`, which owns capture and whole-line truncation. Model-visible output retains the latest complete lines within 64 KiB / 2000 lines; truncated output is captured under `<conversationID>/outputs/ssh-exec-<UUID>.txt` in shared scratch, with explicit capture failure reporting rather than a guarantee of unlimited archival. `ssh_exec_output` can capture a full snapshot under a fresh `ssh-exec-output-<UUID>.txt` path. Snapshots carry a capture ID, revision, truncation flag, total line count and line offset so consumers can distinguish cumulative output from newly received bytes. Model snapshots redact the complete decoded output before capture and tail selection, including sensitive text split across callbacks. The 64 KiB / 2000-line limit is a model-presentation limit, not a command memory cap: the accumulator retains full bytes in memory. Its external-client audience returns full decoded output without this model truncation or redaction path.
+`AgentCommandOutputStream` sends stdout and stderr bytes through the same `append` path, preserving callback-arrival order rather than separate stream transcripts. The app adapter delegates accumulation, capture, and whole-line selection to AgentKit's `AgentOutputAccumulator`; it performs no capture-file writes itself. The SSH tool descriptors promise a model-visible complete-line tail within 64 KiB / 2000 lines and truncated-output capture under `<conversationID>/outputs/ssh-exec-<UUID>.txt` in shared scratch, with explicit capture failures. `ssh_exec_output` requests a fresh `ssh-exec-output-<UUID>.txt` path on each read. Snapshots carry a capture ID, revision, truncation flag, total line count and line offset so consumers can distinguish cumulative output from newly received bytes. App integration tests verify cumulative combined output and full snapshot captures at distinct conversation-prefixed paths.
+
+**Evidence boundary:** the AgentKit accumulator and shared-workspace implementation are not present in this checkout. The app descriptors, adapter, and tests establish the integration contract above, not the accumulator's internal byte retention, redaction ordering, external-client audience behavior, or storage durability. Do not infer a process-memory cap or unlimited archival from the model-tail limit. See the [output adapter](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentCommandOutputStream.swift), [snapshot mapping](../../Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift), and [integration tests](../../TFMTests/AgentBackgroundCommandTests.swift).
 
 ```mermaid
 sequenceDiagram
     participant Tool as SSHExecRunTool
     participant Commands as AgentBackgroundCommands
     participant SSH as Agent SSH connection
-    participant Output as AgentOutputAccumulator
+    participant Stream as AgentCommandOutputStream
+    participant Output as AgentKit accumulator
     Tool->>Commands: start scoped command
     Commands->>SSH: execute session through exec lease
     alt startup fails or is cancelled
@@ -272,7 +273,8 @@ sequenceDiagram
         SSH-->>Commands: started
         Commands-->>Tool: handle
     end
-    SSH->>Output: enqueue combined output bytes
+    SSH->>Stream: stdout or stderr callback
+    Stream->>Output: append bytes through shared path
     alt background mode
         Tool->>Commands: read running snapshot
     else foreground mode

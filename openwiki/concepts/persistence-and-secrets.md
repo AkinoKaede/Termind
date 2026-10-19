@@ -1,11 +1,11 @@
 ---
 type: persistence and security concept
-title: Persistence and Secrets
+title: Persistence, Compatibility and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
-  - id: openwiki-source-92e389a568d1e3229a544e04
-    resource: repo://AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift
+  - id: openwiki-source-77c7271bd4dc81edee52ffc7
+    resource: repo://.build/fastlane-screenshots/mac/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -16,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
+  - id: openwiki-source-3118dfa7dfade14baaccd202
+    resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
@@ -68,6 +70,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-cea80bf19da5e3f99d178655
     resource: repo://Frameworks/TermindPersistence/PersistentAgentMessageReplay.swift
+  - id: openwiki-source-9b1d7edbd0fef02b4998e432
+    resource: repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift
   - id: openwiki-source-0e8ecbf3896cbf237a679d6a
     resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
@@ -76,6 +80,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-5bfb44617fb594292c716f44
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
   - id: openwiki-source-99652f47d49074a45ef09dd7
@@ -120,6 +126,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
+  - id: openwiki-source-1a0ee9f0072e44cc1e605224
+    resource: repo://FrameworkTests/MCPServerMetadataTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -164,13 +172,13 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
-# Persistence and Secrets
+# Persistence, Compatibility and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -227,7 +235,7 @@ Replay is backing for the original turn, not a fresh reconstruction from current
 
 This backing is additive: historical message schemas remain frozen, and missing legacy context is not reconstructed from today's configuration. `AgentReplayPersistenceTests.v15MigratesWithoutInventingHistoricalContext` opens a V15 disk store through the production factory and verifies the legacy message survives with no context snapshot or invented replay row.
 
-Tool replay also preserves structured presentation. [`AgentPersistenceRedactor.toolResultText`](../../Frameworks/TermindPersistence/AgentPersistenceRedactor.swift) first applies `AgentSecretLifecycle` persistence policy: a `request_user_secret` result becomes an expired, single-use status envelope, not a durable secret handle. Only then does it delegate to `AgentSensitiveDataRedactor.toolResultText` to redact decoded JSON structurally and preserve untrusted-data envelope markers. Structural redaction is not a substitute for expiring runtime capabilities. Tool/runtime policy, not arbitrary truncation of serialized JSON, owns structured result sizing; non-JSON results take the visible-text redaction path. On restore, malformed JSON-looking or wrapped legacy text can use a valid structured fallback from durable result content or frozen model content. If no valid fallback exists, it retains the text rather than guessing a repair. Tool-role frozen `modelText` uses the same tool-result redaction path; other roles use visible-text redaction. The shared implementation is in [AgentSensitiveDataRedactor](../../AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift), while the repository chooses the recovery fallbacks.
+The inspectable app-side replay contract is explicit about ordering. [`AgentPersistenceRedactor.toolResultText`](../../Frameworks/TermindPersistence/AgentPersistenceRedactor.swift) first calls `AgentSecretLifecycle.persistedResultText`, then delegates to `AgentSensitiveDataRedactor.toolResultText`; lifecycle expiry must precede redaction so durable output does not retain runtime handles. The resolved-package snapshot's [`AgentSecretLifecycle`](../../.build/fastlane-screenshots/mac/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift) replaces `request_user_secret` output with an expired, single-use status envelope. That snapshot does **not** contain the `toolResultText` redactor API used by the current app, so it is not evidence for that API's structural-redaction, framing or sizing internals. Those remain a package contract, not an independently verified implementation here. On restore, the app wrapper repairs malformed JSON-looking or wrapped legacy text only by selecting a valid structured fallback from durable result content or frozen model content; without one, it retains the original text rather than guessing. Tool-role frozen `modelText` uses the same tool-result path; other roles use visible-text redaction.
 
 Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
 
@@ -264,7 +272,7 @@ An edit commits its graph cut before live projection; adoption later transfers t
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V58. Its recent path is V27→V28→V30→V31→V34 followed by successive stages through V58; all stages on this recent path are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; consult `TermindPersistence.schema` and `TermindMigrationPlan` for the selected endpoint and supported path rather than treating a version number in this guide as a permanent latest-schema contract. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V59. Its recent path is V27→V28→V30→V31→V34 followed by successive stages through V59; all stages on this recent path are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; consult `TermindPersistence.schema` and `TermindMigrationPlan` for the selected endpoint and supported path rather than treating a version number in this guide as a permanent latest-schema contract. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 V28 remains registered for endpoint recognition. Its frozen Host model is retained alongside V30's replacement types; registration is necessary for staged migration, but is not itself a historical-fixture test. Opening uses the normal container factory, which propagates failure rather than clearing or rebuilding the database.
 
@@ -283,7 +291,7 @@ flowchart TD
     V39 --> V40["Lightweight V39 to V40 retire category quarantine"]
     V40 --> V41["Lightweight V40 to V41 notification preferences"]
     V41 --> V42["Lightweight V41 to V42 collaboration sidecars"]
-    V42 --> Later["Lightweight V43 through V58 stages"]
+    V42 --> Later["Lightweight V43 through V59 stages"]
     Later --> Reopen["Open same migrated path again"]
 ```
 
@@ -302,9 +310,17 @@ Examples show why this matters:
 
 `CloudSyncSafetyPersistenceTests` separately exercises prior disk stores and scoped safety preservation; notification, Snippet color, session-persistence and Host icon suites add focused migration/reopen checks. When changing entities, defaults, stages or storage enum raw values, test retained values through the normal factory and reopen the same disk path. These are repository-level checks, not evidence of signed-device CloudKit deployment readiness.
 
+### V59: MCP discovery metadata without changing historical server rows
+
+V59 adds [`PersistentMCPServerMetadata`](../../Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift) alongside all V58 models through a lightweight V58→V59 stage. The sidecar is keyed by unique `serverID` and stores the discovered description, rather than modifying the historical `PersistentMCPServer` shape. `PersistentHost` still aliases the V58 Host type: a new container schema does not require replacing every entity.
+
+[`AIPersistence`](../../Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift) joins descriptions to servers by ID when loading. Snapshot replacement deletes and rebuilds the metadata rows together with the configuration, inserting a sidecar only when `serverDescription` is non-nil. Consequently, clearing a description or removing a server does not leave stale metadata in that replacement path; `save` wraps replacement in a context commit, while `replace` stages it in a caller-owned transaction. Rediscovery replaces or clears the description while retaining existing tool access policies.
+
+The independent Settings representation, [`SyncedMCPServer`](../../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift), carries an optional `serverDescription`. Older JSON without the field remains readable as nil; this optional wire addition is not a CloudKit format numbered 59. [`MCPServerMetadataTests`](../../FrameworkTests/MCPServerMetadataTests.swift) constructs a V58 disk store, upgrades it through `TermindPersistence.makeContainer`, verifies the old server initially has no description, saves a description, and reopens the same path to check server identity, tools/access policy and description. Separate cases cover legacy JSON and rediscovery clearing. These are focused source-defined tests, not a claim that every historical fixture or deployed CloudKit environment has been exercised.
+
 ### Host preferences, remote recovery, and retired mobile snapshots
 
-The selected local schema is `TermindSchemaV58`, but the migration contract is the factory and registered plan, not a permanently asserted latest version. V53 replaces the V44 Host shape with a frozen Host model that adds `sessionPersistenceEnabled`, `sessionPersistenceBackend`, and `sessionPersistenceOnConnect`. V54 replaces that shape again to add optional `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight stages. V55 adds SSH-authenticated terminal transport preferences, V56 adds Wake-on-LAN preferences, V57 adds native custom-theme and appearance-selection rows, and V58 replaces the Host model for creation ordering without inventing historical dates; these later stages are also lightweight and `PersistentHost` now aliases the V58 type. Existing hosts default to persistence disabled, backend `tmux`, and on-connect policy `ask`; icon override defaults to `nil` (automatic). These are non-secret durable configuration fields, alongside identity references, not saved SSH credentials or copies of a remote shell.
+The selected local schema is `TermindSchemaV59`, but the migration contract is the factory and registered plan, not a permanently asserted latest version. V53 replaces the V44 Host shape with a frozen Host model that adds `sessionPersistenceEnabled`, `sessionPersistenceBackend`, and `sessionPersistenceOnConnect`. V54 replaces that shape again to add optional `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight stages. V55 adds SSH-authenticated terminal transport preferences, V56 adds Wake-on-LAN preferences, V57 adds native custom-theme and appearance-selection rows, and V58 replaces the Host model for creation ordering without inventing historical dates; these later stages are also lightweight and `PersistentHost` now aliases the V58 type. Existing hosts default to persistence disabled, backend `tmux`, and on-connect policy `ask`; icon override defaults to `nil` (automatic). These are non-secret durable configuration fields, alongside identity references, not saved SSH credentials or copies of a remote shell.
 
 Remote-session recovery is a separate capability boundary. `RemoteSessionReference` carries a version, backend, opaque backend identity, Host ID, endpoint, username and optional ownership token; only the backend interprets its identity, never as an arbitrary command. `RemoteSessionCoordinator` validates an existing attachment against the current route and the backend's session inventory before reattaching. A missing or mismatched session requires selection rather than silently applying the create policy. This recovery does not restore authentication material: a connection still uses the runtime secret-resolution boundary. Only explicit-close teardown is eligible to end a managed remote session; suspension, application termination and detach are not. A failed termination does not authorize workspace removal unless the user explicitly chooses disconnect-only. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection handling.
 

@@ -106,6 +106,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
+  - id: openwiki-source-6ab30745153a4cbf15c4b18c
+    resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-9dfd0d1178e2ed5b33263580
@@ -146,12 +148,8 @@ sources:
     resource: repo://FrameworkTests/SystemNotificationsTests.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
-  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
-    resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-d125bef219ce9eee56abf917
     resource: repo://Scripts/check-localization.py
-  - id: openwiki-source-051c73f47cb05bef42b9cb63
-    resource: repo://Scripts/Tests/test_localization.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -226,6 +224,8 @@ sources:
     resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
+  - id: openwiki-source-7c65a9e84644dfdb436d849d
+    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -240,10 +240,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-19T03:39:12.674Z
 ---
 
 # Engineering Invariants
@@ -276,7 +276,7 @@ Detailed owners: [System Boundaries](system-boundaries.md), [Platform Runtime](p
 
 Read [project and target configurations](../../Termind.xcodeproj/project.pbxproj) together: absent target settings inherit project defaults. Swift 6.0, approachable concurrency, complete strict concurrency, `ExistentialAny`, MainActor default isolation and Swift warnings-as-errors are project policy. MainActor is a declaration default, not a promise that remote work runs on the main thread. Apps/shared frameworks/tests inherit it; widgets restate it; MCP bridge and forwarding benchmark override isolation to `nonisolated` and use `-parse-as-library`. TFMTests only relaxes imported deprecated-declaration diagnostics via `-Xcc`. Debug enables testability and `-Onone`; Release uses whole-module compilation and disables assertions.
 
-Both configurations disable generated catalog symbols. Apps emit localization strings; all six shared frameworks, FrameworkTests and TFITests explicitly do not. `TermindWidgets` uses extension-only APIs and TFIWidgets-owned native source/metadata; it is not another app composition root. The macOS forwarding benchmark uses narrow shared-framework SPI and is not hosted by apps/tests. AgentKit is a separately released remote package: release/tag/push package changes, then update the Xcode requirement and resolved pin together. Termind supplies host-aware tools; AgentKit remains host-neutral.
+Both configurations disable generated catalog symbols. Apps emit localization strings; all six shared frameworks, FrameworkTests and TFITests explicitly do not. `TermindWidgets` uses extension-only APIs and TFIWidgets-owned native source/metadata; it is not another app composition root. The macOS forwarding benchmark uses narrow shared-framework SPI and is not hosted by apps/tests. AgentKit, libssh2-spm and libtailscale-spm are remote SPM dependencies, not Termind submodules; Ghostty is also consumed directly from remote `Lakr233/libghostty-spm`, with no local maintenance submodule. Keep Xcode requirements and `Package.resolved` pins aligned, and build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently updating pins. Termind registers its host-aware SSH/SFTP tools through `TermindAgentTools`; AgentKit remains host-neutral.
 
 ### Focus-sensitive tests are opt-in
 
@@ -407,11 +407,12 @@ Enforcing tests: [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecyc
 
 Keep the full runtime contract in [Assistant Runtime](../concepts/agent-runtime-and-assistant.md). Cross-system changes must preserve these boundaries:
 
-- Optional model-selection persistence precedes synchronous capture of the complete turn/configuration before memory/compaction awaits. Explicit payload-carrying `ContextChip`s disclose output/selection/file content; detach removes payload and accepted capture consumes attachments once. Replay keeps full tagged extraction/images; bubbles render authored text or legacy `visiblePrompt` plus references. Original non-image bytes support reopening, not implicit model upload. Tests: [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift), [ChatComposerStateTests](../../TFMTests/ChatComposerStateTests.swift), [AgentPersistenceTests](../../TFMTests/AgentPersistenceTests.swift).
+- Optional model-selection persistence precedes synchronous capture of the complete turn/configuration before memory/compaction awaits. Capture freezes model/provider, credential availability, permission/reasoning, native search, skills, registry, guardian and compaction/review configuration; later settings changes must not reinterpret an accepted turn or revive a turn captured without credentials. Explicit payload-carrying `ContextChip`s disclose output/selection/file content; detach removes payload and accepted capture consumes attachments once. Replay keeps full tagged extraction/images; bubbles render authored text or legacy `visiblePrompt` plus references. Original non-image bytes support reopening, not implicit model upload. Tests: [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift), [ChatComposerStateTests](../../TFMTests/ChatComposerStateTests.swift), [AgentPersistenceTests](../../TFMTests/AgentPersistenceTests.swift).
 - Preparing cancellation invalidates identity synchronously, joins tracked edit/history/preparation work, then attempts interrupted persistence before projection. `stop()` alone does not wait; drain callers await `stopAndWait()` or cancellation task. Failed save reports error. In `savingFailure`, cancellation joins the existing failed-snapshot save rather than replacing it with interruption. Archive/delete wait; manual compaction refuses preparation; selection alone does not cancel.
 - History edits commit truncation before live replacement at the selected canonical user-message boundary. Preserve same-run prefix/tool ownership, neutral completed summary, title and relevant compacted display history; remove suffix/later runs and prune compactions by removed message IDs. Executed suffix tool invocation/result/review rows can be removed; legacy unowned cards belong to the suffix. Agent-provenance user messages remain uneditable. Editing history does not undo remote effects.
 - Edited replacement initially owns a same-message-ID staging run. The first real saved snapshot adopts only that staged row and removes staging while preserving chronology and historical replay ownership. Missing-model/credential preparation failures project only after save; failed saves do not adopt staging. Repository-instance retired IDs reject late writes.
-- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail decodes JSON and uses an injected presenter or generic formatting; both app composition roots register localized SSH result presenters through `SSHExecToolPresentation.registering(in:)`, preserving tool-owned layout and approval argument policy. Only result-less SSH cards take the dedicated pending-detail path. MCP keeps remote JSON and ignores injected presenters. Failure state is passed to built-in presenters so failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay.
+- Presentation is not execution data. `AgentToolPresentation` interprets descriptors, lifecycle state and injected profiles/vocabulary without rewriting original calls/results used by execution, approval, persistence or replay. `TermindToolPresentationProfiles` composes tool policies outside the generic renderer: ordinary local semantics follow registered presenter IDs, not guessed tool names, and explicit unknown IDs do not fall back to similarly named tools. Local pane/chat privacy rules remain enforced independently of presenter availability. See [UI Design Principles](../concepts/ui-design-principles.md) and [AgentToolPresentationProfileTests](../../TFMTests/AgentToolPresentationProfileTests.swift).
+- Approval arguments are a live local-only projection of original in-memory arguments, never durable cards/transcripts; resolved Host labels and injected presenters can format them without putting commands/paths in short action titles. Local result detail decodes JSON and uses an injected presenter or generic formatting; both app composition roots register localized SSH result presenters through `SSHExecToolPresentation.registering(in:)`, preserving tool-owned layout and approval argument policy. Only result-less SSH cards take the dedicated pending-detail path. MCP keeps remote JSON when no presenter is explicitly supplied. A trusted caller can inject an MCP presenter, but remote descriptor metadata cannot select local executable presentation code. Failure state is passed to built-in presenters so failed knowledge results cannot render success detail; duplicate denial reasons display once. Collaboration exposes only selected fields or safe unavailable detail, never raw fallback; local pane read/list cards show metadata, not terminal output, including replay.
 - Batch summaries preserve mixed tool/state/knowledge-action outcomes. `AgentToolDetailPreview` shares a five-row and `AgentTruncateLimits.maximumBytes` UTF-8 budget across collapsible text and list bodies, using the presenter's truncation strategy; `.none` bypasses folding. Fields, notices and noncollapsible text are outside that body budget. Full projected items remain available for expansion—not a promised Copy control. Display folding does not invent an output-truncation notice; actual result markers are reused verbatim. Tests: [AssistantTranscriptPresentationTests](../../FrameworkTests/AssistantTranscriptPresentationTests.swift), [AgentKnowledgeToolPresentationTests](../../TFMTests/AgentKnowledgeToolPresentationTests.swift), and [RemoteOutputToolPresentationTests](../../TFMTests/RemoteOutputToolPresentationTests.swift).
 
 ## Notifications, preferences and copy
@@ -430,6 +431,6 @@ Typography is device-local, outside Settings sync: shared binding controls edit 
 
 ### Localization and verification
 
-App-facing copy—including single-platform copy—belongs to `LocalizedStringResource` entries under Presentation/Strings with shared `AppStrings`; protocol values/identifiers/diagnostic codes stay with their owners. Both manually managed app catalogs live in shared Resources. Add explicit keys/translations and preserve single-target `stale` keys until actual cross-app usage is checked. Normalize with `Scripts/normalize-string-catalogs.py --write`, then run `Scripts/check-appstrings.sh` and `python3 Scripts/check-localization.py`. Current contributor guidance names the Python checker; do not run retired localization scripts.
+App-facing copy—including single-platform copy—belongs to `LocalizedStringResource` entries under Presentation/Strings with shared `AppStrings`; protocol values/identifiers/diagnostic codes stay with their owners. Both manually managed app catalogs live in shared Resources. Add explicit keys/translations and preserve single-target `stale` keys until actual cross-app usage is checked. Normalize with `Scripts/normalize-string-catalogs.py --write`, then run `python3 Scripts/check-localization.py`, including in the commit pipeline when no localization change was intended. The former `check-appstrings.sh`/`check-appstrings.swift` tooling is absent; do not prescribe it as a verification step.
 
-SwiftSyntax detects selected UI literal patterns, not all copy. Python checks canonical manual formatting, finished zh-Hans/zh-Hant/ja/ko/de/fr translations, positional argument types/percent signs, translated plural branches and Chinese/Japanese spacing. Chinese/Japanese/Korean need `other`; German needs `one`/`other`; French permits additional `many`. Path-filtered Ubuntu localization CI runs normalizer/localization unit tests and Python checking, not native rendering or SwiftSyntax. Keep `PresentationCopyTests`, `AppLanguageTests` and platform rendering checks: catalog validation cannot establish displayed translation correctness. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
+The Python checker validates canonical manual formatting, finished zh-Hans/zh-Hant/ja/ko/de/fr translations, positional argument types/percent signs, translated plural branches and Chinese/Japanese spacing. Chinese/Japanese/Korean need only `other`; German needs `one`/`other`; French permits additional `many`. Path-filtered Ubuntu localization CI runs the Python checker on pull requests and main pushes; it does not run the removed `Scripts/Tests` unit suites, SwiftSyntax copy checks or native rendering. Keep `PresentationCopyTests`, `AppLanguageTests` and platform rendering checks: catalog validation cannot establish displayed translation correctness. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b72f64104c706f6b413ec96758f56df5b59d129714bf7f4a1ae045cbb4c20fcc",
+  "pageVersion": "sha256:9c2a8d3d3f1bf67cbd00cd71d6afde8cc9782ae4ceb442fd7961c7d2c0075076",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
       "statement": "Ordinary Xcode builds/tests and scan screenshot builds retain -onlyUsePackageVersionsFromResolvedFile so verification uses the selected package revisions instead of silently resolving newer ones.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L54-L61",
-          "version": "repo-lines-v1:sha256:e7ff71f6f3b61eb7bdcef0677d010cda130bd31c940af4888cde4a5d0f7cc7a4:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIxNTRiY2VlOGZlZGY1N2QwN2ZiYzc3YjJjYzM4YmI3NmJkMmRmODdjNWMxYmUwOTVmODM2YThjZDZlMmZmNSJ9"
+          "resource": "repo://AGENTS.md#L38-L44",
+          "version": "repo-lines-v1:sha256:9605c6bb2848c21728b250f053b886a9df89e8b048f4276837ea1b8cdee024e0:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIxNTRiY2VlOGZlZGY1N2QwN2ZiYzc3YjJjYzM4YmI3NmJkMmRmODdjNWMxYmUwOTVmODM2YThjZDZlMmZmNSJ9"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb#L116-L132",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         }
       ]
     },
@@ -32,21 +32,17 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         }
       ]
     },
     {
       "id": "claim_5f8616d759174a4c8ab58ccf50cf9ee0",
-      "statement": "Swift formatting is configured for four-space indentation and 120-column lines, and the repository’s strict formatter lint covers production/test Swift roots plus `TermindMCPBridge`.",
+      "statement": "Swift formatting uses four spaces and 120 columns; strict recursive lint covers Frameworks, TFM, TFI, FrameworkTests, TFMTests, TFITests and TermindMCPBridge.",
       "evidence": [
         {
-          "resource": "repo://.swift-format#L1-L7",
-          "version": "repo-lines-v1:sha256:c46d5fca7dea21cd01539ab52f6b003ceb930d0c40ee74115bff80802d41ac38:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZmYjA4ZmRhMWFjYjk1N2I2MTE2YmQzNzgxMWExZmU0MWEwMTYxMWMwNjMxZWRiZjc4NmQ2ODg5YTI3YTU1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
-        },
-        {
-          "resource": "repo://AGENTS.md#L58-L64",
-          "version": "repo-lines-v1:sha256:f695982375586cfcf098e3626092b95fb4d7c122269d4523db9cfba1c030bab3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRiZGQxZGM1ODQ0ZmFhNTZhNGM4NmQ5ZjkyNzA2OGJmM2E4ODM3MzBiNDRjYzFiNzkxOWE5MjFmNmM5Nzc3YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTNhZjBhNjM0NDY4YzEwZjBkYzVlODJmZDJlNjI4MTcyZmU0NjA1NTFlNzY3NWFlNGQzOWNhMzFlNDE5Y2M2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjAxZmU3OGFhMzBmMTNhMWI5YjY1OTI5NjMyNTNjZTkzMTE5MDFhZjYxMGE1ZTIwNDE5ZTJlMDRhMWU4YjZmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSJ9"
+          "resource": "repo://AGENTS.md#L36-L47",
+          "version": "repo-lines-v1:sha256:10e16a30dce92b8dbaf65bbd9caa1ba8f82a49c930cf24f42ee4a86920fdf74a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3M2JhMjY3NmMzM2RhNTIzMjUxZDVjY2Y1MzY1YjgxYTBhMDIzMmVlNzBiNzkxZTZiYzEzZmEyMjUxYTBkODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYWYwYTYzNDQ2OGMxMGYwZGM1ZTgyZmQyZTYyODE3MmZlNDYwNTUxZTc2NzVhZTRkMzljYTMxZTQxOWNjNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNTgwNWFhNGQzYzQ5OTVkODlkMWUwOGY2OTY5MjQ4NjIzMjcyZGE2YjY5NmRhMGVjZTI1MTBmNjYxN2NkYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwMmYwOTQzOTYwOGY3MmRmNDM0MWMzYmViZTg1YzQxYjBiNWFkMjZhZmY2NWU2MGQ4Y2RiNjMwMzYwMjYwMTEifQ"
         }
       ]
     },
@@ -55,7 +51,7 @@
       "statement": "Mac tests marked `.requiresVisibleWindow` run only when the test host has `TERMIND_WINDOW_TESTS=1`; command-line opt-in uses `TEST_RUNNER_TERMIND_WINDOW_TESTS=1`, and routine validation leaves window/focus tests disabled.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L66-L78",
+          "resource": "repo://AGENTS.md#L49-L61",
           "version": "repo-lines-v1:sha256:04dfd508f128a761f8fd9357396732dbcecf9f0eea25dd82f057400ee2d50583:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
@@ -70,7 +66,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -80,15 +76,15 @@
     },
     {
       "id": "claim_289bc88ffb654cb89575cee5856f3436",
-      "statement": "App-facing text belongs in Frameworks/Resources/Localizable.xcstrings and metadata in InfoPlist.xcstrings; changed English requires finished Chinese translations under repository guidance and all six non-English locales under the checker. AgentKit's separate catalog is compiled with AgentKit/Scripts/build-localizations.sh from the repository root.",
+      "statement": "App text belongs in Frameworks/Resources/Localizable.xcstrings and metadata in InfoPlist.xcstrings; guidance requires finished Chinese translations and the checker requires all six non-English locales. AgentKit is remote-only, so its former repository-root localization build script is not a current entrypoint.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
         },
         {
-          "resource": "repo://AgentKit/Scripts/build-localizations.sh",
-          "version": "repo-file-v1:sha256:4aa30ad6ba5f603cb6a9273caff26c795dd289b3975f073135aec9bb0dfbd7b4"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -98,11 +94,11 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests covers preferences, Chinese migration and resolution, picker ordering, Korean dynamic labels, localized demo prose and Host-access errors; it also checks Taiwan-region/flag-dependent Traditional Chinese naming and colored, grayscale and missing flag pixels.",
+      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, Korean dynamic labels, Korean/German/French demo prose, Host-access errors and Taiwan-region/visible-flag naming with colored, grayscale and missing pixel checks.",
       "evidence": [
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:fa8399dd8b7caa4d258014cdb7eda4f22a40a0831aa5627b52205d06c7fec43a"
+          "version": "repo-file-v1:sha256:192e73d9a4207f3a9d70017bfa9f90fd86a2f29daecab0b63554eb608a377a81"
         }
       ]
     },
@@ -112,7 +108,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://com.akinokaede.termind/README.md",
@@ -162,21 +158,25 @@
     },
     {
       "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
-      "statement": "Xcode declares remote AgentKit through upToNextMinorVersion from 3.0.1; resolved builds use the lockfile selection.",
+      "statement": "Xcode declares remote AgentKit with upToNextMinorVersion from 4.0.0; resolved builds use the lockfile selection.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3019-L3025",
+          "version": "repo-lines-v1:sha256:05ba127320affd38e10a18a87d5ad397e625137bec9bf163167cb17814fe0dfa:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
         }
       ]
     },
     {
       "id": "claim_4210116e410941d98e7d962dcd708ce2",
-      "statement": "Cross-repository AgentKit changes are tested and released from the repository-root AgentKit maintenance submodule before bumping minimumVersion and re-resolving; the released maintenance gitlink, both dependency files and dependent app changes are committed together.",
+      "statement": "Native dependency updates align project requirements and resolved pins; package development and release validation belong in separate upstream repositories, with no native maintenance gitlink to advance in Termind.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
+        },
+        {
+          "resource": "repo://AGENTS.md#L23-L28",
+          "version": "repo-lines-v1:sha256:cd23f67b254076126ba87dacd668a789296b5ac67a16d9dcf1a93bef7c829196:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTllYWU5ZmJhOWViMzgyY2Q2YjY0MzhmZDdjNzgwOWM4YmEyZjYxZjM4OTdjNDliMjgyMzk4NDA4ZGJkNWUwYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQ4YWE1ZmRiZTY2ZTE0MmE0MWYwMmUzODEzNzY3ODdlMTFmZDJiNDg0NWM3Y2UwZGRkODI4MWM3ZWUyMzMxNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjU2YjI1YzRlNDI3ZWRlYmI0ZDMxM2YwNmU4YzRjNTYxMGMyYjY1ZmRmYzQ2NzE1MDkzZTA5MTAxZjAyMmNjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNThhZjliYTAwOWFkOGMyZjM1ZTIyZjA2NjgyZmFhYTZiYzIwZmQ5NWNjZWVhODVkMDA4YWY3NzhkMTM2N2Y5MiJ9"
         }
       ]
     },
@@ -193,7 +193,7 @@
           "version": "repo-lines-v1:sha256:28513ea594acc7764aca28eced9c12cc5d6c0a019b43fbb8e3392860b99eef69:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4MDI3NzQyZTc4ZDM0ZWE1MjNiMjllOTdjYjRmNzk5NWJjMmEzZWI4OGY5NmIyOTBjNTdmOGI5MTUwZjE5NWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlOWEyODY4YjUwOTBiOWU4MTk1M2I3Y2Q4MzE2YjMwMDJlN2NkNjg5NzMyMGMyYWE2OWVlNzFmYzI3YmUzYWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3YjIxNDZmZTAwMjRlZjA1NGIzMTAxNzk4ZDRkYmViOGM2MGMwZGI4NTk4ODAwMGFhY2UzNWVmZDgwZjk4Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5NDZkMjVhM2MyYjNlMTk1MjZiNWJiODVmODdmYTE0ZDQ5ZTk2OTgwMTJmNWQxZWEzNzI4NzFiNTM0MDk3NjQifQ"
         },
         {
-          "resource": "repo://AGENTS.md#L119-L121",
+          "resource": "repo://AGENTS.md#L101-L103",
           "version": "repo-lines-v1:sha256:09bd14dd04560701982efa82f3e7bbf0d77795b9a35feb6ebbf2d39e71aa3c06:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzQzZDYxOWY4YmJkOWRjNGVlMTFlZTBjZWQ5OTFkNDcyNDBiYmRhZjEzMjg2YTU4ZDczNDcyMWFjOTAwNzA1ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWE4YTc1ZDA5Y2MxMDNjNzk0NWJkZjI1YzQ1ZDFiMWZmOGFjMTNmYThlZDk2MDliNDIzYjNlZjAzMTIyZTNiZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjcxYzU2ZjJiOTk3NjY4YzkxMDEzMTRhMzQ4YzZkMmY3NDFmZThjMjFjNzM5MDY4MGE0NDIwOTQ1ZGUwZDE4NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWIxYmM1YmM0YTIzN2Y1NzhlNmFmNGE0MTVkMDY0N2Y5OTEwYjAzYjM2NGUxZTI3YzFmMWRiYWE3NDNkMDNiYSJ9"
         }
       ]
@@ -203,7 +203,7 @@
       "statement": "The `TFM` scheme test action includes `TFMTests` and `FrameworkTests`, while `TFI` includes `TFITests` and `FrameworkTests`; a successful default run does not imply an opt-in suite executed.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L66-L78",
+          "resource": "repo://AGENTS.md#L49-L61",
           "version": "repo-lines-v1:sha256:04dfd508f128a761f8fd9357396732dbcecf9f0eea25dd82f057400ee2d50583:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
@@ -218,11 +218,15 @@
     },
     {
       "id": "claim_c27820eab70a46a5919312d53abaf3d8",
-      "statement": "Mobile key-window integration suites such as editor toolbar, forwarding rendering, host integration rendering, and saved-name rendering are serialized and disabled unless the test host has `TERMIND_MOBILE_UI_TESTS=1`; command-line runs use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, disable parallel testing, and narrow the TFI suite selection because UIKit presentation state is process-wide.",
+      "statement": "MobileEditorToolbarTests and MobileForwardingRenderingTests are serialized and requiresKeyWindow-gated on TERMIND_MOBILE_UI_TESTS=1; command-line runs use TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 with parallel testing disabled and narrow suite filters.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L76-L78",
-          "version": "repo-lines-v1:sha256:2e668faf19363f5ae59abd896110eec912159c6103701220d04a0c68afe4aa25:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTk0MTQ4MGRlOGQ0Y2YzNGM4OTYwZTYwZDA2Yjc4ZTc2MjJjNzc1OTdmMzk1NGJkYjQ3MTRkYTBiOGM1NTkxNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjZhNzFhZDgxY2FlOGI3MGJiZDYwMzkxNzllYTExZmU0OGExODY0YzdmMDcwNzU2MDQwYWJlOTYxNmVhNmMyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "resource": "repo://AGENTS.md#L61-L61",
+          "version": "repo-lines-v1:sha256:20f70f81c29f72ceb3b8c0d0ed710e433bbc08043f50f8fa17d7544dbd06708d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkzZWE4Y2ZiY2Y1YWVmY2JhNDU4MWE0ZWY2NDljNDcwYjFkYWE0NGM3MjIzN2U1ZTBmOTkyMGJjYjIxZDViMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFITests/KeyWindowTestTrait.swift",
+          "version": "repo-file-v1:sha256:36a5f6ffd71826d882e92420b5fdfb862322786348311b6dd0d5a80485942e80"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift#L10-L14",
@@ -231,14 +235,6 @@
         {
           "resource": "repo://TFITests/MobileForwardingRenderingTests.swift#L10-L14",
           "version": "repo-lines-v1:sha256:f8de578da6bac997e5b08165603323a9ed69a0d09f1c7a0e4178e0bbfa69993b:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzdjY2RkNDgzM2Y0MTk4NDJjM2FlMDc3YmViM2I3ZTEwNjMxZGUxMzAyOTFiNDRjNzgyM2UzZTU1N2FiZjAzOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWNkODkwMTAyYTJiZWIxM2VjZTg1OGM5YWYzNWMxMmVkOGUwNWZkMzFjNjE5NjZjNjNjZGEwYWY1ODkwZTI0YSJ9"
-        },
-        {
-          "resource": "repo://TFITests/MobileHostIntegrationRenderingTests.swift#L11-L15",
-          "version": "repo-lines-v1:sha256:3896f48eaba261a79f09a334d7cc4ebe0531143d050aa39ebb062ff48e93c115:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTE1YWJlODY1YzIwMGNmZDI0YmNiOTNhNGQ2MzY2MTg2Zjg5ZDY2MDg3MGYyZjU5MDVmYzVmYTIzZmJhZmQwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODNhMjk2MTM0NWUyZGE3MDg0Y2NkZjQ1OWI4NDZjOWViZGYwNDUwZWYxYmE4MmY1YjhmNmNmN2QzN2YwMTUxNCJ9"
-        },
-        {
-          "resource": "repo://TFITests/MobileSavedNameRenderingTests.swift#L12-L16",
-          "version": "repo-lines-v1:sha256:f0eef092c3931e2b4aa4a19f615fa4397382294f58a2935632e5e5948be1b9a0:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTJkOWNmNzI4MTc1YzliN2MzOGExM2E2NjUxOThjYTQ0YzhkZDE1YjdmYTUwYWVjYzAyZmI5YTU0NGQzYjdmYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTJiOTM2YWEzNDk1NmQ3ZDM5ZDViMDdjNzdhNjRkNjhlNmMzYmJjMjkwOTVlMDJlZjMzYzQ2MWIyOGYyMDQ2NiJ9"
         }
       ]
     },
@@ -247,8 +243,8 @@
       "statement": "MobileAdaptiveLayoutTests is serialized, with requiresKeyWindow on native-window cases while pure width logic runs by default. Key-window cases restore the previous window and use TERMIND_MOBILE_UI_TESTS=1, nonparallel execution and a narrow filter for adaptive identity/focus/draft checks.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L86-L88",
-          "version": "repo-lines-v1:sha256:52fb5919f684b4f4c57833211de012baa4adc4a4c1ae48b71367bc5e656b7325:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmMyNTM2NTExMTc2ZDNlNjZhNDNmZmNkZmQxODE3N2I5ODczYWJhYzBlNGI4NWM4Mzc2YWE4Zjg5NTJiMDU4OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODM0NTZkMjYyMWEzM2E1YmZhNmJjNTAzYWY5YTI3YzdkMmNmMTU1YWUxMWUyOWFiZDliYzIyMTUzZWJiZDY0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2U0ZjBlMzg2MzMyZDgxMDEzZDkzYTdhMTkzNWYxNjNlZjg5ZjZiMjAwZmJlYTU0YjYxZmI0ZmRiNWEzMDVmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZThlOWYzMDg0MzUyNWNjN2Y0N2FjOGRjZTQ5MmQ1ZDE1OWM3ZTMzYmVjMzgwYWM0MTAxMDJjMmUxODcwMWY5NCJ9"
+          "resource": "repo://AGENTS.md#L69-L70",
+          "version": "repo-lines-v1:sha256:2d06b8d8c402e7a1a657588f93e337d711acd7876d5636a4d3f22b23d3bad597:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODM0NTZkMjYyMWEzM2E1YmZhNmJjNTAzYWY5YTI3YzdkMmNmMTU1YWUxMWUyOWFiZDliYzIyMTUzZWJiZDY0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2U0ZjBlMzg2MzMyZDgxMDEzZDkzYTdhMTkzNWYxNjNlZjg5ZjZiMjAwZmJlYTU0YjYxZmI0ZmRiNWEzMDVmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZThlOWYzMDg0MzUyNWNjN2Y0N2FjOGRjZTQ5MmQ1ZDE1OWM3ZTMzYmVjMzgwYWM0MTAxMDJjMmUxODcwMWY5NCJ9"
         },
         {
           "resource": "repo://TFITests/KeyWindowTestTrait.swift",
@@ -280,11 +276,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         }
       ]
     },
@@ -294,7 +290,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Scripts/normalize-string-catalogs.py",
@@ -304,19 +300,11 @@
     },
     {
       "id": "claim_4f997647e9c54f8caf23bd151004f962",
-      "statement": "AppStrings scans macOS/iOS presentation literals using Xcode SwiftParser/SwiftSyntax locally; path-filtered Ubuntu Localization CI runs normalization tests, test_localization.py and check-localization.py, not AppStrings or native Swift tests.",
+      "statement": "Path-filtered Ubuntu Localization CI now runs only python3 Scripts/check-localization.py; it does not execute Python regression discovery, the historical AppStrings scanner, or native Swift tests.",
       "evidence": [
         {
           "resource": "repo://.github/workflows/localization.yml",
-          "version": "repo-file-v1:sha256:b3f933f584d9fea5620d9d7675de1047d350cc8930a732754bade540d9d00f95"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.sh",
-          "version": "repo-file-v1:sha256:adde910147e7d0d622ca42489c4ab1b642ddddd27a30b9b74404bfdd958cf5ec"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.swift",
-          "version": "repo-file-v1:sha256:9ce787b44bde44930a02b4ff7140eeba373eab11d5e75ebc9d2dc71abbdd9226"
+          "version": "repo-file-v1:sha256:2c774994984c057aeb30fcb6792b3530aac03ae073423de16c12c9fcf14db97c"
         }
       ]
     },
@@ -332,47 +320,47 @@
     },
     {
       "id": "claim_05e037f933284f2b99410ac9b9c4f1be",
-      "statement": "Resolved Termind builds consume the remote AgentKit release rather than uncommitted maintenance changes; unreleased package changes must be validated separately with cd AgentKit && swift build && swift test before release and app dependency updates.",
+      "statement": "Resolved Termind builds consume remote AgentKit rather than unreleased edits in a separate checkout; upstream validation must be performed separately and is not established by a successful Termind build.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "resource": "repo://AGENTS.md#L23-L28",
+          "version": "repo-lines-v1:sha256:cd23f67b254076126ba87dacd668a789296b5ac67a16d9dcf1a93bef7c829196:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTllYWU5ZmJhOWViMzgyY2Q2YjY0MzhmZDdjNzgwOWM4YmEyZjYxZjM4OTdjNDliMjgyMzk4NDA4ZGJkNWUwYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQ4YWE1ZmRiZTY2ZTE0MmE0MWYwMmUzODEzNzY3ODdlMTFmZDJiNDg0NWM3Y2UwZGRkODI4MWM3ZWUyMzMxNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjU2YjI1YzRlNDI3ZWRlYmI0ZDMxM2YwNmU4YzRjNTYxMGMyYjY1ZmRmYzQ2NzE1MDkzZTA5MTAxZjAyMmNjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNThhZjliYTAwOWFkOGMyZjM1ZTIyZjA2NjgyZmFhYTZiYzIwZmQ5NWNjZWVhODVkMDA4YWY3NzhkMTM2N2Y5MiJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L38-L40",
+          "version": "repo-lines-v1:sha256:78e0a11a214529599d989390a9f64ab4c7468a026cf466470de2b210b2a51f5b:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTI4M2JhYmI1MmYyN2JkYjdjNGNkYTc2NjRlMWYyODdhYThjOTEzMjRkNGFkNTExYjA5N2I3NTc5MGU1ODhjMyJ9"
         }
       ]
     },
     {
       "id": "claim_1d18ebdbb19e44bab019e980841c9d6e",
-      "statement": "The project references AgentKit and AgentKitScrubber products and resolves ScrubberKit. The populated maintenance manifest declares a dependency-free core target and AgentKitScrubber depending on AgentKit and ScrubberKit, but that local manifest is not proof of the shipped remote revision's internals.",
+      "statement": "The Xcode project references remote AgentKit and AgentKitScrubber products and Package.resolved includes ScrubberKit; there is no Termind maintenance manifest establishing the upstream package's internal target graph.",
       "evidence": [
         {
-          "resource": "repo://AgentKit/Package.swift",
-          "version": "repo-file-v1:sha256:1c36e29cab099a934aefdd13b4b69aa25d2d1112ceebe79814bf76f82a8119eb"
+          "resource": "repo://AGENTS.md#L23-L23",
+          "version": "repo-lines-v1:sha256:99eae9fba9eb382cd6b6438fd7c7809c8ba2f61f3897c49b282398408dbd5e0c:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTllYWU5ZmJhOWViMzgyY2Q2YjY0MzhmZDdjNzgwOWM4YmEyZjYxZjM4OTdjNDliMjgyMzk4NDA4ZGJkNWUwYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTllYWU5ZmJhOWViMzgyY2Q2YjY0MzhmZDdjNzgwOWM4YmEyZjYxZjM4OTdjNDliMjgyMzk4NDA4ZGJkNWUwYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjU2YjI1YzRlNDI3ZWRlYmI0ZDMxM2YwNmU4YzRjNTYxMGMyYjY1ZmRmYzQ2NzE1MDkzZTA5MTAxZjAyMmNjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2NjYTNiMWEwMzQxZTFiZWY1NWRmODEyMDE2NDkxNzcxNjc4NzBjZGRlZjM5ZGRmYzVhMGJhYmJjODQ1MGM1YSJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
+          "version": "repo-file-v1:sha256:4a3f3c5ee35c9a480c7321c5510cafef6dc560d683092eb07cfffe11f6289e87"
         }
       ]
     },
     {
       "id": "claim_4ab312c798a449a4974a5fe0efafea3c",
-      "statement": "AgentKit/ is the repository-root maintenance submodule, while Xcode declares AgentKit as a remote Swift package; initializing or editing the maintenance checkout does not redirect ordinary resolved builds.",
+      "statement": "AgentKit, libssh2-spm and libtailscale-spm are remote SPM dependencies, not Termind submodules; .gitmodules declares only the optional website and asset submodule.",
       "evidence": [
         {
           "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
         },
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "resource": "repo://AGENTS.md#L14-L28",
+          "version": "repo-lines-v1:sha256:eedbd14aedee491da306d9fbee350dd9f89cd6c3c510d1dc08f6d4f371001505:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMGEwN2FmOTRlMDEyZmZkZmVmMmYwMDk5MjdjMDg4NDkyYTRmM2NlM2ZkMTllMWI5ZDQxYTU5MjE1N2E4NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0OGFhNWZkYmU2NmUxNDJhNDFmMDJlMzgxMzc2Nzg3ZTExZmQyYjQ4NDVjN2NlMGRkZDgyODFjN2VlMjMzMTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5OWRjNWQ3YzMwYTEzYmRlM2Y3ZjY4OTE3YTJkZTAzMDk3NzNiMzAyZjNiYzM1NDViNTFmNjYzNTE1MTQ2OTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU4YWY5YmEwMDlhZDhjMmYzNWUyMmYwNjY4MmZhYWE2YmMyMGZkOTVjY2VlYTg1ZDAwOGFmNzc4ZDEzNjdmOTIifQ"
         }
       ]
     },
@@ -392,7 +380,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://com.akinokaede.termind/README.md",
@@ -412,11 +400,11 @@
     },
     {
       "id": "claim_348ab37b5d7b44e98dd3ce5abde91d18",
-      "statement": "Package.resolved selects AgentKit 3.0.1 at 3661d156202e9da8d59e5e36ac461913c8bd8536; the minimum requirement is not itself the selected revision.",
+      "statement": "Package.resolved selects AgentKit 4.0.0 at 3481866cd47e83f6bf56b80c432c7824f61130b9; the minimum requirement is not itself the selected revision.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20",
+          "version": "repo-lines-v1:sha256:5aa8f9a37e8cbff8126709e07eb643289736208400925fd0c94a842be8e45cd3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
         }
       ]
     },
@@ -474,15 +462,15 @@
       "evidence": [
         {
           "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:b33ec75df76fb6e07e9b147f13b910b59c2d1198b6f92f1ccfaf52c35b6d56c3"
+          "version": "repo-file-v1:sha256:4a3f3c5ee35c9a480c7321c5510cafef6dc560d683092eb07cfffe11f6289e87"
         }
       ]
     },
@@ -505,8 +493,8 @@
       "statement": "MobileTerminalSearchTests.swift declares MobileTerminalSearchIntegrationTests, a serialized suite gated by TERMIND_MOBILE_UI_TESTS; repository guidance requires command-line TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1, parallel testing disabled, and a narrow TFITests suite filter on an available simulator.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L54-L78",
-          "version": "repo-lines-v1:sha256:baf6726fb22c224b151c95e9869415cc98fa0e096b1cabdce4a91046455a7e0a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjQ2YzJkMzc4MDg5NzhhODM3MjA4ODAyMzhhMzIxMzNlNzk5ZDJiZTRkMDFkM2I1MjdiMTY4NjU4YjFiMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MmNlZmUxNGFjNWEwZjU2YzQ0MDM0MTI5OTVhMDIwZmJiMWZjZWI5MTczNGViZjllNjJiZWEyYzQ1NWNiMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
+          "resource": "repo://AGENTS.md#L38-L61",
+          "version": "repo-lines-v1:sha256:6ecda46b8dfc98ee874403c291a911212f7335a3f789976962ec00527df272d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjQ2YzJkMzc4MDg5NzhhODM3MjA4ODAyMzhhMzIxMzNlNzk5ZDJiZTRkMDFkM2I1MjdiMTY4NjU4YjFiMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MmNlZmUxNGFjNWEwZjU2YzQ0MDM0MTI5OTVhMDIwZmJiMWZjZWI5MTczNGViZjllNjJiZWEyYzQ1NWNiMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L99",
@@ -554,15 +542,11 @@
     },
     {
       "id": "claim_8b1645e0816e4d6080d81eb8a184fec5",
-      "statement": "App-owned scan/frameit tooling writes the separate public asset submodule only for explicitly requested asset operations; plan mode and Ruby regression checks are quiet, and reviewed asset commits are pushed via SSH before parent gitlink updates.",
+      "statement": "App-owned scan/frameit lanes offer plan:true paths that inspect configuration without capture or framing; asset work uses the optional public submodule and reviewed asset changes are pushed via SSH before parent gitlink updates.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L14-L21",
-          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
-        },
-        {
-          "resource": "repo://Scripts/Tests/test_screenshots.rb#L17-L42",
-          "version": "repo-lines-v1:sha256:1d579195a9b6d5a16dcc6d3090112c20d36e1351f3fc0495c492b6f2ea9f119e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmYTkyOWQ2Njk4MGYwNmVmOGJkYzk0MTU5MDhlOGYzYWYwYmVlNGE0MTIxMjhhNjVkODQyNzVhMTNiOTg4MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3NzYxNDk0OTllZWQ4MTM2ZjZjN2QxNTA1MDBlOTZhYjcxYzk1Mjg3NjM4ZjQxZDRmMDI4ODI3MzkxNjhkMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhMDM1MDk4NWVlYTUyZDc3N2M1MzdjNzRiMDY1NWU5MTk5ZjI2MTI5NmU0MjNjM2YzNDczOTIwYmQ3OGM1MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwYTQ1MWY5NWE0NDE5ZjQ5YTg3Nzk5NzRjZTA5NGM4NmRkNzYwYmMzZmRkNWZhMDFhNTlmZTU0OTkwM2UxYzUifQ"
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzI1MGE3ODNiYTRmYzRkOTViNmQ3MDgwMjA5NDYyZWQ4NTRlMTJhZjAwZDhkMjI1Mjk1ZDc1NzY2ZmZhODZhNyJ9"
         },
         {
           "resource": "repo://fastlane/Fastfile",
@@ -572,17 +556,17 @@
     },
     {
       "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
-      "statement": "Committed Debug and Release settings use marketing version 1.17.1 with project build 68, TFM build 105, and TFI and Widgets build 94; explicit target overrides mean changing only project defaults does not update app build numbers.",
+      "statement": "Committed Debug and Release settings use marketing version 1.17.1 with project build 70, TFM build 107, and TFI and Widgets build 96; explicit target overrides mean project-only changes do not update app build numbers.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a00f83d572687cd268510180d99f45182897c147ecc89434d1708787ce283a02"
+          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T17:39:35.546Z"
+    "at": "2026-10-19T04:32:02.799Z"
   }
 }

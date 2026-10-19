@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1ded0719454ae59cc39890bb02fd2c49fb5d26c572726ae2d402cddeb20e2a25",
+  "pageVersion": "sha256:c142b9a1295c69170f40c1f7752100a98fbd2e172d021d83934aeef220f07138",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -158,12 +158,8 @@
     },
     {
       "id": "claim_104af269c6164fa8b46539c6989431bf",
-      "statement": "AppReviewController owns device-local first use and shared response state, requiring seven elapsed days and a host with no response, not legacy budgets. Hosts and Vault snapshot eligibility on entry and hide while filtering or hostless. Decline or accepted review URL opening persists a response across windows and launches, never a completed rating; rejection consumes nothing. Preview bypasses eligibility except filtering, changes only transient previewResponse and never opens URLs or writes defaults. XCTest disables live invitations; mobile tests cover injection and English/Chinese renders. Shared AppReviewLink delegates to SwiftUI environment openURL rather than automatic StoreKit prompting.",
+      "statement": "AppReviewController owns device-local first use and shared response state, requiring seven elapsed days, a host and no response. Visit eligibility is captured on entry and suppressed while filtering or hostless. Decline or accepted review URL opening persists a response, never a completed rating; rejection consumes nothing. Preview bypasses eligibility except filtering, changes transient previewResponse and does not open URLs or write defaults. XCTest disables live invitations. MobileAppReviewTests verifies disabled in-memory models and shared injected controller/preview state, not localized rendering; AppReviewLink delegates to environment openURL.",
       "evidence": [
-        {
-          "resource": "repo://FrameworkTests/AppReviewControllerTests.swift",
-          "version": "repo-file-v1:sha256:52a1deeeea5b7db6a9a926f9e7647b33657caab224a8f433d1c4edfee6dc8a2c"
-        },
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift",
           "version": "repo-file-v1:sha256:d086d8a4ea9933ffda2ba7c8511f1ec3c86e802dd12a542f6c779328c748180a"
@@ -173,30 +169,22 @@
           "version": "repo-file-v1:sha256:f5849d2c7ea9f045b3b54569d270eda919d891f7564403c5faa0f620cd0dde3d"
         },
         {
-          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:642aacb6dd02bf199a26e2724d8c66ddb90481a9bcbe99c1725928d1c5d8d91a"
-        },
-        {
           "resource": "repo://TFITests/MobileAppReviewTests.swift",
-          "version": "repo-file-v1:sha256:0985f84a3e19b92d46a7510f2ccb74ece0365e567004bc55bd121ba4411f8794"
-        },
-        {
-          "resource": "repo://TFM/Features/Hosts/HostsPageView.swift",
-          "version": "repo-file-v1:sha256:d3fb3f7733614e91d6b9806de8664ee08b526920a49e533ef3f6d83573d27bd1"
+          "version": "repo-file-v1:sha256:ab1735801b90a843db571c95ee94547a1de71c867c4a92d27ba88a6c2ab202ed"
         }
       ]
     },
     {
       "id": "claim_8cb59d2af4c74383a37b91861cd0ec90",
-      "statement": "Shared AppStrings and Localizable.xcstrings own native app copy and InfoPlist.xcstrings owns metadata. AGENTS requires manual normalization and finished zh-Hans/zh-Hant for changed English copy; check-localization.py enforces finished zh-Hans, zh-Hant, ja, ko, de and fr and normalization for both catalogs, with CI localization and normalization tests. AGENTS names the Python checker but its jq prerequisite is stale; generic jq formatting is explicitly prohibited.",
+      "statement": "Shared AppStrings and Localizable.xcstrings own native app copy and InfoPlist.xcstrings owns metadata. AGENTS requires manual normalization and finished zh-Hans/zh-Hant for changed English copy; check-localization.py enforces finished zh-Hans, zh-Hant, ja, ko, de and fr and normalization for both catalogs. Localization CI runs the Python checker directly on Ubuntu for catalog/script/workflow changes in pull requests and main pushes, without Python test-suite steps. AGENTS' jq prerequisite is stale; generic jq formatting is prohibited.",
       "evidence": [
         {
           "resource": "repo://.github/workflows/localization.yml",
-          "version": "repo-file-v1:sha256:b3f933f584d9fea5620d9d7675de1047d350cc8930a732754bade540d9d00f95"
+          "version": "repo-file-v1:sha256:2c774994984c057aeb30fcb6792b3530aac03ae073423de16c12c9fcf14db97c"
         },
         {
-          "resource": "repo://AGENTS.md#L80-L101",
-          "version": "repo-lines-v1:sha256:896b55d9b16e3248709e74e8380c7837a3486b7c68e4c732a88d71ecedf60f56:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNWQxY2Y4N2NlYzQwNDY3NTlmYmYwNThmMWJhYTcwNzE2NTU0ZmE5YjFhNTIzYWRkYWRiMWEwOTllNjBmNzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "resource": "repo://AGENTS.md#L63-L83",
+          "version": "repo-lines-v1:sha256:e2fddda443dac247e3a456c2c53a93536df8f78be46789238324a8dd48f74714:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhMTg2YzAzNmQ4YmE2ZGFmNjE5YWQ5NTczNzVmYzkwYmRlODFkNGU3YWY5NzgzM2QzY2UxMjQzZTEzMzczMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -261,7 +249,7 @@
       "statement": "The parent repository identifies com.akinokaede.termind as an independent public website/assets submodule with an Astro project at its root, documents initialization only for website or asset work and an npm build workflow, and states that native builds do not require it; those parent-repository instructions do not verify the submodule's current implementation or deployed content.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules#L12-L14",
+          "resource": "repo://.gitmodules#L1-L3",
           "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGU4MjMyOGU4YjdlOThiZGQwMDBjZGNlMTEwNDA0YTEyYzI5MDE2YjY4NWIyZWYzOWJkYjk2OGM0YWE5YzA4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
@@ -269,7 +257,7 @@
           "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://AGENTS.md#L59-L60",
+          "resource": "repo://AGENTS.md#L42-L43",
           "version": "repo-lines-v1:sha256:d504b70e9953b1673814e4a03529f8f9eaa4802dc7b5f6a97452cca5f1da8b38:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0OGEwZDI3OGNhZGI2NDA1NzY1ZDYxYTY1OTljOTUzODZmZGQ3OWRiMGUyOGM5ZDY2N2MwNDdjNWIwNTJhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
         }
       ]
@@ -312,7 +300,7 @@
     },
     {
       "id": "claim_263358b0ab424869a92b6de729584fb2",
-      "statement": "AppLanguageTests covers preferences, migration, language ordering, Chinese regional lookup and script isolation, Korean dynamic labels, localized demo conversations and Host-access error presentation. Whole-catalog completion is enforced by check-localization.py.",
+      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, region/flag-dependent Traditional Chinese naming, Korean dynamic labels, localized demo conversations and Host-access error presentation. It does not establish Pro offer copy or whole-catalog completion; completion is enforced by check-localization.py.",
       "evidence": [
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -320,7 +308,7 @@
         },
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:fa8399dd8b7caa4d258014cdb7eda4f22a40a0831aa5627b52205d06c7fec43a"
+          "version": "repo-file-v1:sha256:192e73d9a4207f3a9d70017bfa9f90fd86a2f29daecab0b63554eb608a377a81"
         }
       ]
     },
@@ -344,7 +332,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:4a680c9ac031c6daf2019c6de14dc20390ed2e92487c25ae89fb9676e5d34fe5"
+          "version": "repo-file-v1:sha256:93a3789fc7797bfa76fad720b1de12c0ae488fad4e3ae430304ee76f7d6085fc"
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
@@ -394,19 +382,15 @@
     },
     {
       "id": "claim_0dc4305d926c43fa9b2d56ac760f614b",
-      "statement": "Mobile card tests cover editor titles, two-tag bounds, SSH/SFTP history timestamps and optional real-window multilingual captures; AppLanguageTests covers selected resources rather than Pro offers and the Python checker enforces six-language catalog coverage. mobile.compactCards persists reduced Hosts/Known Hosts/Snippets content without changing actions: standard hosts show address, tags and localized last connection or Never, compact hosts title/icon/status; standard Known Hosts includes algorithm/time, compact title/icon.",
+      "statement": "MobileCardTests covers editor titles, two-tag bounds and SSH/SFTP history timestamps; MobileCompactCardTests checks credential warnings, forwarding badges, snippet risk labels and Compact translations, not multilingual visual approval. mobile.compactCards persists reduced Hosts/Known Hosts/Snippets content without changing actions: standard hosts show address, tags and localized last connection or Never, compact hosts title/icon/status; standard Known Hosts includes algorithm/time, compact title/icon.",
       "evidence": [
-        {
-          "resource": "repo://Scripts/check-localization.py",
-          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
-        },
         {
           "resource": "repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift",
           "version": "repo-file-v1:sha256:395b072055be7db54960aec5678377bf61e3530832be132bb46096abbd437872"
         },
         {
           "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:cebc14b639988368732b24c94a536e711a93c7858e3d006322f52949194c7f57"
+          "version": "repo-file-v1:sha256:fc080fcc54768dbdaa64008f10d1e60deff83abca657c8a8fcd634a82e263159"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileHostCardContent.swift",
@@ -418,15 +402,11 @@
         },
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:b11553354707628b46ae1b2d3ee3008ada0151ea329ffbeeb25a1889bf04bc96"
+          "version": "repo-file-v1:sha256:e0132edcd2174019d47b26930b2d63aa8fe22bb7bd11dde818058270fbbcc39a"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileCardRenderingTests.swift",
-          "version": "repo-file-v1:sha256:816b5a1050b634fe9aa1b4b500aac8373ddd984279bf7e72844b3ec6a70513b4"
-        },
-        {
-          "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:fa8399dd8b7caa4d258014cdb7eda4f22a40a0831aa5627b52205d06c7fec43a"
+          "resource": "repo://TFITests/MobileCompactCardTests.swift",
+          "version": "repo-file-v1:sha256:c5a5001b7fb352e018898a36220301aee21a5c63cc38551772a58ba2e3688559"
         }
       ]
     },
@@ -436,7 +416,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:5cfa3f4963308f6a30621529da8097b06efa6ae0aa82886cfbbf38cecdde7b10"
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift",
@@ -468,19 +448,15 @@
     },
     {
       "id": "claim_ef2b0380010048a1b391c177dde30f47",
-      "statement": "The SwiftSyntax AppStrings checker scans TFM and TFI for selected UI literals and verifies the shared Strings/AppStrings owner file exists, while ArchitectureBoundaryTests guards the AppStrings owner and dependencies; these static checks complement six-language catalog checking and runtime localization tests rather than proving all copy is reusable or properly rendered.",
+      "statement": "ArchitectureBoundaryTests guards against app-local AppStrings declarations and forbidden shared-presentation dependencies and rejects swiftUIKey bridges in alert/confirmationDialog titles. These static boundaries complement runtime copy tests and six-language catalog checking, rather than proving all copy is localized or rendered correctly.",
       "evidence": [
-        {
-          "resource": "repo://Scripts/check-appstrings.swift#L7-L87",
-          "version": "repo-lines-v1:sha256:50fc5285e268cc43c607dd9ef5efd61d661af562762b3d2a8003a15b266cb012:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjZlYjBjY2QyNTMzMWVlNTZkZDAwN2Q2MjczOGQ0NDAxMjIzMWViMmI2NDhmNzhhYjA2ODc5Y2Q5MGNkNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
-        },
         {
           "resource": "repo://Scripts/check-localization.py",
           "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L274-L286",
-          "version": "repo-lines-v1:sha256:d17c13b78d253be7e4a7cb7af1c9ac96dfac710b133d086ed60e517a79104614:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NDdiZGE5NjJhODVkMGE1Yjg3ODIwMDM0MDIwNWExYzFiMjMxYTY3NzBmOGUyNjk1MWI4MTg1YzA5ZjA3YTQifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L264-L307",
+          "version": "repo-lines-v1:sha256:0edda44e454beb0f72750b611f60a69180239bb27798b6bd80f4e63a8da7bfa0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3NGU2YzkwMGMwMTVkMmM3OGFjMjUzZTRhYTIyMWFhMzA5OGU0Yzg3NzEzOTk0NDQxYjc3MTVhMTE5MzRhYzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
         },
         {
           "resource": "repo://TFMTests/PresentationCopyTests.swift",
@@ -492,10 +468,6 @@
       "id": "claim_9e5dcbfb0e4c4a6ebb3d30af40da4805",
       "statement": "Manual normalization preserves stale keys and translations. The checker exempts shouldTranslate:false, otherwise requires finished units and preserves format argument positions, types and multiplicity including literal percent using English values where present. Chinese, Japanese and Korean plurals require other only, German one/other and French one/other with optional many; Japanese and Chinese spacing checks retain a narrow Type %@ exception and do not apply to Korean or European typography.",
       "evidence": [
-        {
-          "resource": "repo://Scripts/Tests/test_localization.py",
-          "version": "repo-file-v1:sha256:2a19ac575e3835cda0c8859997082ebf44ef2280decf823a7080eb6621083a67"
-        },
         {
           "resource": "repo://Scripts/check-localization.py",
           "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
@@ -516,7 +488,7 @@
         },
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:fa8399dd8b7caa4d258014cdb7eda4f22a40a0831aa5627b52205d06c7fec43a"
+          "version": "repo-file-v1:sha256:192e73d9a4207f3a9d70017bfa9f90fd86a2f29daecab0b63554eb608a377a81"
         }
       ]
     },
@@ -548,7 +520,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:b3b24c947dc5aa6b4c4856f98b65155541b14f58122365ffb40bdb76a112613a"
+          "version": "repo-file-v1:sha256:57d52f1beff345b7d9f0f422bf8266f8ab0ee4f08df2f66f8d922cc3fe8bf440"
         }
       ]
     },
@@ -586,23 +558,15 @@
     },
     {
       "id": "claim_540a60063eb44573908e556045122744",
-      "statement": "The catalog normalizer defaults to the two shared app catalogs, marks entries manual without deleting stale translations, rejects duplicate JSON keys before any batch write, and checks or writes Xcode-compatible serialization; AgentKit's separately owned runtime catalog requires its own localization build step.",
+      "statement": "The catalog normalizer defaults to the two shared app catalogs, marks entries manual without deleting stale translations, rejects duplicate JSON keys before any batch write, and checks or writes Xcode-compatible serialization. Default localization checking does not cover dependency-owned runtime catalogs or website copy.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L88-L101",
-          "version": "repo-lines-v1:sha256:8a842f05c241f5114e69deed8fb1f71499520e582ecb311a3daa803afb11286b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNDU2ZDI2MjFhMzNhNWJmYTZiYzUwM2FmOWEyN2M3ZDJjZjE1NWFlMTFlMjlhYmQ5YmMyMjE1M2ViYmQ2NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNWQxY2Y4N2NlYzQwNDY3NTlmYmYwNThmMWJhYTcwNzE2NTU0ZmE5YjFhNTIzYWRkYWRiMWEwOTllNjBmNzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3NzRjZjhiMmJlYWNkMGZmNjhhN2VjOThmNzhjOWVlMzgwMzUzNWI0OWUwYTJlNGJlNDI5M2JkMTViNzhmZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         },
         {
-          "resource": "repo://Scripts/normalize-string-catalogs.py#L1-L6",
-          "version": "repo-lines-v1:sha256:a4f7e4e8cd45a6a2e257248bc9cef3775d26f29a5f556dc4f80c9f52b74cddea:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDY4MmNiZGI0YzhiMDc1MThiZjQ4NmM1ODk5MGZjMzkxNzgzYWEyMGE5MTZiZmIyN2FkMjExZWIxZDVjMzY0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWVlYjY0YTVlNDE3MWJjNjIxOGQxYzVhMjRjOTYwYWY3YzUyOGYyYjBmMzU3NWFjNmFjN2VlYzE5M2ViNzM2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWFhZjc2MzdjYjZlN2U1ZGI4NWQ2MzQyNzQ2MDE0ZGYwNDFjY2Q1NThhOTIwYjI5ZWI2YWM3MTlkN2JhZjVjMiJ9"
-        },
-        {
-          "resource": "repo://Scripts/normalize-string-catalogs.py#L20-L55",
-          "version": "repo-lines-v1:sha256:57463e67ead7378d0a854ce1f3dbd1f3cc6a42d5f112460c18e4acc9a61cce21:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzY2Y0NTRmNGZjNDZhNjZkMDdlMDY3MjZlZjlmZjIzMmFhYjFjN2JiMmVkMzE2Mzg2YWUxYzMxODJjMDRjNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0ODNhMzBlYTFjOWE5MDRhYTM2OGU2MGZiYjdlOGJjMzgxY2Y4MjQ4NWU3N2JmYTVmNTQ4ZTVhYWRhYTFiMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1MWZmNDFjZGQxZDIwYTg0YjJlMzNiZTJlMzRjNzlhZWQxOTk4MDU1MmY2MjU3Y2RiZmQ4MzZjY2I2NWU5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllMjI0ZjU1YWJkODk4Mzg5ZWFkNmFiMTBiYmU2YmE0ZjlmOGJiOWJmNmE3YmEzZmE5YzM0ZTgyNjkxYzY1YmYifQ"
-        },
-        {
-          "resource": "repo://Scripts/normalize-string-catalogs.py#L75-L135",
-          "version": "repo-lines-v1:sha256:acafddbd3ad206083278d7098fca95c901e69f05dc302c0c6aa10a670de2f29a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NzM4ZGMyM2M2MGY0NDZjMTRkNzEzZjlkYjg2ZDVjYjVjMjk3MjkyN2I0NTFmMmYyNzlmY2FjOGVjM2QzOTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlNzU5NjJjZjg3ZGJiYjM1NjM5NGE3MTczMzkxZDM1ODAxY2U5NDc2YWIyM2U4ZDkzMGQ5Mjg2YzA2ZThhYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2YjQ2ZTE4OWVkMmVhMzgxM2ViNzk2NGY3MGIzZDEwY2Q1MWUxYTBiMmRjZGFjYTg5ODdkMTRjZjkwNzc2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlZDc4MDI1NDRlMzE5ZGRjMzE5MTBlYWI0NTBiZjVlMjU3MTZkYzQ0ZDg1YmFiOGY3ODY4MmNiZGQxNTMzN2UifQ"
+          "resource": "repo://Scripts/normalize-string-catalogs.py",
+          "version": "repo-file-v1:sha256:74b12ba10465ed2708e8073d998dbc025768e895edc539e7edad207f4a9299ba"
         }
       ]
     },
@@ -699,6 +663,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-19T03:39:12.674Z"
   }
 }
