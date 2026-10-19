@@ -99,8 +99,10 @@ private struct MetricsGPUCard: View {
     private func memoryRow(_ title: LocalizedStringResource, value: Double?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title).font(.system(size: 9)).foregroundStyle(.secondary)
-            Text(MetricsFormat.bytes(value)).font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .frame(minWidth: 72, alignment: .trailing)
+            Text(MetricsFormat.bytes(value, style: .memory)).font(
+                .system(size: 11, weight: .semibold, design: .monospaced)
+            )
+            .frame(minWidth: 72, alignment: .trailing)
         }
         .lineLimit(1).minimumScaleFactor(0.7)
     }

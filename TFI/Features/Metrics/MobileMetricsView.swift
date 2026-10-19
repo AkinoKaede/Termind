@@ -298,7 +298,7 @@ private struct MobileMetricsProcessesView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .trailing) {
                         Text(MetricsFormat.percent(process.cpu))
-                        Text(MetricsFormat.bytes(process.memory)).foregroundStyle(.secondary)
+                        Text(MetricsFormat.bytes(process.memory, style: .memory)).foregroundStyle(.secondary)
                     }
                     .font(.caption.monospaced())
                     .lineLimit(1)

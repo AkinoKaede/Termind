@@ -14,18 +14,18 @@ public struct MetricsSystemPanels: View {
             panel { MetricsCPUContent(point: point) }
             panel {
                 HStack {
-                    MetricsFigure("Free Memory", value: MetricsFormat.bytes(point?.memoryFree))
-                    MetricsFigure("Used", value: MetricsFormat.bytes(point?.memoryUsed))
-                    MetricsFigure("Page Cache", value: MetricsFormat.bytes(point?.memoryCached))
+                    MetricsFigure("Free Memory", value: MetricsFormat.bytes(point?.memoryFree, style: .memory))
+                    MetricsFigure("Used", value: MetricsFormat.bytes(point?.memoryUsed, style: .memory))
+                    MetricsFigure("Page Cache", value: MetricsFormat.bytes(point?.memoryCached, style: .memory))
                     MetricsRing(title: AppStrings.Metrics.memory, value: point?.memory)
                 }
             }
             if let swapTotal = point?.swapTotal, swapTotal > 0 {
                 panel {
                     HStack {
-                        MetricsFigure("Free Memory", value: MetricsFormat.bytes(point?.swapFree))
-                        MetricsFigure("Used", value: MetricsFormat.bytes(point?.swapUsed))
-                        MetricsFigure("Total", value: MetricsFormat.bytes(point?.swapTotal))
+                        MetricsFigure("Free Memory", value: MetricsFormat.bytes(point?.swapFree, style: .memory))
+                        MetricsFigure("Used", value: MetricsFormat.bytes(point?.swapUsed, style: .memory))
+                        MetricsFigure("Total", value: MetricsFormat.bytes(point?.swapTotal, style: .memory))
                         MetricsRing(title: "Swap", value: point?.swapPercent)
                     }
                 }
@@ -124,7 +124,8 @@ public struct MetricsSystemPanels: View {
         }
         .rotationEffect(.degrees(-90)).frame(width: 34, height: 34)
         .accessibilityLabel(Text("Sent / Received Traffic"))
-        .accessibilityValue(MetricsFormat.capacity(point?.networkSentTotal, point?.networkReceivedTotal))
+        .accessibilityValue(
+            MetricsFormat.capacity(point?.networkSentTotal, point?.networkReceivedTotal, style: .decimal))
     }
 
     private func filesystemPanel(_ filesystem: MetricsFilesystem) -> some View {

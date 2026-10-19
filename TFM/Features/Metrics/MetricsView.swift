@@ -286,7 +286,7 @@ struct MetricsProcessList: View {
             }.width(
                 58)
             TableColumn(AppStrings.Metrics.memory.swiftUIKey, value: \.memorySortValue) { process in
-                Text(MetricsFormat.bytes(process.memory)).frame(height: 28)
+                Text(MetricsFormat.bytes(process.memory, style: .memory)).frame(height: 28)
             }
             .width(72)
         }

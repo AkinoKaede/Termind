@@ -139,7 +139,7 @@ public struct MetricsInstrumentBody: View {
         HStack(alignment: .center, spacing: 12) {
             MetricsRing(title: AppStrings.Metrics.cpu, value: server.point?.cpu)
             MetricsRing(title: AppStrings.Metrics.memory, value: server.point?.memory)
-                .help(MetricsFormat.capacity(server.point?.memoryUsed, server.point?.memoryTotal))
+                .help(MetricsFormat.capacity(server.point?.memoryUsed, server.point?.memoryTotal, style: .memory))
             VStack(alignment: .leading, spacing: 6) {
                 rate("Network Send", symbol: "arrow.up", value: server.point?.networkSend)
                 rate("Network Receive", symbol: "arrow.down", value: server.point?.networkReceive)
