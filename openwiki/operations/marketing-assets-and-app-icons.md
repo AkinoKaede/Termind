@@ -8,10 +8,6 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
-  - id: openwiki-source-0246c48ce8a82949613e5d20
-    resource: repo://com.akinokaede.termind/design/README.md
   - id: openwiki-source-cdbd4afdca339b59b83eee2e
     resource: repo://Configuration/HostIcons/linux-distribution-icons.json
   - id: openwiki-source-7af97a29763d6f133e4b4851
@@ -74,17 +70,17 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # Marketing Assets and App Icons
 
 This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; `AGENTS.md` assigns the public website and marketing/brand assets to the independent `com.akinokaede.termind` submodule. Native builds do not require that checkout.
 
-**Verification boundary:** this guide follows the `fd88d6` tooling baseline. The available website/assets checkout is initialized; its READMEs identify asset and design responsibilities. Dimensions below are primarily parent tooling contracts, not a fresh visual audit of external files. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
+**Verification boundary:** the available `com.akinokaede.termind/` checkout is empty, so external READMEs, images, design masters and delivery contracts could not be inspected. Dimensions below are parent tooling contracts, not an audit of external files. Initialize the submodule before checking its inventory or publication instructions. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
 
 The former MockUPhone pipeline, feature-first `Marketing/` layout, `LandingPage/` project and Pro Max captures are obsolete. The current pipeline uses **fastlane `run_tests` (scan)** with hosted Swift Testing fixtures, **frameit** plus local Apple templates, locale/device-first asset paths, iPhone 18 Pro and optional Duo displays, and native 14-inch Mac Workspace captures. This is not XCUITest `snapshot` automation.
 
@@ -310,7 +306,7 @@ The mask algorithm expects transparency both outside the device and inside its d
 
 ## External composition, website and store delivery
 
-`AGENTS.md` identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. The initialized checkout's [README](../../com.akinokaede.termind/README.md) is the entrypoint for website development and publication; its [asset guide](../../com.akinokaede.termind/assets/README.md) distinguishes final `screenshots/`, `header/` and `search_results/` artwork from captures and frames. These documents do not substitute for inspecting image pixels, current consumers or deployed settings.
+[AGENTS.md](../../AGENTS.md) identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. Its website, asset and design documentation is unavailable in this checkout. After initialization, locate and read the current instructions for development, composition and publication; do not infer final artwork directories or delivery contracts from the parent runner's capture and frame paths.
 
 Before publishing, initialize and inspect the external repository separately:
 
@@ -324,7 +320,7 @@ This page makes no current claim about a 96-board inventory, Overview filenames,
 
 ## Brand, layered app icons and Pro handoff
 
-External brand masters and website variants belong to the submodule. Its design README identifies `brand/termind.svg` as the master and `public/brand_mark.svg` / `public/favicon.svg` as website variants. Inspect the actual SVGs before editing; README guidance is not visual approval.
+External marketing and brand assets belong to the submodule under `assets/` and `design/`, according to `AGENTS.md`. After initialization, identify the authoritative brand master and website variants from current documentation and actual SVG consumers. Their filenames and contents are not verified here; inspect them before editing or approving exports.
 
 Platform `AppIcon.icon` documents remain app-owned and selected as `AppIcon` by Xcode. Their SVG groups are Terminal, FrontWindow, MiddleWindow, BackWindow; preserve order, shared-square platform declaration, lighting, disabled glass/specular/translucency, no Terminal shadow and the subtle 0.08 neutral window shadows. Icon Composer/Xcode own platform padding, masks and compatibility renditions. Do not introduce another flattened appiconset or manually generated size matrix. Build both platform sources with pinned dependencies; TestFlight processing is a separate release check, and a temporary macOS bundle identifier can bypass local icon cache during manual review.
 
@@ -339,7 +335,7 @@ A separate website rendition can be exported from the Mac source to an initializ
 
 Shared `Frameworks/Resources/Assets.xcassets` owns runtime AccentColor and vector/template host artwork, separately from marketing frames and compiled app icons. See the host-artwork workflow below.
 
-Paywall illustrations are externally owned under `com.akinokaede.termind/design/paywall/`; follow the checkout's [design guidance](../../com.akinokaede.termind/design/README.md). The former `Scripts/render-pro-paywall-icon.swift` renderer is absent: there is no current parent generation command or guaranteed 80×72-point export contract. Native `ProPaywallView` / `MobileProView` embed `RevenueCatUI.PaywallView` when using RevenueCat. Editing handoff artwork does not publish a remote paywall; review and upload through the commerce workflow intentionally.
+Locate any paywall illustration sources and handoff instructions only after initializing and inspecting the external checkout; no `design/paywall/` inventory or export contract is verified here. The former `Scripts/render-pro-paywall-icon.swift` renderer is absent: there is no current parent generation command or guaranteed 80×72-point export contract. Native `ProPaywallView` / `MobileProView` embed `RevenueCatUI.PaywallView` when using RevenueCat, rather than loading illustrations from the external checkout. Editing handoff artwork does not publish a remote paywall; review and upload through the [storefront commerce release workflow](storefront-commerce-release.md) intentionally.
 
 The former `MobileIconRenderingTests` suite is also absent. Use the current `MobileScreenshotTests` capture fixture for supported product scenes, and Icon Composer/Xcode for app-icon review; neither is a replacement claim of automated icon-label coverage.
 

@@ -4,8 +4,6 @@ title: Persistence, Compatibility and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
-  - id: openwiki-source-77c7271bd4dc81edee52ffc7
-    resource: repo://.build/fastlane-screenshots/mac/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -50,6 +48,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-8a2e7d4db4b334995f8eaf61
+    resource: repo://Frameworks/TermindPersistence/AgentPersistence.swift
   - id: openwiki-source-85b30c7ff8f6f034b2bc980f
     resource: repo://Frameworks/TermindPersistence/AgentPersistenceRedactor.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
@@ -142,6 +142,8 @@ sources:
     resource: repo://FrameworkTests/TerminalTransportTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-5b8c72c5373a41af34fa9fd4
@@ -172,10 +174,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # Persistence, Compatibility and Secrets
@@ -235,7 +237,26 @@ Replay is backing for the original turn, not a fresh reconstruction from current
 
 This backing is additive: historical message schemas remain frozen, and missing legacy context is not reconstructed from today's configuration. `AgentReplayPersistenceTests.v15MigratesWithoutInventingHistoricalContext` opens a V15 disk store through the production factory and verifies the legacy message survives with no context snapshot or invented replay row.
 
-The inspectable app-side replay contract is explicit about ordering. [`AgentPersistenceRedactor.toolResultText`](../../Frameworks/TermindPersistence/AgentPersistenceRedactor.swift) first calls `AgentSecretLifecycle.persistedResultText`, then delegates to `AgentSensitiveDataRedactor.toolResultText`; lifecycle expiry must precede redaction so durable output does not retain runtime handles. The resolved-package snapshot's [`AgentSecretLifecycle`](../../.build/fastlane-screenshots/mac/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Security/AgentSensitiveDataRedactor.swift) replaces `request_user_secret` output with an expired, single-use status envelope. That snapshot does **not** contain the `toolResultText` redactor API used by the current app, so it is not evidence for that API's structural-redaction, framing or sizing internals. Those remain a package contract, not an independently verified implementation here. On restore, the app wrapper repairs malformed JSON-looking or wrapped legacy text only by selecting a valid structured fallback from durable result content or frozen model content; without one, it retains the original text rather than guessing. Tool-role frozen `modelText` uses the same tool-result path; other roles use visible-text redaction.
+The inspectable app-side replay contract is explicit about ordering. [`AgentPersistenceRedactor.toolResultText`](../../Frameworks/TermindPersistence/AgentPersistenceRedactor.swift) first calls `AgentSecretLifecycle.persistedResultText`, then delegates to `AgentSensitiveDataRedactor.toolResultText`; the wrapper deliberately applies lifecycle policy before structural redaction. [`PersistentAgentToolResult`](../../Frameworks/TermindPersistence/AgentPersistence.swift) uses this wrapper for durable result content. Tool-role frozen `modelText` in [`PersistentAgentMessageReplay`](../../Frameworks/TermindPersistence/PersistentAgentMessageReplay.swift) uses the same path; other roles use visible-text redaction.
+
+On restore, the wrapper considers repair only when trimmed text starts with the untrusted-data opening marker, `{`, or `[` and structured decoding fails. It selects the first fallback that decodes as structured data; otherwise it retains the original text, including ordinary plain output, rather than guessing. [`SwiftDataAgentRunRepository`](../../Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift) repairs frozen tool model text from durable result model content, then repairs transcript text from durable result content or the recovered model text. The durable result's own restore path can recover from its frozen model content.
+
+```mermaid
+flowchart TD
+    ResultText["Tool result text or tool-role frozen model text"] --> Lifecycle["Apply AgentSecretLifecycle persistence policy"]
+    Lifecycle --> Redactor["Delegate to AgentSensitiveDataRedactor"]
+    Redactor --> Stored["Persist app-owned backing"]
+    Stored --> Restore["Restore tool text"]
+    Restore --> Malformed{"Structured-looking text fails decoding"}
+    Malformed -->|no| Keep["Keep original text"]
+    Malformed -->|yes| Fallback{"Valid structured fallback available"}
+    Fallback -->|yes| Recover["Select first valid fallback"]
+    Fallback -->|no| Keep
+```
+
+The app orders lifecycle policy before redaction and repairs legacy text only from decodable structured backing.
+
+**Observable contract and evidence limit.** [`AgentReplayPersistenceTests`](../../FrameworkTests/AgentReplayPersistenceTests.swift) defines a `request_user_secret` persistence fixture that requires decodable output with `handle_status` equal to `expired`, no `secret_handle` field, and no original handle string. Its parameterized crash-recovery fixture requires malformed wrapped JSON to recover the frozen structured preview while plain output stays unchanged; both retain the frozen model preview and error flag. These are app-facing assertions, not an inspection of AgentKit's implementation or a report of tests executed here. The checked-in [`Package.resolved`](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) identifies AgentKit 4.0.0 at revision `3481866cd47e83f6bf56b80c432c7824f61130b9` from `https://github.com/AkinoKaede/AgentKit.git`. That pin establishes dependency identity only: it does not prove internal redaction algorithms, envelope construction, or size limits. No dependency checkout or build-cache source is needed for the app-side ordering and recovery contracts above.
 
 Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
 

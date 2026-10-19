@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8ab91fc623ef6c68a98f5fa1f00adb0cedd32b4dd6c601cbf6a4a30ed62abcdd",
+  "pageVersion": "sha256:47c52e17b347b20e5b87b50692b34bb9efd35b555a60818c1d5dcc56373e5501",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -556,19 +556,15 @@
     },
     {
       "id": "claim_f8e11156b4024feea9bd224c69a504eb",
-      "statement": "Tool presentation leaves original execution/replay data unchanged. Approval projects in-memory request arguments rather than durable cards/model transcripts, requiring restricted chat argument projection. Ordinary JSON failures pass failure state to presenters; knowledge tests reject success messages on failure. Typed previews retain full items and desktop disclosure is per-card with selectable native labels.",
+      "statement": "Presentation leaves execution/replay data unchanged and projects live approval arguments separately from durable cards/model transcripts, with required projection failing closed. Ordinary JSON presenters receive failure state; knowledge tests reject success messages on failure. Previews preserve full projected items, desktop disclosure is keyed per card, and native plain detail values are selectable.",
       "evidence": [
-        {
-          "resource": "repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift",
-          "version": "repo-file-v1:sha256:aded24151ee24b9b43d765700259fa13a3e4817494815c1c47ce39aef41fd0b3"
-        },
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
           "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
         },
         {
-          "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift",
-          "version": "repo-file-v1:sha256:892ccf10c9500ad120421878cc60911c1c56735eca81cad8a5fb2bccfd4ce67e"
+          "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift#L1505-L1613",
+          "version": "repo-lines-v1:sha256:15d4698aa5fb273d5bac3604777a5a9ec056b32649415cbf74167afd103ce452:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzYzY4M2I4YWFjNGUzNDhhNDdkN2NjNmI1YmVlMGYyNjgwMTg0YTQwMjM5MjljOTg3NjA1YzdiNTZkYTQwODhhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3ZmU0M2MzNzM5ODdlNGNkYmQwYmY1MTQzODAwMzhiNzQ1ZjBmOTY1NDI0YzMxNTdlYmM3YzE0MmZjM2M0ZWYyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhZGUwMmRlNTA2ZDc4Mzc0ZGY0NTQ5YTAyZmM5ODBjZDYwN2E3MzY4Nzg3Y2FkMWJjZTE2ZDYwYmU5NzU3OTkyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NzI4MTk2YzY1MWJmMjJhM2FjNGE0Y2QxYzM1MmNiMDNmYjRlODY4N2JkYmRhYTVkZmZhMmU5MmE2MGQ0ZmFhIn0"
         },
         {
           "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift",
@@ -926,33 +922,33 @@
     },
     {
       "id": "claim_ba66177813594d9fa99ec461ec18b5d4",
-      "statement": "AgentToolPresentation accepts injected profiles and vocabulary; profiles override summaries, operations, batches, phases, details and truncation policy, and distinguish hidden details from default fallback.",
+      "statement": "AgentToolPresentation accepts injected profiles and vocabulary; profiles override summaries, operations, batches, phases, details and truncation policy, distinguishing hidden details from fallback. Shared SwiftUI and native detail fields place secondary labels above values, omit empty value views, prioritize navigation over URLs, and color plain error values red without overriding message tints or link styling. AssistantToolDetails enables selection and renders retained items without folding; approval renders all projected arguments while only safety reasons fold. Compact wrappers own preview/full selection rather than the item renderer.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+          "resource": "repo://Frameworks/TermindPresentation/AssistantToolDetails.swift",
+          "version": "repo-file-v1:sha256:b0fb548446d48acc524a605d4d09fa6233d1258f2a1703e8eb7b7f713454b93f"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift",
-          "version": "repo-file-v1:sha256:1937a7d0ca1dc86e3777b9457193d92c761f79b59ce221e28377ae89fe3d6eed"
-        },
-        {
-          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
-          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
+          "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift#L1543-L1613",
+          "version": "repo-lines-v1:sha256:68d3760c380793e0c011ec251c5a8add3b766db2cee7f50f8b5f454658e9b8be:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmMzc0ZGRlMDNjMWYxNDAxMzQyMWY2NWQ2ZGE4MTMyZGQxZTEyYjQ3MzQyYTkyODk1MmY2NWRkN2I0MjMwN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmZTQzYzM3Mzk4N2U0Y2RiZDBiZjUxNDM4MDAzOGI3NDVmMGY5NjU0MjRjMzE1N2ViYzdjMTQyZmMzYzRlZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5NmNkN2Y0OGMwOTRlYjg0YzJiNDcwMDQ2MmYxYjU1ZjdmNGQwMWNlYWIwYTIwNjJkM2Q4NjdlNGUxNDBlNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3MjgxOTZjNjUxYmYyMmEzYWM0YTRjZDFjMzUyY2IwM2ZiNGU4Njg3YmRiZGFhNWRmZmEyZTkyYTYwZDRmYWEifQ"
         }
       ]
     },
     {
       "id": "claim_104842d314fd47b4b6228bf3dd103a8c",
-      "statement": "TermindToolPresentationProfiles composes registered policies by presenter ID, leaves unknown IDs generic, applies local pane/chat privacy independently of presenter availability and keeps MCP JSON unless a caller explicitly supplies a presenter; remote metadata cannot select local executable presentation code.",
+      "statement": "Trusted composition selects registered profiles by presenter ID with independent local pane/chat privacy, while MCP receives a default profile and decoded JSON falls back to generic structured items. An explicitly injected trusted presenter can supply typed items and layout; remote metadata cannot select local code.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
-          "version": "repo-file-v1:sha256:c9d67b4b871d3bbd2c7dc81ca1f5382f812f6bb90607fd068a9e3edd3ccfbd0a"
+          "version": "repo-file-v1:sha256:fd9e4be4c236ac64d433a68887986d4decd57b9ad1e8f5d34579da00ae6de729"
         },
         {
           "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L63-L104",
-          "version": "repo-lines-v1:sha256:2e683a7cfc6d1a0324b452c5e5cc75140e46613ecc04f2f42bf371828fbd836a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
+          "version": "repo-lines-v1:sha256:20e1f32bc70380288cfdb784dcd2ca22a5bc94e180636d6b202fd6919a87f571:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationTests.swift#L283-L310",
+          "version": "repo-lines-v1:sha256:8fb15602a68fef076df3a794f3f52cf9238b3399e7b957257d807284bf012b3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4Y2VjYWViOTIwM2FiNzllYjVlOTcyMjE4Mzk4ZmUxM2IyN2JmNTNhYmMyMDU3NzAyOTYxNzMzOTdkMTcxY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjE1MDQwMTExNjljZDg2OTYzMTM3YTI4YjM0ZTU5MmQxNWIzMzUwOTQ5NjU1MDM5NzI2NDYyMzM2NDQyMDYifQ"
         }
       ]
     },
@@ -972,7 +968,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

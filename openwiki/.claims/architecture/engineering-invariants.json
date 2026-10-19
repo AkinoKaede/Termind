@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:83b518f3d06d6183be6cb6a714ca0cb0042666de8d7510a874ef16d382a5e71d",
+  "pageVersion": "sha256:f5f9c4a9a57e7bbbc3940fe9327a9cd727922542523d58b86aca97d93d260cdd",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -428,31 +428,39 @@
     },
     {
       "id": "claim_ece93976c37a44359339e07fb010a4f4",
-      "statement": "AgentToolPresentation decodes result JSON for injected presenters or generic formatting, passing failure state and suppressing duplicate denial reasons; both apps register localized SSH result presenters preserving tool-owned layout and approval policy, with pending detail only for result-less SSH cards. MCP retains JSON without a presenter but accepts explicitly injected trusted presenters; remote metadata cannot select local code. Failed knowledge results must not render success detail.",
+      "statement": "AgentToolPresentation decodes result JSON for injected presenters or generic formatting, passing failure state and suppressing duplicate denial reasons; both apps register localized SSH result presenters preserving tool-owned layout and approval policy, with pending detail only for result-less SSH cards. MCP descriptors cannot select local executable presenters through remote metadata, but their empty default profile permits generic structured JSON rendering without a presenter (the test renders value 42 as a Value field), and explicitly injected trusted presenters and layouts are accepted. Failed knowledge results must not render success detail.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L296-L374",
+          "version": "repo-lines-v1:sha256:d9fc2661bf316fbf5dd7515c8e66199af202b7bcf1dee9c0dd25b58e5fae65db:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NDczYmRlOGY2OTkyZGFkOGY5YzhmYTczN2QxOTAxZGM1ZGM0ODUxYTVkZjE2OWNmYzY1MWZiMmY4OWY1NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlOGQ2NGFjYmIyYjdhOTIyYWM5Yjg4MjdkMWZjYmNjZjc4ODE3MThhODliNjJmNDQ0ZDhhZGM3NGQ1MzJhMzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmZjAwNmM3NTU4MzlhOTdiMDczYmM5NTBlNTVjMjJiMTM4Y2U0MTAxZWQ0N2I2MDU5OTAyOTRhNmQ0ZDg1NWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift",
-          "version": "repo-file-v1:sha256:d521c370d8f3641b5269fc4a4b37bce16ec93cec854bc9f8798e741809035c12"
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift#L33-L48",
+          "version": "repo-lines-v1:sha256:aea0415db871ab89131bd88948c4f5141188a27f1960105e951110df0d1bd845:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2MjgyYjY2ZGE5YTg1NGJlZjVlZWNjNjczMmFmNGFhNjBhMGYwZDNiY2NlYzAxYmE3MzVhZGI5MjkwMmEzN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MjQzNjA5Zjc2YTNkOGFmYmZiZGQ3OWYwMDRmNmJlNzdmMjI2NGJiYmI5OTBhMmI0N2M4NzUyYzc3ZmUxNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyYjA3NDk2Yzk2ODY5N2E1YWRiNWRjNWZmZjlmYWYzNWRlZTU3NzUyY2FjZGZkOTZiNWNjZjdiMzE5ZGRiNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppDependencies.swift",
-          "version": "repo-file-v1:sha256:f04bcb7fb5a9b4cdecf96182e7512cae9ab1dcf90d76b604ee59f2e77cc03268"
+          "resource": "repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift#L12-L47",
+          "version": "repo-lines-v1:sha256:f53c0792faf05444d731eac4eae25e18c91d27ecbfda0a7c0f71175768f91110:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4NzRiNmZjMTM1ZGUzNDVlNWRhMjU0OWM5YmQ4N2ExMGY4MTRhYWVkNTExODllN2QzNGVjOGZkODIwZGUxZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5YjE5ODJlOGRkNzQ4MTE4MTQ2YjM5YTJkMDA2MmY0MDgxZTM0Nzc5Yjg2NzVjMjM0YzRmYjEyNGRjMzkzOTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1NDAwNTRjMjBhNmMyOWJiNmNiY2JhMDM2ZjNkYmE0Y2Q4ZmYxMDFlNzUxNjdmMzhhZTg3OGY2ZGE3MmJlOWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyZGIzYzIyZGJjZjQ5Njg4MDk4NmYzZWUzODQ2ZTk2ZDkwZTkwOTAyYTdkMjA0MzY2NjZhODVhYzA1MWEzYmIifQ"
         },
         {
-          "resource": "repo://TFM/App/AppDependencies.swift",
-          "version": "repo-file-v1:sha256:4f41b87923515af027f96232867e44d36da599633c78e82564f1f872b295224f"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L63-L74",
+          "version": "repo-lines-v1:sha256:50401944ea17a305733c6cb3190318d7fcb13d56de8a326acfcdcc7261cdb8d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyYTU2YjYxYzU3Mzg4MjMxYTM4ZTNkYzJmNjlkMmNhMjRhODQ3MmNlOTUyMzIwOTgwYTEyZWU2YmVlMmVlZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZTczN2RiZTA2MWMzMmY2NzYwYzIwNjE2ODMyYmVhYTA0MjU5YzkyODExMjhhM2M1NjhkMmNjMmIzNDRlYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjNmNiNzk1N2Y1ODdiZjMyMWE1NDgxOTFlMTEzYjlkZDBjYzdhM2M3ODU1NjQ1ZjQxZGExMDg4MmVlYmFlYjAifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:dbb44bb5fae9f0332c402febdb4ba2e6327bc7b8819eefa4bce3bcb138e90e1e"
+          "resource": "repo://TFI/App/MobileAppDependencies.swift#L10-L17",
+          "version": "repo-lines-v1:sha256:623a2e002811c749f0e2e3d9253a4706dc0add8c2f6e178afd9eb77cfc713d9b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTEwMTIzZDk3OGIzN2M1NWRkYTAyZGJmYmYyMjBjNjBhMzNkNDhhM2QzMjJjYTk1MjdkZTc5YzNmODFlNDFmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmE0ZDY1ODhmOWI3YWQwODA5MzgyODExMDk1NTQ3ZTJjZDE4OGEzYTM0ZDMzM2E0OGQ4YmM5NzgxZDY0NTM5NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjk5ZDlhYzA3OTMzMWRlMTcwYWNjYTE1YjNiMWMwYzI5ZjE1OGRkYmRiMDU1NTRkOGM5NmU0MzM1OTE5M2M3ZSJ9"
         },
         {
-          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
-          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
+          "resource": "repo://TFM/App/AppDependencies.swift#L20-L27",
+          "version": "repo-lines-v1:sha256:d7f4bcbc7406554c1915946793e839ed5922f9d2770b3d1640a2b69a15e6e3af:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjFjMmVhZTY2ZTVlZmJlYTc4NDg4YzZjOTcxZjA1ZjA2NGNkY2Q2ZDljNWVjYmU2YTZmMmVjZGIyNjZkZjdlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmM0ZjYxZDRhYTM3OTExNDhhNTI0ZmY3MDZhYTlhODYyNDAwNmQ0Y2ExMjNlYzc1ZThiNDM5NGViZmRiN2E5ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGQ1ZDNmZWNjMzhiODZlYzZjNWUzZTYwYjcwZTE4ZTE3NjAxMmY0OTI5YjdkYWQ4YmE2Zjk5NDgxMDI2YzEyZCJ9"
+        },
+        {
+          "resource": "repo://TFMTests/AgentKnowledgeToolPresentationTests.swift#L103-L114",
+          "version": "repo-lines-v1:sha256:3944f535013814fd5c5a68303b4177cf572d9af5b09cd162338fa0d222061c58:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4NGJlNzI0YjgwNWEyYjZlYjIyMjI0NWExNTZmYmQ5NjBmNTZjZTllZjEzMzJjYTBhM2I5ZTQ2ZjBmNWI1OTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllOWRiNGVhNTg4NTRhODRhYmY1YzY2ZDM5MGFmMDEyZDhiZDMwMDRmZjA2MWE3NWUxOTk5YmRiMDkyZTI0ZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1ZWE0NmNhMjI1Mjk4MzllMTVjOTk5YjQ2NmJkYTkxN2Q5NTAzMzMyYzcwMmZiYTc4ZWFlMzZhMzM5ODU2ZDQifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L63-L86",
+          "version": "repo-lines-v1:sha256:a06d7ae6b30a477119f50f28f9cdc65063bfe4ed037fcfbf7a07f1802f911153:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5ZGFiMjJkYzFkOTE1MGEwN2NhYWMzZTI4YTNjMjEzM2QzZWZhMjQ4ZmMwOGY3ZjJkZTNkNTQ3ODZjMDgzZWEifQ"
         }
       ]
     },
@@ -1210,25 +1218,25 @@
     },
     {
       "id": "claim_7ae40d8d6694416fa4396d7ba7d9233e",
-      "statement": "AgentToolPresentation renders descriptor metadata and lifecycle state through injected profiles and vocabulary without rewriting original execution, approval, persistence or replay data. TermindToolPresentationProfiles composes ordinary tool semantics by registered presenter ID, refuses unknown-ID name fallback, and enforces local pane/chat privacy independently of presenter availability.",
+      "statement": "AgentToolPresentation renders descriptor metadata and lifecycle state through injected profiles and vocabulary without rewriting original execution, approval, persistence or replay data. TermindToolPresentationProfiles returns an empty profile for MCP before local lookup; otherwise ordinary semantics follow registered presenter IDs, with missing or unknown IDs using defaults rather than name fallback. Local pane/chat name-based privacy overrides presenter-ID lookup independently of presenter availability.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L5-L20",
+          "version": "repo-lines-v1:sha256:2436a27e43692435d2ad3ba524dfecdf72b1f6b038b87419a54bcc0aae0675e1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4N2M2MmQ1ZDM3N2M2MzQyZjM5ZjVjMDgxOWY5Y2Q0NWZiODFmNTEyZmUxYzk3NGYxNjJlMmRkOGRmNTE3M2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyOGU4Mzk3ZDg4Y2QzOTJmNzc3YmU4ZjUzOTY4YmJjZTNmYmI5MTUzZmZlMWFkM2I5ZWVmMjk2YmU1NzJkNzcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
-          "version": "repo-file-v1:sha256:c9d67b4b871d3bbd2c7dc81ca1f5382f812f6bb90607fd068a9e3edd3ccfbd0a"
+          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift#L25-L38",
+          "version": "repo-lines-v1:sha256:6a657a430947e742759792a69e15ae5a86af0c33f248e517e7c7a2aa9efb7df7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MjE3OGJiOTBhNjc4MmVjNWM3NGIwZDMzMDhjMzc5YzUxYjUwYTgwYmUwMzc1Y2VmNWYzYjFlNDA2Y2VjZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3NDFmMzk5NTFhOGRhNzAzMzFlMDJjZmRkMzQwZjAxYzZiNTVkZThhNmE3Yjk2OTRkNTg0MDQ1ZDExYjY0NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift",
-          "version": "repo-file-v1:sha256:2f2610b7c2271c5954f502680d5eb22b332bf8a2bdeb186b0833d12381080400"
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L88-L104",
+          "version": "repo-lines-v1:sha256:4f1f9049cbfddfc8e49d401057baec1355a404f907344995208e1804dc9d8ba1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4MjI3MTYyOGYwMjg3NTRmYjRlMjMwMzZhYjMxZjhhOTI2MzNkOWI0NDlhYTkzMmJkNjg2MWVkOTZiY2IyMjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

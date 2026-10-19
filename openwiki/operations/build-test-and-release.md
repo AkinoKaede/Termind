@@ -12,10 +12,6 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-6c477adbd17d240038ac8d60
-    resource: repo://com.akinokaede.termind/package.json
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
@@ -66,10 +62,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-19T04:32:02.799Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T04:32:02.799Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # Build, Test, and Release
@@ -270,14 +266,16 @@ There is no local `AgentKit/` package or `AgentKit/Scripts/build-localizations.s
 
 ## Public website validation and asset publishing
 
-Initialize `com.akinokaede.termind` only for website/asset work; native app builds do not require it. Its checked-out README requires Node.js 22.12 or newer. The manifest defines `dev` as `astro dev` and `build` as `astro check && astro build`; run `npm run test:locales` after the build for the site's documented locale, metadata, link and asset checks.
+Initialize `com.akinokaede.termind` only for website/asset work; native app builds do not require it. [AGENTS.md](../../AGENTS.md) identifies it as an independent Astro project and supplies the optional workflow: `npm ci && npm run dev` installs locked dependencies and starts local development, while `npm run build` type-checks and emits the production site. [.gitmodules](../../.gitmodules) declares the submodule path and public clone URL, `https://github.com/AkinoKaede/com.akinokaede.termind.git`.
 
 ```sh
 git submodule update --init com.akinokaede.termind
-(cd com.akinokaede.termind && npm ci && npm run build && npm run test:locales)
+(cd com.akinokaede.termind && npm ci && npm run build)
 ```
 
-The parent repository's `AGENTS.md` requires the separate production build and visual review of English and `/zh/`. The site's current guidance documents `/`, `/de/`, `/fr/`, `/ja/`, `/ko/`, `/zh-hans/`, and `/zh-hant/`, with legacy `/zh/` redirects to Simplified Chinese. Review the affected localized routes as well as the legacy redirect; the parent guidance is not a complete route inventory. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`.
+The website directory is empty in this checkout; its README and package manifest were not available for inspection. After initialization, verify the independent project's Node.js requirement, actual package scripts, and any additional locale checks in its own current guidance before running them. The commands above are parent-repository instructions, not verified website manifest contents.
+
+[AGENTS.md](../../AGENTS.md) requires a production build and visual review of English and `/zh/` for web changes. Verify the initialized site's current locale routes and redirect behavior before choosing additional review coverage; this checkout does not establish a route inventory or legacy redirect contract. Keep generated website output and dependencies uncommitted. Parent guidance also requires committing and pushing reviewed assets via SSH before updating the parent gitlink, while retaining the public HTTPS clone URL in `.gitmodules`.
 
 ## AgentKit: release, bump, and re-resolve
 

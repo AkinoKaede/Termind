@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9c2a8d3d3f1bf67cbd00cd71d6afde8cc9782ae4ceb442fd7961c7d2c0075076",
+  "pageVersion": "sha256:81168582d9706d63b676a8c1167c6bc365e4dcf4a799a28ceb5846fae0087cbc",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -104,19 +104,19 @@
     },
     {
       "id": "claim_9001476115de4dc3a10921fa323b9f08",
-      "statement": "The independent website submodule is optional for native builds; its README requires Node.js 22.12 or newer and its manifest defines dev as astro dev, build as astro check && astro build, and test:locales as the locale-check script to run after building.",
+      "statement": "AGENTS.md identifies com.akinokaede.termind as an independent Astro website/assets submodule optional for native builds and documents npm ci && npm run dev for local development and npm run build for type-checking and production output; .gitmodules declares its initialization path and public HTTPS clone URL. Node requirements and additional scripts must be verified in the initialized independent project rather than inferred from parent guidance.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "resource": "repo://.gitmodules#L1-L3",
+          "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzI1MGE3ODNiYTRmYzRkOTViNmQ3MDgwMjA5NDYyZWQ4NTRlMTJhZjAwZDhkMjI1Mjk1ZDc1NzY2ZmZhODZhNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/package.json",
-          "version": "repo-file-v1:sha256:a30aca1b31ece28759f8773d1646c87ab554579516d785d90d2225320684ae7f"
+          "resource": "repo://AGENTS.md#L38-L43",
+          "version": "repo-lines-v1:sha256:d530e1e2a01b97c3be0aefe86a311d47b7ffa1713bbf696cfb47dc54a1b3a838:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZmNDZjMmQzNzgwODk3OGE4MzcyMDg4MDIzOGEzMjEzM2U3OTlkMmJlNGQwMWQzYjUyN2IxNjg2NThiMWIxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjQyY2VmZTE0YWM1YTBmNTZjNDQwMzQxMjk5NWEwMjBmYmIxZmNlYjkxNzM0ZWJmOWU2MmJlYTJjNDU1Y2IxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
         }
       ]
     },
@@ -376,15 +376,11 @@
     },
     {
       "id": "claim_69843718608d4e2c81ad7d770de060cf",
-      "statement": "Parent guidance requires web production builds and English and /zh/ visual review; the website README documents seven current locale roots and legacy /zh/ redirects to Simplified Chinese, so parent guidance is not the complete current route inventory.",
+      "statement": "Parent guidance requires web changes to pass npm run build and receive visual review of English and /zh/ routes; it does not establish a full current website locale inventory or redirect contract, which must be verified in the initialized independent project.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
+          "resource": "repo://AGENTS.md#L49-L51",
+          "version": "repo-lines-v1:sha256:6997a1a7c8b75f5e00768cec37c6a6baf7027c2733ed3a9a1a5cb3e483809e4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjBlZjRjY2FhNGI0NTRlNjA4YTJkMmI1YzIyOTk4OThlMjQ1MGE5OTJlMWI3MmI4M2EzMGI3ZjFlMWJhMjE5MCJ9"
         }
       ]
     },
@@ -566,7 +562,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T04:32:02.799Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

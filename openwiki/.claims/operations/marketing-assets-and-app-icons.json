@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:868588fcb121de52351fccbae3637078213f4f3c5d2421fae434a1f576230ac3",
+  "pageVersion": "sha256:4e0377a70de3d6ae1ad91a9adc6f6305a1998c624740e9c6239fdf3aefd44717",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -346,19 +346,15 @@
     },
     {
       "id": "claim_e071a72be59c4afbaa7b520a182c3817",
-      "statement": "Paywall illustrations belong to external design/paywall assets. Native MobileProView and ProPaywallView embed RevenueCatUI.PaywallView when using RevenueCat; editing external illustration files does not publish the remote paywall.",
+      "statement": "Native MobileProView and ProPaywallView embed RevenueCatUI.PaywallView when using RevenueCat rather than loading illustration files from the external assets checkout; editing external handoff artwork does not publish the remote paywall.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift",
-          "version": "repo-file-v1:sha256:5f7c8bae7a5301bdc33db6ee4fab0216cf9e5cef2fd75e31f37ac3f990eb278a"
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L1-L46",
+          "version": "repo-lines-v1:sha256:9da2344e7a2671e5c1295b5222d144527945be46e7e06862f2a02525a7831125:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZTMzZDQ4NTU2ZjNmYjBlMmIzYTdhOThjMTkyMzlhZTU3ZGE4YTVmNGI1ZDAxNWNkNjA5YWEyYzIxNjk2MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3ZDE3OTA1ZWJkZjk4YWMxNGVmN2ZmNzMwYzQ0NDM4ZTIzNTk4NTA0MTUxYWZkN2Q4MWMzMWFkMDU1ZTYwYTEifQ"
         },
         {
-          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift",
-          "version": "repo-file-v1:sha256:99673b713795d4e35cd5d38d1502ec0bff6b1e0ad516afaa6ffc4b0b5e0dc28b"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/design/README.md",
-          "version": "repo-file-v1:sha256:ac12e29e5e342e3f6d5d67b4ee3e6a61c6d45ac83fe818f2eddd7ac703033b7e"
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L1-L48",
+          "version": "repo-lines-v1:sha256:ac2b3dcd3fc0fdc1787a9d94362a69ddee4ce2a03940c7f467a2a6e543a8bcc0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZTMzZDQ4NTU2ZjNmYjBlMmIzYTdhOThjMTkyMzlhZTU3ZGE4YTVmNGI1ZDAxNWNkNjA5YWEyYzIxNjk2MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNmJmZGJlOTI1NTY3YTczNTQxYjY5MTBhYTA5YWU5MmI2YTk4NDZhN2I1ZThkNjMyZGZkZjk3N2FlNmFiYmEifQ"
         }
       ]
     },
@@ -555,20 +551,6 @@
       ]
     },
     {
-      "id": "claim_2ac17b98788f451482fca920cbbd5b14",
-      "statement": "The external asset guide distinguishes final screenshots, header and search_results artwork from captures and device frames; its design guide identifies brand/termind.svg as master and public/brand_mark.svg and public/favicon.svg as website variants.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:a8407a8d6efec959916d23fde6a288083180b8620da8fed9d64b1d8b964458bf"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/design/README.md",
-          "version": "repo-file-v1:sha256:ac12e29e5e342e3f6d5d67b4ee3e6a61c6d45ac83fe818f2eddd7ac703033b7e"
-        }
-      ]
-    },
-    {
       "id": "claim_a8d589de90ef4798bf188ce72004a31a",
       "statement": "Quiet workflow entrypoints include fastlane screenshot/frame plan:true, syntax checks on the Ruby runners and run-screenshot-demo.sh, and Scripts/check-localization.py; they do not replace opt-in native capture or external visual review.",
       "evidence": [
@@ -588,7 +570,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

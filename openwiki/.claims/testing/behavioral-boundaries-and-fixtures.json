@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:30b0158f731d5a9878c14ee93826761b06955e7f1ce0a1827db69d391decef43",
+  "pageVersion": "sha256:06d63f7168adfe6fa9405c23604b42b5e5be7eb6cd6c0ade19df795eecb92d06",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -324,11 +324,11 @@
     },
     {
       "id": "claim_78f8d81d663b4c5fb8f7c9ca60534d7b",
-      "statement": "Tool presentation tests protect the composed AgentKit/Termind presenter ID namespace, presenter-ID-directed restored detail versus generic fallback for missing IDs, safe decoding of old metadata, and approval argument detail including the provided command rather than a blanket redaction guarantee.",
+      "statement": "Tool presentation tests protect composed presenter-ID uniqueness, ID-directed restored detail versus missing-ID generic fallback, safe old metadata decoding and visible approval arguments. Profile tests additionally reject MCP metadata selecting local code while accepting explicitly supplied presenters, distinguish projected from generic fields, and keep registered semantics ID-based rather than name-based.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AgentToolPresentationTests.swift",
-          "version": "repo-file-v1:sha256:fbb8fa9a5c629184674d2d7dd105a22f924b26762de2268f0ed3609aa98e0d59"
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L63-L104",
+          "version": "repo-lines-v1:sha256:20e1f32bc70380288cfdb784dcd2ca22a5bc94e180636d6b202fd6919a87f571:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
         }
       ]
     },
@@ -1070,7 +1070,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T04:32:02.799Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

@@ -130,8 +130,8 @@ sources:
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
-  - id: openwiki-source-23ab3fe73660b171f78763a4
-    resource: repo://TFMTests/AgentToolPresentationTests.swift
+  - id: openwiki-source-7c65a9e84644dfdb436d849d
+    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
@@ -164,10 +164,10 @@ sources:
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "pi", at: "2026-10-19T04:32:02.799Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T04:32:02.799Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # Behavioral Boundaries and Test Fixtures
@@ -343,7 +343,33 @@ SFTP transfer tests use a controlled `TransferChannelHarness`, a `TransferChanne
 
 Those tests are intentionally actor-driven and use polling only to wait for observable harness state. Prefer this style for races: hold the transfer at a known point, make the ownership transition, then release it and assert the terminal state and disconnect count.
 
+### Tool presentation: projection authority is not remote metadata
+
 For tool-card changes use `AgentToolPresentationTests`: the registered tool's argument projection appears in approval detail (including submitted command/input, not a claimed secret-redaction guarantee), while unknown tools get generic fields. Check the composed AgentKit-plus-Termind presenter ID catalog for collisions, restored cards for presenter-ID-directed detail and cards without presenter IDs for generic fallback (not equivalent detail), and old descriptor metadata for safe defaults before relying on a new presentation field. Batch and long-output fixtures cover mixed lifecycle states, Unicode preview bounds and full-copy content; avoid replacing structured detail with an untested JSON string.
+
+Use the following focused assertions rather than treating “tool presentation” as one security or visual guarantee:
+
+| Changed contract | Focused regression and asserted boundary |
+| --- | --- |
+| Trusted MCP projection versus remote-selected code | `AgentToolPresentationProfileTests.explicitMCPPresenterIsUsedButRemoteMetadataCannotSelectLocalCode` gives an MCP descriptor the SSH built-in ID and expects registry lookup to return `nil`. An explicitly supplied presenter still renders `Projected: 42` with its compact layout; without it the same payload renders generic `Value: 42`. Rejecting metadata-selected local code does **not** mean rejecting a trusted presenter passed by the caller. |
+| Profile identity and extension hooks | `registeredProfileFollowsItsIDNotTheToolName` keeps “Connecting” for a renamed tool with the registered SSH ID, but an unknown ID or missing presentation yields generic summaries and no pending detail. `injectedProfileControlsPhasesPendingDetailsApprovalAndTruncation` separately checks injected phase text, pending content, hidden result detail, required argument projection and hidden truncation notices; the unconfigured renderer behaves differently. |
+| Privacy when projection is unavailable | `missingChatApprovalPresenterNeverFallsBackToPromptOrMessageFields` expects empty approval items for local create/send chat without a presenter. `chatFallbacksNeverExposeMalformedErrorOrUnprojectedBodies` expects “Chat details unavailable” for malformed output, error output and a missing presenter. `chatCompactPreviewAndFullCopyContainOnlyProjectedBoundedFields` excludes message bodies and creator titles/IDs from both preview and full copy, while retaining the last projected chat in full copy. These are chat-specific suppression assertions, not a general redaction promise. |
+| Knowledge summaries and approval content | `AgentKnowledgeToolPresentationTests` repairs old memory semantics across nine states in English and both Chinese variants, checks mode-specific actions and mixed read/write failures, rejects unknown/remote presenter selection, and prevents failed install results from drawing success messages. Its approval fixture keeps the body out of the title but includes the complete 1,000-line content in detail; title shortening leaves the original query unchanged. |
+| Shared preview/state versus native detail layout | Knowledge tests preserve `fullItems`/full text while sharing the compact budget across blocks and five rows across lists. Detail expansion is independent of tool expansion, survives reconfiguration and is removed when its timeline ID is pruned. `TranscriptListViewBridgeTests.compactToolExpansionKeepsBothButtonTitlesLeftAligned` in `TranscriptListViewTests.swift` checks native “Show more” and “Show less” at widths 360 and 900, left alignment, the truncation notice before the button, and the final collapsed detail state. These are separate model and offscreen AppKit assertions, not cross-platform screenshot equivalence. |
+
+The application composes profiles in [TermindToolPresentationProfiles](../../Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift): MCP descriptors receive an empty profile; ordinary semantic selection uses `presenterID`. Local pane/chat privacy is deliberately selected independently of presenter availability, so do not remove that exception while eliminating tool-name-based semantic recovery. Approval visibility is a separate contract: the general fallback fixture explicitly displays `Password: hunter2`, and SSH approval displays the submitted command. The SSH control-result fixture instead excludes secret input and its opaque handle while retaining the command ID and formatted byte count.
+
+Start with these non-window projection suites:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test \
+  -only-testing:TFMTests/AgentToolPresentationTests \
+  -only-testing:TFMTests/AgentToolPresentationProfileTests \
+  -only-testing:TFMTests/AgentKnowledgeToolPresentationTests
+```
+
+For native expansion changes, additionally select the containing native-row suite in `TranscriptListViewTests.swift`; keep offscreen checks enabled normally. Tests that actually show windows or activate the app must retain `.requiresVisibleWindow` and require `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (host `TERMIND_WINDOW_TESTS=1`), with a narrow `-only-testing:TFMTests/<Suite>` filter. A default green run with gated cases skipped is not visible-window validation. See [UI Design Principles](../concepts/ui-design-principles.md) for rendering responsibilities and [Build, Test, and Release](../operations/build-test-and-release.md) for broader validation.
+
 
 For Ghostty menu changes, `TFMTests/TerminalContextMenuTests.swift` checks AppKit blank-space and selection menus, Paste on Right Click/Option behavior, live upload availability and late pane teardown. `MobileTerminalUploadMenuTests` has been removed; do not claim current mobile editing/Upload/AutoFill ordering coverage from it. Add a focused regression for that contract when changing the mobile hooks; test removal alone is not evidence that the production menu behavior was removed.
 

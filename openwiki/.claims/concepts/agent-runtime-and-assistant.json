@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:25366a8e74c698b47e7c7a80c511bd6df72ee3f89a9f93e7ae6de2c2aeb4de3a",
+  "pageVersion": "sha256:c792778ce74a498a05bea3f319dfdc0ad71ca432a8189f88e8c2a9b732e49913",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -748,11 +748,31 @@
     },
     {
       "id": "claim_b13dacae7f2f40f38238d00735614941",
-      "statement": "Approval projects in-memory arguments without persisting that projection; ordinary built-in details use structured presenters or generic fallback, while MCP bypasses local presenters and retains remote output. Local collaboration tools instead require presenter-based approval arguments and use safe unavailable-details fallback for missing or failed detail data.",
+      "statement": "Approval projects in-memory arguments without persisting that projection. MCP descriptors cannot resolve local executable presenters; their empty presentation profiles permit generic structured detail fallback, while trusted callers can explicitly inject a presenter whose projection and layout the renderer uses even for MCP. Local pane and chat privacy profiles apply independently of presenter availability, including local-name selection with missing or unknown IDs, without recovering executable presenter identity: pane details remain metadata-only, and chat tools require projected approval arguments and safe unavailable-details fallback rather than raw chat bodies. These display policies do not rewrite replay payloads.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:7e73ee136dbf26955f003be86adb8b83dee3914c18012efa5bb5e2a45db83351"
+          "resource": "repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift#L12-L39",
+          "version": "repo-lines-v1:sha256:294ba86e431cac37de9f8502fb5be1f7fac2a6070956804c999f8451626ba1e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwOWI1YmVmOTc4NjhhNzUxMTFhZjJjNzg3NDI3MDI0NDY4ZGVmNmY5OTM5MTFhODc1ODM2OGI2MTM1OTE5ZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1MDNiODdiNDAzOTg2ZjlmMGE1MGZmNTI2MTFlMzJhOTI1NjI2MzU4ZjQ3YWNhY2MzNDc2ZWMwZGVlYzdmNjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1NDIwNjRmYjZhOWEyYmE4MmEzY2I2NTY0ODFmYzEzNWJhZjFlZmMxOGQ4OTQyNDYxYmZiODIwYWI4Mzk4NzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift#L33-L76",
+          "version": "repo-lines-v1:sha256:f8cfac3764b34ff050a6a10304f67eb970bd6d5027a93218ab90298c54026613:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDQ4ZTQyZjc0NWI3ZThjOTZmNjg4YzYyNzE2NzM1MjVlYmM2OTZlNjMyY2NhYTc1OTNkMzQ4Mjk3ZjRmYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYzg2Y2EzMzVlNzIyOTY5NzNmZmI2NTJjNTkzMzljZjIwMTQxNTcyNTA1NmFiNTk1MzQ2MWU2YjI0ODAwNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhOTIzZDYzZDViZTc0YmJkZmIxN2Q2ODJmYTlkZTJkNjY1M2VkYjcwODQ5OGE3YmIwMDBiYTc2ZWM1ODY1ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0YjEzMTRjNGU0MjQzMDUxNzE0YzYxZGMxMmVkNTdlMzU2OTc2MzAxMDJmMjVkMDIxOGI3NzhiNWUyMDBlZDUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L312-L413",
+          "version": "repo-lines-v1:sha256:d7229be74574cd765193541e9b2366662dbc36f9fdf9f12dd2b0418b489593af:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiM2UxMjBkZTg2MzVmZWNlZDVjMWEwOGE3NmMwMzg4YTYwMmM0ZTVlYmQ2MjVlOTRlZmEzY2Y5ODNkMDg0ZDNkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiMWM1MTEwNWNhNTY5MGUzNGM4ZTUzOTg1ZmI0NjhhNTU1MmNmYzVkYWIzOTk5ZDU2ZTllNWJhN2RmMDMyMGRkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2OGFjZTliNzVmMmVkOWU0YjA5ODU2ZTRiY2IxYTAyYjM1Yzc2NTM0Yzc4YmYzNDI2ZWI5ZWFkMTVjNmJlMmEwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiNWY0ZTRiMjlhZjQ0MmNiNjQ2YjU0NjdlN2YxYzhiZDQ5ZjlkZTI2YWI0Y2YyNTgxZmEwMzBjMmZhMTQ2YjdiIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift#L25-L38",
+          "version": "repo-lines-v1:sha256:6a657a430947e742759792a69e15ae5a86af0c33f248e517e7c7a2aa9efb7df7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MjE3OGJiOTBhNjc4MmVjNWM3NGIwZDMzMDhjMzc5YzUxYjUwYTgwYmUwMzc1Y2VmNWYzYjFlNDA2Y2VjZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3NDFmMzk5NTFhOGRhNzAzMzFlMDJjZmRkMzQwZjAxYzZiNTVkZThhNmE3Yjk2OTRkNTg0MDQ1ZDExYjY0NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L60-L74",
+          "version": "repo-lines-v1:sha256:cc6484a13635f00edc8c77582bbf0fd425ace1d2d566a90118292db8ec786eec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZDMzMDFlNWE3MGRjYTk1NjFjNjY4NWE4NjdhNDAwNWFkYjM2ZTg3Nzk4ZjkxYWY1ODY2NTRmNTFkYTAwZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmZDhkYmMxYWQ0N2NmOTVhNGRkMGUzZThjNDg1MGFmZjkwMTRiMmE5ZDZlYzJiYmQ0Njg2ZmEwYTk2NGMxMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjNmNiNzk1N2Y1ODdiZjMyMWE1NDgxOTFlMTEzYjlkZDBjYzdhM2M3ODU1NjQ1ZjQxZGExMDg4MmVlYmFlYjAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L63-L104",
+          "version": "repo-lines-v1:sha256:20e1f32bc70380288cfdb784dcd2ca22a5bc94e180636d6b202fd6919a87f571:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMDhmMjE4MzYwYzEyMWRmMmMwNTdjNmFmN2VhMjk5Njc0MzE1YzkwZjU3YzE1Mjk2OWUyODdhY2UyZGQxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
         }
       ]
     },
@@ -1266,7 +1286,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-19T23:15:37.894Z"
   }
 }

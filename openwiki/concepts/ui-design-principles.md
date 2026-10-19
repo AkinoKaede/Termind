@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: UI Design and Presentation Contracts
+title: UI Design Principles
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -22,8 +22,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
-  - id: openwiki-source-7e27e66540bd1ea5c642a652
-    resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
+  - id: openwiki-source-ea5e06cbcadf0b0308e859c6
+    resource: repo://Frameworks/TermindPresentation/AssistantToolDetails.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
@@ -168,6 +168,8 @@ sources:
     resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
   - id: openwiki-source-7c65a9e84644dfdb436d849d
     resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
+  - id: openwiki-source-23ab3fe73660b171f78763a4
+    resource: repo://TFMTests/AgentToolPresentationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
@@ -188,13 +190,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
-# UI Design and Presentation Contracts
+# UI Design Principles
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -343,7 +345,7 @@ Selection is a persisted user action; a missing stored theme is a display-time f
 
 `AgentToolPresentation` is a generic projection of descriptor metadata and lifecycle state, not an execution or replay owner. The app uses `TermindToolPresentationProfiles.renderer` to inject tool-family policies and localized vocabulary. Profiles can override summary, operation, batch operation, phase wording, detail and truncation notices. Detail decisions distinguish `.hidden` from `.useDefault`: suppression must not accidentally enter a generic JSON/error fallback.
 
-The trusted composition selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors cannot select local code: without an explicitly supplied presenter they retain JSON presentation; a caller-supplied MCP presenter can project typed details.
+The trusted composition selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors receive the default profile, not local tool-family policy. Without a trusted, explicitly supplied presenter, decoded MCP JSON uses the same **generic structured fields** as an unregistered local tool—not a forced raw JSON block, even with `output: .json`. For example, `{"value":42}` becomes a `Value` field containing `42`. An explicit presenter can instead emit its own typed items and layout. Remote metadata cannot select local executable presentation code; presenter injection is a separate trusted caller decision. See [System Boundaries](../architecture/system-boundaries.md).
 
 Live approval projects the **in-memory request**, not durable-card or model-transcript arguments. Ordinary arguments remain reviewable without redaction; resolved Host names allow hiding redundant `host_id`. Sensitive chat tools require argument projection and return no argument items when the presenter is unavailable, rather than exposing raw prompt/message fields. Short approval titles keep argument bodies in the detail area.
 
@@ -358,16 +360,40 @@ flowchart TD
     Renderer --> Policy{Profile detail decision}
     Policy -->|hidden| Hidden[No detail]
     Policy -->|content| Typed[Typed detail]
-    Policy -->|useDefault| Fallback[JSON decoding and presenter or generic fallback]
-    Fallback --> Typed
-    Typed --> Preview[Compact and full native disclosure]
-    Approval --> Review[User-only review surface]
+    Policy -->|useDefault| Decode[Decode result JSON]
+    Decode -->|Trusted explicit presenter| Project[Project typed items with failure state]
+    Decode -->|No presenter| Generic[Generic structured items]
+    Decode -->|Invalid JSON| Message[Output message or suppressed duplicate denial]
+    Project --> Typed
+    Generic --> Typed
+    Message --> Typed
+    Typed --> Preview[Compact preview or full retained items]
+    Approval --> Review[Always-visible arguments]
+    Request --> Safety[Separate safety-reasons disclosure]
 ```
 The presentation branches consume execution data without rewriting the original call/result or attaching live approval details to persistence or model transcripts.
 
 Failed, denied or interrupted ordinary JSON results pass failure state to registered presenters; knowledge-tool regressions ensure failures cannot draw success messages. Matching Guardian denial text is suppressed in result detail to avoid printing the same reason twice. Chat failure/malformed/missing-presenter paths use bounded unavailable-details feedback, not raw bodies. Local `read_pane` shows only terminal name and pane ID (with argument-ID fallback), including malformed/error results; it never reaches raw-output fallback and hides truncation notices. `list_panes` renders terminal rows with active/current badges.
 
-`AgentToolDetailPreview` retains full typed items while providing compact items. Desktop Show More/Show Less disclosure is keyed by tool-card ID, and native detail labels remain selectable. Extend profiles and registered projectors rather than changing protocol payloads. `AgentToolPresentationProfileTests` checks injected overrides, explicit MCP presenters and unknown-ID isolation; `AgentKnowledgeToolPresentationTests` checks approval bodies, failure-safe details, title limits without argument mutation, preview budgets and independent disclosure.
+`AgentToolDetailPreview` retains full typed items while providing compact items. Desktop Show More/Show Less disclosure is keyed by tool-card ID, and native detail values remain selectable. Extend profiles and registered projectors rather than changing protocol payloads. `AgentToolPresentationProfileTests` checks injected overrides, explicit MCP presenters and unknown-ID isolation; `AgentKnowledgeToolPresentationTests` checks approval bodies, failure-safe details, title limits without argument mutation, preview budgets and independent disclosure.
+
+### Retained detail rendering and approval visibility
+
+`AssistantToolDetails` renders the supplied items verbatim: it does not perform a second truncation or insert per-item folding. `AssistantCompactToolDetails` chooses `preview.items` or `preview.fullItems` using a transcript-owned expansion binding; the desktop native compact renderer makes the same choice using `.toolDetail(card.id)`. Full here means the retained **projected** items, not recovery of raw private payloads. The preview shares a five-row/body-byte budget across collapsible bodies and lists, while fields, messages and noncollapsible text remain outside that body budget.
+
+| Contract | Shared SwiftUI `AssistantToolDetails` | Desktop native transcript |
+| --- | --- | --- |
+| Field layout | Leading vertical stack: secondary medium caption label above the value, four-point spacing | Vertical stack with secondary medium small-font label above the value |
+| Empty field value | Keeps the label and omits the value view | Returns the label alone |
+| Navigation and URLs | Trusted navigation button takes precedence when `assistantToolNavigation` is installed; otherwise a parseable URL becomes a `Link`, then plain text | Chat reference takes precedence and calls `navigateChat`; otherwise a parseable URL opens through `NSWorkspace`, then plain text |
+| Typography and selection | Monospaced flag applies to text/navigation values; URL links use caption font. The container enables text selection | Monospaced flag applies to plain and button values; plain values, messages and text blocks explicitly enable selection |
+| Error styling | Plain field values and text blocks turn red with `isError`; labels stay secondary, links retain link styling, messages use their explicit tint | Same role distinction using native colors; the compact caller supplies `card.result?.isError == true` |
+
+These are matching semantic roles, not pixel or interaction parity: SwiftUI text blocks use a horizontal scroll view, and links/buttons are actions rather than ordinary selectable text. Keep navigation in app-owned handlers rather than interpreting field strings as local routes.
+
+`AssistantApprovalDetails` renders all `detail.items` directly with primary body text. Only the safety reasons are inside the separate `showsSafetyDetails` disclosure; collapsing safety must not hide the arguments being approved. This visibility rule is distinct from durable persistence redaction and from the sensitive-chat projection policy above.
+
+Focused verification: `builtInAndMCPFallbackUseTheSameFields` asserts equal generic structured items, and `explicitMCPPresenterIsUsedButRemoteMetadataCannotSelectLocalCode` distinguishes the generic `Value` field from an explicit `Projected` field and presenter layout. Approval tests retain an unredacted command/token and generic password argument; knowledge tests preserve complete long approval bodies and full preview items. These tests verify projection and disclosure state, not SwiftUI/AppKit pixel parity. The renderer comparison above is source inspection; rendering suites were not executed for this update.
 
 Sources: [generic renderer](../../Frameworks/TermindPresentation/AgentToolPresentation.swift), [profile contract](../../Frameworks/TermindPresentation/AgentToolPresentationProfile.swift), [trusted composition](../../Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift), [pane privacy](../../Frameworks/TermindPresentation/AgentPaneToolPresentation.swift), [chat privacy](../../Frameworks/TermindPresentation/AgentChatToolPresentation.swift).
 

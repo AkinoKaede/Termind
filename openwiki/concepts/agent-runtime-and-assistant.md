@@ -38,6 +38,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-a575d2eb3628c3d9d4bd93bc
+    resource: repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift
+  - id: openwiki-source-743e6dcf5fbbd1fcc58c991e
+    resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-3476c075c0a89fef4b1cecf4
     resource: repo://Frameworks/TermindPresentation/AgentToolDetailPreview.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -46,6 +50,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AssistantMessageBody.swift
   - id: openwiki-source-718a8dd6b4c7481c367a98e1
     resource: repo://Frameworks/TermindPresentation/TermindMarkdownParser.swift
+  - id: openwiki-source-6ab30745153a4cbf15c4b18c
+    resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
   - id: openwiki-source-ee4e94c8b189e0881ec4fd15
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
@@ -122,16 +128,18 @@ sources:
     resource: repo://TFMTests/AgentScratchTests.swift
   - id: openwiki-source-7e117096f381ecc32caff068
     resource: repo://TFMTests/AgentSkillTests.swift
+  - id: openwiki-source-7c65a9e84644dfdb436d849d
+    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-32734a5d0c7e053627a24d40
     resource: repo://TFMTests/ContextAttachmentImporterTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # Agent Runtime and Assistant
@@ -415,7 +423,11 @@ A saved context snapshot preserves historical session, skill-catalog text, plan 
 
 Persisted text, tool arguments, titles and reasoning go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted. **Original attachment bytes are a different storage boundary:** `PersistentAgentContextAttachments` encodes the captured attachments directly, without passing their bytes through `AgentPersistenceRedactor`. Do not assume that redaction of extracted prompt text sanitizes the original document retained for reopening.
 
-Tool cards resolve an explicit persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. `TermindAgentTools.presenter(for:)` refuses MCP descriptors and descriptors without a presenter ID; a bare historical tool name does not select executable presenter code. Termind no longer registers compatibility presenters for `builtin.ssh_exec` or `builtin.ssh_wait`; missing presenters follow the presentation profile's fallback policy. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: localized action verbs, punctuation and lifecycle summaries do not rewrite the original call or result used for execution, approval or replay. Built-in JSON results can use a registered structured presenter or a generic fallback, while MCP keeps remote-defined JSON output and does not use local presenters. Local chat-collaboration tools are an exception to generic fallback: missing/malformed or failed details produce a safe unavailable-details message, and approval arguments require their presenter rather than exposing a generic argument dump. Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. `AgentToolDetailPreview` applies one whole-card body budget of five rows and `AgentTruncateLimits.maximumBytes`, following the presenter's truncation strategy rather than always using middle truncation. Fields, notices and non-collapsible text are outside that body budget; `.none` bypasses shortening. Full projected items and `fullText` remain available for expansion and Copy. This UI preview is distinct from runtime output projection: the controller also configures `AgentToolOutputProjection` with the shared scratch workspace. Both platforms use shared `AssistantMessageBody` over MarkdownView, and `TermindMarkdownParser` delegates block parsing to MarkdownParser. Inline titles retain emphasis, code, link destinations and image alt text; the previous soft-break rewriting and local unsafe-link filtering adapters were removed. Native list ownership, row measurement and interaction remain platform-owned.
+Tool cards resolve an explicit persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. `TermindAgentTools.presenter(for:)` refuses MCP descriptors and descriptors without a presenter ID; a bare historical tool name does not select executable presenter code. Termind no longer registers compatibility presenters for `builtin.ssh_exec` or `builtin.ssh_wait`; missing presenters follow the presentation profile's fallback policy. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: localized action verbs, punctuation and lifecycle summaries do not rewrite the original call or result used for execution, approval or replay.
+
+Built-in JSON results can use a registered structured presenter or a generic fallback. **MCP descriptor lookup is not presenter injection:** remote descriptors cannot resolve local executable presenters, even if they advertise a local presenter ID. `TermindToolPresentationProfiles` gives MCP descriptors an empty profile, which permits generic structured detail fallback (for example, `{"value":42}` becomes a `Value` field), rather than requiring raw remote JSON display. A trusted caller can explicitly pass a presenter to `AgentToolPresentation.detail(for:presenter:locale:)`; the renderer uses that presenter's projection and layout even for an MCP card. Local pane and chat privacy profiles are selected independently of presenter availability, including by local tool name when presenter metadata is missing or unknown; this suppresses private fallback content, not recovery of executable presenter identity. Local chat-collaboration tools require presenter-projected approval arguments and use safe unavailable-details fallback for missing/malformed or failed detail data rather than exposing chat bodies; pane details remain metadata-only. These display policies do not alter replay payloads. See [UI Design Principles](ui-design-principles.md) for presentation policy and [System Boundaries](../architecture/system-boundaries.md) for the trust boundary. `TFMTests/AgentToolPresentationProfileTests.swift` verifies rejected MCP descriptor lookup, explicit presenter injection and layout, generic structured fallback, and ID-based profiles without tool-name recovery.
+
+Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. `AgentToolDetailPreview` applies one whole-card body budget of five rows and `AgentTruncateLimits.maximumBytes`, following the presenter's truncation strategy rather than always using middle truncation. Fields, notices and non-collapsible text are outside that body budget; `.none` bypasses shortening. Full projected items and `fullText` remain available for expansion and Copy. This UI preview is distinct from runtime output projection: the controller also configures `AgentToolOutputProjection` with the shared scratch workspace. Both platforms use shared `AssistantMessageBody` over MarkdownView, and `TermindMarkdownParser` delegates block parsing to MarkdownParser. Inline titles retain emphasis, code, link destinations and image alt text; the previous soft-break rewriting and local unsafe-link filtering adapters were removed. Native list ownership, row measurement and interaction remain platform-owned.
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation.
 

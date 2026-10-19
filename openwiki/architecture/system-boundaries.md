@@ -88,10 +88,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+  - by: openwiki/0.7.0
+    at: 2026-10-19T23:15:37.894Z
 ---
 
 # System Boundaries
@@ -303,25 +303,35 @@ Execution registration and localized rendering are separate extension points:
 
 - **Execution availability belongs to the remote catalog.** `TermindAgentTools` registers separate acting and planning variants of SSH run/stdin tools. SFTP mutations and scratch push are acting-only registrations; read-oriented tools remain available without that restriction. Preserve these mode declarations when extending the catalog rather than relying on UI visibility to restrict execution.
 - **Localized SSH result rendering belongs to Presentation, assembled by the apps.** Both `AppDependencies` and `MobileAppDependencies` decorate `TermindAgentTools.presenterRegistry` with `SSHExecToolPresentation.registering(in:)`. The decorator replaces selected SSH result projections while retaining persisted presenter IDs, tool-owned layout, and operation policy; argument rendering delegates to the original presenter, falling back to generic argument items if needed. Descriptor lookup first passes through the remote catalog's trusted lookup, which rejects MCP descriptors and requires an explicit registered presenter ID, then selects the decorated presenter by ID. There is no legacy tool-name fallback or separate `ssh_exec`/`ssh_wait` presenter registration. This lets shared Presentation localize results without importing Remote Infrastructure. See the [presentation decorator](../../Frameworks/TermindPresentation/SSHExecToolPresentation.swift) and [desktop composition](../../TFM/App/AppDependencies.swift).
-- **Tool-family policy is injected into a generic renderer.** `AgentToolPresentation` interprets descriptor metadata and lifecycle through an injected profile resolver and activity vocabulary, rather than resolving concrete tool behavior by protocol name. `TermindToolPresentationProfiles.renderer` composes knowledge, SSH, pane, and chat profiles with localized vocabulary; profiles control summaries, phases, pending detail, approval projection requirements, and truncation notices. Rendering leaves execution, approval, and replay payloads unchanged. An unknown or absent presenter ID does not recover SSH semantics from a matching tool name.
-- **Privacy suppression is distinct from generic fallback.** Profile detail can return `.useDefault`, `.content`, or `.hidden`; hidden output must not leak through raw JSON or error rendering. Local pane/chat privacy profiles apply by name independently of presenter availability, not as semantic presenter recovery. MCP profiles preserve unprojected JSON and cannot select local presenter code through remote metadata. A presenter explicitly supplied by trusted calling code can still project an MCP card.
+- **Tool-family policy is injected into a generic renderer.** `AgentToolPresentation` interprets descriptor metadata and lifecycle through an injected profile resolver and activity vocabulary, rather than resolving concrete tool behavior by protocol name. `TermindToolPresentationProfiles.renderer` composes knowledge, SSH, pane, and chat profiles with localized vocabulary; profiles control summaries, phases, pending detail, approval projection requirements, and truncation notices. Rendering leaves execution, approval, and replay payloads unchanged. Profile selection first returns an empty profile for an MCP target, then checks local pane/chat privacy policy, and otherwise looks up the explicit presenter ID. Unknown or absent IDs receive an empty profile, not SSH semantics recovered from a matching tool name; generic descriptor metadata can still drive the summary.
+- **Privacy suppression is distinct from generic fallback.** Profile detail can return `.useDefault`, `.content`, or `.hidden`; hidden output stops before generic JSON or error rendering. Local pane/chat privacy profiles apply by name independently of presenter availability, not as semantic presenter recovery or executable registration. MCP receives an empty profile, not a raw-JSON-preservation policy, and cannot select local presenter code through remote metadata. After profile policy permits default detail, the renderer decodes result JSON: without a presenter it uses generic items (for example, `{"value":42}` becomes a `Value` field); an explicitly caller-supplied presenter can instead project the decoded result and supply its layout. Non-JSON output follows the generic text/error path. These are display choices, not changes to the stored or model-facing payload.
 
 ```mermaid
 flowchart TD
     Catalog["Remote catalog built-in and Termind presenters"] --> Apps["AppDependencies and MobileAppDependencies"]
     Decorator["Presentation SSH result decorator"] --> Apps
-    Descriptor["Persisted tool descriptor"] --> Lookup["Reject MCP and require registered presenter ID"]
+    Descriptor["Persisted descriptor target and presenter ID"] --> Lookup["Reject MCP and require registered presenter ID"]
     Apps --> Lookup
     Lookup --> Presenter["Trusted decorated presenter or none"]
-    Profiles["Termind profiles and localized vocabulary"] --> Renderer["Generic AgentToolPresentation"]
+    Descriptor --> Profiles["Profile selection with localized vocabulary"]
+    Profiles --> MCP["MCP target gets empty profile"]
+    Profiles --> Local["Local pane and chat privacy first"]
+    Profiles --> ID["Otherwise explicit ID or empty profile"]
+    MCP --> Renderer["Generic AgentToolPresentation"]
+    Local --> Renderer
+    ID --> Renderer
     Presenter --> Renderer
-    Card["Card metadata lifecycle and result"] --> Renderer
-    Renderer --> Native["Native transcript and approval views"]
+    Explicit["Explicit caller-supplied presenter"] --> Renderer
+    Card["Card lifecycle and result"] --> Renderer
+    Renderer --> Detail["Policy content or hidden or default detail"]
+    Detail --> Default["Default JSON uses presenter or generic items"]
+    Detail --> Native["Native transcript and approval views"]
+    Default --> Native
 ```
 
 The apps compose trusted presenters across the remote/presentation boundary; injected profiles control rendering without changing executable registrations.
 
-[`AgentToolPresentationProfileTests`](../../TFMTests/AgentToolPresentationProfileTests.swift) covers injected phase/detail/approval/truncation policies, custom vocabulary, ID-based profile selection, missing-ID fallback, and MCP isolation with explicit trusted projection.
+[`AgentToolPresentationProfileTests`](../../TFMTests/AgentToolPresentationProfileTests.swift) covers injected phase/detail/approval/truncation policies and custom vocabulary. It verifies that an SSH profile follows its registered ID even after a tool rename, while unknown or absent IDs do not recover SSH behavior by name. Its MCP test supplies a local SSH presenter ID in remote metadata, verifies catalog lookup rejects it, and contrasts generic `Value` field rendering with an explicitly supplied presenter's `Projected` field and layout.
 
 Pane integration is **optional capability injection**, not part of AgentKit's host-neutral catalog. `TermindAgentTools` constructs `list_panes` and `read_pane` only when `AgentPaneAccess` is supplied; absent access omits their executable definitions, while the presenter registry remains available for persisted cards. Similarly, host-facing scratch pull/push definitions require a supplied workspace. On mobile, `MobileSceneModel` supplies `app.paneAccess(for: self)` to its assistant scene model. The app adapter lists connected terminal workspaces with readable viewport surfaces and distinguishes closed, disconnected, and missing-surface reads; it derives active/current metadata from session and scene ownership. This keeps native terminal surfaces behind closures rather than importing UI into AgentKit or the tool catalog.
 
