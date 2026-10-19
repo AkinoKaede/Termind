@@ -280,7 +280,7 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func builtInFallbackUsesFieldsWhileMCPKeepsJSON() throws {
+    func builtInAndMCPFallbackUseTheSameFields() throws {
         let payload = AgentJSONValue.object([
             "internal_flag": .bool(true), "count": .number(2),
         ]).encodedString
@@ -306,12 +306,7 @@ struct AgentToolPresentationTests {
         let mcpDetail = try #require(
             TermindToolPresentationProfiles.renderer.detail(
                 for: mcp, presenter: AppDependencies.toolPresenter(for: mcp.descriptor)))
-        guard case .text(let block) = try #require(mcpDetail.items.first) else {
-            Issue.record("Expected MCP JSON text")
-            return
-        }
-        #expect(block.text.contains("{"))
-        #expect(block.text.contains("\"internal_flag\""))
+        #expect(mcpDetail.items == builtInDetail.items)
     }
 
     @Test

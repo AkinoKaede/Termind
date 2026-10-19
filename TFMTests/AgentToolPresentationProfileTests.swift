@@ -82,7 +82,7 @@ struct AgentToolPresentationProfileTests {
         #expect(detail.layout.singleLineHeader)
         let fallback = try #require(TermindToolPresentationProfiles.renderer.detail(for: card))
         #expect(fallback.items != detail.items)
-        #expect(AgentToolDetailPreview(fallback).fullText.contains("\"value\""))
+        #expect(fallback.items == [.field(.init(label: "Value", value: "42"))])
     }
 
     @Test

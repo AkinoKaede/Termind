@@ -38,7 +38,7 @@ public struct AssistantToolDetails: View {
     @ViewBuilder private func item(_ value: AgentToolDetail.Item) -> some View {
         switch value {
         case .field(let field):
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(field.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
                 if !field.value.isEmpty {
                     if let navigation = field.navigation, let navigate {
@@ -54,6 +54,8 @@ public struct AssistantToolDetails: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
         case .message(let text, let tint): Text(text).foregroundStyle(color(tint))
         case .text(let block):
             if let title = block.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }

@@ -1545,14 +1545,13 @@ private enum NativeTranscriptFactory {
     ) -> NSView {
         switch item {
         case .field(let field):
-            let row = NativeStack.horizontal(spacing: Metrics.Space.s)
+            let row = NativeStack.vertical(spacing: Metrics.Space.xs)
             let key = NativeLabel(
                 field.label,
                 font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
                 color: .secondaryLabelColor
             )
             if field.value.isEmpty { return key }
-            key.widthAnchor.constraint(greaterThanOrEqualToConstant: 76).isActive = true
             row.addArrangedSubview(key)
             let font: NSFont =
                 field.isMonospaced

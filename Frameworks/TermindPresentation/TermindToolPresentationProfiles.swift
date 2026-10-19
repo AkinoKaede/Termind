@@ -24,9 +24,7 @@ nonisolated public enum TermindToolPresentationProfiles {
 
     public static func profile(for descriptor: AgentToolDescriptor) -> AgentToolPresentationProfile {
         if descriptor.target == .mcp {
-            var profile = AgentToolPresentationProfile()
-            profile.preservesUnprojectedJSON = true
-            return profile
+            return .init()
         }
         // Privacy is independent of presenter availability; it is not semantic recovery.
         if descriptor.target == .local,
