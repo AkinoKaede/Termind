@@ -3,21 +3,10 @@ import AppKit
 /// Keeps SwiftUI, native controls, and terminal surfaces on one inherited appearance.
 @MainActor
 final class AppAppearanceController {
-    private let defaults: UserDefaults
-    private let notifications: NotificationCenter
-    private let apply: (NSAppearance?) -> Void
+    private let defaults = UserDefaults.standard
+    private let notifications = NotificationCenter.default
     private var observer: (any NSObjectProtocol)?
     private var appliedAppearance: AppAppearance?
-
-    init(
-        defaults: UserDefaults = .standard,
-        notifications: NotificationCenter = .default,
-        apply: @escaping (NSAppearance?) -> Void = { NSApp.appearance = $0 }
-    ) {
-        self.defaults = defaults
-        self.notifications = notifications
-        self.apply = apply
-    }
 
     isolated deinit {
         if let observer { notifications.removeObserver(observer) }
@@ -44,9 +33,9 @@ final class AppAppearanceController {
         guard selection != appliedAppearance else { return }
         appliedAppearance = selection
         switch selection {
-        case .system: apply(nil)
-        case .light: apply(NSAppearance(named: .aqua))
-        case .dark: apply(NSAppearance(named: .darkAqua))
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
         }
     }
 }

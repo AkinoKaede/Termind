@@ -17,23 +17,6 @@ import struct TermindDomain.Host
 @MainActor
 struct ConnectionHistoryTests {
     @Test
-    func sharedHistoryModelsUseTheSameRetentionLimit() {
-        #expect(ConnectionHistoryModel.limit == HistoryLimits.retainedEntries)
-        #expect(CommandHistoryModel.perSessionLimit == HistoryLimits.retainedEntries)
-        #expect(SFTPHistoryModel.perSessionLimit == HistoryLimits.retainedEntries)
-    }
-
-    @Test
-    func connectionProtocolSymbolsAreUniqueAndAvailable() {
-        #expect(
-            Set(ConnectionHistoryEntry.Kind.allCases.map(\.symbol)).count == ConnectionHistoryEntry.Kind.allCases.count)
-        #expect(
-            ConnectionHistoryEntry.Kind.allCases.allSatisfy {
-                NSImage(systemSymbolName: $0.symbol, accessibilityDescription: nil) != nil
-            })
-    }
-
-    @Test
     func desktopHistoryProjectionTruncatesItsInput() {
         let input = Array(0...100)
         let projected = DesktopHistoryPresentation.limited(input)

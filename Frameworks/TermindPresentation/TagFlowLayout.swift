@@ -44,7 +44,7 @@ public struct TagFlowLayout: Layout {
     }
 }
 
-nonisolated enum TagFlowGeometry {
+private nonisolated enum TagFlowGeometry {
     struct RowRun: Equatable {
         var indices: [Int] = []
         var height: CGFloat = 0

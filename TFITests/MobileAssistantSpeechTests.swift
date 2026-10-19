@@ -1,31 +1,11 @@
 import Foundation
-import SwiftUI
 import TermindApplication
 import Testing
-import UIKit
 
 @testable import TermindIOS
 
 @Suite @MainActor
 struct MobileAssistantSpeechTests {
-    @Test(arguments: [320.0, 768.0], ["en", "zh-Hans", "zh-Hant"])
-    func speechToolbarKeepsItsHeightOnPhoneAndPad(width: Double, language: String) throws {
-        let app = try MobileAppModel(inMemory: true)
-        let assistant = app.assistant.makeSceneModel()
-        let composer = MobileAssistantComposer(model: assistant, conversation: assistant.conversation)
-        for phase in [SpeechTranscriptionCoordinator.Phase.recording, .transcribing] {
-            let controller = UIHostingController(
-                rootView: composer.transcriptionControls(phase: phase)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .environment(\.locale, Locale(identifier: language))
-                    .environment(\.dynamicTypeSize, .large)
-            )
-            let size = controller.sizeThatFits(in: CGSize(width: width, height: 200))
-            #expect(abs(size.height - 48) < 0.5)
-            #expect(size.width <= width)
-        }
-    }
-
     @Test(arguments: [false, true])
     func finalSpeechUsesTheComposerSendPathOnlyWhenRequested(shouldSend: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)

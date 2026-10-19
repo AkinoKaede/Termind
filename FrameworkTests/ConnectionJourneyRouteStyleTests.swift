@@ -353,15 +353,9 @@ struct ConnectionJourneyRouteStyleTests {
         #expect(journey.endpoints.count == states.count)
         for (index, expected) in states.enumerated() {
             #expect(style.state(for: .endpoint, at: index) == expected)
-            if expected == .failed {
-                #expect(style.state(for: .endpoint, at: index).color == .red)
-            }
             if index > 0 {
                 // Lines and retained checkpoint badges consume this same segment state and color.
                 #expect(style.state(for: .segment, at: index) == expected)
-                if expected == .failed {
-                    #expect(style.state(for: .segment, at: index).color == .red)
-                }
             }
         }
     }

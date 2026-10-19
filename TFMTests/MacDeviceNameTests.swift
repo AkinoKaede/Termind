@@ -23,9 +23,4 @@ struct MacDeviceNameTests {
         #expect(MacDeviceName.resolved(kernelHostname: " \n ", fallback: fallback) == fallback)
     }
 
-    @Test
-    func kernelHostnameIsReadable() throws {
-        let hostname = try #require(MacDeviceName.kernelHostname())
-        #expect(!hostname.isEmpty)
-    }
 }

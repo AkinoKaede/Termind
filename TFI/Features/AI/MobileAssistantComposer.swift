@@ -255,7 +255,7 @@ struct MobileAssistantComposer: View {
     }
 
     @ViewBuilder
-    func transcriptionControls(phase: SpeechTranscriptionCoordinator.Phase) -> some View {
+    private func transcriptionControls(phase: SpeechTranscriptionCoordinator.Phase) -> some View {
         switch phase {
         case .recording:
             speechControls(phase: phase) {

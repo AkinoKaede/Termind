@@ -61,7 +61,7 @@ final class MobileTerminalView: TerminalView {
         return [editingMenu] + trailingItems
     }
 
-    func uploadMenuItems() -> [UIMenuElement] {
+    private func uploadMenuItems() -> [UIMenuElement] {
         guard uploadFiles != nil else { return [] }
         let attributes: UIMenuElement.Attributes = canUploadFiles?() == true ? [] : .disabled
         let photos = UIAction(

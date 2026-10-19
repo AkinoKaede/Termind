@@ -907,7 +907,7 @@ public final class AssistantExecutionController {
                     id: capture.prompt.id, role: .user, text: capture.prompt.text,
                     authoredText: capture.prompt.authoredText, images: capture.prompt.images,
                     contextAttachments: capture.prompt.contextAttachments,
-                    contextSnapshot: capture.contextSnapshot
+                    contextSnapshot: capture.contextSnapshot, origin: capture.prompt.origin
                 ))
         }
         let now = Date.now

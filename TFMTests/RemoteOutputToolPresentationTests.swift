@@ -11,7 +11,9 @@ import Testing
 struct RemoteOutputToolPresentationTests {
     @Test(arguments: ["ssh_exec_run", "ssh_exec_output", "sftp_read"], [380.0, 720.0])
     func longOutputExpandsCompletelyWithoutCopyControls(_ name: String, _ width: Double) throws {
-        let output = (0..<180).map { "line \($0): " + String(repeating: "output ", count: 8) }.joined(separator: "\n")
+        let output =
+            (0..<180).map { "line \($0): " + String(repeating: "output ", count: 8) }.joined(separator: "\n")
+            + (name == "sftp_read" ? "" : "\ncombined-output-last-line")
         let value = card(name, output: output)
         let presenter = try #require(AppDependencies.toolPresenter(for: value.descriptor))
         for language in [AppLanguage.english, .simplifiedChinese] {
@@ -23,7 +25,7 @@ struct RemoteOutputToolPresentationTests {
             #expect(preview.fullText.contains(output))
             #expect(preview.fullItems == detail.items)
             if name != "sftp_read" {
-                #expect(preview.fullText.contains("stderr-last-line"))
+                #expect(preview.fullText.contains("combined-output-last-line"))
             }
 
             let state = TranscriptPresentationState()
@@ -89,7 +91,7 @@ struct RemoteOutputToolPresentationTests {
             ? .object(["path": .string("/tmp/output.log"), "content": .string(output)])
             : .object([
                 "handle": .string(UUID().uuidString), "status": .string("exited"), "exit_code": .number(0),
-                "stdout": .string(output), "stderr": .string("stderr-last-line"), "stdin_closed": .bool(true),
+                "output": .string(output), "stdin_closed": .bool(true),
             ])
         return AgentToolCard(
             invocation: .init(

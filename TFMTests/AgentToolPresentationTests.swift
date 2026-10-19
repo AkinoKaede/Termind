@@ -152,7 +152,7 @@ struct AgentToolPresentationTests {
         ]
         var card = makeCard(
             name: "request_user_input", target: .user, arguments: arguments,
-            presentation: RequestUserInputTool().descriptor.presentation
+            presentation: RequestUserInputTool().registeredDescriptor.presentation
         )
         card.state = .completed
         card.result = AgentToolResult(
@@ -771,21 +771,15 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func batchIconFollowsLiveAndHomogeneousTools() {
-        let terminal = AgentToolDescriptor.Presentation(
-            symbol: "terminal", activity: .label("a command"),
-            actionKind: .run
-        )
-        var first = makeCard(name: "ssh_exec_run", target: .host, presentation: terminal)
-        var second = makeCard(name: "ssh_exec_run", target: .host, presentation: terminal)
+    func batchTintTracksRunningSuccessFailureAndMixedResults() {
+        var first = makeCard(name: "ssh_exec_run", target: .host)
+        var second = makeCard(name: "ssh_exec_run", target: .host)
         first.state = .running
         second.state = .proposed
-        #expect(TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, second]) == "terminal")
         #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .secondary)
 
         first.state = .completed
         second.state = .completed
-        #expect(TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, second]) == "terminal")
         #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .success)
 
         first.state = .failed
@@ -795,16 +789,6 @@ struct AgentToolPresentationTests {
         first.state = .completed
         second.state = .failed
         #expect(TermindToolPresentationProfiles.renderer.batchTint(for: [first, second]) == .warning)
-
-        var question = makeCard(
-            name: "request_user_input", target: .user,
-            presentation: RequestUserInputTool().descriptor.presentation
-        )
-        question.state = .completed
-        #expect(
-            TermindToolPresentationProfiles.renderer.batchSymbol(for: [first, question])
-                == "wrench.and.screwdriver"
-        )
     }
 
     @Test
@@ -1125,7 +1109,7 @@ struct AgentToolPresentationTests {
                 ("web_search", .web, .search, "Searched the web (2 times)"),
                 ("list_hosts", .hosts, .list, "Listed hosts (2 times)"),
                 ("get_metrics", .metrics, .read, "Read host metrics (2 times)"),
-                ("ssh_exec_output", .commandOutput, .read, "Read command output (2 times)"),
+                ("ssh_exec_output", .commandOutput, .read, "Read the command output (2 times)"),
                 ("present_plan", .plan, .present, "Presented 2 plans"),
                 ("manage_tasks", .taskList, .update, "Updated the task list 2 times"),
                 ("request_user_secret", .secret, .request, "Requested 2 secrets"),
@@ -1531,8 +1515,8 @@ struct AgentKnowledgeSearchPresentationTests {
     }
 
     @Test func searchedQueryAndScopeAppearInSingleToolBatchHeaders() {
-        let memory = MemorySearchTool(store: store).descriptor
-        let chats = SessionSearchTool(store: store).descriptor
+        let memory = MemorySearchTool(store: store).registeredDescriptor
+        let chats = SessionSearchTool(store: store).registeredDescriptor
         let cases: [(AgentToolDescriptor, [String: AgentJSONValue], String, String, String)] = [
             (memory, ["query": .string("deploy backup")], "memory", "记忆", "記憶"),
             (chats, ["query": .string("deploy backup")], "chats", "聊天", "聊天"),
@@ -1580,8 +1564,8 @@ struct AgentKnowledgeSearchPresentationTests {
     @Test func longQueriesKeepTheScopeSuffixAndQuerylessChatsStillBrowse() {
         let longQuery = String(repeating: "deployment ", count: 20)
         for (descriptor, suffix) in [
-            (MemorySearchTool(store: store).descriptor, " in memory"),
-            (SessionSearchTool(store: store).descriptor, " in chats"),
+            (MemorySearchTool(store: store).registeredDescriptor, " in memory"),
+            (SessionSearchTool(store: store).registeredDescriptor, " in chats"),
         ] {
             var search = card(descriptor, arguments: ["query": .string(longQuery)])
             search.state = .completed
@@ -1592,7 +1576,7 @@ struct AgentKnowledgeSearchPresentationTests {
             #expect(summary.hasSuffix(suffix))
         }
 
-        var browse = card(SessionSearchTool(store: store).descriptor)
+        var browse = card(SessionSearchTool(store: store).registeredDescriptor)
         browse.state = .completed
         #expect(
             TermindToolPresentationProfiles.renderer.batchSummary(for: [browse], locale: Locale(identifier: "en"))

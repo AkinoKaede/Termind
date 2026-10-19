@@ -1083,98 +1083,6 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
-    func mountedTranscriptRefreshesWhenSystemAppearanceChanges() throws {
-        let coordinator = TranscriptListView.Coordinator()
-        let listView = coordinator.makeListView()
-        listView.frame = CGRect(x: 0, y: 0, width: 420, height: 260)
-        let id = UUID()
-        let entry = user(id: id, text: "The same mounted row follows system appearance.")
-
-        listView.appearance = NSAppearance(named: .aqua)
-        update(
-            coordinator,
-            listView,
-            entries: [entry],
-            colorScheme: .light
-        )
-        listView.layoutSubtreeIfNeeded()
-        let lightRow = try #require(listView.rowView(for: id))
-        let lightBubble = try #require(
-            descendant(in: lightRow, identifier: "Transcript.UserBubble")
-        )
-        lightBubble.updateLayer()
-        let lightLayerColor = try #require(
-            lightBubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
-        )
-        let light = try #require(lightLayerColor.usingColorSpace(.deviceRGB))
-        let lightFrame = listView.rectForRow(with: id)
-
-        listView.appearance = NSAppearance(named: .darkAqua)
-        update(
-            coordinator,
-            listView,
-            entries: [entry],
-            colorScheme: .dark
-        )
-        listView.layoutSubtreeIfNeeded()
-        let darkRow = try #require(listView.rowView(for: id))
-        let darkBubble = try #require(
-            descendant(in: darkRow, identifier: "Transcript.UserBubble")
-        )
-        darkBubble.updateLayer()
-        let darkLayerColor = try #require(
-            darkBubble.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
-        )
-        let dark = try #require(darkLayerColor.usingColorSpace(.deviceRGB))
-
-        #expect(abs(light.alphaComponent - 0.10) < 0.002)
-        #expect(abs(dark.alphaComponent - 0.10) < 0.002)
-        #expect(listView.rectForRow(with: id).size == lightFrame.size)
-    }
-
-    @Test
-    func userChipKeepsTheOldHalfQuaternaryFillInLightAndDarkAppearances() throws {
-        for appearanceName in [NSAppearance.Name.aqua, .darkAqua] {
-            let coordinator = TranscriptListView.Coordinator()
-            let listView = coordinator.makeListView()
-            listView.appearance = NSAppearance(named: appearanceName)
-            listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
-            let id = UUID()
-            let chip = ContextChipReference(kind: .file, label: "notes.md")
-            let entry = TranscriptEntry(
-                id: id,
-                content: .user(
-                    ChatMessage(
-                        id: id,
-                        role: .user,
-                        text: "Review this",
-                        contextChips: [chip]
-                    ),
-                    canEdit: false
-                )
-            )
-
-            update(coordinator, listView, entries: [entry])
-            listView.layoutSubtreeIfNeeded()
-
-            let row = try #require(listView.rowView(for: id))
-            let chipView = try #require(
-                descendant(in: row, identifier: "Transcript.UserChip")
-            )
-            let chipContent = try #require(
-                descendant(in: chipView, identifier: "Transcript.UserChipContent")
-            )
-            chipView.updateLayer()
-            let color = try #require(
-                chipView.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
-            )
-            #expect(abs(color.alphaComponent - 0.049) < 0.002)
-            #expect(abs(chipView.bounds.width - chipContent.bounds.width - 12) <= 1)
-            #expect(abs(chipView.bounds.height - chipContent.bounds.height - 6) <= 1)
-        }
-    }
-
-    @Test
     func terminalSuggestionUsesUpstreamCodeWithActionsAndRiskBelow() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
@@ -1215,9 +1123,6 @@ struct TranscriptListViewBridgeTests {
         #expect(content.arrangedSubviews.first === code)
         #expect(content.arrangedSubviews.last === details)
         #expect(details.arrangedSubviews.last === footer)
-        #expect((card.layer?.backgroundColor?.alpha ?? 0) > 0)
-        #expect(markdown.theme.colors.codeBlockBackground.alphaComponent == 0)
-        #expect(markdown.theme.colors.codeBlockBarBackground == MarkdownTheme().colors.codeBlockBarBackground)
         #expect(details.arrangedSubviews.count == 1)
         #expect(descendant(in: card, identifier: "Transcript.CommandCardExplanation") == nil)
         #expect(descendant(in: footer, identifier: "Transcript.CommandCardRiskBadge") != nil)

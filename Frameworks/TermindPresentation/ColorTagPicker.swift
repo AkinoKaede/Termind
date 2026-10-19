@@ -42,7 +42,7 @@ public struct ColorTagPicker: View {
         }
     }
 
-    struct Swatch: View {
+    private struct Swatch: View {
         let color: TagColor
         let isSelected: Bool
         let layout: Layout

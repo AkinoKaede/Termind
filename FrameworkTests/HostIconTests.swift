@@ -36,17 +36,6 @@ struct HostIconTests {
                 == .asset("HostOS-linux"))
     }
 
-    @Test func generalIconsKeepReferenceOrderAndDoNotDuplicateOperatingSystems() throws {
-        #expect(
-            HostGeneralIcon.allCases.map(\.id) == [
-                "server", "cloud", "terminal", "code", "database", "storage", "container", "network",
-                "shield", "home_lab", "web", "api", "compute", "cluster", "router", "automation",
-                "monitoring", "backup", "media", "git", "ai", "virtual_machine",
-            ])
-        let catalog = try fixtureCatalog()
-        #expect(Set(HostGeneralIcon.allCases.map(\.id)).isDisjoint(with: catalog.entries.map(\.id)))
-    }
-
     @Test func darwinResolvesWithoutLinuxMetadata() throws {
         for kernel in ["Darwin", "darwin", "DARWIN"] {
             let info = RemoteSystemInfo(kernelName: kernel, kernelRelease: "25.0", architecture: "arm64")

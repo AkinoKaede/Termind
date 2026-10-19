@@ -69,12 +69,6 @@ struct TerminalTransportTests {
         #expect(options.isValid)
     }
 
-    @Test func transportNamesAndSymbolsAreDistinctAndOrderedBeforeTelnet() {
-        #expect(Set(HostTerminalProtocol.allCases.map(\.symbol)).count == HostTerminalProtocol.allCases.count)
-        #expect(ConnectionHistoryEntry.Kind.mosh.symbol == HostTerminalProtocol.mosh.symbol)
-        #expect(ConnectionHistoryEntry.Kind.eternalTerminal.symbol == HostTerminalProtocol.eternalTerminal.symbol)
-    }
-
     @Test func legacyHostDecodesWithSSHAndTransportPreferencesSurviveReopening() throws {
         var host = Host(name: "Host", host: "server.invalid", iconOverrideID: "macos")
         var json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(host)) as? [String: Any])

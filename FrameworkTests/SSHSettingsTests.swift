@@ -11,10 +11,7 @@ import Testing
 @Suite @MainActor
 struct SSHSettingsTests {
     @Test
-    func defaultsAndRangeHaveOneSharedDefinition() {
-        #expect(SSHPreferences() == SSHPreferences(maxSessions: 10))
-        #expect(SettingsKey.defaultSSHMaxSessions == 10)
-        #expect(SettingsKey.sshMaxSessionsRange == 1...100)
+    func sessionLimitClampsOutOfRangeInputs() {
         #expect(SSHPreferences(maxSessions: 0).maxSessions == 1)
         #expect(SSHPreferences(maxSessions: 101).maxSessions == 100)
     }

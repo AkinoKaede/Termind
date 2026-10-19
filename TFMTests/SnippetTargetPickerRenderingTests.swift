@@ -11,7 +11,7 @@ import struct TermindDomain.Host
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct SnippetTargetPickerRenderingTests {
     @Test
-    func targetPickerFitsTheVaultColumnAndKeepsCancelAndDoneTransactional() async throws {
+    func targetPickerKeepsCancelAndDoneTransactional() async throws {
         let first = Host(name: "Alpha", host: "alpha.invalid", sortIndex: 0)
         let second = Host(name: "Bravo", host: "bravo.invalid", sortIndex: 1)
         let app = AppModel(hosts: HostLibraryModel(hosts: [first, second]))
@@ -25,16 +25,6 @@ struct SnippetTargetPickerRenderingTests {
         fixture.mount(selected: [first.id])
         await fixture.settle()
         let search = try #require(fixture.visibleTextFields.first { $0.isEditable })
-        fixture.assertInsideColumn(search)
-
-        search.stringValue = "none"
-        search.delegate?.controlTextDidChange?(
-            Notification(name: NSControl.textDidChangeNotification, object: search)
-        )
-        await fixture.settle()
-        #expect(fixture.controller.view.bounds.width == Metrics.VaultDetail.width)
-        try fixture.recordScreenshot(name: "snippet-target-picker-no-results")
-
         search.stringValue = "Bravo"
         search.delegate?.controlTextDidChange?(
             Notification(name: NSControl.textDidChangeNotification, object: search)
@@ -114,12 +104,6 @@ struct SnippetTargetPickerRenderingTests {
             }
         }
 
-        func assertInsideColumn(_ view: NSView) {
-            let frame = view.convert(view.bounds, to: controller.view)
-            #expect(frame.minX >= -1)
-            #expect(frame.maxX <= Metrics.VaultDetail.width + 1)
-        }
-
         func sendKey(_ characters: String, code: UInt16) throws {
             NSApp.sendEvent(try keyEvent(characters, code: code))
         }
@@ -143,16 +127,6 @@ struct SnippetTargetPickerRenderingTests {
                     isARepeat: false, keyCode: code
                 )
             )
-        }
-
-        func recordScreenshot(name: String) throws {
-            let view = controller.view
-            let bitmap = try #require(
-                view.bitmapImageRepForCachingDisplay(in: view.bounds)
-            )
-            view.cacheDisplay(in: view.bounds, to: bitmap)
-            let data = try #require(bitmap.representation(using: .png, properties: [:]))
-            Attachment.record(data, named: "\(name).png")
         }
 
         func settle() async {

@@ -21,7 +21,7 @@ enum MobileHistoryMenuConfiguration {
     }
 
     // Identify the command independently of the app language and SwiftUI-generated menu identifiers.
-    static func containsHistoryShortcut(_ menu: UIMenu) -> Bool {
+    private static func containsHistoryShortcut(_ menu: UIMenu) -> Bool {
         menu.children.contains { element in
             if isShowHistory(element) { return true }
             return (element as? UIMenu).map(containsHistoryShortcut) ?? false
@@ -33,7 +33,7 @@ enum MobileHistoryMenuConfiguration {
         return command.input?.lowercased() == "y" && command.modifierFlags == .command
     }
 
-    static func configured(_ menu: UIMenu) -> UIMenu {
+    private static func configured(_ menu: UIMenu) -> UIMenu {
         guard #available(iOS 27.0, *) else { return menu }
         let children = menu.children.map { element -> UIMenuElement in
             if let submenu = element as? UIMenu {

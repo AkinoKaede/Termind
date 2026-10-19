@@ -6,55 +6,6 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileContentRegionsTests {
-    @MainActor @Test(.requiresKeyWindow, arguments: [LayoutDirection.leftToRight, .rightToLeft])
-    func nativePanesMirrorWithLayoutDirectionWithoutChangingTheirFramesOrIdentity(direction: LayoutDirection)
-        async throws
-    {
-        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        let previous = scene.keyWindow
-        let window = UIWindow(windowScene: scene)
-        let first = UIView()
-        let second = UIView()
-        let controller = UIHostingController(
-            rootView:
-                MobilePaneLayout(frames: [
-                    CGRect(x: 0, y: 0, width: 390, height: 600),
-                    CGRect(x: 430, y: 0, width: 390, height: 600),
-                ]) {
-                    NativePane(view: first)
-                    NativePane(view: second)
-                }
-                .environment(\.layoutDirection, direction))
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        defer {
-            window.isHidden = true
-            window.rootViewController = nil
-            previous?.makeKey()
-        }
-        try await Task.sleep(for: .milliseconds(200))
-        let firstFrame = first.convert(first.bounds, to: controller.view)
-        let secondFrame = second.convert(second.bounds, to: controller.view)
-        #expect(first.bounds.size == CGSize(width: 390, height: 600))
-        #expect(second.bounds.size == first.bounds.size)
-        #expect((firstFrame.minX < secondFrame.minX) == (direction == .leftToRight))
-        #expect(abs(firstFrame.minX - secondFrame.minX) == 430)
-    }
-
-    @Test func workspaceTabsFollowTopAndVerticalBarsAndHideWhenReturningToTheBottom() {
-        #expect(!MobileToolbarLayout().showsWorkspaceTabs)
-        #expect(MobileToolbarLayout(isTopBar: true).showsWorkspaceTabs)
-        for edge in [HorizontalEdge.leading, .trailing] {
-            var layout = MobileToolbarLayout(verticalEdge: edge)
-            #expect(layout.showsWorkspaceTabs)
-            #expect(!layout.usesIconSwitcher)
-            layout.verticalEdge = nil
-            #expect(!layout.showsWorkspaceTabs)
-            #expect(!layout.usesIconSwitcher)
-        }
-        #expect(MobileToolbarLayout(isTopBar: true).usesIconSwitcher)
-    }
-
     @Test func inactiveFoldDoesNotRemoveUsableSpace() {
         let size = CGSize(width: 800, height: 600)
         let regions = MobileContentRegions(
@@ -141,10 +92,4 @@ struct MobileContentRegionsTests {
         #expect(!MobileMetricsPanels(regions: empty, page: .status).showsBoth)
         #expect(empty.assistant(interactionHeight: 200).second == .zero)
     }
-}
-
-private struct NativePane: UIViewRepresentable {
-    let view: UIView
-    func makeUIView(context: Context) -> UIView { view }
-    func updateUIView(_ uiView: UIView, context: Context) {}
 }

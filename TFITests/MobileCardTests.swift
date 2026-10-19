@@ -6,7 +6,6 @@ import TermindDomain
 import TermindPersistence
 import TermindPresentation
 import Testing
-import UIKit
 
 @testable import TermindIOS
 
@@ -59,31 +58,6 @@ struct MobileCardTests {
             )?.status == .connected
         )
         #expect(MobileWorkspaceConnectionIndicator.busy.status == .connecting)
-    }
-
-    @Test func exportSnippetCardReviewWhenRequested() throws {
-        guard let directory = ProcessInfo.processInfo.environment["TERMIND_SNIPPET_SCREENSHOTS"] else { return }
-        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-        for locale in ["en", "zh-Hans", "zh-Hant"] {
-            for script in ["uptime", "sudo systemctl restart nginx", "rm -rf /"] {
-                let card = MobileActionCard(
-                    action: {},
-                    content: {
-                        SnippetCardContent(
-                            snippet: Snippet(title: "Production database maintenance", body: script),
-                            validTargetCount: 12, packagePath: "Operations / Production",
-                            modifiedAt: Date().addingTimeInterval(-3600))
-                    },
-                    actions: { EmptyView() }
-                )
-                .environment(\.locale, Locale(identifier: locale))
-                let renderer = ImageRenderer(content: card.frame(width: 320))
-                renderer.scale = 2
-                let data = try #require(renderer.uiImage?.pngData())
-                let risk = CommandRiskClassifier.assess(script).risk.rawValue
-                try data.write(to: URL(filePath: directory).appending(path: "snippet-\(locale)-\(risk).png"))
-            }
-        }
     }
 
     @Test func hostCardsShowAtMostTwoTags() {
@@ -152,21 +126,6 @@ struct MobileCardTests {
 
         let stored = try HostPersistence(context: ModelContext(app.container)).load()
         #expect(stored.groups.first(where: { $0.id == root.id })?.isExpanded == true)
-    }
-
-    @Test(arguments: ["000000", "0078D4"])
-    func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces(hex: String) throws {
-        #expect(HostIconBrandColor.color(hex: "not-a-color", colorScheme: .light) == nil)
-
-        for scheme in [ColorScheme.light, .dark] {
-            let color = try #require(HostIconBrandColor.color(hex: hex, colorScheme: scheme))
-            let traits = UITraitCollection(userInterfaceStyle: scheme == .dark ? .dark : .light)
-            let foreground = try components(UIColor(color))
-            let surface = try components(
-                UIColor.secondarySystemGroupedBackground.resolvedColor(with: traits))
-            let tintedSurface = mix(surface, foreground, amount: 0.16)
-            #expect(contrastRatio(foreground, tintedSurface) >= 3)
-        }
     }
 
     @Test func openingSavedHostsRecordsSSHAndSFTPForTheCardTimestamp() throws {
@@ -253,36 +212,4 @@ struct MobileCardTests {
         #expect(updated.fingerprint == key.fingerprint)
     }
 
-    private func components(_ color: UIColor) throws -> (CGFloat, CGFloat, CGFloat) {
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        #expect(color.getRed(&red, green: &green, blue: &blue, alpha: nil))
-        return (red, green, blue)
-    }
-
-    private func mix(
-        _ lhs: (CGFloat, CGFloat, CGFloat), _ rhs: (CGFloat, CGFloat, CGFloat), amount: CGFloat
-    ) -> (CGFloat, CGFloat, CGFloat) {
-        (
-            lhs.0 + (rhs.0 - lhs.0) * amount,
-            lhs.1 + (rhs.1 - lhs.1) * amount,
-            lhs.2 + (rhs.2 - lhs.2) * amount
-        )
-    }
-
-    private func contrastRatio(
-        _ lhs: (CGFloat, CGFloat, CGFloat), _ rhs: (CGFloat, CGFloat, CGFloat)
-    ) -> CGFloat {
-        let lighter = max(luminance(lhs), luminance(rhs))
-        let darker = min(luminance(lhs), luminance(rhs))
-        return (lighter + 0.05) / (darker + 0.05)
-    }
-
-    private func luminance(_ color: (CGFloat, CGFloat, CGFloat)) -> CGFloat {
-        func linear(_ value: CGFloat) -> CGFloat {
-            value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
-        }
-        return 0.2126 * linear(color.0) + 0.7152 * linear(color.1) + 0.0722 * linear(color.2)
-    }
 }

@@ -8,7 +8,7 @@ struct MobileAssistantInteraction: View {
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     let speech: SpeechTranscriptionCoordinator
-    @State var interaction = UserInputInteractionModel()
+    @State private var interaction = UserInputInteractionModel()
 
     private var speechSession: UserInputSpeechSession { interaction.speech }
     @FocusState private var focusedInput: InputFocus?

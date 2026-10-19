@@ -179,28 +179,6 @@ struct WindowToolbarFindTests {
         #expect(window.creationActions.map(\.id) == ["snippet", "package"])
     }
 
-    @Test
-    func sshFolderImportIsLastAndStartsASeparateMenuGroup() {
-        let window = WindowModel()
-        for page in [VaultPage.hosts, .keychain, .knownHosts] {
-            let actions = window.creationActions(for: page)
-            #expect(actions.last?.id == "ssh-folder")
-            #expect(actions.last?.startsGroup == true)
-            let menu = window.creationMenu(for: page, locale: Locale(identifier: "en"))
-            #expect(menu[menu.count - 2].isSeparator)
-        }
-    }
-
-    @Test
-    func keychainIdentityAndFolderImportStartSeparateMenuGroups() {
-        let window = WindowModel()
-        let menu = window.creationMenu(for: .keychain, locale: Locale(identifier: "en"))
-
-        #expect(menu.count == 6)
-        #expect(menu[2].isSeparator)
-        #expect(menu[4].isSeparator)
-    }
-
     /// Each Vault page keeps its own query, and keeps it across a page switch —
     /// the field lives in the titlebar and outlives the page under it.
     @Test

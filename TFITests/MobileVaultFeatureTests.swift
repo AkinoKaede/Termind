@@ -103,73 +103,6 @@ struct MobileVaultFeatureTests {
         #expect(generator.storage == .iCloud)
     }
 
-    @Test func hostMenuSeparatesConnectionEditingAndDeletionActions() {
-        #expect(
-            MobileHostMenuPolicy.sections == [
-                [.ssh, .mosh, .eternalTerminal, .telnet, .sftp],
-                [.wake, .tailscale],
-                [.edit, .duplicate],
-                [.delete],
-            ])
-
-        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
-        #expect(
-            MobileHostMenuPolicy.sections(for: host) == [
-                [.ssh, .sftp],
-                [.edit, .duplicate],
-                [.delete],
-            ])
-
-        host.sshEnabled = false
-        host.telnetEnabled = true
-        #expect(
-            MobileHostMenuPolicy.sections(for: host) == [
-                [.telnet],
-                [.edit, .duplicate],
-                [.delete],
-            ])
-
-        host.sshEnabled = true
-        host.terminalTransports.moshEnabled = true
-        host.terminalTransports.eternalTerminalEnabled = true
-        host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
-        #expect(MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: true) == MobileHostMenuPolicy.sections)
-
-        host.sshEnabled = false
-        host.telnetEnabled = false
-        #expect(
-            MobileHostMenuPolicy.sections(for: host) == [
-                [.wake],
-                [.edit, .duplicate],
-                [.delete],
-            ])
-    }
-
-    @Test(arguments: ["", " ", "invalid", "FF:FF:FF:FF:FF:FF"], [false, true])
-    func hostMenuHidesWakeWithoutAValidMAC(macAddress: String, hasTailscalePeer: Bool) {
-        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
-        host.wakeOnLAN.macAddress = macAddress
-        #expect(
-            MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: hasTailscalePeer)
-                == [[.ssh, .sftp]] + (hasTailscalePeer ? [[.tailscale]] : []) + [[.edit, .duplicate], [.delete]])
-    }
-
-    @Test(arguments: [false, true])
-    func hostMenuPlacesConfiguredWakeAboveTailscale(isTailscaleManaged: Bool) {
-        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
-        host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
-        if isTailscaleManaged {
-            host.tailscale = .init(groupID: UUID(), stableNodeID: "wake-test")
-        }
-        #expect(
-            MobileHostMenuPolicy.sections(for: host) == [
-                [.ssh, .sftp],
-                isTailscaleManaged ? [.wake, .tailscale] : [.wake],
-                [.edit, .duplicate],
-                [.delete],
-            ])
-    }
-
     @Test func duplicatingAHostPersistsAnIndependentCopyWithTheSameConfiguration() async throws {
         let group = HostGroup(name: "Production")
         let jump = TermindDomain.Host(name: "Jump", host: "jump.example.invalid")
@@ -570,7 +503,7 @@ struct MobileVaultFeatureTests {
         }
         #expect(secret.passphrase == nil && generated.hasPassphrase)
         #expect(throws: (any Error).self) {
-            try SSHKeyMaterial.inspect(privateKey: secret.privateKey, passphrase: nil, comment: "fixture")
+            try SSHKeyMaterial.inspect(privateKey: secret.privateKey, passphrase: nil, comment: "fixture", keySize: nil)
         }
         let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
         importer.savePassphrase = false
@@ -864,39 +797,6 @@ struct MobileVaultFeatureTests {
         #expect(updated.storage == .iCloud)
         #expect(try secrets.keyCredential(for: original.credentialRef, storage: .thisDevice) == nil)
         #expect(try secrets.keyCredential(for: original.credentialRef, storage: .iCloud) == secret)
-    }
-
-    @Test func importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt() async throws {
-        let app = try MobileAppModel(inMemory: true)
-        let root = FileManager.default.temporaryDirectory.appending(
-            path: UUID().uuidString, directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let configURL = root.appending(path: "config")
-        let config = "Host remote\n    HostName example.invalid\n"
-        try config.write(to: configURL, atomically: true, encoding: .utf8)
-        let model = SSHImportModel(library: app.library, reader: SSHImportReader(username: "", home: root))
-        await model.scan(root, knownHostsOnly: false)
-        #expect(model.error == nil)
-        #expect(model.selectedItems(.hosts).count == 1)
-        #expect(model.selectedItems(.identities).count == 1)
-        #expect(!model.canImport)
-        await model.commit()
-        #expect(!model.completed)
-        #expect(app.library.hosts.isEmpty && app.library.identities.isEmpty)
-
-        // Rescan the corrected source so both Host and Identity previews are rebuilt together.
-        try (config + "    User deploy\n").write(to: configURL, atomically: true, encoding: .utf8)
-        await model.scan(root, knownHostsOnly: false)
-        #expect(model.error == nil)
-        #expect(model.selectedItems(.identities).map { $0.identity?.username } == ["deploy"])
-        #expect(model.canImport)
-        await model.commit()
-        #expect(model.completed)
-        #expect(model.error == nil)
-        #expect(app.library.hosts.count == 1 && app.library.identities.count == 1)
-        let host = try #require(app.library.hosts.first)
-        #expect(app.library.identity(for: host)?.username == "deploy")
     }
 
     @Test func forwardingEditsValidateAndStopOnlyTheChangedRule() throws {

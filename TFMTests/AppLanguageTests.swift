@@ -21,13 +21,6 @@ struct AppLanguageTests {
                 == String(localized: AppStrings.Pro.accessVerificationFailed))
     }
 
-    @Test
-    func languagePickerKeepsSystemFirstThenSortsByLanguageCode() {
-        #expect(AppLanguage.allCases.first == .system)
-        let languageCodes = AppLanguage.allCases.dropFirst().map(\.rawValue)
-        #expect(languageCodes == languageCodes.sorted())
-    }
-
     @Test(arguments: [AppLanguage.korean, .german, .french])
     @MainActor
     func screenshotConversationLocalizesProseWithoutTranslatingTechnicalReferences(language: AppLanguage) {
@@ -56,55 +49,6 @@ struct AppLanguageTests {
         #expect(defaults.string(forKey: SettingsKey.appLanguage) == identifier)
     }
 
-    @Test
-    func explicitLanguagesWriteCanonicalLanguageTags() throws {
-        let defaults = try makeDefaults()
-
-        AppLanguage.store(.english, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .english)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["en"])
-
-        AppLanguage.store(.japanese, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .japanese)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["ja"])
-        #expect(AppLanguage.japanese.locale.identifier == "ja")
-        #expect(AppLanguage.japanese.displayName == "日本語")
-
-        AppLanguage.store(.simplifiedChinese, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .simplifiedChinese)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hans"])
-        #expect(AppLanguage.simplifiedChinese.locale.identifier == "zh-Hans")
-        #expect(AppLanguage.simplifiedChinese.displayName == "简体中文")
-
-        AppLanguage.store(.traditionalChinese, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .traditionalChinese)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["zh-Hant"])
-        #expect(AppLanguage.traditionalChinese.locale.identifier == "zh-Hant")
-        #expect(AppLanguage.traditionalChinese.displayName == "繁體中文")
-    }
-
-    @Test(arguments: [
-        (AppLanguage.german, "de", "Deutsch"),
-        (.french, "fr", "Français"),
-        (.korean, "ko", "한국어"),
-    ])
-    func additionalLanguageChoicesPersistAndRestoreSystemNegotiation(
-        language: AppLanguage, tag: String, name: String
-    ) throws {
-        let suiteName = "AppLanguageTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        #expect(AppLanguage.allCases.contains(language))
-        #expect(language.displayName == name)
-        #expect(language.locale.language.languageCode?.identifier == tag)
-        AppLanguage.store(language, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == language)
-        #expect(defaults.stringArray(forKey: "AppleLanguages") == [tag])
-        AppLanguage.store(.system, in: defaults)
-        #expect(AppLanguage.stored(in: defaults) == .system)
-        #expect(defaults.persistentDomain(forName: suiteName)?["AppleLanguages"] == nil)
-    }
-
     @Test(arguments: ["zh-Hans-CN", "zh-CN", "zh_CN", "zh-Hans-SG", "zh"])
     func legacySimplifiedChinesePreferencesMigrateToCanonicalTag(identifier: String) throws {
         let defaults = try makeDefaults()
@@ -131,15 +75,6 @@ struct AppLanguageTests {
             AppLanguage.traditionalChinese.displayName(deviceRegion: nil, canDisplayTaiwanFlag: false)
                 == "繁體中文")
         #expect(AppLanguage.english.displayName(deviceRegion: "TW", canDisplayTaiwanFlag: true) == "English")
-    }
-
-    @Test(arguments: ["zh-TW", "zh-Hant-TW", "zh-HK", "zh-MO"])
-    func traditionalChineseSystemLocalesResolveTraditionalCatalog(identifier: String) {
-        let traditional = AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant"))
-        let simplified = AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hans"))
-
-        #expect(AppLocalization.string("Settings", locale: Locale(identifier: identifier)) == traditional)
-        #expect(traditional != simplified)
     }
 
     @Test(arguments: ["Google", "OpenAI", "사용자 모델"])

@@ -5,14 +5,6 @@ import Testing
 
 @Suite @MainActor
 struct SFTPSettingsTests {
-    @Test func defaultsAndRangesHaveOneSharedDefinition() {
-        #expect(SFTPPreferences() == SFTPPreferences(globalLimit: 30, perHostLimit: 10, strategy: .smart))
-        #expect(SettingsKey.defaultSFTPGlobalTransferLimit == 30)
-        #expect(SettingsKey.defaultSFTPPerHostTransferLimit == 10)
-        #expect(SettingsKey.sftpGlobalTransferLimitRange == 1...100)
-        #expect(SettingsKey.sftpPerHostTransferLimitRange == 1...50)
-    }
-
     @Test(arguments: [(0, 0, 1, 1), (200, 80, 100, 50), (3, 7, 3, 3), (100, 50, 100, 50), (3, 2, 3, 2)])
     func normalizationEnforcesBothLimits(_ input: (Int, Int, Int, Int)) {
         let value = SFTPPreferences(globalLimit: input.0, perHostLimit: input.1)

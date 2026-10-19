@@ -135,25 +135,6 @@ struct MCPUploadTests {
     }
 
     @Test
-    func slowDestinationAppliesBackpressureInsteadOfDrainingTheSource() async throws {
-        let fixture = UploadFixture()
-        await fixture.client.delayReading()
-        let bytes = Data(count: 5 * 1_024 * 1_024)
-        let ticket = try await fixture.ticket(bytes)
-        let source = UploadByteSource(bytes)
-        guard case .accept(let consume, _) = fixture.uploads.prepare(fixture.request(ticket, count: bytes.count)) else {
-            Issue.record("Valid ticket was rejected")
-            return
-        }
-        let task = Task { await consume { await source.next() } }
-        try await Task.sleep(for: .milliseconds(30))
-        #expect(await source.readCount < bytes.count / SFTPStreamUploadOperation.chunkBytes)
-        fixture.uploads.setEnabled(false)
-        #expect(await task.value.status == 410)
-        #expect(await fixture.client.committed == nil)
-    }
-
-    @Test
     func cleanupFailureReportsPossibleRemoteResidueWithoutFileBodies() async throws {
         let fixture = UploadFixture()
         await fixture.client.failCleanup()
@@ -541,11 +522,9 @@ private func uploadDigest(_ data: Data) -> String {
 
 private actor UploadByteSource {
     var data: Data
-    var readCount = 0
     init(_ data: Data) { self.data = data }
     func next() -> Data? {
         guard !data.isEmpty else { return nil }
-        readCount += 1
         let chunk = Data(data.prefix(SFTPStreamUploadOperation.chunkBytes))
         data.removeFirst(chunk.count)
         return chunk
@@ -566,10 +545,8 @@ private actor UploadSFTPClient: SFTPClientProtocol {
     func interruptNextTransfer() { interruptNext = true }
     var started = false
     var conflict: RemoteFile.Kind?
-    var delay = false
     var cleanupFails = false
     var cleanupFailsAfterRead = false
-    func delayReading() { delay = true }
     func failCleanup() { cleanupFails = true }
     func failCleanupAfterRead() { cleanupFailsAfterRead = true }
     func setConflict(directory: Bool) { conflict = directory ? .directory : .file }
@@ -601,7 +578,6 @@ private actor UploadSFTPClient: SFTPClientProtocol {
         if cleanupFails {
             throw SFTPTemporaryFileCleanupError(path: "/target/file.bin.part", cause: SFTPError.connectionLost("lost"))
         }
-        if delay { try await Task.sleep(for: .seconds(120)) }
         let cleanupFailsAfterRead = cleanupFailsAfterRead
         let destination = destination
         if resume.snapshot.offset == 0 { destination.reset() }

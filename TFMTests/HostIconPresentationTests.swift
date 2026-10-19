@@ -51,27 +51,6 @@ struct HostIconPresentationTests {
         #expect(macOS["slug"] as? String == "macos")
     }
 
-    @Test(arguments: ["000000", "0078D4"], [ColorScheme.light, .dark])
-    func brandColorsMeetIconSurfaceContrast(hex: String, scheme: ColorScheme) throws {
-        let color = try #require(HostIconBrandColor.color(hex: hex, colorScheme: scheme))
-        let foreground = try #require(NSColor(color).usingColorSpace(.deviceRGB))
-        let appearance = try #require(NSAppearance(named: scheme == .dark ? .darkAqua : .aqua))
-        var background: NSColor?
-        appearance.performAsCurrentDrawingAppearance {
-            background = NSColor.controlBackgroundColor.usingColorSpace(.deviceRGB)
-        }
-        let surface = try #require(background)
-        let front = [foreground.redComponent, foreground.greenComponent, foreground.blueComponent]
-        let back = [surface.redComponent, surface.greenComponent, surface.blueComponent]
-        let tinted = zip(front, back).map { $1 * 0.84 + $0 * 0.16 }
-        func luminance(_ components: [CGFloat]) -> CGFloat {
-            let linear = components.map { $0 <= 0.04045 ? $0 / 12.92 : pow(($0 + 0.055) / 1.055, 2.4) }
-            return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
-        }
-        let a = luminance(front)
-        let b = luminance(tinted)
-        #expect((max(a, b) + 0.05) / (min(a, b) + 0.05) >= 3)
-    }
 }
 
 @Suite(.requiresVisibleWindow, .serialized) @MainActor

@@ -70,7 +70,7 @@ def main():
     simple_source["source"] = "https://github.com/simple-icons/simple-icons"
     tabler_source["source"] = "https://github.com/tabler/tabler-icons"
     metadata = {entry["title"]: entry for entry in json.loads(read(simple, "data/simple-icons.json"))}
-    requested = json.loads((ROOT / "Scripts/linux-distribution-icons.json").read_text())
+    requested = json.loads((ROOT / "Configuration/HostIcons/linux-distribution-icons.json").read_text())
     requested.append({"title": "macOS", "slug": "macos", "ids": ["macos"], "id": "macos"})
     for title, slug, ids in [
         ("BSD", "bsd", ["bsd", "dragonfly"]),

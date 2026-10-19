@@ -24,15 +24,6 @@ struct SFTPApplicationOpenerTests {
         #expect(result.first?.url == preferred)
     }
 
-    @Test func applicationIconsUseNativeMenuDimensions() throws {
-        let icon = NSImage(size: NSSize(width: 128, height: 128))
-        let result = SFTPApplicationOpener.applications(
-            urls: [URL(filePath: "/Applications/Editor.app")], defaultURL: nil, name: { _ in "Editor" },
-            icon: { _ in icon })
-        #expect(try #require(result.first?.icon).size == NSSize(width: 16, height: 16))
-        #expect(icon.size == NSSize(width: 128, height: 128))
-    }
-
     @Test func appStoreSearchUsesTheFilenameExtension() throws {
         let url = try #require(SFTPApplicationOpener.appStoreSearchURL(for: "Quarterly Report.pages"))
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))

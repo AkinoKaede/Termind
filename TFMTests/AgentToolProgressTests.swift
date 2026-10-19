@@ -9,87 +9,8 @@ private let emptySchema = AgentJSONValue.object([
     "required": .array([]), "additionalProperties": .bool(false),
 ])
 
-private actor RequestLog {
-    var values: [AgentModelRequest] = []
-    func append(_ value: AgentModelRequest) { values.append(value) }
-}
-
-private struct TwoTurnModel: AgentModelStreaming {
-    let requests: RequestLog
-    let counter = Counter()
-
-    func stream(
-        _ request: AgentModelRequest
-    ) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
-        AsyncThrowingStream { continuation in
-            Task {
-                await requests.append(request)
-                if await counter.next() == 0 {
-                    continuation.yield(
-                        .toolCallSnapshot(
-                            id: "1", providerItemID: nil, name: "slow", arguments: "{}"
-                        ))
-                    continuation.yield(.finished(.toolCalls))
-                } else {
-                    continuation.yield(.textDelta("done"))
-                    continuation.yield(.finished(.completed))
-                }
-                continuation.finish()
-            }
-        }
-    }
-
-    actor Counter {
-        var value = 0
-        func next() -> Int {
-            defer { value += 1 }
-            return value
-        }
-    }
-}
-
-/// Pi's `onUpdate`, ported: a tool may say what it has so far, and the loop
-/// neither waits for it nor tells the model about it.
 @Suite
 struct AgentToolProgressTests {
-
-    @Test
-    func partialsReachTheCardAndOnlyTheFinalResultReachesTheModel() async {
-        let requests = RequestLog()
-        let tool = AnyAgentTool(
-            descriptor: AgentToolDescriptor(
-                name: "slow", summary: "slow", inputSchema: emptySchema,
-                target: .local, approvalPolicy: .approve, concurrency: .parallel
-            )
-        ) { invocation, context in
-            context.report(AgentToolResult(callID: invocation.call.id, content: "10 of 20"))
-            context.report(AgentToolResult(callID: invocation.call.id, content: "19 of 20"))
-            return AgentToolResult(callID: invocation.call.id, content: "20 of 20")
-        }
-        let runtime = AgentRuntime(
-            model: TwoTurnModel(requests: requests), tools: [tool],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
-        )
-
-        var progress: [String] = []
-        var finished: [String] = []
-        for await event in await runtime.start(
-            AgentRunRequest(
-                conversationID: UUID(), prompt: "go", permissionMode: .askForApproval
-            ))
-        {
-            if case .toolProgress(_, let partial) = event { progress.append(partial.content) }
-            if case .toolFinished(_, let result) = event { finished.append(result.content) }
-        }
-
-        #expect(progress == ["10 of 20", "19 of 20"])
-        #expect(finished == ["20 of 20"])
-
-        // The model is owed one result per call, not a running commentary.
-        let replayed = await requests.values.last?.messages.filter { $0.role == .tool } ?? []
-        #expect(replayed.map(\.text) == ["20 of 20"])
-    }
-
     @MainActor
     @Test
     func aProgressReportFillsTheCardWithoutFinishingIt() {

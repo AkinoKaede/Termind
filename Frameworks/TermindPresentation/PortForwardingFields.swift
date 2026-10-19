@@ -87,7 +87,7 @@ public struct PortForwardingFields: View {
     }
 }
 
-nonisolated enum PortForwardingFieldPresentation {
+private nonisolated enum PortForwardingFieldPresentation {
     static func hostTitle(for host: Host) -> String { host.name }
 
     static func portLabel(for kind: PortForwardingRule.Kind) -> LocalizedStringResource {

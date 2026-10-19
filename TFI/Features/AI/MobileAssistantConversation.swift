@@ -215,8 +215,6 @@ struct MobileAssistantAgentOriginPresentation: Equatable {
 }
 
 struct MobileAssistantAgentOriginButton: View {
-    static let systemImage = "sparkles"
-
     let presentation: MobileAssistantAgentOriginPresentation
     let navigate: () -> Void
 
@@ -224,7 +222,7 @@ struct MobileAssistantAgentOriginButton: View {
         Button(action: navigate) {
             Label(
                 AppStrings.Assistant.agent.swiftUIKey,
-                systemImage: Self.systemImage
+                systemImage: "sparkles"
             )
             .labelStyle(.iconOnly)
             .frame(minWidth: 44, minHeight: 44)

@@ -21,7 +21,7 @@ struct AgentUserInputCard: View {
     var isCompact = false
 
     @Environment(AppModel.self) private var app
-    @State var interaction = UserInputInteractionModel()
+    @State private var interaction = UserInputInteractionModel()
 
     private var speechSession: UserInputSpeechSession { interaction.speech }
     @FocusState private var focusedQuestionID: String?

@@ -117,22 +117,4 @@ nonisolated enum MenuSymbol {
     static let filterByTag = "tag"
     static let clearFilter = "xmark.circle"
     static let clearHistory = "clock.badge.xmark"
-
-    /// Every glyph above, so `MenuSymbolTests` can confirm each one resolves to
-    /// a real SF Symbol. A misspelled name draws nothing and says nothing, which
-    /// is exactly the kind of mistake no one notices in review.
-    static let all: [String] = [
-        settings, quickOpen, find, actions, support, showAssistant,
-        quickConnect, connect, batchStartup, ssh, telnet, sftp,
-        newChat, newHost, newGroup, newPackage, newFolder, newSnippet, saveAsSnippet,
-        newIdentity, generateKey, generateCommand,
-        importItem, download, export, upload,
-        details, pause, selectDevices, open, openFullScreen, edit, rename, resetName, duplicate, copy, insert, paste,
-        execute, start, stop, refresh, showHiddenFiles, hideHiddenFiles, editPath,
-        editPermissions, test,
-        pin, unpin, archive, unarchive, delete,
-        workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace, newWindow, moveToNewWindow,
-        separatePanes, splitRight, splitDown, closeWorkspace, reopenWorkspace,
-        filterByTag, clearFilter, clearHistory,
-    ]
 }

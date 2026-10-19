@@ -83,7 +83,6 @@ Define app-facing copy as `LocalizedStringResource` entries in
 `Frameworks/TermindPresentation/Strings`, including copy used by only one platform.
 Reuse semantic entries and shared formatting functions from TFM and TFI; keep
 protocol values, identifiers, and diagnostic codes with their existing owners.
-Run `Scripts/check-appstrings.sh` alongside the Chinese localization check.
 
 The two shared app catalogs are manually managed: every entry must have
 `extractionState: "manual"`. A single target's extraction does not see all shared

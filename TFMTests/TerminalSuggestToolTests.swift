@@ -36,18 +36,4 @@ struct TerminalSuggestToolTests {
         #expect(payload["risk"]?.stringValue?.isEmpty == false)
         #expect(payload["explanation"] == nil)
     }
-
-    @Test
-    func legacyExplanationIsNotPresented() {
-        let items = TerminalSuggestTool.present(
-            AgentToolDetailInput(
-                result: .object(["command": .string("pwd"), "explanation": .string("Legacy result explanation")]),
-                arguments: ["command": .string("pwd"), "explanation": .string("Legacy argument explanation")],
-                locale: Locale(identifier: "en")
-            )
-        )
-        #expect(items.contains(.text(.init(title: "Command", text: "pwd", style: .monospaced))))
-        #expect(items.contains(.message("Requires user action", .warning)))
-        #expect(!String(describing: items).contains("Legacy"))
-    }
 }

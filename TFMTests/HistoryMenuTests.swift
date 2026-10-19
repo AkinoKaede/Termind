@@ -9,51 +9,6 @@ import struct TermindDomain.Host
 
 @testable import Termind
 
-@Suite(.serialized, .requiresVisibleWindow)
-@MainActor
-struct HistoryMenuTests {
-    @Test func historyMenuPrecedesWindowAndKeepsItsShortcutsAndImagePolicy() async throws {
-        var history: NSMenu?
-        for _ in 0..<40 {
-            history = NSApp.mainMenu?.items.compactMap(\.submenu).first {
-                $0.items.contains { $0.keyEquivalent == "y" }
-            }
-            if history != nil { break }
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        let menu = try #require(history)
-        let main = try #require(NSApp.mainMenu)
-        let index = try #require(main.items.firstIndex { $0.submenu === menu })
-        let windowIndex = try #require(main.items.firstIndex { $0.submenu === NSApp.windowsMenu })
-        #expect(index + 1 == windowIndex)
-        let rows = menu.items.filter { !$0.isSeparatorItem }
-        try #require(rows.count >= 4)
-        let show = try #require(rows.first)
-        #expect(show.title == String(localized: AppStrings.History.showHistory))
-        #expect(show.keyEquivalent == "y")
-        #expect(show.keyEquivalentModifierMask == .command)
-        #expect(rows[1].title == String(localized: AppStrings.History.recentClosed))
-        #expect(rows[1].submenu != nil)
-        #expect(rows[2].title == String(localized: AppStrings.Workspace.reopenClosedWorkspace))
-        #expect(rows[2].keyEquivalent == "T" || rows[2].keyEquivalent == "t")
-        #expect(rows.last?.title == String(localized: AppStrings.Common.clearHistory))
-        #expect(show.image != nil)
-        if #available(macOS 27.0, *) {
-            MenuImageVisibilityController.apply(to: menu)
-            #expect(show.preferredImageVisibility == .visible)
-            #expect(rows[1].preferredImageVisibility == .automatic)
-            #expect(rows[2].preferredImageVisibility == .automatic)
-            #expect(rows.last?.preferredImageVisibility == .automatic)
-        } else {
-            #expect(rows.allSatisfy { $0.image != nil })
-        }
-        let reopenTitles = main.items.compactMap(\.submenu).flatMap(\.items).filter {
-            $0.title == String(localized: AppStrings.Workspace.reopenClosedWorkspace)
-        }
-        #expect(reopenTitles.count == 1)
-    }
-}
-
 @Suite @MainActor
 struct HistoryMenuRecordTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])

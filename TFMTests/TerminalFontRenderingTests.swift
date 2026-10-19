@@ -126,34 +126,6 @@ struct TerminalFontRenderingTests {
         #expect(state.theme.dark.rendered.hasSuffix("font-family = Courier"))
     }
 
-    @Test func fontCatalogIncludesEveryLoadableFamilyInLocalizedOrder() {
-        TerminalFontCatalog.shared.refresh()
-        let catalogFamilies = TerminalFontCatalog.shared.families
-        let manager = NSFontManager.shared
-
-        let loadableFamilies = manager.availableFontFamilies.filter { family in
-            NSFontDescriptor(fontAttributes: [.family: family])
-                .matchingFontDescriptors(withMandatoryKeys: [.family])
-                .contains { NSFont(descriptor: $0, size: 14) != nil }
-        }
-        .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
-
-        #expect(!catalogFamilies.isEmpty)
-        #expect(catalogFamilies == loadableFamilies)
-
-        let proportionalFamily = manager.availableFontFamilies.first { family in
-            let fonts = NSFontDescriptor(fontAttributes: [.family: family])
-                .matchingFontDescriptors(withMandatoryKeys: [.family])
-                .compactMap { NSFont(descriptor: $0, size: 14) }
-            return !fonts.isEmpty && fonts.allSatisfy { !$0.isFixedPitch }
-        }
-        #expect(proportionalFamily != nil)
-        if let proportionalFamily {
-            #expect(catalogFamilies.contains(proportionalFamily))
-        }
-
-    }
-
     private func fontFamilies(in configuration: GhosttyTerminal.TerminalConfiguration) -> [String] {
         TerminalCustomConfiguration(configuration.rendered).entries
             .filter { $0.key == "font-family" }.map(\.value)

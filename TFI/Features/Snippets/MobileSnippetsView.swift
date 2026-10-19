@@ -46,7 +46,7 @@ struct MobileSnippetsView: View {
 
     init(
         app: MobileAppModel, initialQuery: String = "",
-        execute: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
+        execute: @escaping (Snippet, [Host.ID]) -> Void
     ) {
         self.app = app
         self.execute = execute

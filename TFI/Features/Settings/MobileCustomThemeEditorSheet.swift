@@ -90,7 +90,7 @@ struct MobileCustomThemeEditorSheet: View {
         )
     }
 
-    var editorActions: [MobileEditorToolbarAction] {
+    private var editorActions: [MobileEditorToolbarAction] {
         var actions: [MobileEditorToolbarAction] = [
             .init(
                 id: "import", title: AppStrings.Settings.importFromFile,

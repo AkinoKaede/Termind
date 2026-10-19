@@ -4,8 +4,8 @@ import TermindPresentation
 
 struct MobileAppSettingsView: View {
     let workspaceSettings: WorkspaceSettingsModel
-    var appReview: AppReviewController?
-    var diagnosis = DiagnosisController()
+    let appReview: AppReviewController
+    let diagnosis: DiagnosisController
     @AppStorage("mobile.appearance") private var appearance = "system"
     @AppStorage("mobile.compactCards") private var compactCards = false
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false

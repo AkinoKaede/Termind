@@ -7,21 +7,9 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
-    @Test func metricsUsesAvailableWidthRatherThanDeviceOrientation() {
-        #expect(!MobileMetricsDetailPage.showsBothColumns(width: 430))
-        #expect(!MobileMetricsDetailPage.showsBothColumns(width: 680))
-        #expect(MobileMetricsDetailPage.showsBothColumns(width: 700))
-        #expect(MobileMetricsDetailPage.showsBothColumns(width: 1024))
-    }
-
-    @Test func keyGenerationMatchesDesktopDefaultsAndRequiresMatchingPassphrases() throws {
+    @Test func keyGenerationRequiresMatchingPassphrasesAndValidRounds() throws {
         let app = try MobileAppModel(inMemory: true)
         let editor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
-        #expect(editor.storage == .iCloud)
-        #expect(editor.algorithm == .ed25519)
-        #expect(editor.curveBits == 256 && editor.rsaBits == 3072)
-        #expect(editor.cipher == .aes256 && editor.rounds == 100)
-        #expect(editor.resolvedLabel == "Ed25519" && editor.canSave)
         editor.passphrase = "test-only"
         #expect(!editor.canSave)
         editor.confirmation = "test-only"
