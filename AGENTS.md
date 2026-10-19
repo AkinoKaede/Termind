@@ -20,9 +20,7 @@ and screenshot tooling stay in the main repository; see
 Commit and push asset changes via SSH before updating the main repository's gitlink;
 keep the public HTTPS clone URL in `.gitmodules`.
 
-The agent runtime is `AgentKit`, a separate open-source package developed in the repository-root `AgentKit/` maintenance submodule and consumed as a versioned remote SPM dependency on `github.com/AkinoKaede/AgentKit`, pinned in `Package.resolved`. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package.
-
-Xcode builds the pinned tag, not the maintenance submodule working tree, so an uncommitted change in `AgentKit/` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `AgentKit/`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Update the `AgentKit` maintenance gitlink to the released revision and commit it with both dependency files and the app-side change that needs them.
+AgentKit, libssh2-spm, and libtailscale-spm are remote SPM dependencies, not Termind submodules. Xcode consumes the versions pinned in `Package.resolved`; keep the project requirements and resolved pins aligned when updating dependencies. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`.
 
 Ghostty is consumed directly from `Lakr233/libghostty-spm` as a remote SPM
 dependency with an up-to-next-major version requirement. `Package.resolved`
@@ -30,20 +28,6 @@ locks the released version and revision. There is no local Ghostty maintenance
 submodule. Keep the project requirement and resolved pin aligned when updating.
 The package exposes separate iOS `touchMenuItems(for:)` and
 `touchSelectionMenuItems(for:)` hooks; grouping and localization belong to Termind.
-
-`libssh2-spm/` is the maintenance checkout of `AkinoKaede/libssh2-spm`,
-tracking `termind`. Xcode consumes its remote exact-version package.
-`Vendor/libssh2` is a clean submodule of official `libssh2/libssh2`; its gitlink
-pins native source. CI exports it into ignored `.build/patched-native`, applies
-numbered `Patches/libssh2/` patches, and publishes a checksummed XCFramework.
-Never commit full native snapshots or generated patched source files. The
-handwritten `Source/Exports.swift` re-exports the binary under the existing
-`CSSH2` API. Update the submodule or patches, run `python3 Script/test-source.py` and
-native CMake/CTest, then dispatch the package's Release XCFramework workflow.
-It builds and tests the Apple platform matrix, publishes the binary, and commits
-the manifest URL/checksum and package tag. Update the Termind maintenance gitlink,
-Xcode exact version and `Package.resolved` together after release. Keep the
-external-signature API and its native regression tests.
 
 ## Architecture Records
 
@@ -53,9 +37,8 @@ Treat `openwiki/` as durable just-in-time engineering context. Start with `openw
 
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build` builds the app, the MCP bridge, and AgentKit. Keep the flag: resolving without it silently bumps pinned dependencies.
 - `xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build` builds the mobile app and shared frameworks. Run its tests with an available iPhone or iPad simulator destination.
-- `cd AgentKit && swift build && swift test` builds and tests the agent package on its own.
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test` runs the default macOS and shared Swift tests. Tests that show windows or take focus are opt-in.
-- `xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge` checks Swift formatting. AgentKit passes the same command over `Sources Tests` and must keep passing it.
+- `xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge` checks Swift formatting.
 - `cd com.akinokaede.termind && npm ci && npm run dev` installs locked web dependencies and starts Astro locally.
 - `cd com.akinokaede.termind && npm run build` type-checks and emits the production site to `com.akinokaede.termind/dist/`.
 
@@ -93,11 +76,11 @@ and shared modules before removing a key. After editing a catalog, run
 and formatting without changing translations. `Scripts/check-localization.py`
 also runs the normalizer in read-only `--check` mode. Do not use `jq -S` or a
 generic JSON formatter on these files: their whitespace differs from Xcode's.
-The normalizer defaults to the two app catalogs and does not touch AgentKit.
+The normalizer defaults to the two app catalogs.
 Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`: `AppStrings` owns the Swift API,
 and generating symbols for every manual English key introduces naming collisions.
 
-Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `AgentKit/Localizations/Localizable.xcstrings`; after editing it run `AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-localization.py` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.
+Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-localization.py` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.
 
 ## Commit & Pull Request Guidelines
 
