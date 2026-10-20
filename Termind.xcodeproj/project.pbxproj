@@ -100,8 +100,8 @@
 		F1BA00000000000000000302 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
 		F1BA00000000000000000401 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
 		F1BA00000000000000000402 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
-		F1BA0000000000000000A001 /* Configuration/Firebase/GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */; };
-		F1BA0000000000000000A002 /* Configuration/Firebase/GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */; };
+		F1BA0000000000000000A001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* GoogleService-Info.plist */; };
+		F1BA0000000000000000A002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* GoogleService-Info.plist */; };
 		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -493,7 +493,8 @@
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
 		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
-		F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Configuration/Firebase/GoogleService-Info.plist"; sourceTree = SOURCE_ROOT; };
+		F1BA00000000000000000020 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "$(FIREBASE_CONFIG_PATH)"; sourceTree = SOURCE_ROOT; };
+		F1BA00000000000000000021 /* Services.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Services.xcconfig; sourceTree = SOURCE_ROOT; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -857,7 +858,8 @@
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
-				F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */,
+				F1BA00000000000000000020 /* GoogleService-Info.plist */,
+				F1BA00000000000000000021 /* Services.xcconfig */,
 				BENC00000000000000000010 /* Benchmarks/PortForwarding */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
 				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
@@ -1480,7 +1482,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1BA0000000000000000A002 /* Configuration/Firebase/GoogleService-Info.plist in Resources */,
+				F1BA0000000000000000A002 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1509,7 +1511,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1BA0000000000000000A001 /* Configuration/Firebase/GoogleService-Info.plist in Resources */,
+				F1BA0000000000000000A001 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1544,7 +1546,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ] && [ \"${FIREBASE_UPLOAD_SYMBOLS}\" = \"YES\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
 		};
 		F1BA00000000000000003002 /* Upload Crashlytics Symbols */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1567,7 +1569,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ] && [ \"${FIREBASE_UPLOAD_SYMBOLS}\" = \"YES\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2455,6 +2457,7 @@
 		};
 		TRMD000000000000000000B0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F1BA00000000000000000021 /* Services.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -2509,8 +2512,6 @@
 					"$(inherited)",
 					"-liconv",
 				);
-				REVENUECAT_API_KEY = REDACTED_REVENUECAT_API_KEY;
-				REVENUECAT_ENTITLEMENT_ID = termind_pro;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -2525,6 +2526,7 @@
 		};
 		TRMD000000000000000000C0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F1BA00000000000000000021 /* Services.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -2573,8 +2575,6 @@
 					"$(inherited)",
 					"-liconv",
 				);
-				REVENUECAT_API_KEY = REDACTED_REVENUECAT_API_KEY;
-				REVENUECAT_ENTITLEMENT_ID = termind_pro;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;

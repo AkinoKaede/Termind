@@ -1,0 +1,7 @@
+// Public builds have no service credentials. Local overrides are never tracked.
+REVENUECAT_API_KEY =
+REVENUECAT_ENTITLEMENT_ID = termind_pro
+FIREBASE_CONFIG_PATH = Configuration/Firebase/Example/GoogleService-Info.plist
+FIREBASE_UPLOAD_SYMBOLS = NO
+
+#include? "Services.local.xcconfig"

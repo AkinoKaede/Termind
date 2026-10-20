@@ -1,0 +1,8 @@
+// Copy to Services.local.xcconfig and configure only the services you use.
+// Use a public Apple SDK key, never a RevenueCat secret/management key.
+REVENUECAT_API_KEY =
+REVENUECAT_ENTITLEMENT_ID = termind_pro
+
+// Download your own Firebase Apple app configuration before enabling these.
+// FIREBASE_CONFIG_PATH = Configuration/Firebase/GoogleService-Info.plist
+// FIREBASE_UPLOAD_SYMBOLS = YES

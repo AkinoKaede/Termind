@@ -47,6 +47,8 @@ htmlcov/
 .env.*
 !.env.example
 !.env.*.example
+/Configuration/Services.local.xcconfig
+/Configuration/Firebase/GoogleService-Info.plist
 
 # Editor temporary files
 *.swp

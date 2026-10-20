@@ -67,6 +67,42 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func serviceCredentialsStayOutsideSharedBuildSettings() throws {
+        let repositoryRoot = sourceRoot.deletingLastPathComponent().standardizedFileURL
+        let projectData = try Data(contentsOf: repositoryRoot.appending(path: "Termind.xcodeproj/project.pbxproj"))
+        let project = try #require(
+            PropertyListSerialization.propertyList(from: projectData, format: nil) as? [String: Any])
+        let objects = try #require(project["objects"] as? [String: [String: Any]])
+        let rootID = try #require(project["rootObject"] as? String)
+        let configurationListID = try #require(objects[rootID]?["buildConfigurationList"] as? String)
+        let configurationIDs = try #require(objects[configurationListID]?["buildConfigurations"] as? [String])
+        for id in configurationIDs {
+            let configuration = try #require(objects[id])
+            let reference = try #require(configuration["baseConfigurationReference"] as? String)
+            #expect(objects[reference]?["path"] as? String == "Configuration/Services.xcconfig")
+        }
+        for object in objects.values where object["isa"] as? String == "XCBuildConfiguration" {
+            let settings = try #require(object["buildSettings"] as? [String: Any])
+            #expect(settings["REVENUECAT_API_KEY"] == nil)
+        }
+
+        let defaults = try String(
+            contentsOf: repositoryRoot.appending(path: "Configuration/Services.xcconfig"), encoding: .utf8)
+        #expect(defaults.contains("REVENUECAT_API_KEY =\n"))
+        #expect(defaults.contains("FIREBASE_UPLOAD_SYMBOLS = NO\n"))
+        #expect(defaults.contains("#include? \"Services.local.xcconfig\""))
+
+        let templateData = try Data(
+            contentsOf: repositoryRoot.appending(path: "Configuration/Firebase/Example/GoogleService-Info.plist"))
+        let template = try #require(
+            PropertyListSerialization.propertyList(from: templateData, format: nil) as? [String: Any])
+        for field in ["API_KEY", "GCM_SENDER_ID", "PROJECT_ID", "STORAGE_BUCKET", "GOOGLE_APP_ID"] {
+            #expect((template[field] as? String)?.isEmpty == true)
+        }
+        #expect(template["BUNDLE_ID"] as? String == "UNCONFIGURED")
+    }
+
+    @Test
     func diagnosisSDKStaysBehindInfrastructureAndStartsWithCollectionDisabled() throws {
         for module in ["TermindDomain", "TermindApplication", "TermindPresentation", "TermindPersistence"] {
             try assertNoImports(
