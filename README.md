@@ -7,17 +7,25 @@
 <h1 align="center">Termind</h1>
 
 <p align="center">
-  AI-driven remote workspace for Mac, iPhone, and iPad
+  AI-driven remote workspace for Mac, iPhone, and iPad.
 </p>
 
 <p align="center">
-  <a href="https://termind.akinokaede.com">Website</a>
-  &middot;
-  <a href="https://apps.apple.com/app/apple-store/id6805856690">App Store</a>
-  &middot;
-  <a href="https://discord.gg/3dzmRAUA36">Discord</a>
-  &middot;
-  <a href="https://t.me/termind_updates">Telegram</a>
+  <a href="https://termind.akinokaede.com">
+    <img src="https://img.shields.io/badge/Website-6C7A83?style=for-the-badge&amp;logo=safari&amp;logoColor=white" alt="Website" height="28">
+  </a>
+  <a href="https://apps.apple.com/app/apple-store/id6805856690">
+    <img src="https://img.shields.io/badge/App_Store-0D96F6?style=for-the-badge&amp;logo=appstore&amp;logoColor=white" alt="App Store" height="28">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-GPL--3.0--only-blue?style=for-the-badge&amp;logo=gnu&amp;logoColor=white" alt="License: GPL-3.0-only" height="28">
+  </a>
+  <a href="https://discord.gg/3dzmRAUA36">
+    <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white" alt="Discord" height="28">
+  </a>
+  <a href="https://t.me/termind_updates">
+    <img src="https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&amp;logo=telegram&amp;logoColor=white" alt="Telegram" height="28">
+  </a>
 </p>
 
 ## Preview
@@ -59,6 +67,12 @@ assistant together in one app.
 - **Storage and sync.** Store app data locally with optional iCloud sync across
   devices, and protect credentials with Apple Keychain.
 
+## Installation
+
+<a href="https://apps.apple.com/app/apple-store/id6805856690">
+  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="48">
+</a>
+
 The apps support **macOS 15+, iOS 18+, and iPadOS 18+**.
 
 ## Development
@@ -78,8 +92,7 @@ Firebase and RevenueCat setup is optional; see [local service configuration](Con
 ### Website and assets
 
 The [website and assets](https://github.com/AkinoKaede/com.akinokaede.termind) live
-in an optional submodule. Follow its README for setup and development; native app
-builds do not require it.
+in an optional submodule.
 
 ## Dependencies and Credits
 
