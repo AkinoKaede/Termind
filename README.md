@@ -26,6 +26,9 @@
   <a href="https://t.me/termind_updates">
     <img src="https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&amp;logo=telegram&amp;logoColor=white" alt="Telegram" height="28">
   </a>
+  <a href="https://github.com/sponsors/AkinoKaede">
+    <img src="https://img.shields.io/badge/Sponsor-EA4AAA?style=for-the-badge&amp;logo=githubsponsors&amp;logoColor=white" alt="Sponsor" height="28">
+  </a>
 </p>
 
 ## Preview
