@@ -1,0 +1,126 @@
+name: Test
+
+on:
+  pull_request:
+    paths:
+      - "**/*.swift"
+      - "**/*.py"
+      - "**/*.sh"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.swift"
+      - "**/*.py"
+      - "**/*.sh"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.scheme }} tests
+    # The mobile app uses iOS 27.1 SDK APIs.
+    runs-on: xcode-27
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        scheme: [TFM, TFI]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      SCHEME: ${{ matrix.scheme }}
+      TEST_RUNNER_TERMIND_WINDOW_TESTS: "0"
+      TEST_RUNNER_TERMIND_MOBILE_UI_TESTS: "0"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check toolchain and localization
+        run: |
+          xcodebuild -version
+          xcrun swift --version
+          python3 Scripts/check-localization.py
+
+      - name: Select test destination
+        run: |
+          if [[ "$SCHEME" == TFM ]]; then
+            echo "TEST_DESTINATION=platform=macOS,arch=arm64" >> "$GITHUB_ENV"
+          else
+            xcrun simctl list devices available --json > "$RUNNER_TEMP/devices.json"
+            export SIMULATOR_SDK_VERSION
+            SIMULATOR_SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+            python3 <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          def version(value):
+              parts = [int(part) for part in value.split(".")]
+              return tuple((parts + [0, 0, 0])[:3])
+
+          sdk = version(os.environ["SIMULATOR_SDK_VERSION"])
+          devices = json.loads(
+              (Path(os.environ["RUNNER_TEMP"]) / "devices.json").read_text()
+          )["devices"]
+          candidates = []
+          for runtime, entries in devices.items():
+              match = re.search(r"\.iOS-(\d+(?:-\d+)*)$", runtime)
+              if not match:
+                  continue
+              runtime_version = version(match[1].replace("-", "."))
+              if not (version("18.0") <= runtime_version <= sdk):
+                  continue
+              for device in entries:
+                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+                      candidates.append((runtime_version, device["name"], device["udid"]))
+          if not candidates:
+              raise SystemExit("No available iPhone simulator compatible with the selected SDK")
+          _, name, udid = max(candidates)
+          print(f"Selected {name} ({udid})")
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write(f"TEST_DESTINATION=platform=iOS Simulator,id={udid}\n")
+          PY
+          fi
+
+      - name: Run tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/test-results"
+          # Ad-hoc signing avoids development certificates and provisioned capabilities in CI.
+          xcodebuild \
+            -project Termind.xcodeproj \
+            -scheme "$SCHEME" \
+            -destination "$TEST_DESTINATION" \
+            -destination-timeout 120 \
+            -onlyUsePackageVersionsFromResolvedFile \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -resultBundlePath "$RUNNER_TEMP/test-results/$SCHEME.xcresult" \
+            -parallel-testing-enabled NO \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= \
+            CODE_SIGN_ENTITLEMENTS= \
+            ENABLE_APP_SANDBOX=NO \
+            test 2>&1 | tee "$RUNNER_TEMP/test-results/xcodebuild.log"
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-results-${{ matrix.scheme }}
+          path: ${{ runner.temp }}/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
