@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import SwiftUI
 
 /// A secret entry field whose clear-text presentation is explicit and temporary.

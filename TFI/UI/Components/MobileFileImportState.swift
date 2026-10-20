@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 /// The importer can dismiss before delivering its result. Keep the target until
 /// completion, without a separate presentation flag that can drift from it.
 struct MobileFileImportState<Target> {

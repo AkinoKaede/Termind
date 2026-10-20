@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import SwiftUI
 
 /// The first pinned destination's main content. Its navigator is mounted by the

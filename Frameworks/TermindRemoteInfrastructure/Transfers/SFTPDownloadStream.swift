@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// A checked regular-file handle. EOF proves the declared size and available

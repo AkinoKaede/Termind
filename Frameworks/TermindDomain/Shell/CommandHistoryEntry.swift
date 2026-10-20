@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// A command in one live terminal session. File records may have no execution timestamp.

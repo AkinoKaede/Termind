@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import SwiftUI
 
 /// Form values keep their own wrapping height instead of compressing the field name.

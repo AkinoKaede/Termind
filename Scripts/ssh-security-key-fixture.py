@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Disposable OpenSSH server with a software-simulated WebAuthn authenticator.
 
 No hardware, user SSH configuration, or private keys are read. Pass --metadata

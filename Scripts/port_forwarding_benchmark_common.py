@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Shared workload and JSON helpers for port forwarding benchmarks."""
 
 from __future__ import annotations

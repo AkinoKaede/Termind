@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// Retains only fields cleared automatically while replacing an existing private key.

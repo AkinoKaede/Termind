@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 /// Resolves connection capabilities without changing saved preferences.
 /// The caller determines availability; this policy knows nothing about purchases or UI.
 public nonisolated struct MultiConnectionPolicy: Equatable, Sendable {

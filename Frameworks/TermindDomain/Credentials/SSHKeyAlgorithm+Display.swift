@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 extension SSHKeyAlgorithm {
     public nonisolated var displayName: String {
         switch self {

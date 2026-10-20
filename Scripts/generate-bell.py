@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Generate the original, short system-alert-style bell; no sampled audio is used."""
 
 import argparse

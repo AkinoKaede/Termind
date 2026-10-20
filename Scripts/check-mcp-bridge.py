@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Exercise a built termind-mcp executable against a deterministic loopback server."""
 
 import http.server

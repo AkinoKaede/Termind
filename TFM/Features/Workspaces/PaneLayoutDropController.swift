@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// Resolves the live model at drag time. In particular, picking up the selected

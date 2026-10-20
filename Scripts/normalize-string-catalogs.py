@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Keep shared, manually maintained string catalogs stable in Xcode and Git.
 
 Only extractionState and JSON serialization change. In particular, a stale entry

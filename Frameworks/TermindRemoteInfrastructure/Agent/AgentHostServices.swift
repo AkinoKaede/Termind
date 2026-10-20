@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import TermindApplication
 
 /// The shared live host-facing services used by Assistant and the MCP bridge.

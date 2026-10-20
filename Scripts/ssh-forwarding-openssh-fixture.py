@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Temporary loopback-only OpenSSH forwarding fixture. Requires local sshd.
 
 No system SSH configuration or authorized_keys files are changed. Only forwarding

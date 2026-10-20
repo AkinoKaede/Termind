@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -eu
 
 source_plist="${SRCROOT}/Configuration/Firebase/GoogleService-Info.plist"

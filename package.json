@@ -1,6 +1,7 @@
 {
   "name": "termind-repository-tools",
   "private": true,
+  "license": "GPL-3.0-only",
   "engines": {
     "node": ">=22.22.0"
   },

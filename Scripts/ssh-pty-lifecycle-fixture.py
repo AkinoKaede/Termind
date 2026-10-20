@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Local SSH fixture that withholds exec close acknowledgements.
 
 Run with --metadata /tmp/pty-lifecycle.json and pass the path to tests as

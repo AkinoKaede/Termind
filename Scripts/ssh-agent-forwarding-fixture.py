@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Ephemeral loopback OpenSSH fixture for SSHAgentForwardingWireTests.
 
 Creates fresh keys, three unprivileged sshd instances (destination, second hop,

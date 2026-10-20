@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 /// Search order follows Ghostty and VS Code's terminal find widget. A search
 /// starts at the bottom of the buffer, so "previous" moves toward older output.
 public nonisolated enum TerminalFindDirection: String, Sendable {

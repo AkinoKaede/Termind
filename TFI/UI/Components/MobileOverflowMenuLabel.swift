@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import SwiftUI
 
 /// Keeps every mobile overflow menu on the same symbol while preserving a contextual accessible name.

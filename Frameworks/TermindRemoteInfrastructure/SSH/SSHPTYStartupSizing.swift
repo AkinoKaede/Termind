@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import CSSH2
 
 /// Queue-confined startup sizing. A PTY request and a process request each retain

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Isolated Lima/OpenSSH fixture for remote persistence and terminal context tests.
 
 Requires a running Lima VM with nerdctl. Creates a disposable Debian container,

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Observation
 
 /// Watches only live app state. Badge counts never enter settings or persistence.

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Kaede Akino
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Benchmark Termind forwarding pools with the standalone Release runner."""
 
 from __future__ import annotations

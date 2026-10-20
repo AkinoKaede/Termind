@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kaede Akino
+// SPDX-License-Identifier: GPL-3.0-only
+
 /// Describes whether a destructive UI action removes one selected item or clears
 /// every item represented by the current collection.
 public enum DeletionOperationScope: Equatable, Sendable {
