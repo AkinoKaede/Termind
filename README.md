@@ -15,7 +15,9 @@
   &middot;
   <a href="https://apps.apple.com/app/apple-store/id6805856690">App Store</a>
   &middot;
-  <a href="LICENSE">License</a>
+  <a href="https://discord.gg/3dzmRAUA36">Discord</a>
+  &middot;
+  <a href="https://t.me/termind_updates">Telegram</a>
 </p>
 
 ## Preview
