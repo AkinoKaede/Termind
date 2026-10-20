@@ -3,6 +3,5 @@
 REVENUECAT_API_KEY =
 REVENUECAT_ENTITLEMENT_ID = termind_pro
 
-// Download your own Firebase Apple app configuration before enabling these.
-// FIREBASE_CONFIG_PATH = Configuration/Firebase/GoogleService-Info.plist
+// Download your own Firebase Apple app configuration before enabling uploads.
 // FIREBASE_UPLOAD_SYMBOLS = YES

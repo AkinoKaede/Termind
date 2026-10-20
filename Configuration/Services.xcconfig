@@ -1,7 +1,9 @@
 // Public builds have no service credentials. Local overrides are never tracked.
 REVENUECAT_API_KEY =
 REVENUECAT_ENTITLEMENT_ID = termind_pro
-FIREBASE_CONFIG_PATH = Configuration/Firebase/Example/GoogleService-Info.plist
 FIREBASE_UPLOAD_SYMBOLS = NO
+
+// Let sandboxed scripts read the optional plist through their directory input.
+USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES = YES
 
 #include? "Services.local.xcconfig"

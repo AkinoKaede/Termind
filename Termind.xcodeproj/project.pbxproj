@@ -100,8 +100,6 @@
 		F1BA00000000000000000302 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
 		F1BA00000000000000000401 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
 		F1BA00000000000000000402 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
-		F1BA0000000000000000A001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* GoogleService-Info.plist */; };
-		F1BA0000000000000000A002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* GoogleService-Info.plist */; };
 		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -493,7 +491,6 @@
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
 		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
-		F1BA00000000000000000020 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "$(FIREBASE_CONFIG_PATH)"; sourceTree = SOURCE_ROOT; };
 		F1BA00000000000000000021 /* Services.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Services.xcconfig; sourceTree = SOURCE_ROOT; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -858,7 +855,6 @@
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
-				F1BA00000000000000000020 /* GoogleService-Info.plist */,
 				F1BA00000000000000000021 /* Services.xcconfig */,
 				BENC00000000000000000010 /* Benchmarks/PortForwarding */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
@@ -908,7 +904,7 @@
 				AC89B83FA8E4154383D9AC81 /* Sources */,
 				7B09CFC5B32584951BD4C8F9 /* Frameworks */,
 				8F0C5245592A0E2AFB85E50F /* Resources */,
-				F1BA00000000000000003002 /* Upload Crashlytics Symbols */,
+				F1BA00000000000000003002 /* Configure Firebase */,
 			);
 			buildRules = (
 			);
@@ -1236,7 +1232,7 @@
 				TRMD00000000000000000020 /* Frameworks */,
 				TRMD00000000000000000080 /* Resources */,
 				TRMD00000000000000000085 /* Embed MCP Bridge */,
-				F1BA00000000000000002002 /* Upload Crashlytics Symbols */,
+				F1BA00000000000000002002 /* Configure Firebase */,
 			);
 			buildRules = (
 			);
@@ -1482,7 +1478,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1BA0000000000000000A002 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1511,7 +1506,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1BA0000000000000000A001 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1525,7 +1519,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		F1BA00000000000000002002 /* Upload Crashlytics Symbols */ = {
+		F1BA00000000000000002002 /* Configure Firebase */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -1537,18 +1531,20 @@
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)",
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Info.plist",
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(PRODUCT_NAME)",
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(SRCROOT)/Configuration/",
+				"$(SRCROOT)/Scripts/configure-firebase.sh",
 				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
 				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 			);
-			name = "Upload Crashlytics Symbols";
+			name = "Configure Firebase";
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ] && [ \"${FIREBASE_UPLOAD_SYMBOLS}\" = \"YES\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+			shellScript = "/bin/sh \"${SRCROOT}/Scripts/configure-firebase.sh\"\n";
 		};
-		F1BA00000000000000003002 /* Upload Crashlytics Symbols */ = {
+		F1BA00000000000000003002 /* Configure Firebase */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -1560,16 +1556,18 @@
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)",
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Info.plist",
 				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(PRODUCT_NAME)",
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(SRCROOT)/Configuration/",
+				"$(SRCROOT)/Scripts/configure-firebase.sh",
 				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
 				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 			);
-			name = "Upload Crashlytics Symbols";
+			name = "Configure Firebase";
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ] && [ \"${FIREBASE_UPLOAD_SYMBOLS}\" = \"YES\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+			shellScript = "/bin/sh \"${SRCROOT}/Scripts/configure-firebase.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
