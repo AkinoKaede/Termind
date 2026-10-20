@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://termind.akinokaede.com">
-    <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/public/brand_mark.svg" alt="Termind logo" width="128" height="128">
+    <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/public/brand_mark.svg" alt="Termind logo" width="128" height="128" style="background-color: transparent;">
   </a>
 </p>
 
@@ -16,6 +16,16 @@
   <a href="https://apps.apple.com/app/apple-store/id6805856690">App Store</a>
   &middot;
   <a href="LICENSE">License</a>
+</p>
+
+## Preview
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/assets/captures/en/mac-14/workspace_window.png" alt="Termind macOS window with two SSH terminals and an SFTP browser" width="960">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/assets/captures/en/ipad-15/assistant.png" alt="Termind AI Assistant on iPad investigating a server issue" width="960">
 </p>
 
 ## Features
@@ -47,19 +57,7 @@ assistant together in one app.
 - **Storage and sync.** Store app data locally with optional iCloud sync across
   devices, and protect credentials with Apple Keychain.
 
-The apps support **macOS 15+, iOS 18+, and iPadOS 18+**. Mosh and Eternal Terminal
-require their corresponding server software. Mosh also requires reachable UDP
-ports and is not available for hosts managed by built-in Tailscale.
-
-## Preview
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/assets/captures/en/mac-14/workspace_window.png" alt="Termind macOS window with two SSH terminals and an SFTP browser" width="960">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/assets/captures/en/ipad-15/assistant.png" alt="Termind AI Assistant on iPad investigating a server issue" width="960">
-</p>
+The apps support **macOS 15+, iOS 18+, and iPadOS 18+**.
 
 ## Development
 
@@ -80,6 +78,29 @@ Firebase and RevenueCat setup is optional; see [local service configuration](Con
 The [website and assets](https://github.com/AkinoKaede/com.akinokaede.termind) live
 in an optional submodule. Follow its README for setup and development; native app
 builds do not require it.
+
+## Dependencies and Credits
+
+### Dependencies
+
+- [AgentKit](https://github.com/AkinoKaede/AgentKit)
+- [libssh2-spm](https://github.com/AkinoKaede/libssh2-spm)
+- [libtailscale-spm](https://github.com/AkinoKaede/libtailscale-spm)
+
+### Credits
+
+Thanks to these open-source projects and their contributors:
+
+- [libghostty-spm](https://github.com/Lakr233/libghostty-spm)
+- [swift-mosh](https://github.com/wiedymi/swift-mosh)
+- [swift-et](https://github.com/wiedymi/swift-et)
+- [openssl-spm](https://github.com/Lakr233/openssl-spm)
+- [MarkdownView](https://github.com/Lakr233/MarkdownView)
+- [ListViewKit](https://github.com/Lakr233/ListViewKit)
+- [GlyphixTextFx](https://github.com/Lakr233/GlyphixTextFx)
+- [GRDB.swift](https://github.com/groue/GRDB.swift)
+- [DeviceKit](https://github.com/devicekit/DeviceKit)
+- [ZIPFoundation](https://github.com/weichsel/ZIPFoundation)
 
 # License
 
