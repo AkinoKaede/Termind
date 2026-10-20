@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://termind.akinokaede.com">
-    <img src="https://raw.githubusercontent.com/AkinoKaede/com.akinokaede.termind/7d1f97782333bd1e6c6fb0c1a3bd391af5ef4905/public/brand_mark.svg" alt="Termind logo" width="128" height="128" style="background-color: transparent;">
+    <img src=".github/assets/logo.svg" alt="Termind logo" width="128" height="128">
   </a>
 </p>
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="72 72 368 368" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Termind - stacked terminals</title>
+  <desc id="desc">Three overlapping gray terminal outlines with transparent spacing, a blue chevron, and a gray underscore.</desc>
+  <defs>
+    <!-- Mask the rear outlines instead of painting white window interiors. -->
+    <mask id="rear" maskUnits="userSpaceOnUse" x="72" y="72" width="368" height="368" style="mask-type: luminance;">
+      <rect x="72" y="72" width="368" height="368" fill="white"/>
+      <path d="M398 180C398 140 370 112 330 112H184C144 112 116 140 116 180V326C116 366 144 394 184 394H330C370 394 398 366 398 326Z" fill="black" stroke="black" stroke-width="24"/>
+      <path d="M370 208C370 168 342 140 302 140H156C116 140 88 168 88 208V354C88 394 116 422 156 422H302C342 422 370 394 370 354Z" fill="black" stroke="black" stroke-width="24"/>
+    </mask>
+    <mask id="middle" maskUnits="userSpaceOnUse" x="72" y="72" width="368" height="368" style="mask-type: luminance;">
+      <rect x="72" y="72" width="368" height="368" fill="white"/>
+      <path d="M370 208C370 168 342 140 302 140H156C116 140 88 168 88 208V354C88 394 116 422 156 422H302C342 422 370 394 370 354Z" fill="black" stroke="black" stroke-width="24"/>
+    </mask>
+  </defs>
+  <path d="M174 96C185 88 198 84 212 84H358C398 84 426 112 426 152V172M426 192V298C426 312 422 324 416 334" stroke="#6C7A83" stroke-width="7" stroke-linecap="round" mask="url(#rear)"/>
+  <path d="M146 124C157 116 170 112 184 112H330C370 112 398 140 398 180V200M398 220V326C398 340 394 352 388 362" stroke="#6C7A83" stroke-width="7" stroke-linecap="round" mask="url(#middle)"/>
+  <path d="M88 314V208C88 168 116 140 156 140H302C342 140 370 168 370 208V228M370 248V354C370 394 342 422 302 422H156C116 422 88 394 88 354V334" stroke="#6C7A83" stroke-width="7" stroke-linecap="round"/>
+  <g transform="translate(229 281) scale(0.62) translate(-256 -256)">
+    <path d="M134 126L249 241Q256 248 249 255L134 370Q130 374 126 370L100 344Q96 340 100 336L188 248L100 160Q96 156 100 152L126 126Q130 122 134 126Z" fill="#38B6F4"/>
+    <rect x="248" y="346" width="168" height="40" rx="7" fill="#6C7A83"/>
+  </g>
+</svg>
