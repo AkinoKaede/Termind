@@ -16,37 +16,40 @@ private struct MobileConversationAttachmentDropModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if isEnabled {
-            content
-                .overlay {
-                    if isTargeted {
-                        DropTargetOverlay(
-                            presentation: DropTargetPresentation(
-                                title: String(localized: AppStrings.Assistant.attachToChat),
-                                detail: String(localized: AppStrings.Assistant.filesAndImages),
-                                systemImage: "paperclip"
-                            )
+        // Keep the conversation mounted when approvals or other interactions disable drops.
+        content
+            .overlay {
+                if isEnabled && isTargeted {
+                    DropTargetOverlay(
+                        presentation: DropTargetPresentation(
+                            title: String(localized: AppStrings.Assistant.attachToChat),
+                            detail: String(localized: AppStrings.Assistant.filesAndImages),
+                            systemImage: "paperclip"
                         )
-                    }
+                    )
                 }
-                .contentShape(.rect)
-                .onDrop(
-                    of: [.fileURL, .image],
-                    isTargeted: $isTargeted,
-                    perform: receive
-                )
-                .animation(
-                    reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.16),
-                    value: isTargeted
-                )
-        } else {
-            content
-        }
+            }
+            .contentShape(.rect)
+            .onDrop(
+                of: isEnabled ? [UTType.fileURL, .image] : [],
+                isTargeted: Binding(
+                    get: { isEnabled && isTargeted },
+                    set: { isTargeted = isEnabled && $0 }
+                ),
+                perform: receive
+            )
+            .animation(
+                reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.16),
+                value: isTargeted
+            )
+            .onChange(of: isEnabled) { _, enabled in
+                if !enabled { isTargeted = false }
+            }
     }
 
     private func receive(_ providers: [NSItemProvider]) -> Bool {
+        guard isEnabled else { return false }
         let kinds: Set<MobileDropKind> = [.files, .images]
         guard MobileDropPayloadLoader.accepts(providers, kinds: kinds) else { return false }
         Task {
