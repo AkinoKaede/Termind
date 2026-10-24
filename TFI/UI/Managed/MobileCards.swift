@@ -7,14 +7,16 @@ import UIKit
 
 struct MobileCardPage<Content: View>: View {
     @ViewBuilder var content: Content
-    @State private var reorderScope = UUID()
+    @State private var reorderSession = MobileCardReorderSession()
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) { content }
                 .padding(16)
         }
-        .environment(\.mobileCardReorderScope, reorderScope)
+        .environment(\.mobileCardReorderSession, reorderSession)
+        .onAppear { reorderSession.interaction.reinstall() }
+        .onDisappear { reorderSession.interaction.uninstall() }
         .background(Color(uiColor: .systemGroupedBackground))
     }
 }
@@ -66,10 +68,15 @@ struct MobileCardSection<Content: View>: View {
 private struct MobileCardSurface: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.mobileCardIsDragPreview) private var isDragPreview
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
+        if isDragPreview {
+            surface(
+                content, shape: RoundedRectangle(cornerRadius: MobileCardDragAppearance.cornerRadius),
+                containerRadius: MobileCardDragAppearance.cornerRadius)
+        } else if #available(iOS 26, *) {
             surface(
                 content,
                 shape: ConcentricRectangle(corners: .concentric(minimum: 20), isUniform: true),
@@ -100,7 +107,7 @@ private struct MobileCardSurface: ViewModifier {
     }
 
     @ViewBuilder private func filledSurface<S: Shape>(_ content: Content, shape: S) -> some View {
-        if #available(iOS 26, *), !reduceTransparency, contrast != .increased {
+        if #available(iOS 26, *), !isDragPreview, !reduceTransparency, contrast != .increased {
             // Keep dense text legible while retaining the system's glass edge and lighting.
             content
                 .background(
@@ -172,7 +179,6 @@ struct MobileActionCard<Content: View, Actions: View>: View {
                 .contextMenu {
                     actions
                 }
-                .modifier(MobileCardDragSource())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .contain)

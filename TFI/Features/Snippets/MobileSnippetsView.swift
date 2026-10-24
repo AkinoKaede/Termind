@@ -72,11 +72,14 @@ struct MobileSnippetsView: View {
                         sectionHeader(section)
                             .modifier(
                                 MobileCardDropTarget(
-                                    reordering: cardReordering, orderedIDs: section.snippets.map(\.id),
+                                    reordering: cardReordering, sectionID: section.id.packageID,
+                                    isExpanded: section.isExpanded != false, compact: compactCards,
+                                    orderedIDs: section.snippets.map(\.id),
                                     move: { moveSnippet($0, into: section.id.packageID, before: $1) }))
                         if section.isExpanded != false {
                             MobileReorderableCardGrid(
-                                items: section.snippets, compact: compactCards, reordering: cardReordering
+                                items: section.snippets, compact: compactCards, sectionID: section.id.packageID,
+                                reordering: cardReordering
                             ) { id, before in
                                 moveSnippet(id, into: section.id.packageID, before: before)
                             } content: { snippet in

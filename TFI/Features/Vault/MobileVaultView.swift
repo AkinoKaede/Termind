@@ -487,11 +487,14 @@ struct MobileVaultView: View {
                         hostSectionHeader(section)
                             .modifier(
                                 MobileCardDropTarget(
-                                    reordering: cardReordering, orderedIDs: section.hosts.map(\.id),
+                                    reordering: cardReordering, sectionID: section.id.groupID,
+                                    isExpanded: section.isExpanded != false, compact: compactCards,
+                                    orderedIDs: section.hosts.map(\.id),
                                     move: { moveHost($0, into: section.id.groupID, before: $1) }))
                         if section.isExpanded != false {
                             MobileReorderableCardGrid(
-                                items: section.hosts, compact: compactCards, reordering: cardReordering
+                                items: section.hosts, compact: compactCards, sectionID: section.id.groupID,
+                                reordering: cardReordering
                             ) { id, before in
                                 moveHost(id, into: section.id.groupID, before: before)
                             } content: {
