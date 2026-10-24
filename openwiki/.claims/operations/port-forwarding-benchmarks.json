@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ba7a6243988378f5a5c5c8ffbab03baf5277b49128a5009d20c5d981170ec4e4",
+  "pageVersion": "sha256:80660923020d24a6d5a29649e5b92709a1134370db0fd1b7bc234f7d5001ff3d",
   "claims": [
     {
       "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
       "statement": "The port-forwarding benchmark is a standalone command-line product that imports shared Termind modules and runs its own benchmark main rather than being hosted by Termind.app or a test bundle.",
       "evidence": [
         {
-          "resource": "repo://Benchmarks/PortForwarding/main.swift#L1-L22",
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L4-L25",
           "version": "repo-lines-v1:sha256:e683751ebf2662bdfa0efec90cc9c9cf679bac1a5e2e06e7cf1e4ee57e2880e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OGEyZDdmYzIzNTUyOWMzYWJiMjVmNmUzZDA4N2I2NGE1YmJkMGRkZTU5OTgxMTMzNGU3NDkzNTAyMmQxMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkYzA1YWYyY2IxN2U1ZDgxYWNiNjkxMzE3YzNkOGFiYWM1NDBhZmE3ODQ4MzBlZTI2NjE2YTJmNTViOTYyZDIifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1149-L1163",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1147-L1161",
           "version": "repo-lines-v1:sha256:81e3f410bb7eb9cdc22c2c82d861c5efde12dcfeef5f65505fda733bcc11955e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNGJkM2U1MzkyMzUwMzkzYmQxYmQyYjI0MjdmNjMwZGU2OTUzNjFkNjY2ODMzYzE5ZTE2NzEzYTRiMWZkNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwNTIwN2U2NTMzOWUxM2E1NTIzZjFlMDhkZGJiNTllMTYzMDY3NjI4NGZmOTdiNzY3NGE4YjFkNzIzMGY5NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiOWFlYjQyMDRmZmM1Nzc0MjY2NGY2NDQ3NjcyZWRjZmIyM2IzNDAwYzhhODkwNmFiNmMyODhkZTg5OGVjMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmZDUyNjJjZjUxZmQ4ODBkNjgxZWFiYTkzY2VlYzM2MTkzMzhjMzU4MmNlYzhhZWU3OTliODY4YWFhMTlhZDgifQ"
         }
       ]
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://Scripts/benchmark-port-forwarding.py",
-          "version": "repo-file-v1:sha256:f5dbf44c72bf0f0c8476e1c86673dc906612b8c32bd6a5647215f3fd70a4b480"
+          "version": "repo-file-v1:sha256:72c0ce517559334f62e4edc189b406c2bdb1fe13b8d85e8c2bbc80db72c2e585"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://Scripts/benchmark-external-port-forwarding.py",
-          "version": "repo-file-v1:sha256:450032eadc5831780f7290b6ea0a72abab016e6c1479f30dd6d182f3b3214881"
+          "version": "repo-file-v1:sha256:acc2f5426f8c8ea1bba7699546335a11339d78ef813352ea800816bff29c2e3a"
         }
       ]
     },
@@ -42,7 +42,7 @@
       "evidence": [
         {
           "resource": "repo://Scripts/ssh-forwarding-openssh-fixture.py",
-          "version": "repo-file-v1:sha256:b3bbbf53d219612835609cb1f3f54de371411d266c7dd9d7913e592aef91bf4e"
+          "version": "repo-file-v1:sha256:b1fa2d8d4cfd86b8083f7738e976678da58a370860f59b57f96b1c5a3afc25c5"
         }
       ]
     },
@@ -51,24 +51,24 @@
       "statement": "Local/dynamic pool start registers shared rules on existing slots including draining slots before starting the stable listener and requesting growth, with rollback on failure. Admission selects registered non-draining slots by lowest reported per-rule count and round-robin ties; Remote starts on the primary only. The standalone runner starts the rule and waits up to 120 seconds for the effective pool size before workload time/CPU sampling, forcing one for Remote; auxiliary opening/installation is limited to four concurrent slots and registration precedes admission. Metrics exclude cold expansion and report the final connected count. Its timed matrix covers request/response, duplex, jumps, mixed workloads, and separately reported five-second idle CPU; slow-consumer and listener/disconnect lifecycle cases remain functional wire coverage.",
       "evidence": [
         {
-          "resource": "repo://Benchmarks/PortForwarding/main.swift#L132-L267",
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L135-L270",
           "version": "repo-lines-v1:sha256:b52a6d9ed10f664ca3ab86013fd83397fc0ce8c4034f65452f6d0ff734cfd898:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjZjI0ZTMzNjA4NTA1ZTViNTdlYWUxODdkNTZlNWI1Y2QzOGI2ZTM5MDhlNTM3ZjBiYmU0NzcwNDhlMDZmYjU4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4MjFiZDJkMjRiOWE3OGE1MGVhYTlmZDg5MzA4MDhmOWEyMTc2ZTYwNTliNTAxNzc5NzljYzNkZmYxZGJjZWQ5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhYWM0NDljMTRjYTg2MWNhNTVkZjA5YmY1MzI0YzQyNmU2NjM1YTgzMjU3MTNlOGFhMzIzMTc2Mzk3ZGI1NzM3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMDkyOGJhMTAwMWQ0OTQwMGJiMzY1OTU0YzJmMjNmYjU1NTg0NzNhYWZlNzcwNDc2MzYyMmI5ZGQxNTYxNjlhIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L134-L158",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L137-L161",
           "version": "repo-lines-v1:sha256:fba1d5da6aa1cc80174a28f703b0a5f29931838ce226256e3a8ad749be844a06:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzFmODg1ZTdlYjQ0ZjM2NjMyYmE4OTE1MmVlODcxYzVkMmQ5Y2NjNTIzYzVjYzk1N2ZiNjQ5Y2E4NmEwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOWY5MzQ2MmRjNzQzMjdiOWMwZTQ5MDcxODlhYWE3NzdkOWUwOWM3NTRlM2NlNGRiZTIwM2VhZWQ1YzJlMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwZDg0ZDhiOTE2ZmVkM2Q0M2Q1MmEyZGYwMzljMGI0ZDMxOTE2MGMxNWI0MmQxMGE2ZDA2ZTM0MWQxMzhkMjEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L249-L300",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L252-L303",
           "version": "repo-lines-v1:sha256:31d2bab156125d6d00f11cf7781101cc6838521e66e3c3a14d6768785932f724:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NTE3MzFlYzZhYWEyMmQwNDk1MjczYjdlOWIyMmVlNjY4YjFhODgyZjAwZDRmNmY3MDQzZTkxNzNkZDcwM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhOGUyYWJhZTNmZmI4NjNjYzYyMzUxMDNkYzIxZGI3MmE3NmI4YWY4ZjA1NjQ5OGVlOWY4MjVmNWJiZWVlYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0ZGMzNTE2YjZmYjY4ODUxOGIyZmRiZDVmYWFhODJiNzk2NjE1MDNhYjI5NDAzNjU2NTViMDU0NzUzZTM0NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0YmMwYzcxZTQyMWYxNjU1ZmNhOTZlMGY0MDY4OWYzZDcwMjIwMmYyY2U0OTlkNjY2ODc1ZmI3YzRlNjM3OTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L398-L425",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L401-L428",
           "version": "repo-lines-v1:sha256:92069e6cdc6a898509aa3ca86e563ac98b298cc8cca8cb2a19b88c64e678c35f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MjM5YTMxMTJiZWYyNjMzYTY4Yjg4Nzk1OWViYWZmNmY1ZjY3ODI3NzJlYTA1YTdmNjU0MzBjNGFjZTllOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOGU2YmZmOGY5OGFkMDkyZmYyNDgyMjRkMTlkMGVlMmVjNjQyOWY2ZTU3NDEyZDg2NGJkMjU4ZmQ4NTU4NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMTUwOTViMTU2YWFiYjc0YmI0Y2YwYWU5OWE3MzJmNDc1YWMyNjNlOTViNmIwZDNlNWZiOTJhZGQ0MmJiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhM2UyMWM2NGJmOWJjZTY5MjY5ZjZjZTljYjRiMmIyODZlYTU2YjgzMDM1OTJjNDcwNzg1MjQwMTFlYTlhYjUifQ"
         },
         {
           "resource": "repo://TFMTests/SSHForwardingWireTests.swift",
-          "version": "repo-file-v1:sha256:d2c89a6664abf8588df0db4c1d8b6898dfa027e60ba2dbae594512d4f600d3e1"
+          "version": "repo-file-v1:sha256:c0f256427dd0ef4f693653f66e3451eb4fd328e72d0984d98f74f96140a942a5"
         }
       ]
     },
@@ -78,10 +78,10 @@
       "evidence": [
         {
           "resource": "repo://Scripts/benchmark-external-port-forwarding.py",
-          "version": "repo-file-v1:sha256:450032eadc5831780f7290b6ea0a72abab016e6c1479f30dd6d182f3b3214881"
+          "version": "repo-file-v1:sha256:acc2f5426f8c8ea1bba7699546335a11339d78ef813352ea800816bff29c2e3a"
         },
         {
-          "resource": "repo://Scripts/benchmark-port-forwarding.py#L83-L106",
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L86-L109",
           "version": "repo-lines-v1:sha256:d20bef1d2ee4f4292f8c208111362edb97c3e6c8a635be8ce7945c38f9c9d316:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZmUyNDVhZDA1MDk0MmFmOWViM2I5MDU4NzIwNmU2MTljNjA3M2Y3MmY3NjdhMTlhMGMxYzBlZGEwNDFhZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxODNhYWZmYmExNjY0ZGUzZmYzOTkwMzczY2ZjNGQzNjM2YTZhYTIwNTA1ZGUxNzNlMDI2ZmZmZWQ5YmEzOWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyYjgwYTNkNWMzZTQ4MTRiY2RhNjkyY2RiN2Y4N2Q2NmI4NTNmZGMxNDBhNzkyZTQzYzQ4ZjU5MTcxMmRiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYWEyZmFiMzgyODdhN2QwZWMyMjBjYjM0Y2ViZmQ2MTYxYjhjOTY2MDhlNTVjMzBmZTcxNDEyNGE4ZTE5NGIifQ"
         }
       ]
@@ -91,22 +91,134 @@
       "statement": "SSHForwardingWireTests provides serialized, TERMIND_SSH_FIXTURE-gated functional coverage of pool shrink/re-expansion, admission recovery during draining, slow consumers, and backpressured disconnect independently of timed benchmark measurements.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L225-L243",
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L228-L246",
           "version": "repo-lines-v1:sha256:249cadba8edfcc565961b5c521f69c300afb01a335521343d388503c8cbd156e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNDI4Nzc1NmUxNGQxZGE0YTAxYWEzYjUyYTMyOTgwZjdkZWJmYTFlYTIyMDI2ODFiMmY2MWU1NzEwZjFkNTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNThjMzMyMTBmNzVmMTYzZjVhMjlkZDA3YzQyNWZkYzk4YjllMzFiYmIxNTA2MzNkODBjMzkzMGJjYjdlYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2YjYxODBmZjUwOWQyNTYxOWUxZTBmZDBkMDY3ZGFhZGY1YmYzZjVlNjM4OWY3MzI5MDIwNjg5NmI1ODM5ZDMifQ"
         },
         {
-          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L286-L317",
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L289-L320",
           "version": "repo-lines-v1:sha256:7b45be6bc1559861d8d487bcfd1f9d4e930cd61b41c4188e27944fc36676b1e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5OGIwNzIyOTM5NjJhY2VkOWRkMmU0NWU5ZWZhNjgzZGJiZWYwNThhYWQzMjFkMzZmYjFmNTkzNGZmOTVlNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMzNkYjVlNjk0MzU3MjUzNDAwZDYwODFlNmU2NDFhMTQ5Y2E5ZGY5OWQzOTlkMGNmNWQ4YTg5NGQzNGI4OGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3OWZlZjdjOTI1OTZlZWU4ZTA1OWY0YTIyYzM0MDQ1ZTMyNzNjMDUzMjMwZTJlYjZmZTJkMDU5OTZiZGE5ZWEifQ"
         },
         {
-          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L9-L105",
+          "resource": "repo://TFMTests/SSHForwardingWireTests.swift#L12-L108",
           "version": "repo-lines-v1:sha256:0c6e4f8794f195ce3f2d40e91d09efec28667bf45c843a646a1631540120c343:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4YzU3NmQyZDFjYjVkZTQyYTYwZDVmMmExNzM0MDdjODI0ODI5YTcxZGNiNTA0NWY0YmFkY2Y5YjZiYmMyZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ZTgxY2E5ZDYxZDUwOTYxZTA1ZjYyYjQ4N2UyNTFjN2JhYTExYzI4YTRhMzE2ZTJkNDIwNTZjZTdkZDg5ZjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNGM2OTVlMTdjOTZiN2U4MjJlYjAyMTAwMDcwZTkxZDgzZjlkNzk5N2Y4YWI2YWQ0YjNiOTk1OGNlNDc1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwYWRjNjk2ODY5ODViMjc1NDM5NzQ2NzMwZjA4YzkyYzU3MmE2NjMyZmUxMzdkMjA3Yjk5ZTc4YjM0MzRmYjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c49b027a28964ca1bc10fba6be386ed7",
+      "statement": "The external driver measures only direct 64 KiB request/response workloads, defaults to 128 rounds and five repetitions at 1/16/64 streams, and quick mode reduces this to one repetition at 1/16 streams without changing rounds; manual mode requires name, kind and a valid listener port and assumes rather than detects one SSH connection.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L111-L188",
+          "version": "repo-lines-v1:sha256:923aee39de72d44d0ca0982e576a03290e1217dc586439e6306259138f5d3a9b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOThjNzkyMTI1YmU4NDIwYWU3NzNhMTBjYTk5MGIzYTg0YWY2OWMzY2ViZjdlYzVkZjZjZjFhMTY2NDI3N2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNWRkOThmNjc3MDFjYTFiNjdmYjNhMjQyNzZkOTA2ZDNmYzZkNDlkZjBiYTVkNjMzYWRjZjcyMDMwNjAzOWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiNzczOGI0NDI3ZGEyM2E5NzQ2MDIxOWFjOTE0ZTNmMTM5NWUzMjRlMDQ1NTAxMDUwYzI4MGJhMGI3MWE0ZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/port_forwarding_benchmark_common.py#L58-L118",
+          "version": "repo-lines-v1:sha256:efede8a615f186039cb5ec7e08125ee882edd3363f0cc61e6ee3edca7fca652a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1Y2JlMDhmYjAwM2ZiYmY4YTFhMGJlZGFhYzBlM2FjMzhkY2EyNjRhZjk2YmFkOWFlZGNmYjk0Y2QxOGFhZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjMzkxNDJhOGQwYzI2YmQ5MGMwY2ZmYTY1YzRhYjBmZjNiMjYwNzg4YTAyZTg2ZmM1OGJlYzFhNzhmNTM0OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwODNkOWEwMTA3ZWNkOWQyMjI5N2MzZTdkOGZhYjY0ZmI3NTI3MDVlMzI4NGE4NzBkZTBmOTVhNjk5MmYyOTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_35779af6a8ef45ae8b5634f95d6da604",
+      "statement": "External ready latency ends after TCP connection and optional SOCKS negotiation, unlike the Swift runner which includes an echoed probe; the drivers' workload matrices and readiness metrics are therefore not identical.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L354-L384",
+          "version": "repo-lines-v1:sha256:a3e2ce97327128517efe264c45e49308bb6d4be3a7ba924516144da8993ce871:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExZWMxMDAzNTUzZmJiYTAwMGM0YjE4YjQyY2I2MzVkN2U5OTZjM2JhZDAxYzM5MTBjOTkxZTY3OWY0YTUwMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlZGI5YmNhMWQ0YmFhZjlmYTkwYjE0NDdkOGFhZDVmOTlhZWZiNzYyNjZkNDgzN2NmZDYwMzk3MWUyZmE3MmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIxNjgwNzM5NWJiZDVmYmUwNGU1NDA2ODQyMGM4OGRkZWQ2NzVmZGI0ODRlOTY1YTZjZTUzZjFjNGYxN2UzMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjYzhlYThiYzM0ZDk4MTkwMjZlNjdiNWMyZDE0ODM2NzJjNDFhMWFlMWMzZDE1OGEzMjUzOWI0OWQ4YzUzMjMifQ"
+        },
+        {
+          "resource": "repo://Scripts/port_forwarding_benchmark_common.py#L58-L82",
+          "version": "repo-lines-v1:sha256:1821107b1819fc7a1dadd7db4b3c318b9ff3eb900896b62070b6592db893b70b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1Y2JlMDhmYjAwM2ZiYmY4YTFhMGJlZGFhYzBlM2FjMzhkY2EyNjRhZjk2YmFkOWFlZGNmYjk0Y2QxOGFhZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxZGRiNzc3NzFiZTQ0OTRkN2Y1YmYzYzU5ZmRjNzZhMjc0NWZmOWRkNWI5N2YxZDFhNTk2YmIxOTg3MjMyZDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjMzkxNDJhOGQwYzI2YmQ5MGMwY2ZmYTY1YzRhYjBmZjNiMjYwNzg4YTAyZTg2ZmM1OGJlYzFhNzhmNTM0OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZWMzMzFiYTk0MGQzMzBkN2FmZjViMTYwMDc4NjEyZTdiYzc3YzU4OWNmMDYzYTVlMzkyNDVkNTQ3MjlmZGEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_448fd2cbf1ba472d9258fd8c809f7c98",
+      "statement": "System-SSH CPU includes Python and child CPU from before SSH launch through termination, while forwarder_peak_rss_mib is a single post-workload ps RSS sample; manual external mode omits CPU and RSS.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L159-L186",
+          "version": "repo-lines-v1:sha256:aba737115466666152d552dbea24e7a93f90e3593e53bde9be4e5ed95154de82:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzcxNDk3Y2ZjODJlNmZlMGZmZmYwYjA2MjM2NWVmNDk3MTUzODhhNjU0N2I5N2ExMzAwZjdlZWEyOGYwMmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2OTc0YTFiMWUxNWMwN2UyNTAwNzdiNGExZTRjYzZkYjgzNmM2MmNlZThkN2UxODhkMjRlZGQ5YjU5N2M2NDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4YWVhMWYxYmQyM2JkNDczMjlhMzMyNjNhMmYwY2JkNGM5M2JjYTY0MDMzNTE5MDUyODIzN2U1OWU3MzY2OGQifQ"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L60-L108",
+          "version": "repo-lines-v1:sha256:6f0db2c4dc55679f6418c5f2ae5745ace9d08ec6172c3363f1c9ac022426cbc0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwYWU3NzEwNDQ1M2Y3MTMwNTEyMmY2MTVjZTlhN2I3Y2UwNDc1NmE3YmYzMjc5NDA0MTIxZDNmOGY5MmY0OWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZWNlNTQ2NGYxZDc3ZjJkYzFiNGYxNDQ1NDY0YmE2OTIxOGQwNjkyZjU0ZjY5ZjA4ZWQ1MTU1NTQ4ZDI3ZjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiMDgyZDEyNzRlODM0M2JhNGNlYTNhMTQwNDMwMTI3MTNkNjRjMDNiMmU1ODljZDgxOGEwMmU3YTM2NDVlM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYWEyZmFiMzgyODdhN2QwZWMyMjBjYjM0Y2ViZmQ2MTYxYjhjOTY2MDhlNTVjMzBmZTcxNDEyNGE4ZTE5NGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_93326abf58f549cf8afff1247856aa73",
+      "statement": "Shared JSON output contains environment, note, records and medians grouped by implementation/kind/streams/jumps/workload/connection count; medians summarize per-run metrics, and both drivers write output only after completing their measurement loops. The Termind driver extracts only FORWARDING_METRIC records, not FORWARDING_IDLE output.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L131-L188",
+          "version": "repo-lines-v1:sha256:bd441eb1bc7b46408c6109f2fd93c5c03f0cac6c2592cf3a4ccce74d35039e6f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwYmM1MTI2NWRhM2M0OTRiZGQyOTQwOGMwZTE3NzY2NWJmZWFkNmZkMjc5MzZmMDU5ZDJjNTU3YjE5YTNjZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNWRkOThmNjc3MDFjYTFiNjdmYjNhMjQyNzZkOTA2ZDNmYzZkNDlkZjBiYTVkNjMzYWRjZjcyMDMwNjAzOWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkZGM4OTM3NTAxN2YxODU1OWFmNDA4Njc2MzUyZDYyYWI0MDY1ODQxM2JhMTAyZWM1MmNmYTlkNjVkMWJjOTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L86-L158",
+          "version": "repo-lines-v1:sha256:3ce929750fb82eb8560cc4a0ec86d5ab87bb69755d9cba24140bec9017958e7a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZmUyNDVhZDA1MDk0MmFmOWViM2I5MDU4NzIwNmU2MTljNjA3M2Y3MmY3NjdhMTlhMGMxYzBlZGEwNDFhZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyYjgwYTNkNWMzZTQ4MTRiY2RhNjkyY2RiN2Y4N2Q2NmI4NTNmZGMxNDBhNzkyZTQzYzQ4ZjU5MTcxMmRiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/port_forwarding_benchmark_common.py#L121-L169",
+          "version": "repo-lines-v1:sha256:224e26006750ebeadb617bf2a631e7419d7d8ae77e2a918670101bc61a0f5a92:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkMjJhNWI4NzY0ZDIxY2NiZjRhZDc4OWZlNDQwMDUxODYzMzUxZTMzOThkZWYwYzI2NmRjNTg4MTM0NDU4M2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxODE2Yzg5MDVkMjYyYjFhYzEzNGQwZWE2MGZjOWU0ZjE5ZTc0YTNiNTFhMTlkNzVjM2ZlNjMzMmNhMWY3MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmYmQwMDkzMTRiYzI3MDg0MTY3MzRhMDJhZTVmZjM5YTFlNDhhMDUwYmU5MWY0M2IyZmFhOTIwMDJjNjJiZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ca754d3ea1254d8a9828c05ae0da63c1",
+      "statement": "Reproduction requires Python and local OpenSSH tooling; the Termind driver invokes xcodebuild for macOS Release, active architecture and resolved package versions. The fixture exclusively creates private metadata containing the client private key, ports, username, server and fingerprint after sshd readiness.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L36-L73",
+          "version": "repo-lines-v1:sha256:aeaae3f86bf0ae1880d4b968e944e949c6a3410d6e213179f29ed590f0a88fd8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmNhZjkyMDVhNDc5OWI1Y2RjODU0MDE0NmU0YWI0NGRjZDY2ODJhMTk1ZWUxYjg3NDRlYzg5MzUxODZlMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0NmNhYzI0ZDcyNGExMDI2MzgzZTg3MDUwNGI0Y2M5NDdiNTU5ZTZmMmI5YWM3OTViNWNlMTk2MjIzM2Q1MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExYTRmMDVmZjRkNDhiNzRkNGMzNjU1MGNkYmUwYjhjN2UzZWVkYzM3MmEyNDdmMTI1NjY2YjFmNmUzMTljYzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzY2IzYmRiNGRkNzAzYWI3NmRjNTk0OTFiOTY5ZTFlMDgwMmNjMzM2NjEyZTEwYmMyNjY0MmFmMDJkZmI3ZWEifQ"
+        },
+        {
+          "resource": "repo://Scripts/ssh-forwarding-openssh-fixture.py#L43-L108",
+          "version": "repo-lines-v1:sha256:3bc7b85e632f342181ecb8a75b8dfd879946b0fe5422b689e8317e10503aa5dc:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyZTMxMjU3ZGMwYWUxZDU5MzAzN2MyODBjOWFkNTA4MTliOGE2YzhjZjcyOGJlMDcxNmQwMGEzZWVjYzA0YmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyOWUyYTdkNTFmMjUwMzg2YmEzNzFiOWQ4OTQyNjVmNGVlZjg3YWMwMGY5NmU1NjM0MTJlZGViYTNjNDQ1YjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2NTM4ZGNhYTE0YjJhMmEzN2UxNjJjMTZmM2I3NzI0ZmJhODdhZTIxZmU0ZTc1ODI3NGYxMDhhNGJiZjMxYjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4ODhjN2UwOWNlOGUyOGM4NDFlZDg1OGIyMmFlNTA5YTBmZDk2NzdhZWUzOWYyMzFjYzM4NjFjZDE4MzdkMmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_004baea33d294c64a2238ae6f8f0f34c",
+      "statement": "On normal interruption or SIGTERM the fixture terminates the sshd process group, waits five seconds before escalating to SIGKILL, deletes only metadata it created and cleans its temporary directory; forcibly killing the Python fixture bypasses that cleanup.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/ssh-forwarding-openssh-fixture.py#L48-L121",
+          "version": "repo-lines-v1:sha256:1081fa44603ac1a61fdfa0b7900f778d6221d96ec141ddeda7055797c2572b8c:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYjFjOGM2ZTY5ODhkZTFjYTg1MmI2NzE3ZjFlOTgwNmIzYTVmYzE1ZDNhYzY4ODExMTMxNmI5MGNkYmViZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmODA4ZmQwYTZlNmNmMTc4MjRhN2IyZDI2MWJiMDkwZTk2Zjg4NWIwYTFlNWNjYjJmYzRjZTc2MGFlMzEzMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1MGU5N2I1N2Y0YTM3Njk2ODVlNTJmNGQxODFjMThlZDljYzUwYzljZGE0OWUyOWIxNmYxODg4NmYzZDQ3OWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_10d076c22c35438b9d62a6a19170ee38",
+      "statement": "The system-SSH driver terminates and waits for each owned child in finally with a five-second kill fallback and scopes its private key to a temporary directory; external mode does not stop its manually managed listener. Its SSH command disables host-key checking and uses /dev/null for known hosts.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L143-L188",
+          "version": "repo-lines-v1:sha256:1444ceb9410ba839ffbbdc2c9b98339e797e38fdcaf0c0c3c226f71d50cdfe7f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3ZjQwZjhhYzlhM2NhNjQwMzEzMzg4ZTBmYTJhODQ5Y2FmODE2MTA2MDc3YWEyOTI5OTAwMTAyNmYxNjkzNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNWRkOThmNjc3MDFjYTFiNjdmYjNhMjQyNzZkOTA2ZDNmYzZkNDlkZjBiYTVkNjMzYWRjZjcyMDMwNjAzOWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3YjkzMWQzODE5ODkxZDI3YTczMDllMzgxOWUyZTFlZmE3M2FhZDE2ODg3Y2RhOTJlYTRjZjk0MDViOGViNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py#L26-L108",
+          "version": "repo-lines-v1:sha256:71d755af84d5a90a9c8c937b7958c8896dc5d079a62b20f5ad81e7281eb09875:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwODgyZmQwNGEyNmJlNjVjYzkyNDkwYjM4NjJiYjRmZjczNWU3ZjhkNzc3YTAzYzI4NzNlMzIxNzk1NTRjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZWNlNTQ2NGYxZDc3ZjJkYzFiNGYxNDQ1NDY0YmE2OTIxOGQwNjkyZjU0ZjY5ZjA4ZWQ1MTU1NTQ4ZDI3ZjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5OGIwNjNkOWI0N2U2NTM3OTYyNTU3MmNjZTE5NzY2OWQ1NzY3ZTEyYzE4YmUwNzU2NTJiOGNkOTgxY2U4ZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYWEyZmFiMzgyODdhN2QwZWMyMjBjYjM0Y2ViZmQ2MTYxYjhjOTY2MDhlNTVjMzBmZTcxNDEyNGE4ZTE5NGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fada8b8212c0423db138e596d6b3d186",
+      "statement": "The Swift workload stops its rule and disconnects on success, disconnects on workload failure, and reports connected/target counts plus the last recorded failure when pool warm-up times out.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L225-L247",
+          "version": "repo-lines-v1:sha256:b2b8f4159421a1a34d5d285d08e662c4db1b814f08402ababe12d36255326f9a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkNDUzZGE1NzBlYjZlM2FlZmFjYjQxNTZiODdjZjMwN2YzNjgwMmIzZGUzMGM3OTNlOTU1MGY2YTFmMWNiZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyODhkOTZkY2JhMjgwM2Y5NWVjNzQ1ZjBkMThmODNmMTBmNGZkNTJiZDg3MzUyMDY5Y2I1NmE4NTZlNzE4YTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMjNhZmQxNzRiZTEzZWVkMjVmNmJjYTY0ZjVlNTQwOTM1NTNkYmM4NDMxOTdlYzIyZDU2ZTYyOGFmOTM3ZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNDkyMmZhNTFjMjFiMjY0MjBkYzQ4ZGYwYTZiZWE3Y2M3MjI5ZmU2NDVmYTQxMWYxODU5OThiNGVmODljY2MifQ"
+        },
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L82-L92",
+          "version": "repo-lines-v1:sha256:8d7661064b3cfb55c5e6f0f7c2d32b45bc63f0a0089035669b1e88fda44d6231:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkZjQxMTM3ODY1MjQ3MmUzZDhhYmExZTkzNzc5ZjM4NmFlMWU0ZWE3OTdmNTI0OWJhNDM0N2VmOWFmYjc2ZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyNzE0Y2FlNzhmYjAwOGNlMjdhNGYwYWNmNjY1YTMzMjJlNDc0ODlhN2M2MWRiYzQ2MTdjZjg1NDBjZjU3OTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwNmNkNGEyZTNjYzM1MDIyNDUxYmM1NGVjOTAxOTJkN2ZkODc2MmVlYzRjYzliOTEzMzRmMGJmMWVhZDkyMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiM2NjMjczMjMyMDNmZDMxYzhjYjM1YzU2MWQ5ZTE5MTgzMjJhZWJkNmJlODViNWFmOTcwNGQ0MTIzMTcxYTkifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: UI Design Principles
+title: Shared UI Design and Presentation Contracts
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -22,6 +22,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-7e27e66540bd1ea5c642a652
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
   - id: openwiki-source-ea5e06cbcadf0b0308e859c6
     resource: repo://Frameworks/TermindPresentation/AssistantToolDetails.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
@@ -110,6 +112,8 @@ sources:
     resource: repo://TFI/UI/Managed/MobileCompactCardContent.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-69c78ae0f81d65da7d64d801
+    resource: repo://TFITests/MobileAppReviewTests.swift
   - id: openwiki-source-7b4fb63b477bd12a15ae65d6
     resource: repo://TFITests/MobileAssistantTranscriptTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
@@ -190,13 +194,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# UI Design Principles
+# Shared UI Design and Presentation Contracts
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -343,7 +347,7 @@ Selection is a persisted user action; a missing stored theme is a display-time f
 
 ### Profile-driven tool cards
 
-`AgentToolPresentation` is a generic projection of descriptor metadata and lifecycle state, not an execution or replay owner. The app uses `TermindToolPresentationProfiles.renderer` to inject tool-family policies and localized vocabulary. Profiles can override summary, operation, batch operation, phase wording, detail and truncation notices. Detail decisions distinguish `.hidden` from `.useDefault`: suppression must not accidentally enter a generic JSON/error fallback.
+`AgentToolPresentation` is a generic projection of descriptor metadata and lifecycle state, not an execution or replay owner. The app uses `TermindToolPresentationProfiles.renderer` to inject tool-family policies and localized vocabulary. Profiles can override summary, operation, batch operation, phase wording, detail and truncation notices. Detail decisions distinguish `.hidden` from `.useDefault`: suppression must not accidentally enter a generic JSON/error fallback. A trusted profile can also set `preservesUnprojectedJSON`: when no presenter is supplied, the default detail path keeps the output as monospaced text instead of decoding it into generic fields, still suppressing duplicate Guardian denial feedback. This is an explicit profile opt-in, not the default MCP behavior.
 
 The trusted composition selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors receive the default profile, not local tool-family policy. Without a trusted, explicitly supplied presenter, decoded MCP JSON uses the same **generic structured fields** as an unregistered local tool—not a forced raw JSON block, even with `output: .json`. For example, `{"value":42}` becomes a `Value` field containing `42`. An explicit presenter can instead emit its own typed items and layout. Remote metadata cannot select local executable presentation code; presenter injection is a separate trusted caller decision. See [System Boundaries](../architecture/system-boundaries.md).
 
@@ -360,7 +364,10 @@ flowchart TD
     Renderer --> Policy{Profile detail decision}
     Policy -->|hidden| Hidden[No detail]
     Policy -->|content| Typed[Typed detail]
-    Policy -->|useDefault| Decode[Decode result JSON]
+    Policy -->|useDefault| Preserve{Preserve unprojected JSON and no presenter}
+    Preserve -->|Yes| Raw[Monospaced output unless duplicate denial]
+    Preserve -->|No| Decode[Decode result JSON]
+    Raw --> Typed
     Decode -->|Trusted explicit presenter| Project[Project typed items with failure state]
     Decode -->|No presenter| Generic[Generic structured items]
     Decode -->|Invalid JSON| Message[Output message or suppressed duplicate denial]
@@ -417,9 +424,9 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; Sidebar row IDs, editing height and independent shelf expansion remain source-level contracts; the former `ListViewMigrationTests.swift` is absent from this checkout. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit. Current `MobileCompactCardTests` checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording; it no longer contains the earlier geometry/persistence assertions. `MobileCardLayoutTests.swift` is absent from the current checkout, so balanced padding and multilingual header stability require fresh rendering verification rather than reliance on that former suite. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; Sidebar row IDs, editing height and independent shelf expansion remain source-level contracts; the former `ListViewMigrationTests.swift` is absent from this checkout. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` checks independent Host duplication and editor/persistence behavior; Host menu section ordering is a source-level contract in `MobileHostMenuPolicy`; `MobileCardTests` checks the two-tag limit. Current `MobileCompactCardTests` checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording; it no longer contains the earlier geometry/persistence assertions. `MobileCardLayoutTests.swift` is absent from the current checkout, so balanced padding and multilingual header stability require fresh rendering verification rather than reliance on that former suite. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
 
-For review changes, `MobileAppReviewTests.invitationFitsPhoneAndTabletWidths` renders English and both Chinese scripts at 320, 430 and 768 points, comparing light/standard text with dark/accessibility3 and requiring the accessible layout to grow vertically without recording a response. `TERMIND_REVIEW_PREVIEW=1` records PNG attachments; it does not enable the controller's developer preview. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
+For review changes, current `MobileAppReviewTests` checks that in-memory app models disable invitations and share an injected controller; it does not contain the former `invitationFitsPhoneAndTabletWidths` rendering matrix. Do not treat that former matrix or its preview flag as current mobile rendering coverage. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 

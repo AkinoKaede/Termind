@@ -60,10 +60,10 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # SSH Security-Key Authentication
@@ -84,7 +84,7 @@ Registration and assertion both use the fixed relying party **`termind.akinokaed
 
 `SecurityKeyCredential` contains the credential ID, uncompressed P-256 public key, verification policy, and a user-presence flag; it contains no private key. `WebAuthnSSH.keyReference` derives the OpenSSH public blob and fingerprint from that metadata. `HostLibraryModel.upsert` saves Security Keys as **`.external`** Vault metadata with an empty `credentialRef`, no passphrase or certificate, and no Keychain credential lookup; software keys cannot use `.external`. The V45 SwiftData SSH-key model and V2 Vault sync record encode the reference fields, so metadata can sync while the physical authenticator remains necessary for every new signature. V2 retains its frozen **`thisDevice` wire spelling** for external keys; decoding V2, loading V45 rows, and decoding legacy `SSHKeyRef` JSON normalize Security Keys to `.external`. Availability means the reference is present, **not** that the physical authenticator is connected. Saving or deleting hardware metadata rolls back on persistence failure without Keychain operations.
 
-The editor displays a **Termind reference** of the form `termind-fido2-v1:` followed by Base64-encoded credential metadata. Export/import accepts only that validated RP-bound format; it rejects an OpenSSH private-key header and malformed or oversized input. File import reads a regular UTF-8 file of at most 1 MiB and validates its contents before saving. The import path checks the `termind-fido2-v1:` envelope, JSON decoding, a nonempty credential ID of at most 1023 bytes, and a valid uncompressed P-256 public point; it does **not** re-attest the original registration or discover whether the authenticator is plugged in. This reference is sufficient to identify the authenticator credential and regenerate the public key, but it cannot sign without the hardware key and an allowed local system prompt. Treat it as account metadata when sharing it; it is not a backup of private key material. On iOS the import editor can choose a different verification preference before saving; editing an existing reference updates metadata without replacing its credential ID or public key.
+The editor displays a **Termind reference** of the form `termind-fido2-v1:` followed by Base64-encoded credential metadata. Export/import accepts only that validated RP-bound format; it rejects an OpenSSH private-key header and malformed or oversized input. File import reads a regular UTF-8 file of at most 1 MiB and validates its contents before saving. The import path trims surrounding whitespace and newlines, requires the entire trimmed `termind-fido2-v1:` reference to be **less than 16,384 UTF-8 bytes**, and checks Base64/JSON decoding, a nonempty credential ID of at most 1023 bytes, and a valid uncompressed P-256 public point; it does **not** re-attest the original registration or discover whether the authenticator is plugged in. This reference is sufficient to identify the authenticator credential and regenerate the public key, but it cannot sign without the hardware key and an allowed local system prompt. Treat it as account metadata when sharing it; it is not a backup of private key material. On iOS the import editor can choose a different verification preference before saving; editing an existing reference updates metadata without replacing its credential ID or public key.
 
 ## Signing and validation path
 

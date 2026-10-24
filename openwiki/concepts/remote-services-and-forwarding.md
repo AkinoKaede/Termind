@@ -1,7 +1,7 @@
 ---
 type: Remote service ownership
-title: Remote Services and Forwarding Boundaries
-description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
+title: Remote Services and Host Access
+description: Shared Host admission and service ownership across terminals, Metrics, Agent SSH/SFTP tools, and TCP forwarding. Explains operation-time access checks, connection reuse, session limits, and silent recovery.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 sources:
   - id: openwiki-source-0dba6aaa3f80b8ef8e74ebe9
@@ -96,10 +96,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 
@@ -145,7 +145,7 @@ A saved configuration or authenticated socket is not a permanent Host-access gra
 | Agent exec | Cached authentication configurations recheck access; `SSHConnectionWorker.execute` checks before delegating a new command. | Reusing an authenticated connection does not bypass admission for new exec work. |
 | SFTP | `AccessControlledSFTPChannel` checks each new operation, including opening a sibling; cross-Host copy checks a wrapped destination too. | Denied work never reaches the underlying channel. An upload already delegated can complete, and disconnect remains available without access. |
 | Forwarding | Rule registration and accepted local/dynamic or remote flows check current access; pool dispatch checks before assignment. | Newly accepted sockets/channels are closed on denial, rather than admitted to a worker. This does not itself replay or cancel existing flows. |
-| Metrics | Launch, reconciliation, and the sampling loop consult current route access. | Metrics retires its ongoing collection worker and hides authentication UI while preserving selection and cached readings. |
+| Metrics | Launch, reconciliation, and the sampling loop consult current route access. | Metrics retires its ongoing collection worker and hides authentication UI while preserving selection and cached readings. Locked targets or jumps report `locked`; entitlement loading reports `connecting`, and verification failure reports `failed`, not a quota lock. |
 
 Do not turn an **admission check** into **cancellation of already admitted work**. SFTP deliberately checks at the operation boundary, not inside each transfer chunk. Metrics is a continuing producer and has a different lifecycle response: denial cancels its worker and disconnects the sampler. Explicit user cancellation, shutdown, connection loss, and configuration invalidation remain separate teardown mechanisms.
 
@@ -158,6 +158,8 @@ flowchart TD
     PTY --> Borrowed["Borrowed SFTP channels"]
     AgentPool --> Exec["Non-PTY exec"]
     AgentPool --> AgentSFTP["Agent SFTP channels"]
+    Check -. "connection admission" .-> PTY
+    Check -. "launch and sampling" .-> Metrics
     Check -. "new operations" .-> Exec
     Check -. "new operations" .-> Borrowed
     Check -. "new operations" .-> AgentSFTP
@@ -181,6 +183,8 @@ Focused tests: `FrameworkTests/HostOperationAdmissionTests.swift` admits an uplo
 Ordinary terminal close retires its transport unless live SFTP channels retain it; pending native exec closes alone do not justify retention. A retained control connection is a separate exception: on PTY EOF it completes CLOSE/FREE and releases the PTY lease before reporting exit, so a post-exit control probe can use even a one-slot server. Each external SFTP driver retains the PTY worker through asynchronous close without the owner retaining drivers. Worker deinitialization performs cleanup on its serial queue, synchronizing only when not already there. See [Shell Integration](shell-integration.md) for terminal-context and startup details.
 
 `SSHMaxSessionsPolicy` supplies that per-connection `SSHChannelBudget` from the configured ceiling (default 10, valid range 1–100). PTY, exec, and multiplexed SFTP subsystem channels acquire FIFO leases from the same budget on a connection. A policy update changes live budgets and admits queued work when capacity permits; reducing the limit does not revoke active leases. Cancelling a queued request or closing the budget resumes it with cancellation. Direct/forwarded TCP channels, remote listeners, and jump bridges are forwarding mechanics, so they do **not** consume this OpenSSH-style session budget.
+
+The shared `SSHMultiplexedExecChannelOwner` implements exec state machines for both `SSHConnectionWorker` and the terminal worker. Sharing this implementation does **not** share a physical connection: each enclosing owner supplies its own serial queue, authenticated connection, buffer, and channel budget. This is the extension boundary for common exec behavior without merging service lifetimes.
 
 Runtime control exec is deliberately non-waiting: `tryAcquire()` succeeds only with spare capacity and no queued waiters, otherwise it reports `TerminalRuntimeError.capacityUnavailable` instead of waiting behind the long-lived PTY. With a ceiling of one, terminal runtime publication marks multiplexer context unavailable and strips ordinary-context draft read/replace capabilities. This avoids presenting control features that cannot acquire a concurrent session slot.
 

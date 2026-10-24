@@ -1,7 +1,7 @@
 ---
 type: Lifecycle concept
-title: Remote Session Persistence
-description: Remote managed-session identity, local restoration descriptors, and teardown intent define what can be recovered and who owns cleanup. Explicit close hands off best-effort termination independently of workspace removal.
+title: Persistent Remote Sessions and Local Restoration
+description: Distinguishes remote multiplexer persistence, resumable transports, local workspace descriptors, and encrypted one-shot recovery. Explains teardown intent, ownership-safe termination, and restoration failure boundaries.
 tags: [sessions, persistence, recovery, lifecycle]
 sources:
   - id: openwiki-source-e67e20bc76b0da7e73bb5fac
@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
   - id: openwiki-source-44f3b562f3c7b739d591cf92
     resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
+  - id: openwiki-source-6256aeada274ebb6ce422d82
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-06534039643af6f27e293241
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteHerdrCommands.swift
   - id: openwiki-source-4dbe1ff26dab4785a94e279b
@@ -42,15 +44,32 @@ sources:
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Remote Session Persistence
+# Persistent Remote Sessions and Local Restoration
 
 Session Persistence keeps a remote shell session independently of a terminal connection. It is separate from [Mosh + Eternal Terminal](../integrations/mosh-and-eternal-terminal.md), which recover a transport and its PTY, and from local workspace restoration, which remembers what the app should reopen. None of these alone guarantees that a remote process survives server restart.
+
+## Four different persistence boundaries
+
+| Mechanism | What it preserves | What it does not establish |
+| --- | --- | --- |
+| Remote multiplexer | A remote session identified by a backend reference | A live client connection or survival of server restart |
+| Resumable Mosh/ET transport | Protocol state for an existing remote PTY | Permission to execute startup again |
+| Saved workspace descriptor | Device-local intent to reopen a workspace and eligible recovery references | A live connection or newly acquired managed ownership |
+| Encrypted transport checkpoint | One-shot recovery state bound to a saved record and Host | A reusable backup or a synchronized workspace |
+
+The lifecycle verbs are deliberately different:
+
+- **Disconnect** releases a connection. It is not evidence that the remote session ended.
+- **Detach** is passive teardown intent: keep remote work eligible for later attachment rather than authorize managed termination.
+- **Terminate** attempts to end an owned remote session. Explicit close authorizes this best-effort operation independently of local removal.
+- **Reopen** recreates local workspace intent from a recently closed record; it does not undo accepted termination.
+- **Restore** loads saved descriptors or consumes a transport checkpoint. Loading the workspace list alone does not connect, and restoring an existing PTY must not replay startup.
 
 ## Preferences and backend ownership
 
@@ -180,6 +199,27 @@ flowchart TD
 Restoration preserves saved intent without silently substituting a new remote shell.
 
 For a Mosh/ET descriptor without a usable checkpoint, repeated selection must not bootstrap a fresh shell. If it also carries a saved multiplexer reference, recovery can retain that reference and return to explicit session selection instead. Commands selected for the original connection are not replayed. See [Platform Runtime](../architecture/platform-runtime.md) for native ownership boundaries.
+
+### Encrypted recovery is not the workspace store
+
+[`TerminalRecoveryStore`](../../Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift) is a device-local actor independent of SwiftData, Vault and CloudKit. It encrypts checkpoint payloads with AES-GCM and authenticates the record metadata as associated data; the metadata itself is not encrypted. The production key is a non-synchronizing Keychain item using `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`. If checkpoint files exist but the key is missing, the store fails rather than silently generating a replacement key.
+
+`consume` authenticates and decrypts the envelope, checks record identity and Host matching, and validates checkpoint version and transport. It removes the file **before** returning protocol state to a caller that can transmit. This makes recovery one-shot rather than a replayable backup. `register` issues a per-record lease required by `save`; `discard` revokes that lease before removing the file, fencing late saves racing explicit close. In contrast, `invalidate` removes the file without revoking the lease.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Leased: Register record
+    Leased --> Saved: Save with current lease and matching transport
+    Saved --> Saved: Replace checkpoint with current lease
+    Saved --> Consumed: Validate and remove before returning
+    Saved --> Saved: Validation fails without consuming
+    Leased --> Discarded: Discard revokes lease
+    Saved --> Discarded: Discard revokes lease and removes file
+    Discarded --> Discarded: Reject save with revoked lease
+```
+Checkpoint eligibility is consumed before transmission, while lease revocation prevents a late save after discard.
+
+These are separate protection boundaries: descriptor JSON is not the encrypted checkpoint store. For broader storage and credential policy, see [Persistence and Secrets](persistence-and-secrets.md).
 
 ## Verification and extensions
 

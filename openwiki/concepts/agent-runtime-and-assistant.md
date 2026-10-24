@@ -1,6 +1,6 @@
 ---
 type: assistant runtime concept
-title: Agent Runtime and Assistant
+title: Assistant Runtime and Tool Ownership
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
@@ -136,13 +136,13 @@ sources:
     resource: repo://TFMTests/ContextAttachmentImporterTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Agent Runtime and Assistant
+# Assistant Runtime and Tool Ownership
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
@@ -235,11 +235,11 @@ sequenceDiagram
     participant User
     participant Library as Assistant Library
     participant Conversation
-    participant Controller
-    participant Runtime
-    participant Gate as Approval Gate
+    participant Controller as Termind Execution Controller
+    participant Runtime as AgentKit Runtime
+    participant Gate as AgentKit Approval Broker
     participant Host as Termind Host Tool
-    participant Store as SwiftData Repository
+    participant Store as Termind SwiftData Repository
 
     User->>Controller: submit draft
     Controller->>Controller: validate and persist model choice

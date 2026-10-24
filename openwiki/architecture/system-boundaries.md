@@ -1,6 +1,6 @@
 ---
 type: architecture boundaries
-title: System Boundaries
+title: System Boundaries and Composition
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
@@ -88,13 +88,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# System Boundaries
+# System Boundaries and Composition
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -113,7 +113,7 @@ flowchart TD
     Persistence --> Application
     Persistence --> Domain
     Application --> Domain
-    Package["Resolved AgentKit package"] -.-> Shared
+    Shared -.-> Package["Resolved AgentKit package"]
 ```
 
 The diagram shows consumer-to-dependency arrows for explicit shared-framework Xcode target dependencies; the dotted package arrow groups external consumers rather than implying every framework links AgentKit. Both apps depend on all six frameworks; no framework depends on an app. Verify build edges in the [`PBXNativeTarget` and `PBXTargetDependency` sections](../../Termind.xcodeproj/project.pbxproj), and use the [Module and Directory Architecture Map](module-map.md) for the directory-oriented view.

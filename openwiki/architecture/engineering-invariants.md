@@ -96,8 +96,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-7e27e66540bd1ea5c642a652
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
-  - id: openwiki-source-0f9033d291acb89c4894acb9
-    resource: repo://Frameworks/TermindPresentation/AssistantCompactToolDetails.swift
   - id: openwiki-source-0d8bc8948aed7b3cc4944dbf
     resource: repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
@@ -132,6 +130,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-0198125ac2a5c63e2b200fb9
+    resource: repo://FrameworkTests/HistoryRenderingSnapshotTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -242,15 +242,17 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # Engineering Invariants
 
 Use this as a **change checklist**, not an implementation guide. Source and tests are authoritative. Change the focused owner contract and its behavioral tests together; a source-token guard is not proof of runtime safety.
+
+**Enforcement versus guidance:** the owner mechanisms and focused tests below describe enforced behavior. The “Before changing a boundary” checklist is change-planning guidance, not a claim that every recommendation has an automated guard. Test references identify regression coverage, not a report that those suites were executed for this documentation update.
 
 Detailed owners: [System Boundaries](system-boundaries.md), [Platform Runtime](platform-runtime.md), [Persistence and Secrets](../concepts/persistence-and-secrets.md), [Shell Integration](../concepts/shell-integration.md), [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md), and [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).
 
@@ -396,7 +398,7 @@ Owners/tests: [TermindPersistence](../../Frameworks/TermindPersistence/TermindPe
 - Reject unjournaled/blocked mutations, deduplicate IDs and cap combined saves/deletes at 250. Persist physical-delete handoff before transmission; in-flight deletion blocks another handoff for that ID, and a late result cannot acknowledge away a reobserved mutation.
 - Persist recovery fences before cursor/network progress; persistence failure retires the engine. Detach sync/cancellation work from CloudKit delegate task-local context. Ordinary zone deletion resets/requeues/recreates; purge/encrypted reset retires and purges without recreating in that callback, though a later explicit local write may restart.
 
-Enforcing tests: [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecycleTests.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift), [CloudSyncSafetyPersistenceTests](../../FrameworkTests/CloudSyncSafetyPersistenceTests.swift). Settings commits data plus journal intent before mirroring defaults; remote apply does not echo. Connection events retain stable source-device IDs, start/end times, not mutable names; the separate device directory resolves names. Saved-host SSH/Mosh/ET/Telnet/SFTP events retain 250, with all-device History presentation capped at 100 desktop/50 mobile. Device-directory reads cache and invalidate on reload/successful rename; a failed rename reports storage error without publishing the new name.
+Enforcing tests: [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecycleTests.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift), [CloudSyncSafetyPersistenceTests](../../FrameworkTests/CloudSyncSafetyPersistenceTests.swift). Settings commits data plus journal intent before mirroring defaults; remote apply does not echo. Connection events retain stable source-device IDs, start/end times, not mutable names; the separate device directory resolves names. Saved-host SSH/Mosh/ET/Telnet/SFTP events retain 250, with all-device History presentation capped at 100 desktop/50 mobile. History and device-directory rendering reads use already-published snapshots: they neither fetch repositories nor publish observable cache/error changes during rendering. Explicit reloads and successful writes refresh those snapshots; a failed reload publishes an empty snapshot and an error until a later reload recovers. Device registration runs when needed, and a failed rename reports storage error without publishing the new current name. Failed initial history trimming or device registration still permits reading existing rows. Tests: [HistoryRenderingSnapshotTests](../../FrameworkTests/HistoryRenderingSnapshotTests.swift).
 
 ## Security and durable side effects
 

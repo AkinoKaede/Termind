@@ -1,6 +1,6 @@
 ---
 type: integration
-title: Tailscale Integration
+title: Embedded Tailscale Integration
 description: Group-bound embedded Tailscale enrollment, managed peer identity, ordinary and Tailscale SSH routing, sync boundaries, profile cleanup, and focused regression tests.
 tags: [tailscale, ssh, enrollment, sync, lifecycle]
 sources:
@@ -60,13 +60,13 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Tailscale Integration
+# Embedded Tailscale Integration
 
 Termind runs an embedded userspace Tailscale node through `libtailscale-spm` and `TailscaleKit`; it does not require the system Tailscale VPN or daemon. Each enrolled Vault group has its own device-local profile and node. The app owns that lifetime through `TailscaleModel`, while SSH, SFTP, Metrics and Assistant acquire group-bound network capabilities. This guide is the starting point for Tailscale changes; use [SSH session lifecycle](../workflows/ssh-session-lifecycle.md) for general transport ownership and [Cloud Sync](../workflows/settings-and-cloud-sync.md) for replication mechanics.
 
@@ -234,7 +234,7 @@ Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant us
 | Pending erasure | Device-local durable `PersistentTailscaleProfileCleanup`; never synchronized. |
 | Metrics selection | Separate Metrics V2 record, with V1/V2 readers and decoder-capability refetch. |
 
-V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup readers accept V1–V7 and the current writer emits V7; historical V3 remains readable and supports independent groups for the same Tailnet. V5 layers artwork overrides onto the V4 group payload as an `iconOverrides` map keyed by canonical lowercase Host UUID strings, each referencing an existing peer preference. Encoding an artwork override into a pre-V5 envelope is rejected rather than silently losing it; non-default session persistence similarly requires V4 or later. Reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
+V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup readers accept V1–V7 and the current writer emits V7; historical V3 remains readable and supports independent groups for the same Tailnet. Versions are per record kind: ordinary Host records now write V8, which does not advance the HostGroup format or make managed projections uploadable. V5 layers artwork overrides onto the V4 group payload as an `iconOverrides` map keyed by canonical lowercase Host UUID strings, each referencing an existing peer preference. Encoding an artwork override into a pre-V5 envelope is rejected rather than silently losing it; non-default session persistence similarly requires V4 or later. Reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
 
 Retirement saves removal of the active local row and cleanup intent atomically before releasing the last runtime reference. Erasure excludes active and in-use profiles, including candidates suspended inside Save. Cleanup closes retired nodes, erases native state, then removes the durable marker; erasure failure remains retryable across database reopening. Startup enumerates only canonical UUID directories that are real directories, not symlinks, and rechecks active enrollments after enumeration before scheduling orphan cleanup. Cleanup can proceed without Pro and does not need to start a node. Shutdown cancels login/monitors, closes active nodes and joins cleanup work; it does not erase saved enrollment merely because the app exits.
 
@@ -250,7 +250,7 @@ When debugging, first distinguish Pro denial, device enrollment, pending Exit No
 
 - `TailscaleGroupEditorTests`: login without Save, candidate cancellation, partial-save retry, deferred logout, replacement-enrollment guards and concurrent cloud edits.
 - `TailscaleHostIdentityTests`: independent same-Tailnet groups, rename-stable IDs and network rebinding; `TailscaleIntegrationTests`: nearest ancestor routing, managed credential isolation, local-store reopen, discovery/metadata, username, Exit Node and retained-dialer Pro revocation.
-- `HostIconTests.tailscaleChoicesSurviveRediscoveryAndWireRoundTrips`: manual/automatic artwork and detected macOS survive managed projection rebuilding and HostGroup sync. `TailscaleIntegrationTests.tagsAndColorSyncBeforeAnotherDeviceDiscoversTheHost` additionally verifies detected distribution arrives before discovery, survives incomplete Linux metadata, and clears on a resolved unsupported OS.
+- `HostIconTests.tailscaleChoicesSurviveRediscoveryAndWireRoundTrips`: manual/automatic artwork and detected macOS survive managed projection rebuilding and HostGroup sync. `TailscaleIntegrationTests.tagsAndColorSyncBeforeAnotherDeviceDiscoversTheHost` additionally verifies detected distribution arrives before discovery, kernel-only Linux metadata resolves to generic `linux`, FreeBSD resolves to `freebsd`, empty metadata preserves the last detection, and a resolved unsupported OS clears it.
 - `TailscaleProfileCleanupTests`: durable erasure retry, orphan discovery, active-profile protection and cleanup without Pro. `TailscaleSyncSafetyTests`: reader-capability refetch/unblock for independent same-Tailnet groups and Metrics selections (the historically named `v3ReplayAcceptsIndependentConnectionsToTheSameTailnet` helper constructs envelopes using the current writer).
 - `TailscaleMultiConnectionTests` and `TailscaleMetricsAvailabilityTests`: additional-connection routing, access revocation and availability/recovery boundaries. `MetricsSyncTests` also checks historical V1 records and preservation of pending local edits during refetch.
 - `TailscaleSSHWireTests`: opt-in real SSH/SFTP fixture, gated by `TERMIND_SSH_FIXTURE` or `TERMIND_SSH_FIXTURE_JSON`. It covers managed connections through an injected loopback dialer, a free ordinary username-only Host without an embedded Tailnet, automatic approval continuation for ordinary and managed connections, PTY/jump approval, and prompt cleanup after rejection, disconnect or cancellation. Fixture-controlled approval exercises the SSH exchange, not a live browser policy service, control-service enrollment, WireGuard/DERP or a physical multi-device Tailnet.

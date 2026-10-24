@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:26549556869bfb94ffbd51beb2fb1d6709c0f8ae1cc7d334cf8e7f1dd70863f1",
+  "pageVersion": "sha256:7265ae472f667b339eacb3b33cc1a028a0c671809cd3ac9e03195206159c1eb2",
   "claims": [
     {
       "id": "claim_087530130d624a98880e87a0958576ae",
       "statement": "Mosh bootstraps mosh-server over SSH, connects directly to the returned UDP endpoint and waits up to twenty seconds for server operations before announcing connection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L20-L90",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L23-L93",
           "version": "repo-lines-v1:sha256:ab9a5eb44d1b53598afaecf390bd79d6ff475677790b972d5566e27b3f718466:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyOTYwMWM0ZTc3NGRmMDBhOGJhYjFhYjlhMjAxODI2N2I1M2RhNjk5ZmI5MDE2OTNmMGZjMWNlZWU0YzE1ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxY2VhYmJlZWZjMzEyNTExZWRhMjNhMWE1NjE3ZmIxMjgxMWY0ZjQ2MTZhODUyMjQ4NDdmNDJjNjU1NzFkZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZjg0M2RkNWFlOTVjMDk0NWYxMGNlNjI4MmNhZjg0MzlmNmRjYWY0MDFkNTEzYzc0MGJmNzJjNGY2MGNhN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwMzRhMzNkMzY3OGRlZDM3MjRkNDQ5MTY0ZjdlMzliMzM5NDkwN2Y0NmIwYWI3NTllM2U2NGU3MTZhNGE4MTEifQ"
         }
       ]
@@ -18,25 +18,25 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
-          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
+          "version": "repo-file-v1:sha256:dc229e7dca2a9bae799578e5144261b1a5affae4a2d8e3b153159ea3202f9d60"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift",
-          "version": "repo-file-v1:sha256:1faeb985180a742569cfa445c58ba89d572db3a81f2c40eb60d4090cfa16977a"
+          "version": "repo-file-v1:sha256:42d6747004aaac3579b63df6c4bc2bba7c8bb5bff52bba894eb32c8adc7b622f"
         }
       ]
     },
     {
       "id": "claim_be3bba6c81674601ae75d740bfa38742",
-      "statement": "The resumable client rejects unavailable engines before connection side effects, skips startup preparation for checkpoint restoration, and rolls back engine preparation on startup failure.",
+      "statement": "The resumable client rejects unavailable engines before connection side effects, skips startup preparation for restoration, and invokes rollback then disconnects bootstrap SSH and closes on startup failure; remote end during startup instead disconnects bootstrap and returns.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L101-L204",
+          "version": "repo-lines-v1:sha256:d7d874287994893d95c95e5d92eb3a405f272dbd0f833df73e6ad9238efde68a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMjRmY2FmYmZjZTVjOGY0ZGQ4YzEyNGFjM2E1YmUwZTg4ZDJmZTBkNzY1MzI2ZDI3Y2FiNWYzNTg0ODBlN2Y5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyN2U0NmE4NjdlMGJiNjQ0MTQzM2I4MTIwYTNlNThmMTI4OWMyYTE4ZTc0MjUxYzA0NjRhNzA3OTlhYTdjNGUwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiYzQ2ZDM5NzlkMzI4NTVjM2M5Y2U4NzcwY2FmYmZiNDU3ZTZlZWNhZWY5NDQ1NGFjNTlhZWIxZmQwZWUwODlhIn0"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
-          "version": "repo-file-v1:sha256:f1751ac54b299416a75ad75315adbbde205e506292076d02399c6d6571c78a81"
+          "version": "repo-file-v1:sha256:6a8a7bc57b361fa27d2086ef155877b21dded101e20a77484d4ec1b5244d0711"
         }
       ]
     },
@@ -45,7 +45,7 @@
       "statement": "Mobile foreground resume waits for suspension to finish and invalidates the disk recovery record before resuming the retained transport, with generation guards and failure reporting.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1614-L1653",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1617-L1656",
           "version": "repo-lines-v1:sha256:19fc36b4158df0d4858610ae14325680bc513ab0bcc0b9abdfe6c5745dd64073:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyYTUwMGM2ZWQ4NmVlMDExYzE5OGQ3NTRhZjcyNzVjNTMxMzA1MmRmYjljZGIyMDNhNzcxM2I5ZTM0NWQwOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMTk2YjYyMDAxNzdiNmRjYWU3MGIxYzE5N2Q1MzBmNDlkZTM1MGI4MGJjY2U3MzU5NTEyNjZjNDA2MDY3OWEifQ"
         }
       ]
@@ -55,19 +55,19 @@
       "statement": "The resumable client publishes recovering before engine resume; EternalTerminalEngine confirms foreground recovery without a new vendor event only when its latest retained vendor state is connected, checking local closure before and after vendor resume.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift#L41-L99",
+          "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift#L44-L102",
           "version": "repo-lines-v1:sha256:660884b9575ba7397f22ecc0e2519756b0cb673ec490b0ed146fafed0919dafb:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMzMyZDA1OWE4MDU0Y2Q2ZjQ3MDJjMGRjZjQ0Yjk1YTE2MmY5MmQ2NzRmNzczNjk3MzVhM2RmNGRlZTk1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMzU5MWEwOTYwNzQ1ZjYxN2Y4MTM2Y2ViMTg3ODlkZDkzNTM5OTNiZGU0ZDI5NTVhMDYyZTU3ZWUzOGIwNjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NTkxOTljNzk2OTI1ZmVjZmQ1MGM0YjdmY2M0ZmQ0NjM4MzY4ZDM1MTkwZmQ5ZmMwNmFlYjk4ZjdmMmM4NGQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L132-L145",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L135-L148",
           "version": "repo-lines-v1:sha256:2f7a097a59f4f0734ed32cf26f26a152f498392d1028d4bd029ac44c14c461bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYzI3YjlkZGNkMjI5OTc5MWUxMGZkZjlkNTUxMjFmZTljZjQwMjM4ODEzNWNlYjU5ZDBlMWJmYmZlM2E5NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2OTNjOTgzN2JjMjI5YmFhYjUyYzZlZjU2YzJhYjMxNTE5ZjYzYjM5Y2EyZWI3NjYzNmY4ZDEzOGRlN2MwNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiNGJlMTFmZmIzNzkxY2ZmMWFmNzhjYWRlZTAxNGJkOTNiZmQzMzYxYTViY2ExYTk5MWNkMTkxYmJiYjE4YjAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L170-L176",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L173-L179",
           "version": "repo-lines-v1:sha256:40e319ef1947f3d3f2aa1316b9cb3ab44c5eec86c419218bae22b49d0dd69517:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2RhMTgwZWYxZWIyNGNlYzI4YmI1ZjcyODMyNTA0YWU5ZTcwZTgzZDMwMjdhZjZlNzRiYmQ0ZTFkMTYwNmY5NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDVmZjljZWQ0MWQ5YmE1ZDE0Y2RiZGE3ZWEyNjZjNzU1MjhiN2E4YjBmOWUyYzJkMDU0NjFmMDdlY2IwMGE5OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTdlNmM1NDQxMTQ2ZGYzMTQwYjdjMzAyMWU0ZDFjOWMzZTMxYjZmYWYyZmI3NDc2YzBlOWViNThlNDRmNTY4OCJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L335-L353",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L338-L356",
           "version": "repo-lines-v1:sha256:2fd794ac700415cc71687b9ec18ddad7f14ea61b61f3225c4a946968b6e7dabb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MWY3N2NkZTZmZjVlNTkzNzlkMTNiOWI5ZmE4NTZkMTE3NWU5MzA2NzE1ZjA4NGI4YTRlODg5ZjNlYzM1NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NmQ5ZDI5NTI0OGQ2MmM3YmJlMWRhYWIyMTJkNDE1MWJkYjNiMmZlZDhjYTk2MThhOWMwZWE4MTNkYjA3MTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5YTA2OGUyYzljNjU3N2I2ZmJkYmRhNTk4ZTUxYjRkZWJmNzQ2ZDMzMzQzN2VlZmRmNjM3NzgyMmVjOGNiYzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3MDgyYWExOGE3NDQzYzY1NDU0ZjJmZDVhNzBiYTU1YWZlMzFjZTBkMjU2OThjMjk4NDFmMmU4MjBiM2I2NWIifQ"
         }
       ]
@@ -78,11 +78,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift",
-          "version": "repo-file-v1:sha256:3981b40abddff2417ce1bab0c131a0ef24c0872958608ef92270593b6ae7f7d2"
+          "version": "repo-file-v1:sha256:1a6a388ff6e73f895ef9a129df19d8b2c2100da6453d6c7d1ea057c9a6a7c6e6"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
-          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
+          "version": "repo-file-v1:sha256:dc229e7dca2a9bae799578e5144261b1a5affae4a2d8e3b153159ea3202f9d60"
         }
       ]
     },
@@ -92,11 +92,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
-          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
+          "version": "repo-file-v1:sha256:dc229e7dca2a9bae799578e5144261b1a5affae4a2d8e3b153159ea3202f9d60"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "version": "repo-file-v1:sha256:de9f1cb4b9620e86a0b809c31efbd07032942aef0436d865e64e026690edfea6"
         }
       ]
     },
@@ -106,11 +106,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:2396ae943e1aea2fc51fa8d95d7b83634e4ab58e17fb57961f9a1afbf6bc79ce"
+          "version": "repo-file-v1:sha256:24e9f6c37e8a2e1c67cb479024ca9e1965ccd58729a7c5da2fdebc961f06bc2c"
         },
         {
           "resource": "repo://TFITests/MobileTerminalRestorationTests.swift",
-          "version": "repo-file-v1:sha256:220f7c09d799943271636fb15309f3cd0ec52295a746891510327cd7f71540ef"
+          "version": "repo-file-v1:sha256:9d4d4d3cce06618b6a9d67a9bf55a5185e99d023879c6e48e6a53e1f2bb8e080"
         }
       ]
     },
@@ -119,7 +119,7 @@
       "statement": "Mobile restoration regression tests cover missing or incompatible transport checkpoints failing recovery without opening a new shell for both Mosh and Eternal Terminal.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L107-L140",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L110-L143",
           "version": "repo-lines-v1:sha256:cad628a4d27706077a2f6fd39fcb8745b8093d3f82f14485aa64959ff0bb0b06:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGNiYzIxYzZkNzFhZDZkZDU1YmU5M2ZhZjA4M2Y5NjRlNzQ5YjdiMWRmZTVkNGVhNjBjOTgyYjM4MWYxZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2MzdiODdjNDcyNTdiYzMyMzc2YzM4NzY5Y2Q5MGZiOWFjZTg3OTc3MTlkMGY4ODkyZjc4YmM2ZjBmYmIwMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2ZDQyMTFmZmMxM2JmMjcyNmJmYWZlNmY2MThhOGY1ZmY3NDI2ZWJhNzQ3NjhmMGU3ZTE0YzhiYjVjNzYxZTgifQ"
         }
       ]
@@ -130,11 +130,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/EternalTerminalResumeTests.swift",
-          "version": "repo-file-v1:sha256:3981b40abddff2417ce1bab0c131a0ef24c0872958608ef92270593b6ae7f7d2"
+          "version": "repo-file-v1:sha256:1a6a388ff6e73f895ef9a129df19d8b2c2100da6453d6c7d1ea057c9a6a7c6e6"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift",
-          "version": "repo-file-v1:sha256:d5bdaa626df19be1e62bd07309a6c48aa5fff4d910a30d73d35ff6f904b995f1"
+          "version": "repo-file-v1:sha256:dc229e7dca2a9bae799578e5144261b1a5affae4a2d8e3b153159ea3202f9d60"
         }
       ]
     },
@@ -144,11 +144,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
-          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+          "version": "repo-file-v1:sha256:7b1784a5a5d8925f716cdab70af3cc3c0ddc0ccf7a1f3950328c7d3992f0f25b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "version": "repo-file-v1:sha256:de9f1cb4b9620e86a0b809c31efbd07032942aef0436d865e64e026690edfea6"
         }
       ]
     },
@@ -158,11 +158,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
-          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+          "version": "repo-file-v1:sha256:7b1784a5a5d8925f716cdab70af3cc3c0ddc0ccf7a1f3950328c7d3992f0f25b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "version": "repo-file-v1:sha256:de9f1cb4b9620e86a0b809c31efbd07032942aef0436d865e64e026690edfea6"
         }
       ]
     },
@@ -172,31 +172,173 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
-          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+          "version": "repo-file-v1:sha256:7b1784a5a5d8925f716cdab70af3cc3c0ddc0ccf7a1f3950328c7d3992f0f25b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "version": "repo-file-v1:sha256:de9f1cb4b9620e86a0b809c31efbd07032942aef0436d865e64e026690edfea6"
         }
       ]
     },
     {
       "id": "claim_3c3fa6f639ef41c3aa8f86e51da0836c",
-      "statement": "Lifecycle coordination serializes suspend/resume/retry with adjacent-only coalescing, waits for sends, captures shell state after protocol preparation, and flushes viewport and integration commands before reopening recovery admission. Waiter cancellation does not cancel admitted work and recovery failures keep admission frozen.",
+      "statement": "Lifecycle coordination serializes suspend/resume/retry with adjacent-only coalescing, waits for sends, provides a shell-state callback for capture after protocol preparation, and flushes viewport and integration commands before reopening recovery admission. Waiter cancellation does not cancel admitted work and recovery failures keep admission frozen.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/ResumableTerminalEngineTests.swift",
-          "version": "repo-file-v1:sha256:93dfc15c045947590ce372d5aeb4b0039b8b789cd6884f3b869b377ad0901771"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L248-L379",
+          "version": "repo-lines-v1:sha256:ebdb21543d32f194d71872e387e4705da2c4de3c99f7795913e9e096d5eebef8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmYmNlNzhjNDNmNWNlYTNjNTA4NjlhNzE5ZTE4M2RhYTIzNzRkYTdjOTFkMzg4NGMxN2JhNTcwMWY1YjExYWFkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhYzQyMGYwOGE4YmU0YTVkMzZiNTNkNzgwMDQ4ZTFjYzRjNTk0M2JiMDhjNTc0ZjU5YWVlY2NhY2RkZmYzODgxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmOTZhODIwYWVhN2FmZWY5ZGZlNWFhYjBmN2JhMzNmYTg1OTExYTY4OTAyM2Q4NjdkODY2MTdhMTgyNzE3NTcxIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_83285c5d6a8848f6b815b3bfe7921dae",
+      "statement": "Mosh live resume uses access/wake preflight without synthesizing connected; host operations emit activity. Unsuspended retry backgrounds and resumes the vendor session, whereas ET first unblocks bridge retry and then notifies the vendor of a network-path change; suspended retry follows resume.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L173-L192",
+          "version": "repo-lines-v1:sha256:c790ea31cf9f5dbf3e8840cf76ac081ce74b8c334a73aa7c6fd24376f555e514:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYTE4MGVmMWViMjRjZWMyOGJiNWY3MjgzMjUwNGFlOWU3MGU4M2QzMDI3YWY2ZTc0YmJkNGUxZDE2MDZmOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1ZmY5Y2VkNDFkOWJhNWQxNGNkYmRhN2VhMjY2Yzc1NTI4YjdhOGIwZjllMmMyZDA1NDYxZjA3ZWNiMDBhOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkMmNkMGYyYjRjNmEwNmIyYWQzNWJkM2RlNGMzY2NlZDFmNzEyYjYwZTdmOGRlZDU5OGNmMjJjZTViMjcwMDEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L115-L154",
+          "version": "repo-lines-v1:sha256:edd05847274f6e39c87bc8f5257b37c4a0646064931e9bbd79c7214033ffc395:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiNmFhZGM4NWVjZmEyNDNhOGNkNGI3Zjg0YjRmODM2OTA4YWE4Y2U1MzBiZWYxZGRjZDAyNWM1NzI1Zjg3MTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiODFiYTNlOThmMWU0MjgxNTJkNzI1OWVhZDY1N2M1MzYyZmE5YzEwZTVhZDViNDllNTI4NmYxYzBkYjhkZTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L323-L355",
+          "version": "repo-lines-v1:sha256:15b9b4711d9a565e5188f385ae91d61b8946d6c73255db08560968a465d05c2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDdmNjM0ZWYyZTU3NGRlMTg1NjVkZjJlMDJkOTJiZGIzZmM4ODNhZjkyNGM2YTMzMTRmOWI3Y2FiYTg2NjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyM2NlNmJmYTU1YTIwNjljMjM1ZTRkNWFlOWRiNDk5NDBjMDIxNmNkOWE0YmMwYTEyMmJkNTk3M2Q3YTJlNWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkNWM2NDYyNDIxMzk2ZWRjMzUyMmI2YjZlMDgyYTBmZGUxNTBhNjdiNDRmZjI3NDUzMTNlYTliZDRkNTc3MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkOTU4OWNjZjU0Yzg2ZmZlZDhlZjgyMzEwNWZiOTg3NmQwZjgzYWUyY2I2ZDZkOWQwODU3NjRkNzA2MTUzYmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6cabb5e1a4ca4a339ed086c3336a0dd5",
+      "statement": "The client suppresses the initial healthy network notification and engine notifications while frozen; subsequent available paths notify ET's vendor session, while Mosh uses the default no-op network hook.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L190-L192",
+          "version": "repo-lines-v1:sha256:d6f2ae1f0601f4edf5d24779f84747b5854919efa62d7fec69d5f4045931a5ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDJlZmEyMTAxMjY0ZDg4ZjVhNjY0NGM2ZjVhOGZlZjI5NmMzOTgyZTJhZDQ5MGRhMTk1ZjkxZDI3MWQxM2M4MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjM3ZTk4MWU2MjI5NTk1ZGEyZWE4NWM0NTQ4NjgxMGZjOWYxNzQzNWZiYTE4NmIwMTY4ODRmNmRkZTMxNTA4ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWQyY2QwZjJiNGM2YTA2YjJhZDM1YmQzZGU0YzNjY2VkMWY3MTJiNjBlN2Y4ZGVkNTk4Y2YyMmNlNWIyNzAwMSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:ef17b184b01163130423b845ea19a6414c1895007e8ccb0a57f11b198cacc3e0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift#L523-L546",
+          "version": "repo-lines-v1:sha256:73a085f76e1c0d1294e4062d9b37b68b41cdc21212dc6c5f71db1d0eac5ac011:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZWZmZGI0MWQ5MjkwODYyNjY5ZThmOTI2ZTc4MWNjNjU2NzNjNjllMjY4YzJmMTJjOGQyZjA3YWE5NTU4YzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExOWZjMDM2Nzg5ZDUzZjBhZTJkNTdiMDA3YTkyZGJlNDg1YTdmZDk2MTliMDA2YTQzNTA2NzNiMGUxYTY2ODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift#L62-L67",
+          "version": "repo-lines-v1:sha256:7079ee70b743bd9dd5b2a0e03956c7b20d2b32da4010e5959754aa0f091bd865:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU2OGJjNmFjMGM2NWJmMDhiMmRkNzc3ODk0ZmQ3ZDk4Mzk3OTliNjhmYWUyODQ2YWUxNGFhNWM4ZDdjNzhmOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTE1NzFmNDhkM2IxNTVlOTdiNTg2MTYwMzUxOWNlY2FjNTJhNmU2NDE4ZTE0YjhmZTgwNDFmMjk3NjFjMmQ0MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzVmYjJmODI5MGMwMDI4OGUxZGU4MWNmOTA0MTk1MGM0M2EzZWEwZmVmZTAxZmM3YjUxYTdiNmNjNWVlNDZmOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_31a6944973b84188a09734006eed2f12",
+      "statement": "Mosh checkpoints remain unwrapped vendor snapshots; ET captures shell state after vendor background preparation and preserves flat credential, checkpoint and integration payload fields for compatibility.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L10-L25",
+          "version": "repo-lines-v1:sha256:705afcccdafcf188011848c69e0a8cba90dfbf91183008b6620647e1c25de145:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYjc5ZTY4ZmNhM2M5ODUwYTU4MjUyZTAyOTYzNGYyNWYwMjUzZmZhMjRiNjA5OTAwN2M5NjAxMzdiYzM3YzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0ZGNmNjQxOWExZTQ0NjJiNTU2ZmE4ZjM0YjNiYzJiMmY2OTZkZTQxMDczZWRiM2Q4ZTZlN2U5OGEwYjQ1ZjkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L161-L170",
+          "version": "repo-lines-v1:sha256:a3217fd0fda925212db268fc351ed9e3344f3c846891531c5bb502b5762a978a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYTcwMzBhOTAyODg4Y2M0MTMyNTQyZDgzMWQ2ZDM1MjU1ZDNlNWViZDQyZWJjNTU4MWE1M2UzOGNhNzdiMTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MWQ1ZGZhZjg3ODE4ZDVhYmQyNGRiOWE3YzI2ZDMzM2EyZTJiYTAxYzIyMzczOGIyOGJjMWE2MmRkYzIwMDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4N2I3MmY4ZjRmODE3ZjlhZTU0NTQyMTUwZWVmZGVlZjczZjU2ODZmZmFkM2NkOTRiMTNlYTMxZjkyZjVlNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5ZGZhZjhhMzE0NTM5OTBiODI4NDBkMWE0YTFhODkwY2ViNzk3MTA3MGNhZDcxMWMxZWFiMGE2NzFmMzk5MDEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L133-L137",
+          "version": "repo-lines-v1:sha256:62734d1b020634022795ac2923dbc03eb864916952e5e44e883ff235499bc2ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTBhNzAzMGE5MDI4ODhjYzQxMzI1NDJkODMxZDZkMzUyNTVkM2U1ZWJkNDJlYmM1NTgxYTUzZTM4Y2E3N2IxNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmZlNjkzNWYxZjRjNjA0MmRlNGQwZTE2ZDAxNDkxOWI0ZmRiZTY2NWQ4MTVkZGYyZjkwMTg0Yzk2NmFhMDM4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmI4Y2JjOTI3MDBiYTk0ZjBkOTFmMmExMDFlYzZhZGY0MmM1Zjc5ODA4YTAzZmVlOWQzY2I0YzM3MTg5NzhjOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_60e7b60d5bbf428b827b963b22d333c9",
+      "statement": "Mosh startup rollback best-effort terminates only the newly launched server PID after checking the process name, and clears that PID on successful startup; ET uses default no-op rollback and releases session and bridge on close.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L194-L205",
+          "version": "repo-lines-v1:sha256:4e96162a709972c2b766221654cf444fd3655976f9db38f695cf1e61b2f9f694:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMTc3NzlhMDE5ZTU1ZWI4N2M2YzkyYzg3ZjNhMDcxYjUzNzk1ODgwYzBjNzFlNjk5MWNkZTYxYmYxZjBiMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzN2U5ODFlNjIyOTU5NWRhMmVhODVjNDU0ODY4MTBmYzlmMTc0MzVmYmExODZiMDE2ODg0ZjZkZGUzMTUwOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1ZmYxNzA4MzA0MDFiZmU5OGQ2YjQyMGRkMjM1YTU0MjhiOWJkY2M2OTdmODZlNTVjZWM0YTk1ZjM5OTAzYWQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:ef17b184b01163130423b845ea19a6414c1895007e8ccb0a57f11b198cacc3e0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift#L62-L67",
+          "version": "repo-lines-v1:sha256:7079ee70b743bd9dd5b2a0e03956c7b20d2b32da4010e5959754aa0f091bd865:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU2OGJjNmFjMGM2NWJmMDhiMmRkNzc3ODk0ZmQ3ZDk4Mzk3OTliNjhmYWUyODQ2YWUxNGFhNWM4ZDdjNzhmOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTE1NzFmNDhkM2IxNTVlOTdiNTg2MTYwMzUxOWNlY2FjNTJhNmU2NDE4ZTE0YjhmZTgwNDFmMjk3NjFjMmQ0MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzVmYjJmODI5MGMwMDI4OGUxZGU4MWNmOTA0MTk1MGM0M2EzZWEwZmVmZTAxZmM3YjUxYTdiNmNjNWVlNDZmOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_84b577dcba8c44299489381d9ef6ab3e",
+      "statement": "Mosh samples vendor state before draining host operations, delivers trailing output before mapping stopped to ended, and maps failed to failure.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L89-L112",
+          "version": "repo-lines-v1:sha256:1a2b11cdf8b8c31c575f2f3bfc1eb69e853b770872c29c5db941709ff78aa409:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwZDM1NTE5YzE2ZWMzODBiZjE3YmI4ZTM5Y2M0ZTA0MTBlZGMxZTQxNGY1OTliMzNmODE5MzkwMjlkYWZkMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5ODg5YWQ3NmUzNGVmZmY3M2YyZjIxNjFhNDVlM2VlOTE3ZDY1MzFlYTZmNzkzMzg1ZDk5NDhkNmM4MmYyZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4YWZlOThhZTQ0NzJjYzhiMTFlMmEyZjNmZjg4YzNjZGExYzk1MzUxNzVhMTQ4Y2YxNDI2YTY0NTFiNGI4ZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_911653c5cb0143389dbedea5f7eb1e55",
+      "statement": "The immutable coordinator-local engine registry supplies Mosh and ET factories and is preserved by keyboard-interactive coordinator variants and passed through SSHPTYChannel to the client; the client owns lifecycle, checkpoint eligibility, integration and monitoring while engines own protocol resources.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift#L30-L65",
+          "version": "repo-lines-v1:sha256:104cf17c4de5384bc9943f062a11970c9cc5ef7db4da857dc48165a01ad4bad0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwNTc1ZWMxNGViZTk3YWVkY2E5NmZkNWM5NzIwYWI4M2EyOGZmNjI2YjUwOWFiNzFhN2U1ZmIxMjk3MmE2NGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxNjE5ZDNjNjZiNDAyNzgwYTM0ZmQ0NzNhMzk1MDVkMjc3ZGI0YmFjYzZjN2Y2YTYxZmIwOWJlMGY0Njg0ZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5ZjIxOTA2ZjRiODY3N2NiYTQxYjk4NTNhZTBkYTUxNDcwNDMwOTFkMDM1NjNmOTIzNWM1YmFmYTI1ZTM4MDQifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift",
-          "version": "repo-file-v1:sha256:31fb200000c27c25054995769d4151e9e0e907377799c48a2d7c736c1055b86d"
+          "version": "repo-file-v1:sha256:de9f1cb4b9620e86a0b809c31efbd07032942aef0436d865e64e026690edfea6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift",
+          "version": "repo-file-v1:sha256:376a69e5933906d3508ed2aa03b216582360be44c63e75c63005aba55a282e65"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L745-L790",
+          "version": "repo-lines-v1:sha256:f32ee26a092372b9daa5d55ef3215abaa239e765b5dc8afc843844bd3619edff:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwNTc1ZWMxNGViZTk3YWVkY2E5NmZkNWM5NzIwYWI4M2EyOGZmNjI2YjUwOWFiNzFhN2U1ZmIxMjk3MmE2NGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NTRhN2U0ZTE2NzUzZjk3MzU0NGQxNzQ2OGVmM2IwYzM5ODAxYTdhZWMwZDVlOGQ5NWRiNDBjZjkyM2QzODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhOTk0MTQ5NTAzZTQ5NmNlYzhlMzVjODgwNWU3MjgxNzE5ZDVkMTEyNjVmMmViYmM1YjZhZWI1OGNmMmQ0ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxMTY5NTY4ODdiMzM0N2VkNzdhOWUxNjZiODczNTM4ZDdkNDYzYzc4Y2MwNGU5YzI1YWRlMThkNTY0ZmZiODcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2677e8e28c8548c3b46e56dba53fea93",
+      "statement": "Host transport options leave auxiliary SSH services unchanged, fall back to SSH for unavailable defaults, exclude Mosh on Tailscale-managed hosts, validate Mosh ports or ascending ranges within 1–65535, and default ET to port 2022.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/HostTerminalTransports.swift",
+          "version": "repo-file-v1:sha256:b019a278f8006c9ad43212b3b946b2b5d69b2c45220849d51b8306e7b2bf4623"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd5421d9ce0b41a4b44443c7dd83dc79",
+      "statement": "Fresh startup plans become quoted shell arguments to mosh-server or quoted exec input for ET; checkpoint restoration skips startup preparation to avoid reattaching an existing remote PTY session.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift#L74-L100",
+          "version": "repo-lines-v1:sha256:063f8976f94de662061d5529684472c261d027af123035f5b79fe4acffaa6be9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExNTcyMGE0OWZlMTRhZGZhMjRkMWIxYTE1NWRlMDAxNTQ3ODA0MTFkZTc4OTRiZWY5YjcxNjE0ZWFlNjdkMGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNGZiODBkMzFmODBkMGJlNWU4MGYwNjY0NWJmMDRiODllMTI5ZmMxNmI5MDdjNjNjNTg2ODZiYWU5M2VjYWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjM2NjNTVjNWRiNjA5ZTEyYTk1ZmZlOWQxMjVhZjcxMWZjZjM5MDBhZGNjNDYzYTBjODc1MDc1YmEyNGI5ZjAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift#L23-L55",
+          "version": "repo-lines-v1:sha256:fe889b38dcb153e0abeb911f325565630afaa9b209c459f657671e1930419c35:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyOTYwMWM0ZTc3NGRmMDBhOGJhYjFhYjlhMjAxODI2N2I1M2RhNjk5ZmI5MDE2OTNmMGZjMWNlZWU0YzE1ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5MjAxYmNmNGIyMTI1MGRiNmZmMjBhNGYxNzI4NTczOTUwMDBkNjdjNDBlNjYyNGU5OTI5ZmNiODlkYzQ4ZjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZjg0M2RkNWFlOTVjMDk0NWYxMGNlNjI4MmNhZjg0MzlmNmRjYWY0MDFkNTEzYzc0MGJmNzJjNGY2MGNhN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzYTFmMmUzZTVlOGIzOWNiODMwM2I4YmQwMzE3YjRlNDZiOWJjMTljY2EwOTc2YjBjYWNiMmFmZWI4NTRmZDMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
+          "version": "repo-file-v1:sha256:6a8a7bc57b361fa27d2086ef155877b21dded101e20a77484d4ec1b5244d0711"
+        }
+      ]
+    },
+    {
+      "id": "claim_3cff171c5eb449c686652af5a659b3d6",
+      "statement": "TerminalRecoveryStore encrypts checkpoint payloads locally with authenticated metadata, fences saves with leases, and validates identity and host compatibility and removes the disk record before returning a consumed checkpoint; removal errors prevent returning usable state.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L60-L105",
+          "version": "repo-lines-v1:sha256:0872af76096f3a2c80ea95f38b124de8762d083f8b727c1afbc538c696126184:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0MDNiNDU5ZTg5NjRlZjBkNzUzNWUyNGY1N2IwNWY4Nzc2YWVmN2EyM2MxMTAzMzFmY2IyNGUwOTc0OWFhNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjZjk4NDM0YTBmNmQ5Y2U1ZTBjYTRmNGJjZWY4NjNhNmRlODdkOTNiMzM1YWEyOWQ3NzNhMmM4M2UxNjQxMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExM2ZkNDEzN2UyZTc3MmZlNWQ1YjYxOTBjNjE3MmM4MTg0ZmIxZjkzNzA4NGJjNmRiODA4M2NmMTczNGUzZDMifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

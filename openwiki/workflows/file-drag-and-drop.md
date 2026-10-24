@@ -1,6 +1,6 @@
 ---
 type: interaction workflow
-title: File Drag and Drop
+title: File Drops, Imports, and Terminal Uploads
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
 sources:
@@ -88,13 +88,13 @@ sources:
     resource: repo://TFMTests/SoftwareKeyFileImporterTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# File Drag and Drop
+# File Drops, Imports, and Terminal Uploads
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
@@ -267,7 +267,7 @@ A saved transfer snapshot is not a permanent access grant. Before an independent
 
 Local filesystem access is separate again: the shared planner starts security-scoped access while enumerating each selected root and records that root with its jobs; the transfer coordinator reacquires scoped access when running the upload. Mobile provider staging additionally coordinates the read before UIKit releases the provider URL. These checks do not substitute for server-side SFTP permission checks; preparation or transfer errors must still be reported.
 
-Evidence: [fresh access and credential resolution](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L318-L335), [silent authentication failure test](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L721-L754), [root scope and enumeration](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L44-L89), [upload scope](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L493-L525).
+Evidence: [fresh access and credential resolution](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L331-L385), [silent authentication failure test](../../TFITests/MobileCommandGeneratorAndUploadTests.swift#L724-L757), [root scope and enumeration](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L44-L89), [upload scope](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L493-L525).
 
 ### Upload admission decision flow
 
@@ -306,9 +306,9 @@ Dropping local files or private remote items uploads/copies them but does **not*
 
 `SFTPUploadReceipt` waits for admission to finish and every admitted job to finish, resolves Keep Both names, and excludes failed or skipped roots before delivering paths. The callback rechecks connected state, connection generation and runtime context currency. Runtime mode replaces the current shell draft; legacy mode pastes escaped paths with a trailing space. Neither executes a command. Desktop writes only to the receiving session, not broadcast input. Context changes can therefore suppress insertion even when the coordinator successfully finishes an already-admitted upload.
 
-Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path.
+Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path. Mobile deliberately keeps a visible rejection when the readable part of a partially failed provider batch is queued, rather than overwriting it with success feedback. Queued notices expire after two seconds and rejections after three; mobile notice IDs prevent an older dismissal task from clearing a newer notice, including repeated identical failures.
 
-Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1411-L1494), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L71), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L392-L447), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L658-L671), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L798-L812), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2048-L2154), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2304-L2403), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
+Evidence: [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L9-L26), [desktop legacy and runtime observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1411-L1494), [directory tickets](../../Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L16-L71), [desktop confirmation and insertion](../../TFM/Features/Terminal/SSHSessionModel.swift#L392-L447), [desktop preparation and completion](../../TFM/Features/Terminal/TerminalUploadModel.swift#L101-L307), [view binding and picker](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L52-L113), [mobile confirmation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L658-L671), [mobile runtime invalidation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L798-L812), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2048-L2154), [mobile enqueue/cancellation/errors and notice lifetime](../../TFI/Features/Workspaces/MobileWorkspace.swift#L2311-L2429), [mobile picker](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L575-L603), [completion receipt](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L112-L227).
 
 ## SFTP uploads and desktop remote-file dragging
 

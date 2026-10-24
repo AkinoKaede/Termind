@@ -4,14 +4,24 @@ title: Mosh and Eternal Terminal
 description: SSH-bootstrapped resumable terminal transports, checkpoint ownership, and foreground recovery. Explains Eternal Terminal connection confirmation and terminal-end safeguards.
 tags: [terminal, mosh, eternal-terminal, recovery, ssh]
 sources:
+  - id: openwiki-source-7c8b13176a0eed2c71ad89e0
+    resource: repo://Frameworks/TermindDomain/Hosts/HostTerminalTransports.swift
+  - id: openwiki-source-6256aeada274ebb6ce422d82
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift
   - id: openwiki-source-f009a1e2645a074589550c44
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift
   - id: openwiki-source-30e2d23210ae2fee41669d43
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift
+  - id: openwiki-source-739f64e0e0f22dee6b791bc4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift
   - id: openwiki-source-7f83ab23ea7d4eb08dabc616
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalClient.swift
+  - id: openwiki-source-e8ecc74af3010141a19f60ac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift
   - id: openwiki-source-e4058ef2da4718e60a7a042d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift
+  - id: openwiki-source-8c4abf5c09db535e2818e3c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-79e6c1c879cf7dbc211647b6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/TerminalTransportRoute.swift
   - id: openwiki-source-95fa11ff59d3a38d49da5c6f
@@ -22,10 +32,10 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-28243bbeecc381626d39eeb6
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # Mosh and Eternal Terminal
@@ -74,7 +84,13 @@ flowchart TD
     Engine --> Flush[Drain latest viewport and startup commands]
     Flush --> Live[Publish retained engine state]
     Live --> Suspend[Suspend and checkpoint]
-    Suspend --> Recover
+    Suspend --> Resume[Resume retained engine without prepare or start]
+    Resume --> Kind{Protocol-specific resume}
+    Kind -->|Mosh| MoshResume[Resume vendor session and await activity]
+    Kind -->|ET| ETResume[Resume vendor session and confirm retained connected state]
+    MoshResume --> RecoveryFlush[Flush viewport and integration commands]
+    ETResume --> RecoveryFlush
+    RecoveryFlush --> Live
 ```
 The resumable transport lifecycle separates fresh SSH bootstrap from recovery of existing protocol state.
 
@@ -90,7 +106,19 @@ Startup is not a blanket write freeze: `write` permits early terminal protocol r
 
 ### Shared lifecycle barrier
 
-Suspend, resume and retry are serialized, coalescing only adjacent matching requests so a checkpoint remains an ordering barrier. Admitted operations wait for in-flight sends, including startup, to finish. Suspension prepares protocol state before capturing shell state; resume/retry flush the latest viewport and pending integration command before reopening admission and publishing retained engine state. Cancelling one waiter does not cancel already-admitted session work. A failed recovery keeps admission frozen until recovery succeeds or the client closes.
+Suspend, resume and retry are serialized, coalescing only adjacent matching requests so a checkpoint remains an ordering barrier. Admitted operations wait for in-flight sends, including startup, to finish. The checkpoint callback lets an engine capture shell state after protocol preparation: ET uses it, while Mosh stores only its vendor snapshot. Resume/retry flush the latest viewport and pending integration command before reopening admission and publishing retained engine state. Cancelling one waiter does not cancel already-admitted session work. A failed recovery keeps admission frozen until recovery succeeds or the client closes.
+
+The protocol hooks are deliberately different:
+
+| Operation | Mosh | Eternal Terminal |
+| --- | --- | --- |
+| Live resume | Runs access/wake preflight, then resumes the vendor session; it does not synthesize connected. Host operations produce activity that can confirm recovery. | Resumes the vendor session and confirms connected only from retained connected state. |
+| Explicit retry | When not suspended, prepares the vendor session for background and resumes it after access/wake preflight. | Clears the bridge's retry block first, then notifies the vendor of a network-path change. A suspended retry uses resume instead. |
+| Network available | Uses the protocol default no-op hook. | Notifies the vendor of the changed network path. |
+| Checkpoint payload | Unwrapped `MoshSnapshot`; no shared shell-state wrapper. | Flat credentials, vendor checkpoint and shell-integration fields, retained for recovery-file compatibility. |
+| Startup rollback | Best-effort termination of the newly launched `mosh-server` PID, checking its process name; the rollback PID is cleared after startup succeeds. | Uses the default no-op rollback hook; client close releases the vendor session and bridge. |
+
+The client ignores the initial healthy network observation for reconnect purposes, remembers observations while frozen, and notifies the engine on subsequent available paths only when admission and transport state allow it. Neither engine's recovery path reruns fresh SSH startup. See the [engine contract](../../Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalEngine.swift), [Mosh implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/MoshTerminalEngine.swift) and [ET implementation](../../Frameworks/TermindRemoteInfrastructure/SSH/EternalTerminalEngine.swift).
 
 ## Recovery and security
 
@@ -121,13 +149,15 @@ A disconnected, reconnecting, failed, never-connected, or ended session gets no 
 
 ### Terminal end is not recovery
 
-ET maps vendor `.reconnecting` and `.disconnected` to recovery, `.failed` to failure, and `.sessionEnded` to terminal end. On terminal end it waits for its output reader to drain before emitting `.ended`. The resumable client publishes `.ended` and closes resources without replacing that terminal state with `.closed`.
+ET maps vendor `.reconnecting` and `.disconnected` to recovery, `.failed` to failure, and `.sessionEnded` to terminal end. On terminal end it waits for its output reader to drain before emitting `.ended`. Mosh instead samples vendor state before draining host operations, delivers trailing output, and maps `.stopped` to `.ended` and `.failed` to failure. The resumable client publishes `.ended` and closes resources without replacing that terminal state with `.closed`. If remote end occurs during startup, the startup catch disconnects bootstrap SSH and returns rather than rolling back a completed remote exit.
 
 Mobile workspaces retain the terminal during recovery rather than scheduling ordinary SSH reconnect. A connected confirmation completes the recovery journey; duplicate connected notifications do not repeat it. On `.ended`, the workspace clears foreground resume intent and its recovery lease, cancels pending suspension, discards saved recovery state, and handles a successful remote exit. Ended or closed workspaces ignore later transport state notifications, so a late connected event cannot reopen them. Recovery and failure alone do not request workspace closure.
 
 ## Ownership and extension seams
 
 Domain owns Host options and recovery descriptors; Application owns startup plans and backend interfaces; Remote Infrastructure owns SSH routing, resumable clients and engines. Native workspaces retain terminal views and decide when to suspend, restore or detach. Add a transport through the engine registry and capability checks, not by adding protocol branches throughout native views.
+
+`ResumableTerminalEngineRegistry` is immutable and coordinator-local, not a process-global override. `RemoteConnectionCoordinator` passes it through `SSHPTYChannel` to `ResumableTerminalClient`; keyboard-interactive coordinator variants preserve the same registry. The live registry supplies Mosh and ET factories. The client owns checkpoint eligibility, lifecycle serialization, shell integration, maintenance and network monitoring; engines own vendor sessions and protocol resources. Route progress is an engine event, not a connected signal. See [Mobile UI](../architecture/mobile-ui.md) for the workspace side of this boundary.
 
 ## Verification
 

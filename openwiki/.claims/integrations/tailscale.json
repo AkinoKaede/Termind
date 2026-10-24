@@ -1,25 +1,25 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0f77aea7639220f04174e7eac804efdfc62ad850d8f337e8aa163e65bc454dd0",
+  "pageVersion": "sha256:eea067245ca74d57629f82c7a75cb481db864483743d6f0dd06d4f342439aeb5",
   "claims": [
     {
       "id": "claim_2995a0e9234344e9a73843aeaeb9e9b2",
       "statement": "Both apps own embedded userspace nodes through TailscaleModel and native factory/store injection; node creation and erasure share the per-profile com.akinokaede.termind.tailscale UUID namespace. Memory-only assemblies disable profile storage and Pro loss blocks retained dialers without closing existing nodes.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L32-L57",
+          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L35-L60",
           "version": "repo-lines-v1:sha256:7d2e6c01864eef9387894da3c31f6570c3bf1e56ef71f8829205e21c699100a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxOTM1MTJlNWU2MGE2YzllMDAzZTVhNjhmMjhmNjhmZDY2MTVkMDFmOGZiZGVmYWFiMzQ2MDE2NTA1NmJlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlNzFjOTI4Mjg2OWI1MDNjNjcxOGZmYmRhZDFjODUzM2U3MTdlMmU1NGJjYWJhNGYzNjI5OTdjMzcyMjczZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5OGQxMDUxMzIxMDljYjJmOTllMzMwMDU4OTk5OTM4ODI1ZjM1YjZkNTgwNTYzNThiMDA5N2U4MWIzNDYwZDQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L19-L42",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L22-L45",
           "version": "repo-lines-v1:sha256:edec8f0cb4ab5bad3e188e683a209ce4b4ce9bbbba4edb898d4901020ae13a6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYTBmYzFlZDkwNzU2Y2Q0YzkzNjQ0MDliYzdkYTRkNjc1ODVkOWZkY2ZlMjg1NmIwYTYyNjFlNGI4ODMxNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZDQ1Y2FiZjNiMDQ3YTdhNWJlNzU2MDE3OTk3YjA0ZjAwYzJlOGM2YWEzZDczYmMyZjg4ODY1YTQ2ZmNmNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4ZmQ5M2Q5Njg3NWRhZGM5ZTg0YmZiOWU1NTRkM2JmOGVlMDIyNWNhNWVjYzk4ZmJiODdjMWVlMjFmZDVkZDUifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L345-L360",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L348-L363",
           "version": "repo-lines-v1:sha256:2819a588e65b11b00207c774ab382c30322dcbb4c0d124bb4c6f7078cf568f92:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Mzc4YjMzNGM4NjQzODNkMWJkN2EwNTg4YTI5YjkyMDkzNTJhNzc0NmZjYzkzMDMzODEwYzkzY2E0ZDEwNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiOWUzMjRjYmNhZWY3NmI5NmIzYzlkNjJjNTE0NjUwZWZkYzllZWQ4MTdhMTg2OTRkODUzMzQ4MGM4YjI3OTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3Zjk0NWUwZWY2NGZiMjJlNmY2MDgzY2NkOWQ3ZmZmYjRkZmEyZTg5OWZkZDA4NjNiZWJlNDI0OThhNWUwZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MzU2Mjk4YTVhZDU0NjMzNWY4NDgyOGVhOGY0MWY0NzE4OGZkODA4ZDcxMjA2MmEyNjljNzlmNmQ4YmY5ZjIifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L176-L181",
+          "resource": "repo://TFM/App/TermindApp.swift#L179-L184",
           "version": "repo-lines-v1:sha256:504aa7ecd10af6a55edff113125b3274bff4a9385b0b6bd1b6544b72532bc4ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZlZDU5MWYyZDYyZjQxZTQ4Nzg0N2ExNzFjNjM5NWJhMDhhZjlhNDI0YjU4MjEyNTMwNWUzZTQwZjkxZTFjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTc5OGFhYWVlMGFlZGQzMzY0ZjQ3Yzc2ZWJhMTU2OTU1YjM1YmI2M2VkZmFjNGU0ZDJmNzgzZDE4NGFlYmY1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU0Y2Q2MTc1M2MyNmQxMzE2MmUxODIyMmU4NjMxYWUzMTcwYmE2NWMzOGRjMWU0YmJkZmYwNjdkMTczMGQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFiMTYxNDVjMDA0OWU4Y2Y2MjM5YmVkZGQ0YmE3ZTIxNDQ2ZjZkYWUyZjVlNmU3NWM0ZWY2NGYyYjU2ODVjZSJ9"
         }
       ]
@@ -29,7 +29,7 @@
       "statement": "Control-service URLs require HTTPS without credentials/query/fragment, are canonicalized with DNS suffix normalization, and invalid bindings fail.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L5-L37",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L8-L40",
           "version": "repo-lines-v1:sha256:24661e137c4e2a4576c776d64f0f714fe06c512a436f78c921f7b1b3bffbc3b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiY2QwZTcyYjVjZWEzMWFjZGMzNjcxN2Y5ZDg3YjM0MmM4ZGUxYjVkNDBkZWIwZWEwYTg1MmZmNTU4OTM1YzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1MmYzMzUyMzYxODI1NTFjZjA3NjFkYjViNDRkYWFhMzcyZTE3MWU5OWMwNzIzZWE1YmI0NGY3N2U0ZWYxODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwZDc5NDVkYzI5ZmZiOGMyM2YxOTFhNzNkOGY2Njg3YTRiZmQxZTExNDJmNWJiOTI3Nzc1YmIyNjYyMDgwMWIifQ"
         }
       ]
@@ -39,15 +39,15 @@
       "statement": "Login creates an editor-owned unsaved candidate; explicit Save commits public group before local activation, retains a failed candidate and rechecks access/binding/generation. Shared Exit Node controls also recheck live online candidates when a menu commits and reject editing while saving.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L88-L164",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L91-L167",
           "version": "repo-lines-v1:sha256:be78483b136af722ee70c2bc8f41a0a8498476f609843f656f95dc7884c3f376:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwMWVmMWUwNDNmOTQ5YjJmYTUzOWI1NWQ2ZDBmZmJlNjhmZGY0YzA2ZmNlNTYyZDBmZmEzZjExNmQ4MjZjNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhNWM0YWQ2NTBjMTdlYThiNzYwM2Y0ZDJmNjQ5ZTMzZjQwNDAxZTUwYzQwYjE3YjFlMjFhMzQwNTkxZWE2YzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L317-L481",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L320-L484",
           "version": "repo-lines-v1:sha256:12fdcca2a3ec6fee5407f7775bb061c74485a4ddff9ff99099a4f5bafc167270:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZTExODA4NjQwYTRlMjlkZGMxMjgxNzkxOTAxNTVhNWZjZWM5MWMzMjFlODM0N2NjMGVkNGFjMGIzNjkyMjMyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiYjAxNDMxYjc2YTc0YmVmYTZiYjRmOTAyYWExNWNhODVkMjdiYjM2ZTFhM2VmZDRjZGVmZmMzNWYxOTQ4ZDg3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTRjMGM2NmNiM2I1MDc5ODk3ZWQ5YTMwMDk1ZTUyNDE1ZjVkYWI0Y2NlYTVjYTE5OWFjZWZlZjQ0NjQ1YjViIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Tailscale/TailscaleExitNodeField.swift#L9-L36",
+          "resource": "repo://Frameworks/TermindPresentation/Tailscale/TailscaleExitNodeField.swift#L12-L39",
           "version": "repo-lines-v1:sha256:ec4478fd29d79234de63857acdb4780e046a56393405e0a98355bbb79445e379:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNWMyNTMyM2E4MGI1YTk0NjRlYjZkYzcxYjljZjEyZGM4OTAzOTFiMmRkMTkyM2QzNjZkYzIwMzljN2QzYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MTYyYjRiZGVjMDg1ZDY2MTI2YzgzYzRjYTNiMTVjMmVkMzlhODQ4NThkNjYwMjEwMzAxMjlmMjZiZDdjMmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5NjhmNGY0YWZhNzE0ZDlmMzcxM2E2MjU5NDcxNzcxYTM1OWViMzFmMjQ5OWFiYmI4N2VmNGMxMzgyMzVhNTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
@@ -57,19 +57,19 @@
       "statement": "Saved enrollment logout remains a draft until Save; Cancel keeps the original enrollment, while cancelling an unsaved candidate retires it and profile-ID guards protect newer enrollments.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L326-L379",
+          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L329-L382",
           "version": "repo-lines-v1:sha256:b32b3fe427fd28b51a3788bcce44e8b19987338f464e89fa97a1872d67e11dfe:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlN2RlNTRkMmM3NTkxNThlYWM1OWRkMjc4ZTFkOTUyYzA5MzM3ZmY2NTk3MjExN2U2YThkOTRhOGJjOTNiNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNGRiZmJlODYxMjBjODliMTk5YzEwZGY3NjU0OTliYmRkMjUzN2ExZmUzNzA2ZmJmMjk5NWUzN2ExNmY2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMDZmYzhkNGZjYWMzNGRhMzFhMDI2ODAyYzkzMDJlOTNhYzEwZDlkN2ZkNmVjNzc4ZmY0ZTJkMjYzMTBmNzYifQ"
         },
         {
-          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L513-L532",
+          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L516-L535",
           "version": "repo-lines-v1:sha256:120d2f7f8f732f0b26a8b30284328700c4612bf9a3e791f373529eb4bdbaafb4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyZmE2NGY4NTNmYjkxNzk4NzY3MjI3NWEwYjA1ZmIyZTllMWQyYjkwODIyZWY1OTRjMjMxNzA1ZjY2MjIwOGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNGRiZmJlODYxMjBjODliMTk5YzEwZGY3NjU0OTliYmRkMjUzN2ExZmUzNzA2ZmJmMjk5NWUzN2ExNmY2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlZGIzYjQwZGE4MzVlYzQyM2U1ZDZlOTcwMDM4ZWI5NjJkMzUyMDEyOTQyMDlhNDRiMjMyYjI4YjNkZTI1NDMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L106-L164",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L109-L167",
           "version": "repo-lines-v1:sha256:49d487d76da0f7755084e75d7f4da134c9a7b59926618a29e99685028573e778:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjNWZkOWJiMjMzMDFmZWViMTc2NmNhN2E1N2QwNzQ3YWY2NmQ1MjFhNjk3MGI2YTQ3NWUxMDEyNWU3MzhjMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L487-L550",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L490-L553",
           "version": "repo-lines-v1:sha256:96ae8ea8f8be300fd43f32a77a193b930d111dccd1229845075625562a51b022:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYmJiNTJmNDJiYzU5ZGNhZjEwOTU0NzQwZDQ3ODFhZDJiMGI1ZWQ0ZDk1ZDExNWU2ZTU2ODFiYzE4YTA5N2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMDFmNTdkY2NkMWIxN2NhMzJlYmFhOTk2NmVmYjA0NWNkM2NkZjFjMTUxNmNiMGQyYjA5NTg2MjU5NGZiYzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyMjg5YzgzMGQ1YjQ5ZDQ2ZTQzZWUzMWFhNGFlNGM5MGYzNGY3ZDc4MTY3OGE5YzRjZDlkMmM2MTg5MTc4ZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlZDc1ZmFjNjI1MDdlOGU4YTUxMWI2NjNhZWUyOGJiYWIzMGQzNTJiOTI4OWJiNzNiNWU1MjI3NGU1YzJjYmQifQ"
         }
       ]
@@ -79,15 +79,15 @@
       "statement": "Managed Host identity is UUIDv5 in the URL namespace over the UTF-8 length-delimited prefix termind.tailscale.v1: and components groupHostV2, lowercase group UUID, normalized DNS suffix and stable node ID; hostname/IP/control URL/profile UUID do not identify that Host.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L8-L35",
+          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L11-L38",
           "version": "repo-lines-v1:sha256:b2f81de5342926018ab4f37805e9853f49e591a2fdecebe92ecfc1208f24b463:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExY2I1YTBmM2M3Yjk5MjE0MzdjZGI4ZDI5ZmE1MDVjZmU1ODIxOGMxYjJhOTk5M2VhYzNiOWRhODZhNGYwNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0YTRiMGU3MjY1Yjg2MWU4OGMyNmViZGUzOTAxZjU2OWY2ODkyZjljNThlMGEyMzliYzIwZjJkOGU2ZTVkYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2ZjN2UxYTZlYTI2YjVhODU2MjM2MDRhOTc0YjE4OTFkYjMyYTdlNTZiMmU0ZmNiY2RjY2ViNzJmNjg1MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExZDk5ZGIwOGU4NmQ4NDM4MDE3ODcxMmFkMzFjNzNiNWUzNmFhNjg3ZDhhODVhYWZhOGU5ODVkZWI1NWU1ZGYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L136-L185",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L139-L188",
           "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L39-L66",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L42-L69",
           "version": "repo-lines-v1:sha256:d4cab30e54977012bacf98efd2c1cd41a9c68ecc79bafc1ecc6b1a58eac69495:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjNTk4OWYzOGEzYTI2OTRlMDFjNGVjOWNiMDNhZDc3NjIyY2VmYWNmOTEzY2Y5MGY0NWRiOGQzM2UyM2U4M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkMjk3NzliMDE4MWI5ZWU2ZjU5OWZjZmRkZTFlYTU5ZDYyNTc0NTZkMDY5M2IwNjA5YTMyOTdkOWJjOWYxZWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkNWQ5ZjdlZDI2ZTc0OTQxYzg4Y2QzMzRiNmYzYWRmMTYyMTQwNjI5MDM1M2M4NzY4MTRkZjEyYTRhMDBlNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliNDdmMTgwM2QwODA0NzAwN2I5NmNjMGNmMjI4MDJlNGUyNGE4OWFkODJjOGJiMzk5Y2RiNGJhNWY5OWQ3NGIifQ"
         }
       ]
@@ -97,11 +97,11 @@
       "statement": "Rename preserves managed Host UUID; group/suffix/node changes isolate identities, switching back restores the original UUID and history association, and canonical lowercase hostPreferences UUID keys plus explicit groupScopedV2 identity version are wire contracts.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L24-L65",
+          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L27-L68",
           "version": "repo-lines-v1:sha256:f6c77889cf276dc0d36ee6b2ce50c6fb67ef2f077d9e16b20c84d3b6feddb635:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3NGVjZmM0MmZhMzg1NDY5NTk2ZWVmOTNlMmU5NGI3MDg5Nzk4N2NhYjIxY2JhMWIzYWM5MjE5YmJhYWFmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYWU3YmExOTIzMTFlMzhiY2JkMWQ5MTk2Y2FkMGVjMTgwZjE3NTVmMTQ4MWExZGE5YzE0ZDFjOGY3ZGZiZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Nzg4Y2E1OGViMzgwZjE5N2I0OGQ2Y2VhZjk4YzJlNWRmOTQ5MTJiYzRiYzkwZTU2OWY0MDIwNDIxMjU1ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MmIzNGQwNjkwNDllMDVmODQ4MDcwYTY5ODI1ZTJiYzMyZTExMDg2NmRkODM4MDg4Y2E5YWViOGY3ZDBhMjMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L136-L185",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L139-L188",
           "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
         }
       ]
@@ -111,20 +111,20 @@
       "statement": "Native status requires a Peer field and retains offline diagnostic peers; only peers with stable IDs/DNS names in the network map and outside sharee nodes are accepted. The library projects only SSH-advertising peers as managed Hosts, rebuilding current discovery names and DNS addresses with group-scoped preferences including detected distribution, artwork override and session preferences that survive rediscovery and sync before discovery.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/HostIconTests.swift#L192-L219",
+          "resource": "repo://FrameworkTests/HostIconTests.swift#L184-L211",
           "version": "repo-lines-v1:sha256:995a91d19a3f732d7f9edfc41e0ed83731cedd1448db878f5d52c846c50277f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOTZiYzlkZjg5ZDIzODQ5MTEzOWNjYmY3Yjk2YjNjMzA1ODFkYzcxYWUxNzY1YjIxNzE2OGM2YWQ5MmQ3MTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyZTdlY2MzYWNmODBmM2YwYWY2ZWYwODMxZTZlNzQ0ZWVhOTBhZjIwZTEzMjQxMDA3NDBlZTkzM2Q2OTA2YjIifQ"
         },
         {
-          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L300-L342",
+          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L303-L345",
           "version": "repo-lines-v1:sha256:f8fda483f30fefcfd24af852c2bcca79ebd6b1467722781975b645f717dadb65:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyY2IzZWQwMDg4NGM5ZDkzZTRiNTI3MDEzMjU2NzA2ZWY1OGUwMGUxNDI3ZDExMGVmNGE4MWQ5ZGUzZTU4OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyMGQxNGQyNWZjMjQxYWU4ZGFiNDk2NDFlZWIzOWNmYjdmMDJhZWJlMzA5YWUxZjE4MmFjMzcyZWJiYTMxNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxN2ZiNzE2OWIxYjA2OTQ1MmZkYTZkNzE3ZGNlMWU4NmY4N2Q5NjYwZjZiZTE1MDJkYzIyN2E1YTM5NjBiMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4MmY3ZDJjMDJmODlhNzQwOTM5NWM4MjEzMjIwNmJmY2I0MWQzMmJiNzFjODc4ZDQ1YzM0YjE3OGNkNWJhNTkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2643-L2669",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2646-L2672",
           "version": "repo-lines-v1:sha256:0ff9e4f3f06f01296010cd5e90f965ad0bb47477aff46076b89127c435eddb4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ODVkZDQ2MzNkMGM3Yzk1MWJiZmYwNTRlMDY4YTQxODU5MzNlMDk5YTNlYjI0ZGY4YzU2N2UwZDU0MzllMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTE5MDlmMjE5MzkwMDE5YmUzOTVkYjBlNWUzY2U1ZTFjNWNjNGJhMDA3NTFjZTE1N2QyZTYxODgxMmRjY2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MzE1NjliOWI3NzNkMGZjNTlkN2FlMTljYzIxZmI5NWM0ZGJjN2ExNWMwZTkyNDNiZGNhZTMwM2IxNWJjYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4ZTRhMzhhNzU1NGZjYjE1NDFlYTdmOTY0ZGU5YTRmNGZlYzgyYzZkZGZjMzY5NmEzYThlNDIxZmM3MWM4MTUifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift",
-          "version": "repo-file-v1:sha256:0c7ed2e41121e4ebac216c18a7edbe0a4e7f7486a4b209642f991b1378aee88f"
+          "version": "repo-file-v1:sha256:e6da9396bc3708dd32598954e2ed77ca63f7fc7c0ca89618b66d5550495fe217"
         }
       ]
     },
@@ -134,19 +134,19 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift",
-          "version": "repo-file-v1:sha256:8424d5f90194aa444cceb17e63a66a99fb8a6c06f582903291b9190e9bccf2d6"
+          "version": "repo-file-v1:sha256:68169d9fea8c45a2684c2768070b03fee41307ce182139476d022c0d781ea02b"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
-          "version": "repo-file-v1:sha256:3686245901bc5563758026c11403ef5627724539f85d345e88503a625b9210dc"
+          "version": "repo-file-v1:sha256:b589853a5e0739df32a64ba4f5526acfb203509f752c0ec59fc79435e386ad6e"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/VaultWireV5.swift",
-          "version": "repo-file-v1:sha256:6f18c3609bc11e299a3bb416135089696739b19e184e44481fd93af37392e1ec"
+          "version": "repo-file-v1:sha256:fb66173ed7df863cc2a805fdec386edb01f0e2f58bed73e3ee926b584cce907d"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
-          "version": "repo-file-v1:sha256:c086fd82bc3560987e636c859eed4e4a1d6206b49a1b290e5407b8d54fe3b944"
+          "version": "repo-file-v1:sha256:c8414fb4f5e50c4b959c46ac7b3604acc7fb82a8fa3923e7ae121f57881c5dd4"
         }
       ]
     },
@@ -155,23 +155,23 @@
       "statement": "Ordinary Hosts inherit the nearest configured ancestor's Tailnet dialer while keeping ordinary SSH authentication; managed peers use group-bound dialers, remote username and no ordinary credential list. Retained dialers recheck Pro/profile/network/applied Exit Node and never fall back to system networking.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L157-L165",
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L160-L168",
           "version": "repo-lines-v1:sha256:2811fa44c9b01718a1743dd656ce4359b9c665f49f41ee3b43239aa97b9c3759:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTdlZWZiMDIzZjEwZTNiNDA4NjJmMzZlODQyOWZhMzFhODI5MjgwYWQ2NmYyYTNjYWJmY2Y0Njc0ZGQzZmViMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzEwODkwMTg4YWQ1OWY3NjE4ZGVlNTA4NjZiYTU2YzQ1OWYwMWMzYzg1ZTM0NGEwYmM0ZTVlMjUxZmM3NjI5ZCJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift#L4-L13",
+          "resource": "repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift#L7-L16",
           "version": "repo-lines-v1:sha256:4a824789662cc256de3524cb56d3384789385a00122bd7a2e0ae87ded6d1ae40:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NTJiNTkzZWE2ZjAxNzhlZTlhN2M1MWYxNGZkNWZmOGVkZDg1NTBkZWFhYWVhYzg2MmFlOWU5N2ZlNzcxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMWNmNDM1YmU0YmM0M2E4NjljZTI4OGViODAyMjI4OGRlZjYzNTAyY2ViYTA4Zjg4YTg2MmJkNGZmMThlZDIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2591-L2636",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2594-L2639",
           "version": "repo-lines-v1:sha256:35dff10766b2c0fe57c14c1f2b1d4303f00180066cd367cd61a280218e4bdc70:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NzdkODU3ZGM2NWZmMGVmMGIzYTUzMDk0N2IyMjhlZjkwZmQyYmE3OTAwNmFjMjEwMGQ3OTVmYmRlNGEwMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOTRlNDM3ZTBiMzU0ODQ0MTNmZmU0ZjhhMGViMzdhYzNmYTA1ZDZiZjhjZDA0ZGI5NGM0NDdhMTc0MTM5OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3YzA5NTVhNWU4ZmUzMTBhZDJlOTFmYzY5MDY0NDhmMzUyNzEzYjNmZGEwMTcyMDBjMDQwMDJmYTRlNDcxMDMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L552-L576",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L555-L579",
           "version": "repo-lines-v1:sha256:65485d42c3abd962ee4c9206353715bc5e73206e2a567b0d67b59372b2b76e2d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNjNiNWQ3Yzk3YmEyZjhmYzFiZDZhODYxN2Y5OGFlM2MzZDk4ZDIxOGVlNTE1NWZlYjBmNWE5OWE2MzdkODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyMjdmZjU5NDVlNGY1MDM1MjYyZWU0NDM4MmE0Y2U1MDlkNTVlZWQzNzE2MTMyMDcyZDc2MGJhZTI3MGU4YTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwMTA3ZWRmOThiMTNiMWY4ZGNkNDRjYjFiMjhlNmQ4ZmNkNDc0ZDA2NWVmYjdlN2VlODVmN2RlMjAyOGRiOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmMmQzODEzZmQ0MDUxMjVkNTg5NmE4NzgzNTRhMmViZjQxOWMzMGExOTZmMWEwZDlkMjdiOTk5MDM5ODE1YzkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L676-L687",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L679-L690",
           "version": "repo-lines-v1:sha256:7b2d961d3b4cf358c460b22a47e14e95d574c7474baed966b1ad006bacc0868c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhYjNkZWEzYTQzNTg1MjNkNThjYTU2MjE4NDE3ZmJmNDQ0ZTQ1MWFjOTU5NDM3M2RhNGM3MjYwZjkwZTc2NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
@@ -182,37 +182,37 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Connections/SSHKeyboardInteractiveChallenge.swift",
-          "version": "repo-file-v1:sha256:0360d1e0624897b36cdf8a49a774b5255f09affee3cbe548cca5babb605bf41b"
+          "version": "repo-file-v1:sha256:d6b3b47b8d6daad21984cc9962c98f679753fbe5069022d7db0421f7871b4776"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift",
-          "version": "repo-file-v1:sha256:0c7ed2e41121e4ebac216c18a7edbe0a4e7f7486a4b209642f991b1378aee88f"
+          "version": "repo-file-v1:sha256:e6da9396bc3708dd32598954e2ed77ca63f7fc7c0ca89618b66d5550495fe217"
         }
       ]
     },
     {
       "id": "claim_2fd16786cd0743d78d3b7233c12dd909",
-      "statement": "HostGroup Tailscale configuration syncs through the current Vault V7 writer with V1–V7 readers, while managed Host projections, local profile/hostname/peer cache and cleanup remain device-local; Metrics V2 retains V1 readers and capability upgrades refetch quarantined records.",
+      "statement": "Tailscale HostGroup configuration syncs with HostGroup V7 writes and V1–V7 readers; wire versions are per kind, so ordinary Host V8 writes do not change that boundary. Managed Host projections cannot be uploaded as Host envelopes; local profile, hostname, peer cache and cleanup remain device-local. Metrics V2 retains V1 readers and capability upgrades refetch quarantined records.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/TailscaleSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:590ea0d8698ba7e8bcffca9c80d3ee2ff630ef7b4016fc773cb7b2a6ebdaf128"
+          "version": "repo-file-v1:sha256:ca2393776c1c4e757c7b23536484d8875ec0855e3b2359a0cf38ce5f6d378012"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
-          "version": "repo-file-v1:sha256:c1d9ceb6b46edb084646a12b5bcba05f3a3c81f22c7bae9e8187b6379e80c279"
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L48-L63",
+          "version": "repo-lines-v1:sha256:905ed91c6671cd1da695ce9fc1f4f9f2f643a25bd935434c2bfa239c0c234d42:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift",
-          "version": "repo-file-v1:sha256:a62805e94af24232f2619c706d3de38adb0340e33d169c7d2c525566ecb7e8ad"
+          "version": "repo-file-v1:sha256:28a535f7752e169214bf78366b95096245127e22aedf1b0ea9e9fe83c69e4a4e"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
-          "version": "repo-file-v1:sha256:3686245901bc5563758026c11403ef5627724539f85d345e88503a625b9210dc"
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L59-L79",
+          "version": "repo-lines-v1:sha256:bfdae344474bdadff30723b244b83a8670cf4eb201f06fe0c430babf94ad645b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxZDhlMjM3ZGQzM2FiODljZTVkNmVjZTE1NmVhYjE2NzNjNzhiYTBlNGYyZmY5Nzc0MjlhZGFjYWNlYTI2NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGZmMzY1YzYwZjczMWM3NmI1NTRkMWRlNDZiZDg4NGViYjBkNzE5YzFmOGQ5MzEzZTk5NmFkMTUxMjdjNmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwYzNmMTc2ZjdlOGI1OTdkMTkyNmNjYmU1ZmIzY2U4MmU1MjkxZmQxZjNkNjJhNGNhNTgwODI5ZTQ1MDhiNTUifQ"
         }
       ]
     },
@@ -221,15 +221,15 @@
       "statement": "Profile retirement atomically removes local enrollment and journals cleanup before runtime release; cleanup excludes in-use/active profiles and clears markers only after native erasure, so failures survive reopen and can retry without Pro.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleProfileCleanupTests.swift#L12-L52",
+          "resource": "repo://FrameworkTests/TailscaleProfileCleanupTests.swift#L15-L55",
           "version": "repo-lines-v1:sha256:c98d9ba9034d3fc688574308850d6ff542d6ac71cb4329a8be2da4d36c9b1014:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOTI3MWMxYjk1Mjk2MDFhZmExYmRmNzlkYjhlZGJjZGFmZjAwODY3YmUwYTg3NjFhZGJkMDk1ODA5YWU2ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4MzVmMjkwOTk3MWFmODIzNjc3NjZhNDhiMGFkNTc0Mzg2OWYwNjI2YzJlZGZiNTM3NGNlYzMzYWYzYmQyNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkNjI2NDhkMTQ1YWRkNmNjNmU2NTFjNDM4YWRlOWZhZDQ1NmRlMzdhYWNhODM4MTA2ZTcwZDQ4ZTQ1ZWQ3YjQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L249-L299",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L252-L302",
           "version": "repo-lines-v1:sha256:d31d920a77280fb9fa3aaf0c55e01c70f9a44ed4687ea8745ea63bc10af1b689:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWE1MmJhMTk2MTcyZDUyNjY5YmYyMjIzNmQwMWI1YTMzNGJjMmM3MzIyNmU4MTI0MWVlNTlmOWJlMTU5M2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjM2RmY2I1M2ExYTFlNjU1YTNmYTQxY2FkZjFkNGJlZDM4M2NlOTkxZjg0MGI0NzIxNGI0M2JjYzY5ODBhNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwODcyMjEzMjY0MmY5YjMyZTAxODA5OTY1N2FhMDc2Yzk4NWUwNjA0YmRhY2UwZGU3MThlOGMwY2NkMzg5MGEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift#L68-L112",
+          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift#L71-L115",
           "version": "repo-lines-v1:sha256:e808022ed3a84b85e16d56caaa3df6717caa17965b2e94c7c3d539b9de2a0ea0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMzJkZmZlZGEwMWExODllZDY1YWEwYzcwM2Q1OWY2NDc0Zjg1ZjM5MzI2MWQzNTFhNjEwOTU1NmMyZTUwNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMTg2YWY3ODdmZDA1NGE2ODA2NWNkMjYzZWY5MTYxMDljYjQ5Y2I3MmUzZjM3N2ZkMDZlZDA0YjExOTJmODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlODgyYjVjNTU4OTg1YWFmZmZkNDUwZjQwOTgwMjY1YjI4ZjcyMDhkOGQyZGU1MzlmOGY0ZDVhOWRhZjI0NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhZmYwZTYwNjFjNmI2ZDA5Nzc2Y2ZmZjNiOTE5OTgyMGMzZDZkMWNkMWFiYzQ0OGE5YTZiNjdkZDg3NjRhOTMifQ"
         }
       ]
@@ -239,15 +239,15 @@
       "statement": "Startup orphan enumeration accepts only canonical UUID nonsymlink directories and rechecks active profiles after enumeration; app shutdown closes nodes without erasing saved enrollment.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L249-L260",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L252-L263",
           "version": "repo-lines-v1:sha256:ae2c0f9d5ca39bd9bd524669cdcf560a6f5e2bf80c4be770ed67c8ea2ea5ff88:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0OWVlYmQzNDg3OWMyMDM5NzQyYmJkMjdmZmMzNWE4MTE1NzgzZmM1N2NlZTg1NzFkOGY5YThkODcxNTQ0MTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjM2RmY2I1M2ExYTFlNjU1YTNmYTQxY2FkZjFkNGJlZDM4M2NlOTkxZjg0MGI0NzIxNGI0M2JjYzY5ODBhNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1Y2YzNGIzYmZkNGNhMzRiMzVlN2IxY2YyYjAxM2RkZDAwZDgzMmQxZTg3YjI0Njk5ZDhhZmYyY2Q4M2QzMDkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L593-L608",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L596-L611",
           "version": "repo-lines-v1:sha256:f200a7128af52f918200e177a5575736395ef85e17b494fd7eb4337b399558e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNGFkODcwMDA4ZmM5NzU5ZmNiYTRiYzFjMTlmYmE3ZDc2NTQyM2FlNDVjZThjMjg1OWExNmViZDcxZjUwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZGVhNmQwMzk1YmJiMzVhMGM0NDY4NDE5ZDQ1NmY3MmY2ZmM2OGVhNzViZWIxZjAxODkyNzMxYWExNDVjNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3ZDQxY2Y2ZDBlMTUxODk4NzhhMzZjYWRkOGM5NWU1M2NjOTVmZjA2MDA0NWVhNzA0Y2MzZWYzOTZkMzJkOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyNjExZWQ2NjRlYWM2MTJlYWQzNGM3MWNlYzIwOGUyNzY3ODRkNDlhMmViNmM1MDFhZTgxNTYxMGQ0NjFhNTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L45-L70",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L48-L73",
           "version": "repo-lines-v1:sha256:6b777b0501cf5d63b080f98aebae011dc4504d818812b5ef2e6d77565bfc33f7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkNDM3YjU1OTUzMzczMzQ1NjQ4ZThlM2Q5ZGE2M2ViMTU0ZWFiYzIyOWY3ZmRmYzQxMWEyODQ3NDRhNjZkZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4YzkyYjlkNzNlMTI2MWIxNGE3MGNlYTRiZDlhYWNmYzVjZjMwNTY1NTdiMjAwYjZkZTFiMjJhY2VlOWYwMGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyMGY2NmUzMTg0MzQ1MmY5ZDMyODhmNjZmY2VhNWQ0ZmM2YjQ4MTRjZjBlZDRjOWE0NjRhZThjZTQ5ZmIxNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiMzhmOWIzZTYwZjg2YmQ3Mjc2Y2I1MzliMDlmOTZhNzYwZDM0ZGJlZTQwMGYwZTExM2NhNGQ1NGNkMTliODQifQ"
         }
       ]
@@ -257,15 +257,15 @@
       "statement": "Node monitoring polls every three seconds and applies Exit Node before availability; presented peer diagnostics own cancellable once-per-second ping and 30 samples, distinguishing direct, peer relay, DERP and unknown routes.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L610-L673",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L613-L676",
           "version": "repo-lines-v1:sha256:34df7de08624f336319fa57c1f887b0a619fe9f9b52f169b2cddd5c2a31d395f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzN2RmMmM2YmFiY2U0NDY1Mzk3Y2NlMjg5MjU4ZWE3NGViNWZiMjEzYTIxNzkwYmQzMWFhMDczZTU1ODkzOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzMTg5ZmJkZTNhZWM1YmY1N2NkMTg1OWU0YjI3OTczNzcyOGUyZmI2NzZhYzY4YTVkZTlhNjY5YTVhZjU1ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlNjNjYmRiYTlhNjgxMThlNjNmNzAwODhlOTExZmZhZDg0Y2E3MzhkMzVkMGYxODgzZTY4NDgxMzI5NWFlYzAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Tailscale/TailscalePeerForm.swift#L70-L90",
+          "resource": "repo://Frameworks/TermindPresentation/Tailscale/TailscalePeerForm.swift#L73-L93",
           "version": "repo-lines-v1:sha256:8dae138d3daf5594791a1f94473e578ab907ae1449bd00912babbeac709d2233:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZTIxMWVkYzFlNmU5MGIyNTEzMDYzZTQ5ZTdkYmViYTc4YTc0ZTljMTdhNjdkMjNhNjY3OTUyM2VhYmQzNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBlNzg0YzliNzU1ZDcxOWJhYmU2OTM5MDk5ZmVjODM2NDJiMzAwYjZmZmFmMWNiODExYzdjOWVhODE1ZWM5YTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L144-L179",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L147-L182",
           "version": "repo-lines-v1:sha256:3664a01513de91db6b805927c726ef8d671845d1ce8b5dfadccc122f5de8f056:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYTBjZDgyZTRlOTNhYTZjNzkyZDI0N2UyMDY2MmQyNDVlMzY4ZDdlMTI0NTI5YTc4MDg2MDllNjU4MWY5ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxYjY2MzA2Y2ZkNmYwMmUxYzA3NTg5MmQ4YjhiNmYyZjllNGI5NWRlNzgyNWVlYzc5MWE3ZDIwYmZlYTBmNDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjZjZmMmRhYjMxNDcyN2VkM2Y1ZWZhZDUxYThjMDcyM2NjMzU5ODkyODM2NDUxMmYwMWQxY2VmZmZiNWIyZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzZTc5N2RlZWM4ZWIzMGI2NGViMThjZDNmMmJmZTRiMDQxOTFhODc2OTcwNmQyYzhhMzQ4NjZjMjJlY2ZiNjcifQ"
         }
       ]
@@ -276,7 +276,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/TailscaleSSHWireTests.swift",
-          "version": "repo-file-v1:sha256:1b294c2e5e242b49a9ffb897f98ca59492392040877c1eaf9a3a055fa6c4bf7a"
+          "version": "repo-file-v1:sha256:9c3430ce2af4f80ef43333bd615566e8dd2fe95650af6ed85403ae1870c220df"
         }
       ]
     },
@@ -285,19 +285,19 @@
       "statement": "Ordinary SSH authentication recognizes Tailscale and Tailscale_ server software banners and uses the Tailscale-aware authentication query without changing ordinary Known Hosts trust or requiring embedded enrollment; ordinary jump endpoints can use this approval path.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TailscaleSSHWireTests.swift#L45-L144",
+          "resource": "repo://FrameworkTests/TailscaleSSHWireTests.swift#L48-L147",
           "version": "repo-lines-v1:sha256:9f5ef1ed98375ca28f4660f09656eb64d7aba44deb9e5bc7ae75533778efb68b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4NDdjZmY0ZWFjZWVjMjVhNzFjZmVlODZjOWFjMDE5ZjY0YTFiZmM2ZTVhM2U2YWMzMTc5ZmQwOTQ4ODUyYTNiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4ZjFmNjFkODE4MGRkZTlkNzdjMmZhYTlkYzAwYTEzMzljNzFkNzQxYzYxMmFjODkwYTIzZDI1N2Q1MmE4ZjVmIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1152-L1177",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1155-L1180",
           "version": "repo-lines-v1:sha256:d3061a3d8c290f216b766db6574f979507aa69ae8a661f31ea861ed6c252985e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3MDRmYjEyZjI0NTI0ODdhNWQzNTkwMDJkZGY4ZWJmYzViM2Y4YmY0MDFjNjc1YWFhMzc2ZjZhNDQyNTE1ODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkYjMzOWMxN2Q0Y2M1NGU3MGM0ZmNmZWNiNjExYmI5ZTdkMzYzZjI1YjE4ZTA5MjNhMWQzMDZjYzk1OTI0ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA0NDQzYTc5M2YzMTVmYzY2ZjY0MDBjM2I1ODhmOTFiMDY5YWE5YTBjYzU3YmI3NzAzZDc2YWUxNzE0ZWZkMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2ZDgxMWRhNTc5MDY2ZjE0MmE1MDViMWQxYWMwMDdmNGRkYTc0ZWEwMmM4M2Y3Mzc2NDA4MTI4ODYyZDEwNzAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1983-L2005",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1986-L2008",
           "version": "repo-lines-v1:sha256:74bdf8c4ee872d0c34644212fd58d3d77a4e64c4ae7b073f911c091dad12e1ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlZTViNjI0OTcxYWVmZjY0NTU3ZWYwYzUyYWZkOWQ2ZjE1MmUwYjBiMGQzMzI1MGYwZDYzNzVmZmQ2ZjEzNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwZjViMjE5MzI4ZTQ1ZDJmM2VlODgxMjA1Y2VkNjIzYjBjYTMyMTA2ZWViZmFjOGZkYTQzNWZmNjQ3NTNlNDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiYzVmOTc4ZmE0MDNmNmQ5ZWZhZWQ2Nzc4YWIzOWIxYmMwYjM1MWJlZmExZGEyNzFlZDNmODQzNDI0Mzk2ZTcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L13-L17",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L16-L20",
           "version": "repo-lines-v1:sha256:efc6c77ed31aa4a6e3927d1efebbb26448693c2c7b11b9e62f7c8ae319f4cecc:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQ0ZTYyYWVjOWQ2ZDUzNzA4MjllMGM5MTI3NGU5ZjlkZGVjZTRkYjQwNzJlOTIwNDU0Yzc1YjYzOWQzMDI1MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzg5ZmQ4YzM5YjQzMWI0YzA4MDA1MGU5ODYzNTVkMmJjNDEzODE4NzBjNDhjNTljMjBmYjg5NmE3YzhkNWRmNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmQ1YmRiODM0ZDhjZDkyNzcxZjk3NDdlOWFmNmUxN2Q2MGJlZDI2YzY4MzRlMDQ1YjlmY2QwMmIzYzQzNWU1YyJ9"
         }
       ]
@@ -307,15 +307,15 @@
       "statement": "Tailscale approval prompts run asynchronously while authentication polls the same transport; UI acknowledgement is not server acceptance, and the opener awaits retired prompt dismissal on success and failure.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L73-L127",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L76-L130",
           "version": "repo-lines-v1:sha256:a8094de860885e40ae103552a59c0d8e8e333989540eeb5e067bb81f0527a11b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2ZjNiODI3ZDZhNTMxNzM0MWJiODgyODNmNjBlNzE5YmQwN2M3MDBiZmJjYTdlZGI0YzkxNDIxZGUxZTliN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmNDhmZDlkYjkwMDJkMmQ4OWEyMGU2MjRmZDM1ZTc5N2IxZWY4ZmI4NmM0NjVjODgwMzZmZGVlZDQwOTYyNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3MTVhMjFmYmI4N2I3NWNkM2NjZDU4MzBiOTBkY2YyZDVkYjYwZjhiMTc2M2E1YjhlYWMwMTZjNjBkYTJkMTMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1179-L1206",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1182-L1209",
           "version": "repo-lines-v1:sha256:acc3b5aee86f2e08574cf84386babd42a8a76f33eaa776ddfa0a7f4ceec05f4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyOWNhNzU3ZmFmYzZlMTFlNmVjYWU3OTUzM2U0MDFlZjc2YThmZjgyODAzNTQ3NGE0NGU1ZmI3Y2I2ZTNkNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkNzc2Mjk0NmE3Zjc5ODMzZjcyN2FlYWE0Y2RmZmI0OGI2ZWYwMjYxMTQzYmFjZGJjOTJjNzk4MDQ5ZDUwMDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxN2FlNmI4MWRjMGY2ZWM3ZGQxNjc3ZWY1YjY4YjQ5NTAyNmZlYWJmMzA4YTlkMmZmMWI2YzE5NzI0ZjVmYjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L48-L73",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L51-L76",
           "version": "repo-lines-v1:sha256:14cae752e65096b8bebc7337945cb207cb639c5f791adac00213d079801301d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkYjY5YWIwZjRmN2M1YzRlY2I1NTk3M2ZmMTE0YWJjYWI2MzRkZjdlMjFjMGE2YzY4ODZiMmM2YmNjMTcxMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3ZmY0NDBkN2UwMmU3ODk2NWI5M2E3N2E4MTM4OTkwMGI3NDhiYzAyNGVlZTYxY2NjMGIwYTU5OGM1N2Y0ZDgifQ"
         }
       ]
@@ -325,7 +325,7 @@
       "statement": "The Tailscale authentication query temporarily uses nonblocking mode and a packet read timeout of at least 601 seconds so the 600-second application deadline controls approval expiry, restoring prior settings afterward; failures omit potentially sensitive approval banners.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L19-L79",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHTailscaleAuthentication.swift#L22-L82",
           "version": "repo-lines-v1:sha256:11e1b34ed6b9651926c5242567d5cc97f947800f28b008e6207a2a989fbc6573:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3MTljYjRkZjY3MTJjZWQwZGYyMmM1YzQxNmZhNzRlODQ4N2FhMWQzMTI3MDk0ZTljYTk4ZTZlMzAzOGE3ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyY2Q1MjlmYTEyYzhlNzFiNGYzMzQxZDVmNDBkODZhZTA4NzZmODk1OGVhODcyYjk1ODBkZDgyMTQ1OTNlMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
@@ -335,18 +335,28 @@
       "statement": "Managed Host saves and projection rebuilding preserve terminal transport options in group preferences; managed transport availability excludes Mosh but allows enabled Eternal Terminal, and an unavailable default falls back to SSH without affecting auxiliary SSH services.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2651-L2707",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2654-L2710",
           "version": "repo-lines-v1:sha256:1a3186e8a186ccc488295a2e30836cd8b6c7d238b36ec26355ca40773e8e9247:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhN2FlOWM1ZDYxZDc5NjE4ZDAzMmIyZjhiZjU3YzAzM2Y3ZThlNTE1OWM3ZmE2NWQ3NjRkY2JlMzk1OTllNWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkZWU0OWU0YTIwYmFkM2U4YjBhYWM0MjdiMDEzOWQ4ODgyY2NhMGMzOWI5NDU3ZDFiZGNmNDc0YzYxMzAwZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxM2IzZDlhMjk0OGFlNWI0NDE5MWJkYjEzMzY1NjE1NDRiZmUwNTcwYmY2M2M4NDA4ZTRhNDFlNGNlY2EwMDIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/HostTerminalTransports.swift#L3-L24",
+          "resource": "repo://Frameworks/TermindDomain/Hosts/HostTerminalTransports.swift#L6-L27",
           "version": "repo-lines-v1:sha256:d2cf551af0b6bbb220a8d39d041d86ff557369d9139a8b0a82519f6d37e80a60:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0MDllMGM5MTkzYmY5ZWMwYjJiNDgzMWRmMGMzYWZhM2ViMDVkNjA3MzYwYjg4OGQ1ZDIyZDk0NTVjY2IxYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhMzEwMGYxNmE5ZGVlMjNiZDNlNzRiOGIxNzBhMWM2ZWFiZWI2NDg1ZWQ5ZDhmNjBkZWJkMjM1OGRhZGNhMTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7672702651524986b70b283a8811d746",
+      "statement": "The Tailscale metadata sync regression verifies detection arriving before discovery, kernel-only Linux resolving to generic linux, FreeBSD resolving to freebsd, empty metadata retaining the last detection, and unsupported SunOS clearing detection.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L303-L345",
+          "version": "repo-lines-v1:sha256:f8fda483f30fefcfd24af852c2bcca79ebd6b1467722781975b645f717dadb65:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyY2IzZWQwMDg4NGM5ZDkzZTRiNTI3MDEzMjU2NzA2ZWY1OGUwMGUxNDI3ZDExMGVmNGE4MWQ5ZGUzZTU4OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyMGQxNGQyNWZjMjQxYWU4ZGFiNDk2NDFlZWIzOWNmYjdmMDJhZWJlMzA5YWUxZjE4MmFjMzcyZWJiYTMxNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxN2ZiNzE2OWIxYjA2OTQ1MmZkYTZkNzE3ZGNlMWU4NmY4N2Q5NjYwZjZiZTE1MDJkYzIyN2E1YTM5NjBiMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4MmY3ZDJjMDJmODlhNzQwOTM5NWM4MjEzMjIwNmJmY2I0MWQzMmJiNzFjODc4ZDQ1YzM0YjE3OGNkNWJhNTkifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

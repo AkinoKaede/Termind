@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4e0377a70de3d6ae1ad91a9adc6f6305a1998c624740e9c6239fdf3aefd44717",
+  "pageVersion": "sha256:55930923702eb764f8ab05527281816ca417f2499b3c782767806e710679a034",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -12,15 +12,15 @@
         },
         {
           "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:c39e2a8cbf2db28c08a86100d2d118011a9089267904427f3c698dceb467e66e"
+          "version": "repo-file-v1:sha256:0ce534aaf9bac1d23db661a67bac1f63893102de9e1eba1999e0a4968ea13d80"
         },
         {
           "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:1f0a24d58e076da5cc7f994e66ea33640a58a1ca3f3ebcb8c0343fccdc629b34"
+          "version": "repo-file-v1:sha256:53976e51b2e374d15032d60cb237d64226a9178b56c0770095e059d71a4304b6"
         },
         {
           "resource": "repo://fastlane/Fastfile",
-          "version": "repo-file-v1:sha256:66888831bd0be796eeae2c5af639cf7592e40c3a33e6a363a6fdcacb44ff915c"
+          "version": "repo-file-v1:sha256:012805c8ecd90e5d0a308af0f743ebd27e03166d99a81e66116ccce10785d924"
         }
       ]
     },
@@ -30,7 +30,7 @@
       "evidence": [
         {
           "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
+          "version": "repo-file-v1:sha256:a92f975371d00249a21eaeead4f956f761a3b91c1988b9cd850c23e42d5bc87d"
         }
       ]
     },
@@ -40,18 +40,18 @@
       "evidence": [
         {
           "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:1f0a24d58e076da5cc7f994e66ea33640a58a1ca3f3ebcb8c0343fccdc629b34"
+          "version": "repo-file-v1:sha256:53976e51b2e374d15032d60cb237d64226a9178b56c0770095e059d71a4304b6"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
+          "resource": "repo://fastlane/lib/screenshots.rb#L194-L242",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L353-L385",
+          "resource": "repo://fastlane/lib/screenshots.rb#L356-L388",
           "version": "repo-lines-v1:sha256:984eba25874698e6bc29268e0d3faae876e01ace0a1c8bb4026d0eb84acec884:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNGIzN2E0ZGNiMzMzNzM1OGIxZDRlY2QzYzY2YmQ0N2Q1YjUyNzUxOTk2NjQ0YTk1ZTc4ZjczOTJlZmVhMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzMyZmU2NjdiYzUxYWM0YTUxYmEwZWZlNzM0NDQxYzkwZGVmNTVjNjBhMjZkN2RiMjc1ZWNiYmNmNDJmMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMmExZTBhN2RiYjM0MmY0YjAwNTVhMzQyMWU1OTVjN2RjNmI0Y2M3MjhhMTFjMjczZGQyZjhlOGNkZWQ2ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L83-L104",
+          "resource": "repo://fastlane/lib/screenshots.rb#L86-L107",
           "version": "repo-lines-v1:sha256:869a88814840a1f097f123677ce2378d0f66cd0cbaa882c3670c67269f48ed5e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwNWU5NDFjNjkzMzI2M2MxNDNiODYzNWQ5M2Q5YjM0ZGY2ZjVkYmNkZTk4Mjk1OWZjMTlhMDJlMWMxYTliMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1OGFhZDcxNjQ1MGY4MGMwNmIwZTJmOWU3M2JiNDNiZjcyNTI2OWUxYmM0N2U5NjkyNjYzOTAyZmU1MDMwYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxZThjMTc0ZDk1YTZmOTExODU1NDRhNDUyN2FhYWZlMmNkZjgzODY2MGM0ODVjZGJiYmE3MzZiYzEyNTMxMDYifQ"
         }
       ]
@@ -83,11 +83,11 @@
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2594-L2594",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2592-L2592",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2632-L2632",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2630-L2630",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         }
       ]
@@ -97,11 +97,11 @@
       "statement": "Capture lanes run hosted Swift Testing through fastlane run_tests/scan, not XCUITest snapshot helpers; scan disables parallel testing and automatic package updates and retains -onlyUsePackageVersionsFromResolvedFile.",
       "evidence": [
         {
-          "resource": "repo://fastlane/Fastfile#L7-L33",
+          "resource": "repo://fastlane/Fastfile#L10-L36",
           "version": "repo-lines-v1:sha256:56927cb5b4169dbff730aa480d3a85bbf7fca4d7ec611e33d7412b8d38b7db5d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzMyZmU2NjdiYzUxYWM0YTUxYmEwZWZlNzM0NDQxYzkwZGVmNTVjNjBhMjZkN2RiMjc1ZWNiYmNmNDJmMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3OGU5MmFhZjQ2ZTY3MWYzM2IwY2ZlYTA0M2ZiMjJmZGQwZmQxZWY0ZjUwZjAwZWZiODgwZTk4ODgzODFjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwMjNmM2JmOGQ4NDFkZDE5YzZmYjRkYzY1ZDM4ZTg2Mjk1ZjI3MmY3Y2NkODg0NWZiMzA5ZWFhM2ZkMzc2ZWEifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L116-L132",
+          "resource": "repo://fastlane/lib/screenshots.rb#L119-L135",
           "version": "repo-lines-v1:sha256:d7e8c25a31371ad6d2cb033937923b51e5010abbb9a9886434d9ae3b710396f5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmYTE5MWQ2ZDAzMWZmNTIwNzRkZDExNjRkZDJmM2I1ZjcyMzg0NWMxNjg3OThjY2VlMTMwNGJmNDczMmM2YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhZDk1YjM2YWIzMWUwNTkzODAxOGJmY2Y0ZTU5YWFkNGFkODAxNzliZjYzNzI4YmUzMzQxNmVhNjk2YTJmZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1NTYzZDczMGY1OGNiMDJlOGNkMWY5YzFmZGQ4MDQ5OTJlNDk2ZjA3ZmRmZDNhNGNmMDkxYjliZWZlYWZhZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3NmY4YTRlZjNhNjA0MmMzNWJlMDJkYzM5ODI2NGRkMTEzNzVjYzZlNjU3YTQ3YjMxNDkxNmI0ODliMzM3MjMifQ"
         }
       ]
@@ -111,11 +111,11 @@
       "statement": "Mobile capture fixes status to 9:41, 100% battery while discharging, three Wi-Fi bars and four cellular bars; cleanup clears the override after success or failure.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L272-L281",
+          "resource": "repo://fastlane/lib/screenshots.rb#L275-L284",
           "version": "repo-lines-v1:sha256:c1704df1941ca448c0c9d7fc8dd5eb5a7ecb82acf5566438fd6dcb04f420f4f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4ZTAwMDM5NjRiODk5MjM1ZmY1NGViZTU2M2RiY2VjODk0MDM0MGI1ZDRjZWNjZTI4YzhiZmIxMjhlMmEyMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4YWNmNzZjNTk5YjI3NTA3YmQxZWEzYWRjNTExMTVlYmM4MDI4MDViZDE3MDhmNDJmODEyNGE5YTM1NmM0ODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1ODg3NzRmMmFlOTg4NjJhNDNlZTM0ZTU2ZTdlYzJiMjE3MmVjNDRlNGIzYWE3ZDdhMzRjMWVkZTUxMmI2MmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1NDVlODViYTEwOGQ1N2JmNmE3MTkyYjUzNDM5MzQyNTAwN2VlZGFiYzZiMmVhMDc4MWVmYTJlMGI4YWVlZWEifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L316-L324",
+          "resource": "repo://fastlane/lib/screenshots.rb#L319-L327",
           "version": "repo-lines-v1:sha256:02e968669655014a5198908854945a8bd787dc603d70e1672cd06eb2a74172f2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzZlZDMxMDhmNjE0NTIwYmQ5NTNkNmUzMDIwNDI3NmFmYmMxNzI2NzE5NTNiYjRiNTJhZTIyNzQ3Mjk2NTk0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc5ODExYzVmYmUyNWMzZDRlNWYzZDFmZDM1YWI5ZGE2YmNmOGE2OGM1ZWRmOWQ2YmE5N2Y2ODY4NmMzOTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTgxZGQ0MDBhZGM4Y2Q3NTYzMWRlMjExOTJjMTJlYjc3MmQxOTcxZTcyNzczYmI2ZTk0OGNlMDcwMTljNjBlMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjgzNWQxOGQyM2RhOWUxYjNiNTQzYjVlNzhkMTEzMTdiNWI4ZmVlNGUxZDFhNmQxN2Y4N2MzZmJlZTZjYzdkNiJ9"
         }
       ]
@@ -125,11 +125,11 @@
       "statement": "Mac Workspace keeps Navigator, two equal-height terminals in the left half and a full-height SFTP browser on the right. The top-left terminal is focused and only nginx.conf is selected in an eleven-entry deterministic directory without a live client.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/ScreenshotDemo.swift#L173-L258",
+          "resource": "repo://TFM/App/ScreenshotDemo.swift#L176-L261",
           "version": "repo-lines-v1:sha256:fa179b6a8027bd5436183f279b1fc38a89210f787da97c42fda16cd8c51b5242:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzZTM4ZjBmNjFhMDRkNDJhODQ2ZjYzODVhYzBkZGFkZTI0MzhmOGViMDIxOGRmNjJmNzJiYTc1NTM2ODE0YjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2Q5MGYxYzQ1NGQ1YjQ4YmI1N2U2ODRkN2U0YzVlNDgzNDJmY2JkZTI2NDIzYTA3OWE4NjFkNmQ5NDQwMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzZGEzMTVlN2EyOTJkMjIwZGY1NmVjZWYzZGI1OWQ4NzQ3ZTI0MjA5ODliM2FjYzM3NDk2NWRhYTcyOGYzZTkifQ"
         },
         {
-          "resource": "repo://TFMTests/Screenshots/ScreenshotDemoTests.swift#L155-L203",
+          "resource": "repo://TFMTests/Screenshots/ScreenshotDemoTests.swift#L158-L206",
           "version": "repo-lines-v1:sha256:0575553a0fe99e6602c11029c7b908cb5885acf91bba39a9cd2cd2c79c4a154f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjMjY1ODU5ZTQ3YmIxNTRmY2ZiZmMwYzYyODcxNjI2MDZiMGVkOWEzNDQ1MGZlMTY5NWIzZjM0OTUzNDRiM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMjk2NmU4NjJiNDFjODhhMDFmYTJhMjI0YWQzYzNjNmRhNDg2YTIwM2M4YjY4MmEzNWRkYzU1OTYxOTcxNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyZDllNmY2ZWFlNGViMjJjMDFlMjk4NzAwYzhjZTExY2VhNTczZTdiMmFlZGJhOTFkOGQ3OWE1OGY2ZGFlMGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1ZmQwNzAwM2FjNmE5MTQ1YjRjNWEzMDI4MjRjNGQ5Y2ZhMWRkYTdkNGViYzM4YmRhZjgzZDFjZDlhZmY1MGYifQ"
         }
       ]
@@ -139,11 +139,11 @@
       "statement": "MobileScreenshotTests is serialized and opt-in under TERMIND_SCREENSHOTS=1; the lane defaults to five scenes on iPhone and iPad across seven locales (70 captures), while Mac defaults to Workspace across seven locales. Explicit lane selectors override environment defaults.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L13-L36",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L16-L39",
           "version": "repo-lines-v1:sha256:5bb0e2c2b002c5f495adfa2ddd8cb560d3d9d4dbf215176bff562bf7bdd6e82a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMmMwNGZkMWI0NTc5MGI4N2E2ODZiZDZiYTY1OTQ1ZDI4NjA3Y2RlMzVjYjJjMDBlMDE1NTE0MThlY2E3ZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NTdmYmI1NzM0NDI2MTFlZTUxM2NiZjY1ZjAyYTJlM2ZlMzFkMWM2MWJkNGJlZmQ3NjVmZGU0NjE3ODU4YmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMGM2MmUxODc1OGZhZTE2ODEyMjYyMDdkODUwYzNmNGQxZjViOTE3NGVmOTMyNjJkZWVjMGFiMmI0YjllYjAifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L25-L65",
+          "resource": "repo://fastlane/lib/screenshots.rb#L28-L68",
           "version": "repo-lines-v1:sha256:953b7353dae2be64059b18f83e216607763ff8c5cccf49ee9949be7cc1d38e00:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNWQ3NTU2MThlMDFhNTY5ZTNmODIxNmQyNzlmMmJlMzA0NzQ5ZWM1Njg2ODBlNjNjZDUxMmJhZTU4Nzc0YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NjZiNDdhZjNjNmUwODc4Njc5Y2FiNzhmNDBiMGZmNjExMzg2M2NmNGYxZjg0MzNjMWYxY2YxMDdhYmRkOTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzkzZDA1OWNkOTY3NjY4NTJkYWU5MzAwNjdjOWQ2YTVkMTUzMjY1NzM3OWNhNDM0OTM3MDE0MTIxZDk5M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIifQ"
         }
       ]
@@ -153,15 +153,15 @@
       "statement": "Mobile system capture handshakes feature/device/locale/token/capture ID from a native key-window fixture. The runner rediscovers reinstalled containers, ignores stale capture IDs and seen tokens, fails mismatched fresh requests or duplicate features, validates native dimensions before acknowledgment and promotes only after successful scan and complete scene-set validation; missing acknowledgment times out the test.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L222-L299",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L225-L302",
           "version": "repo-lines-v1:sha256:7567bb017c3ee1aaf337d68c0e12c409f593ee3c628621fd48174039f2e630d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllZGU5ODFmYzdhMjljMDI1NzE1ZmRhOWQzOWJmZDZiNTI1NWQyNGE0ZjlmZGE1NjZiZDA0N2JjYWY3NzY0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L332-L353",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L335-L356",
           "version": "repo-lines-v1:sha256:76b6f4e0736dcf39deba30c4b366ca88f1290d13e694815f052c2fe1eb69e815:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2Y2I4NWZmMTAwMDhjYzRkYWE5NDBkMjNhNmJkZDI4ZmM3NTQ1MjI5OTM0MzQzZGQ3OTAzODFkMjllNjdlMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyNTc3ZWYwMjM5YTNhZWRkMTFlZTkwMmM0MGI4MDE2ZmMzYjY2MjAzYjk3ZTNlZjhhOTBmOGI0NTc5YjlhMjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0MGFkOGVkOTkxMjkxMDhhZjkyNjNmMzhhYTk1NjI3ZWNhN2M4YjBkZDE4NmU1NDVlMjY1ODg4MTNjZjlkNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxN2M4ZTRjZTVmMWM3MDQwMTcyZWQ2ZjE3NzRlNjhlZTI3Mzc3MGVjZWIwNWVkMWUyZGY0NWVmYTc2ZmQzNGMifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L274-L323",
+          "resource": "repo://fastlane/lib/screenshots.rb#L277-L326",
           "version": "repo-lines-v1:sha256:acd0f6869f2c23a4834cd6e739125118ff14cf273f241ce9c8d362d81b986182:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NjEzZGExYWI2N2E0NjYxNGI1OTc3Nzk3ZDIxZmJlMmFjNzM2NDM4OTFiZGRjY2Y2N2U1N2I4NzA0ODI3YjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0YzkwMGM4MjRjODhiNTMwYWE2MmQ0NTliNTQ2Y2JlOGJkMGYwNzVlYzU1ZmVmZmIzZjkyNmYyOWZiNWU4ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5ZTI2NDM1NThkNzhhZTA0MzMzNjk4NTlmNmYwOTllNGYzZGQzYjZlNTFmNDBlYWIzZWI2YTk2ZTNkMGY5YmEifQ"
         }
       ]
@@ -171,7 +171,7 @@
       "statement": "Without system capture, direct MobileScreenshotTests writes rendered PNGs to Documents/screenshots/<feature>/<device>-<locale>.png inside the host, not the public capture tree.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L297-L322",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L300-L325",
           "version": "repo-lines-v1:sha256:5fdf85e31fc8305715a3ddbe42d72861546ee29d8e3ab699fb621e9315d4ba65:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyNmQyNzZlMDA4YjFlZTNkMGEwNzBmMTk1YTY4NmVhYzVjOWUzNmNmN2I1ZGY1OTBjZTM4OWNiZjhhMzBhYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2YzFiMTVjYmZmM2Q0NDcyMzZmMGU5MDJhOWRmYmYzNzk5MzYxYjJmN2NlMjM3OGJlZTQyMDE3N2ViM2Y0ZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxZGQwNTg3N2Q2MTY2ZWIxZWUzNWFlN2EzZDlhMDExODgxMTZkNjM4ZjBkMzA2MzIzNTIzNzFiOWVkYTI1NjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjczNDM0YTUyNTZlYjgwNGQwMDE2ZmE2ZTJjMTFjMmU0MzhjMDhiNjhiNGM0MjM2YzQ0ZDdjZTAyMjJmYWEifQ"
         }
       ]
@@ -181,78 +181,12 @@
       "statement": "Mac demo startup uses in-memory data. MacScreenshotTests prepares a light production window, takes Workspace full-screen on the built-in display and centers other scenes, clears hover by moving inside then outside content, and temporarily ignores mouse events through capture.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L45-L84",
+          "resource": "repo://TFM/App/TermindApp.swift#L48-L87",
           "version": "repo-lines-v1:sha256:44f5330914ab763df37383298f32b03f7e76fe3a8d1565e4861f87d89406e432:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2ZjEzM2RmOWIzM2I1ZDBhNjA2NDIxMTA5YjkxMGJhZWE2MGYxYzcwMjM3M2RlYzlmYjJiZmViZmUyN2RjMjgifQ"
         },
         {
           "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:1f0a24d58e076da5cc7f994e66ea33640a58a1ca3f3ebcb8c0343fccdc629b34"
-        }
-      ]
-    },
-    {
-      "id": "claim_bc91018db0144f5999c76a1306399b68",
-      "statement": "Runtime host artwork is independent of app icons, marketing frames and connection status. HostIconCatalog loads bundled HostIcons.json with empty-catalog failure fallback. Explicit overrides select HostGeneralIcon SF Symbols or catalog template assets; unknown overrides fall back to server.rack without detection. Automatic matches detected ID, ordered likeIDs, then generic Linux; absent detection uses server.rack. Darwin maps to macos and BSD kernels to lowercased IDs, with DragonFly aliased to BSD; Linux without distribution metadata detects linux. Missing probe data preserves prior detection, unsupported kernels clear it, and Windows remains manual artwork. DetectedDistribution normalizes family/related IDs without versions. The picker separates Automatic, declared-order localized general-purpose choices, and verbatim catalog titles sorted case-insensitively using en_US with ID tie-breaking; unknown choices survive. Overrides persist/sync including Tailscale without changing probe detection or reconnecting. Host colors override brand colors then accent; brand adaptation steps toward semantic label color for 3:1 contrast on a 16% tinted surface. macOS starts black and Windows uses presentation-chosen 0078D4. Scripts/update-host-icons.py directly generates resources using Configuration/HostIcons/linux-distribution-icons.json for Linux selections and aliases, Python additions for other OS families, and pinned release-shaped Simple Icons/Tabler versions with npm SHA-512 verification. It validates SVGs and stages vector/template assets, provenance JSON and licenses before non-atomic replacement. General-purpose symbols belong to HostGeneralIcon. Simple Icons CC0 does not imply all brand artwork is CC0 or grant trademark rights; retain its disclaimer and license and Tabler MIT notices. Focused tests cover detection, overrides, fallback, persistence/migration/failed-save isolation, bundled assets and symbols, aliases, brand contrast and opt-in menu grouping.",
-      "evidence": [
-        {
-          "resource": "repo://Configuration/HostIcons/linux-distribution-icons.json",
-          "version": "repo-file-v1:sha256:aaa441818a28446c5ca953fd6557557a85a2797588a8aee573bdb8d349729a1b"
-        },
-        {
-          "resource": "repo://FrameworkTests/HostIconTests.swift",
-          "version": "repo-file-v1:sha256:ca925af600bc65b30e21e2d65d64a71402f51fa2a75f8f6f8e35b4e671bcfa8b"
-        },
-        {
-          "resource": "repo://FrameworkTests/RemoteSystemInfoTests.swift",
-          "version": "repo-file-v1:sha256:a81d35fd3cd0dab1a72775ac10aa298c248a576385acd67cb48158464306e06f"
-        },
-        {
-          "resource": "repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md",
-          "version": "repo-file-v1:sha256:f921095158b73e61e675ff99b327930fa95ad6f4cf667d414ffe8ae585205724"
-        },
-        {
-          "resource": "repo://Frameworks/Resources/HostIcons/Tabler.LICENSE",
-          "version": "repo-file-v1:sha256:b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Hosts/DetectedDistribution.swift",
-          "version": "repo-file-v1:sha256:bf0b3e099c31c286a161abfb0e39486e4a86fb31a7497d04491e12b500cbbeef"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift",
-          "version": "repo-file-v1:sha256:afdf0442e8378031cb4b504e547aa54becf2992357f1522f0712dc49954ceed5"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift",
-          "version": "repo-file-v1:sha256:28218a09e06db8f2131eb2077457cbffb9ec70e6c5e53096dd2c3e0ce708dd35"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostGeneralIcon.swift",
-          "version": "repo-file-v1:sha256:6fa8112ee9a06ab82eaa90b5e39ccc4605b3a5b1b17138c0bdb79a04d8c107fd"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostIconBrandColor.swift",
-          "version": "repo-file-v1:sha256:a1ef8fb115e6568c5ef2317ea96e955409916dec62387e613490e46e9e44e661"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
-          "version": "repo-file-v1:sha256:c086fd82bc3560987e636c859eed4e4a1d6206b49a1b290e5407b8d54fe3b944"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostIconPicker.swift",
-          "version": "repo-file-v1:sha256:b0105f27d9584d36f668b3f7753763831f2ca229746041157abd68b6e7e50119"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift",
-          "version": "repo-file-v1:sha256:1e2450ebbbbb15956a5e5768500a7fea002203f22c6a455131abcc3acaff7bef"
-        },
-        {
-          "resource": "repo://Scripts/update-host-icons.py",
-          "version": "repo-file-v1:sha256:848a3fc694607e4daddb11df6a552817f218b0b06b42e597149a6289416779f6"
-        },
-        {
-          "resource": "repo://TFMTests/HostIconPresentationTests.swift",
-          "version": "repo-file-v1:sha256:7862438733d4e5b95fc0b93a76db08cc3c04f29c075e1aeb10e54ac563051d89"
+          "version": "repo-file-v1:sha256:53976e51b2e374d15032d60cb237d64226a9178b56c0770095e059d71a4304b6"
         }
       ]
     },
@@ -262,15 +196,15 @@
       "evidence": [
         {
           "resource": "repo://Scripts/run-screenshot-demo.sh",
-          "version": "repo-file-v1:sha256:7804acdc3063c484bfd3a3dcba697d17afb1be0ed39940215a01e6dbdb61aa55"
+          "version": "repo-file-v1:sha256:8513f4426ffd4eb48639c24aaeea970daabdd6fc741e74e93e7af272cb24be34"
         },
         {
           "resource": "repo://TFM/App/ScreenshotDemo.swift",
-          "version": "repo-file-v1:sha256:77471f17666029c0ee816bc57619990f31c75cc9c521f4fab644dcf54db47179"
+          "version": "repo-file-v1:sha256:68fc193ad33af5101f44d5cd253341041838e6346f1e3a491816cf4a196669fa"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
+          "version": "repo-file-v1:sha256:a92f975371d00249a21eaeead4f956f761a3b91c1988b9cd850c23e42d5bc87d"
         }
       ]
     },
@@ -279,15 +213,15 @@
       "statement": "Mac demo startup selects its requested language and an in-memory SwiftData container even outside XCTest, constructs demo hosts, AI, unrestricted test access, frozen metrics and a demo window, then returns before the normal persistent settings, secrets, sync and live model assembly; ordinary launch and the separate XCTest branch take different paths.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/ScreenshotDemo%2BMetrics.swift#L9-L16",
+          "resource": "repo://TFM/App/ScreenshotDemo%2BMetrics.swift#L12-L19",
           "version": "repo-lines-v1:sha256:277102a8a8ccd33df2b82ee088965744a4047de3db57fa779cf25545d868faec:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGJhM2I5NGI3MThmNTUxNGI2ZTA4YWMyOTljNWM5ZDI5Mjg4NzE5MDFlNjgwYjA5MmExMmM4MDk3NDQ4OGUzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTI3YTljNmMxZjlkNmM0MTc2MWQ1NTk3M2Q1MzYzMjNkYjJhYTYxYTc4MTlhOTJkMDNjMjUwNzVmODEyNmU3MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzhhNzM5ODFkZGY5ZDk2NzllZjM0ZDFhZjA0ZTQ1NjIwMTQ3ODIxNWNhODA3ZTljZjAzYmM1NmFlMTMwYWMwZCJ9"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L17-L23",
+          "resource": "repo://TFM/App/TermindApp.swift#L20-L26",
           "version": "repo-lines-v1:sha256:5383266e29c54e8811432a17570cd59e6ed3742ae2a18e1c9d9632dedde6b1f3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTdjNmQ0ZTMxY2UxNDA5MjIwZWY2NTIwNzEzZDJiM2MwNjc4MWVhOTQwYmRjNTVkYWNhMzE0Mzc1MjUwMTQzZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTM5YzQwNzgyNWM2YWE4YWQzYjExMzRhODU0Mjg1ZDMzZjVkNDY2ZjM4ZGQzZDVjY2JmMDQ2NWYwODU5M2ZmMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzEwYmYxOWZlNGNjNzhjZDE3MWFjOGMxOWVlYmUzNzUwNzhiNGY4Yjg5NjI5MDAwOTY4NGU5OWEyZWIzNjkyNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTZiMWY2MDRhMzM3OTVmNzJjNTQyN2U5MjAzYTcwNzU4Mzc4NzZjYTZhOGZmNjE3ZDgzNzJjZDlkYWRjMjE1NSJ9"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L45-L105",
+          "resource": "repo://TFM/App/TermindApp.swift#L48-L108",
           "version": "repo-lines-v1:sha256:82a79bfcfd5b58e5ce9e5492c442f62e4b0e61fd661bdf59bb5dc9364b2dba85:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NTQzNmY2MWI3YzE3ZDI0OTQ0ZTdhYTNkZTM1MzU4YWQ2ZjFjZDE0MmM5YzIxOTFjN2NiOTFmYjA0OWJiODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNDk3NTM5NDVkZDY0NjEwY2IwZTdlNGY1YjFiZGRiMGZhNmY0OTM0YjhiOGE2MDhhNDFlMjRhMWQ1NzgzMTkifQ"
         }
       ]
@@ -297,11 +231,11 @@
       "statement": "The initial Mac debug demo window is supplied to the real RootView in the production WindowGroup for a nil request ID, while explicitly requested windows use normal window creation; the demo or XCTest disables main-window restoration, and demos under XCTest are not suppressed as ordinary automatic test windows are.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L224-L265",
+          "resource": "repo://TFM/App/TermindApp.swift#L227-L268",
           "version": "repo-lines-v1:sha256:0e7ecf72cfdfa6e5ba24a7ea583033eae0266399d02c4cd0b631575a16dbdab2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZThjZDVkNTA2ZmYwYjY4ODQ3MTFjMmMxNTI1YjdiY2UwMmY0NDMxMDU2YTk3Y2E0ZDQ1NWY3N2Y5MTg4MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiOTZhMjE0MmNhYWZkMTdiNGEzYzMwYjI3MDMzZWIxMDMxOWZjNzEwOTFhMTc5NzY4YWQ3YTVjNmU3NmE2YjAifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L25-L34",
+          "resource": "repo://TFM/App/TermindApp.swift#L28-L37",
           "version": "repo-lines-v1:sha256:885f3d9ad4ecf5f68ecbc79357f5d99d7350076b5db84f5942179995c1725a91:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOGZkMDU3ZmYxMDg5ZWQ5NzJiZDYxNzZhNzc5MmI0MjI0NThmMDdmN2RhY2ZhZDA5MDExM2U1MTU4Y2E0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3M2ZkN2I1OTVlNjU3OGFkMDhjZWIyZjgxY2U3NDU5OTEzNzBhNWU4MDE3ODkyZGJmZjk2YzAwY2ZiNzQ0OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwNGE1NDQyNzMwZjkzNjk5ZjI1YzU0MTNiZDc0NTViMzZiYWNiYzNkMmVmZTU3MDA0MmFmMTdhNDU5OTUwNDMifQ"
         }
       ]
@@ -311,7 +245,7 @@
       "statement": "MacScreenshotTests emits TERMIND_MAC_SCREENSHOT_READY with scene, locale, window number, token, focus and pixel dimensions separately from the demo diagnostic. The runner captures that window and waits for scan success before validation and promotion; scan injects -statusBar.expanded YES, not a visibility override.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L191-L199",
+          "resource": "repo://fastlane/lib/screenshots.rb#L194-L202",
           "version": "repo-lines-v1:sha256:d01222326a57bc43960c05a4a28c306576f01c09f181a6258c3ecd1dfff651e1:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTU2ZmZjMGNmMjY2ZWZjMjZlYjY4ZmU1MzFiODUyYjBkMGYxMGNkYmNlMDA4NmU4ZDhiMWFiNTg3Y2M3ZDEzMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU3MWM0N2Y0Zjc3YTZhMDhlM2RlZjZhNGI3MTU2MjcwZGM4MTcwZjNmNjNiYWM3YmRmN2U2NjliYzU5ZmE3NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWU3MDU3MTkwN2FmM2JkZGI0NTg1ZjM1OGRlOGUxNjZhNmU5MWZiZDZiYTI0ZmU3N2QxMDk4NWMzZDAxNTFiMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWRjYmI1ZDY3OWNkMTc5YzUyM2IxOWY2NmIyMGMxYzQwMDRiMjkyN2RhYmNlNjZhOTdmMjU1YTQ1MDM4YTdkZCJ9"
         }
       ]
@@ -321,7 +255,7 @@
       "statement": "The Mac demo path still runs scrubber setup and previous-session attachment cleanup before returning from in-memory demo model assembly; it skips the ordinary persistent settings, Keychain and sync/model wiring rather than all startup side effects.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L45-L81",
+          "resource": "repo://TFM/App/TermindApp.swift#L48-L84",
           "version": "repo-lines-v1:sha256:92db665184aa45237e4298efcb6b5d2de7ff91bce8f37539f26162c8b2730184:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0N2Y4YTRmZDhlNjlhM2FiY2ZlYzY3NWY2YjI0OThiNzJmNWFhNTEzOTllZjcyOGRhMTNmZTdiNjkxMTM5OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4Y2E4ZDY0YjZmMjMzMTkyOGYyYWU4Y2E4ZDhiMTY0N2IxNjg0MmExNTQzNjBmMjQ4YjU4NmI1M2JiMTAxYzgifQ"
         }
       ]
@@ -349,11 +283,11 @@
       "statement": "Native MobileProView and ProPaywallView embed RevenueCatUI.PaywallView when using RevenueCat rather than loading illustration files from the external assets checkout; editing external handoff artwork does not publish the remote paywall.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L1-L46",
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L4-L49",
           "version": "repo-lines-v1:sha256:9da2344e7a2671e5c1295b5222d144527945be46e7e06862f2a02525a7831125:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZTMzZDQ4NTU2ZjNmYjBlMmIzYTdhOThjMTkyMzlhZTU3ZGE4YTVmNGI1ZDAxNWNkNjA5YWEyYzIxNjk2MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3ZDE3OTA1ZWJkZjk4YWMxNGVmN2ZmNzMwYzQ0NDM4ZTIzNTk4NTA0MTUxYWZkN2Q4MWMzMWFkMDU1ZTYwYTEifQ"
         },
         {
-          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L1-L48",
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L4-L51",
           "version": "repo-lines-v1:sha256:ac2b3dcd3fc0fdc1787a9d94362a69ddee4ce2a03940c7f467a2a6e543a8bcc0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZTMzZDQ4NTU2ZjNmYjBlMmIzYTdhOThjMTkyMzlhZTU3ZGE4YTVmNGI1ZDAxNWNkNjA5YWEyYzIxNjk2MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNmJmZGJlOTI1NTY3YTczNTQxYjY5MTBhYTA5YWU5MmI2YTk4NDZhN2I1ZThkNjMyZGZkZjk3N2FlNmFiYmEifQ"
         }
       ]
@@ -374,19 +308,19 @@
     },
     {
       "id": "claim_b78e0e1e9f9a40b6a6509d17c79259e4",
-      "statement": "Default capture/frame operations fail before writes if the asset checkout is absent. plan:true prints jobs without capture builds or windows; explicit external capture output or both external frame input/output work without the checkout.",
+      "statement": "Default capture/frame runs check asset checkout metadata and assets directory before writes. plan:true prints jobs without capture builds or windows. External capture output bypasses the checkout guard; framing needs both external input/output to bypass that guard and external template overrides for selected devices when submodule templates are absent.",
       "evidence": [
         {
           "resource": "repo://fastlane/Fastfile",
-          "version": "repo-file-v1:sha256:66888831bd0be796eeae2c5af639cf7592e40c3a33e6a363a6fdcacb44ff915c"
+          "version": "repo-file-v1:sha256:012805c8ecd90e5d0a308af0f743ebd27e03166d99a81e66116ccce10785d924"
         },
         {
           "resource": "repo://fastlane/lib/screenshot_frames.rb",
-          "version": "repo-file-v1:sha256:823bedbf007491d60f956b1bb0adb7d2d3b04cfc319f1c49ede69326dc533b61"
+          "version": "repo-file-v1:sha256:0dbe921bcde6dd3399423a0c52c6e02feb0f61149cb3bc39c5ca0e392daaadaf"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
+          "version": "repo-file-v1:sha256:a92f975371d00249a21eaeead4f956f761a3b91c1988b9cd850c23e42d5bc87d"
         }
       ]
     },
@@ -395,15 +329,15 @@
       "statement": "The capture matrix requires iPhone 18 Pro portrait 1206x2622, iPad M5 landscape 2752x2064, Duo outer portrait 1398x2034 and inner landscape 2853x2007. Duo-only batches default to iOS 27.1 and other batches to 27.0. Exact device model, active Duo display and raw pixels are checked without substitute-device resizing.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L241-L256",
+          "resource": "repo://fastlane/lib/screenshots.rb#L244-L259",
           "version": "repo-lines-v1:sha256:1394fc606a8c53de1d6430c16e0d7b43a23b77718d25e0fe4bf0961e54a56a12:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZWVhZGU4MjBlZDcyZjA2OWE1MTdiZTg0MWUyNmI3Mzc5OWMyNWYwZjY3NjYzZmU1ZDk3OGIyZmI3YTcyMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxMDk0NjFlMjQxODgyOGI4NjU2YzY3NjhkODA3NmZiODcxNGNhYTEwZTljZWYzM2IyMzQ1OTBlM2MzY2I3MmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmNjIyMzI4YjUwYTIzNDhiNDAzMWEzNDY1ZWY2YWRlMDJiZWQ0OThhYWI0ZGE0ZDIyMDEzNjYwYWYzNmE1NmUifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L258-L339",
+          "resource": "repo://fastlane/lib/screenshots.rb#L261-L342",
           "version": "repo-lines-v1:sha256:0ca3ad5211c236380b514f61abe9f359ff0d712d6ffd7a34cfdc1abc11cb8cb0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNWFmZTllZTU3MGRlMDIyNjkxZGU1MmRiMGU5ZjQ5N2E2YTJhM2EzZDEzODJjYTVjY2ZmZjE2YzIyZDIwMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYzNTBkMTViMzQwODUzYzMzZTAyOTZiNGE4MGMwY2Q1NGYyNzZmNmYyYjE3ZTg0NGZlZGE3YjllZTQ5ZWQyYjMifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L38-L67",
+          "resource": "repo://fastlane/lib/screenshots.rb#L41-L70",
           "version": "repo-lines-v1:sha256:c68e5852997278364fc586ddeb92ca98a0e5cd17747c726e4f914e28380f1ce1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzZTNjZWFkMjgzNWZjODliZjc2N2FhYjc4MzA0YmI1NDgxODliNThmMDM4MmI5YWVjNDk0ZjcwMWM0OTk3NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OGQ1NTkxYjg1Mjc5MjkxZjQ5NzNmYTJjMjM2ZDhkOTNmMTMwMWUyOGE1N2M5MDQ2ZDc4ZjFlZTZhYzU1NzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzNmE4ZWVhMzkzZmY5OTA5MDM1YTg4ZjUwMjI1OGRkYWZkZGVmYTNlMWQ4ZWQ0NWJhM2RhY2YxZjk5NmY2NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkODZhNGVhMjdhZGZjNDY5MmY4MjcyODliZTkwYTEwNmEzMzUxYTViYjk1ZGUxZmM4OGZkMDYzYmUwZmMwZTUifQ"
         }
       ]
@@ -413,15 +347,15 @@
       "statement": "Workspace alone is captured full-screen on the built-in Mac display. The runner permits a missing camera strip of at most 160 pixels and pads black at the top without resizing or capturing personal desktop UI; other scenes use ordinary-window pixels. Mac framing requires a 3024x1964 Workspace source.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L24-L57",
+          "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L27-L60",
           "version": "repo-lines-v1:sha256:bf9b71532a0ac8ba4dc1aaba3b8ee3398b004079eb5e4af081af1be7f08f2da0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkZTUwYzM0M2ZmOWMzMzM4MmUwMzAxZjhmODgyMTk4MGU5N2VlNzcxNzMwZGZhMGE0N2E0YmNjZDQ5ZDI3MjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3ZTY0ZjA2ZmExZmNmMGFkNGZiN2M0OWQ4OTZkNjQzYzViYjQzNTQ4NjU4OGMzYzIxOTNiYWJiNmE4NmQyYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljNWQ1NmVjNDY5NDUwYjY0MTg4MmM3YTJjY2I0YzlmN2EyOWNkNWQwYTlhZGYyMTM4OGJlNmIyOWNiNDA4OGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRmMDczODk3YzMwODdmNDJhYjAzYTA0ZmMyZGExNjYzMTcxMzlkNmVlMDRmNTY0NjY5YmUxMzhjNWE5MGM4MDAifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L84-L87",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L87-L90",
           "version": "repo-lines-v1:sha256:61c694522ea7924078dc4a61127084721c4418d3f63d12e58ce55a83d18913fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGZiNWU1MzkwMzA2ODE0OTcwMGE3NGEyZjE0Mzc5NmIyN2NlZDUwZjc5MzVmNTgwMGYxNTEzMTA5N2YwOWQxZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2M3OGI2ZDc2OTNlYmZmNmU2Yjc5ZjA0MDhhMzdiZTY5YzkwYTNlNDVmZjQzODM1OTA0ODY3ZjNmNzM5NDg3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmNmMTE5OGE2MmNiMmE3ZjBhOGMzNGYwYzJkNzQyNjU2NDNlMTFhYzJiNDkyNjczMjk3OTZkMmY1MmRjY2VjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWI2MmZhZWZiOGQ4NGQ4YmQxMTBhNjE1NmQ1NmYyZmI2ZGQxZjQyNzg5ZWM4YjdmMWNjMmU5NjNiNjM1OGE0MSJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
+          "resource": "repo://fastlane/lib/screenshots.rb#L194-L242",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         }
       ]
@@ -435,7 +369,7 @@
           "version": "repo-file-v1:sha256:f56ee05c94d0b973925e1dbd1c2e7b8c1662e4b425bb99d72ff0a5334844dddc"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L50-L160",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L53-L163",
           "version": "repo-lines-v1:sha256:8f6fc713ebbd7a41031198900179081bfac801a80793e52b7d0b087eba3cff19:eyJzZWxlY3RlZExpbmVDb3VudCI6MTExLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0ZTc0NTdlMGM0MDY5MjFmNTBmNmVkYTBhOGVlNmVkZGQxYmU5ODc4NTgwZWFhYzY1MmE5MDIzYzliZmUxZmE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3Nzk4MTFjNWZiZTI1YzNkNGU1ZjNkMWZkMzVhYjlkYTZiY2Y4YTY4YzVlZGY5ZDZiYTk3ZjY4Njg2YzM5NjgwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmNGIwMTU4ODJiMDliNDhjMjQ4ZTc5YmQ2NmJkODhiZWFkZWM5N2NiMTI3YWY2ZmM0YjdiZDgyMjk4NjVmZjFkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwY2Y1OWI0OWI5YjcxMzI5OGY0ZGQ2YTcxNGY3ZmM0YjMwZGZkMjkyMDg5YTNjYjAwMTU3NmQyMWI5ZjcyY2Q0In0"
         }
       ]
@@ -445,11 +379,11 @@
       "statement": "Default framing selects iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault and Mac Workspace in seven locales, totaling 49 jobs. Duo is opt-in and each selected Duo display defaults to all five mobile scenes; this policy does not verify current website consumption.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L15-L42",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L18-L45",
           "version": "repo-lines-v1:sha256:e34f7b11dea1a01c9ca6118c63cb50403d6f90236ce4f7b50d1853fbcd065af9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmIwMTVjOTZkZGQyNjM2NWJjYjgyYjA2YTgzNmZmNWVhZjgzOGIyNzlhNWJmNmMzMmFjY2JmMWY3MDViZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1N2RkZDE4NDQ3NjczZDBhN2YzNjlkNmY5NmI2NjZjNGY3M2M4OGQ2NGY5ZGJlM2NhMjI4MzVjY2Y4ZmY3NTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YjE3MjRjNTRmZmI2MDI0OWU3NWZiMGY4MjVmZWJlOWMzNDhmZmY5NzI2ZjAyZjRkNjM0ZTU4NDZhYjJjNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L25-L28",
+          "resource": "repo://fastlane/lib/screenshots.rb#L28-L31",
           "version": "repo-lines-v1:sha256:003e01895fd3351e64f5d6ba965b3d072fe43c05cb8c3a5bb6ba2d9f520bdef2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWE1ZDc1NTYxOGUwMWE1NjllM2Y4MjE2ZDI3OWYyYmUzMDQ3NDllYzU2ODY4MGU2M2NkNTEyYmFlNTg3NzRiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2NmMjM0ZjI2N2QyZGM0MWI5NjZlMTA2ZDY0YjEwMjdlODAwMzFmNjI4NzVjMDEzMDAxYzA1ZTQ1ZmRlMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGVjOTNkMDU5Y2Q5Njc2Njg1MmRhZTkzMDA2N2M5ZDZhNWQxNTMyNjU3Mzc5Y2E0MzQ5MzcwMTQxMjFkOTkzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThlZDIyYmJiYmYyOGEyNzc3ZmViNmQzNzBhZDU2ZTdjZTZmNGYyNDJjM2VjZjNiNGJjMDQ2ZjVkZDRlYWEyZSJ9"
         }
       ]
@@ -459,19 +393,19 @@
       "statement": "Custom native-scale templates use iPhone Silver, Duo Star White outer/inner, M5 iPad Space Black and a prepared 3860x2320 M5 MacBook Pro 14-inch bezel with a 3024x1964 opening at (418,68). Duo inner framing rotates clockwise landscape_right; iPad rotates landscape_left.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L115-L144",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L118-L147",
           "version": "repo-lines-v1:sha256:7c80555b81921b63f041ade90fd91fe97440828334cf195c8aa07ca9a768a8d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwM2JlZjAwOGEyZjVmMGMzNmZkODRkMGQwMThhZThiZjE4N2Q0NmJhMDA3MTA1MGMyZWQxY2RhZmZhZGJiMTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzMzVhZmE1MjYxMmZiZjE4NmUwNDY1ZTg0YjY4Mjg4OGY1MmUwYzQ0MDg2YzZkZjdiYjVhODFhZTE2ZWIwYzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5ZjhmMmEzMDc2Mjc4NjZkOGFlZTIwYjQwYmMzZTNlYmY5M2IxYmU4YzJmNTRmZDM3OTQ4MmU1YTk3NjJmYjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyYjdlYmI0NDgzMzQ2MGQ0NzM1MTFjN2U1MTNlZWM4YTZjMzM0NjEwODMyMDI1NzA1Mzg4MmMxM2U5OWZmNjIifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L162-L172",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L165-L175",
           "version": "repo-lines-v1:sha256:b7df3d9d2dd289a23f99aaccdd2ffc5938c8dc5dd57cafc107c160646c06045e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNDk1ZjRjYTYwMDYwYjM3NGM5OGY3MjZlZjU1MTVkN2JmNjM4NGE3MmFkYTJmNGFiYTAzNzJkYzA4ZmM3NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjYzhjZGM4YTdkN2ViNjY1NTkyZGJlMjVlZDczY2ExZTUwMTY5ZDQxMTU2MWUyZTc2NDFlY2JmZWMzYjg1YzYifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L75-L83",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L78-L86",
           "version": "repo-lines-v1:sha256:673dfb5027d5cfbc37a3df197e26997e6f4d404a53109d2f26c6cac32a2cce7b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTRkMzg5N2EwZjlkNjljOWRiODFiYzk3NzQxNWU0MGI3MjJhNWQ0NGRkZTViZDhmNzI2NDUxYmFlZDI0OGE0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODRkYzE3NzNiZjcyZWY1ZjkwYjdhNjBhZjdiZDIxOTFjNGRmNjg3M2EyOTAxM2E0YjgxODE2NDViYzBiZGI0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2U5MGMxZjZmZWM1ZDVlMDI5N2YzOGRkMjZlZWJlYWQ4NjNhNzUzYjA0NWZjMGEyM2NiOWRmZmNkYjYwZGY1YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDBiZjRjZDkzNTZkMWNjYTMzYjYxNzAwZGI4ZjYzZTZiMTZiNjVjNTM0ZjUzODVlYzAzMDE1MmM5ZDViYjE2MyJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L8-L29",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L11-L32",
           "version": "repo-lines-v1:sha256:5ecfa42c41361202877f9251e819873fb80cdad1b7915383411b3aab23f28cb8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5MDI0ZTgwNTdhYzg4ZGViNThlZjQxZWE1MGEyZjVjYTVjODdmNTI4MzY0YjIzOTEzZTEzZGM2MGFlOTQ0MGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5ZjIyZjg1NjQ0Zjk2NzhlM2ZhMmY1YmE4OGY5MzMyNWRiMWI3NmVmMjk4NDE1NDBiYTUzYWZlZGNmZDdmMjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyODI2NTk2NjdmNzBjYTA3YjI2NTUyM2U5NzhmOGZlZDg0YjM0MmFkNzYxMWU0YmUxNjdlY2M5MWQ0ZjE3OWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5YTVlNGIzMTE2ZThiZTRmZDM2Y2EzOGIyMWViNDc5NTI0NWVhMWZjMThjNDE5NmIwODU2MzllMTg1MDc0MjUifQ"
         }
       ]
@@ -481,7 +415,7 @@
       "statement": "Framing derives an enclosed aperture mask from the bezel, removes exterior transparency, rotates masks with landscape templates and applies them only to staged captures. An open bezel fails rather than allowing rectangular screen corners to escape; raw captures remain unchanged.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L162-L191",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L165-L194",
           "version": "repo-lines-v1:sha256:feede9642c7eba9ecae9dca979fa3f67ead89072e79a5748a27b0b04ee4ddf09:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNDk1ZjRjYTYwMDYwYjM3NGM5OGY3MjZlZjU1MTVkN2JmNjM4NGE3MmFkYTJmNGFiYTAzNzJkYzA4ZmM3NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2ZGI2YTVlMmU3YjY5NWYwMzEyNmExMzU2YTY4MzQzMzFlNGEyNjc1ZTBkYTc0MWI5NTc1MzZiMjdhM2JhMTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNzNhOWVjMjNhMTMzMDY5NTcxNmFiYWYyYzliYTFjMTAyOTFkZjE4OTMyZGU4YTIzZmUyYjMxYmJlMzZmOWYifQ"
         }
       ]
@@ -491,11 +425,11 @@
       "statement": "SSH screenshots mount the production workspace shell with in-memory connection services and active scene phase, and require terminal focus plus native software keyboard/accessory. The scoped ASCII-capable keyboard override prefers English when installed, otherwise a native non-emoji text keyboard, and restores both getters afterward while app chrome is localized independently.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L112-L184",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L115-L187",
           "version": "repo-lines-v1:sha256:41028cb7a574ec71589825dc07a9f374cf22af7f81aea418ff6c9e784a52e0fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZThkOTZmZDY3OGQ5YTY5NGM0NjNhYWJmZDNiMWUxNjc3YTE0Njk5NjM2ZjMwM2I0OTIzZDkwMGY2Mjc0NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwNmM0YTQzMjYzOTQwZTA4NGJhMWVlYTU1N2U3ZGQyZGU5Y2UxY2UwNGM2MjA5NDZmNGEwZmQyMzllZGYzMWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5NDk0MmJjYzBkNDExMjI0ZDRlNmVhNDU2OTkzNDE0MDc2NjM1YmZkNDViNjlhN2I1ZjFjZmI4MDEyOWM2ZDYifQ"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L271-L294",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L274-L297",
           "version": "repo-lines-v1:sha256:b608e5eb69ea601dcf35229448c3d915b185a5fd142a522d9fe689817e06bffe:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYTg4ODg3OTdhY2ZkN2EzZmFjYjUyNjMzMTBkMWE2NTE5Zjc4MjQyYTZjZTRlNDVkMDVkNzY0OTZmZjA4MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2MTRiZTkyZDM0YmI5YjI3NWM5YWY4YzQ3OWU5ZDEyYTg0ZWMzOWM4YWQ1Y2VkNmI5YzQxZDMzMzRlZGY0ZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNTQzODRhYzRhNzhmYjlkYjMyNGYzZGJjNWEwMWQ3ZDk2OGY1OTgwNWY3YTNkZDU1ZDJkY2UyYzg0ZmJmNGMifQ"
         }
       ]
@@ -505,11 +439,11 @@
       "statement": "Capture lanes share a nonblocking lock and validate batches before promotion; later failures do not undo earlier batches. Existing selected destination bytes are backed up with SHA-256 manifest paths relative to the backup run directory. The runner records but does not verify the manifest.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L351-L377",
+          "resource": "repo://fastlane/lib/screenshots.rb#L354-L380",
           "version": "repo-lines-v1:sha256:ca79cac45b22d27fd18a67bd02d25931949331652371bbb6a2871b8139dfa2c7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNzY1ZmI0ZDkxMGU0NDRhNGVmNWUxNWM4NjY2YWM4YzMyMTI2ZDQwM2ZiY2UzYmE2NGViMzNiYTM0YTkyOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjYWI0YWM5MDhhZTM3MWE1MDAwMWRkNjg4YmFhNTEwMjk4NjUyNzVkYWRiMjZhZDY5NGM3NmZiZDI0MDc3ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNzNhOWVjMjNhMTMzMDY5NTcxNmFiYWYyYzliYTFjMTAyOTFkZjE4OTMyZGU4YTIzZmUyYjMxYmJlMzZmOWYifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L83-L105",
+          "resource": "repo://fastlane/lib/screenshots.rb#L86-L108",
           "version": "repo-lines-v1:sha256:9c900fa6ee8de3a064ccff13939471da542da9cf6ff967ed2d43b5150dfec89a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwNWU5NDFjNjkzMzI2M2MxNDNiODYzNWQ5M2Q5YjM0ZGY2ZjVkYmNkZTk4Mjk1OWZjMTlhMDJlMWMxYTliMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMjI1Nzk3MWUwZjBjNzUzY2ViYzljYTJiOTg0YzExMDliOTUxMTlmNDRiZTU5NWZjYWJiOGNmMzQwZTBkNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1OGFhZDcxNjQ1MGY4MGMwNmIwZTJmOWU3M2JiNDNiZjcyNTI2OWUxYmM0N2U5NjkyNjYzOTAyZmU1MDMwYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0Y2IyYTNjMTNmMjM4MGFiOGE3NmUyY2JkNmFhY2EzMTIwN2Y5NTU4OTczMGUwNTJkYzI0NDJlYjkwNTM5NjcifQ"
         }
       ]
@@ -519,11 +453,11 @@
       "statement": "Framing expects five default template paths under com.akinokaede.termind/assets/device_templates and supports explicit overrides. Selected template and capture dimensions are validated before rendering; these contracts do not establish external template presence, provenance or checksums.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L50-L89",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L53-L92",
           "version": "repo-lines-v1:sha256:154d9941d782514efc11a3ba0bc5bda242235119d284ac0780b6017b2b00c737:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNzQ1N2UwYzQwNjkyMWY1MGY2ZWRhMGE4ZWU2ZWRkZDFiZTk4Nzg1ODBlYWFjNjUyYTkwMjNjOWJmZTFmYTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhOWFlMTczNTM3NDE4MzE4MThlMmZjZjcyOTU1OWIwNDk2YzA1MTY0NmJhYzlkMTA4ZTRhNzAwNDBiN2RmZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0YjAxNTg4MmIwOWI0OGMyNDhlNzliZDY2YmQ4OGJlYWRlYzk3Y2IxMjdhZjZmYzRiN2JkODIyOTg2NWZmMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlZmQ5NWQ5ZTc3ODdhMDliN2YxZGI5ZDYzY2U2MzAwYjg0MjZkMjA5MjZkM2I4NTkxMGZlNzRkMGUwMzEzM2UifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L8-L27",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L11-L30",
           "version": "repo-lines-v1:sha256:578b7b5ad9ab859502f9340ac900aec5e279d7e1c076b0349784512fcf45fb07:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5MDI0ZTgwNTdhYzg4ZGViNThlZjQxZWE1MGEyZjVjYTVjODdmNTI4MzY0YjIzOTEzZTEzZGM2MGFlOTQ0MGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyODI2NTk2NjdmNzBjYTA3YjI2NTUyM2U5NzhmOGZlZDg0YjM0MmFkNzYxMWU0YmUxNjdlY2M5MWQ0ZjE3OWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkNzc3NTExNTZhZDk2MTI3MTlkYjFiNmEyZGU4MDdjNzA1OWFkODRkNzg2OTExNzA3YmY5YWQzMDkyZWNiZmUifQ"
         }
       ]
@@ -533,19 +467,19 @@
       "statement": "workspace-window selects the ordinary windowed Workspace fixture and publishes workspace_window.png, while workspace publishes fullscreen workspace.png accepted by Mac framing. Parent tooling does not establish which final external boards consume those images.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L24-L58",
+          "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L27-L61",
           "version": "repo-lines-v1:sha256:16f34d0244ba69ea547ebe86a9ca527e68aa34902ff8e476fe7c6807e0c663af:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkZTUwYzM0M2ZmOWMzMzM4MmUwMzAxZjhmODgyMTk4MGU5N2VlNzcxNzMwZGZhMGE0N2E0YmNjZDQ5ZDI3MjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljNWQ1NmVjNDY5NDUwYjY0MTg4MmM3YTJjY2I0YzlmN2EyOWNkNWQwYTlhZGYyMTM4OGJlNmIyOWNiNDA4OGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3MTc1ZGM2Y2EyOTIwYzMzNWM4NDU5MTdlMTc2NTI2NjE5ZTliYTRiY2ZjNWZiMzBmYzcwYjU5N2E4ZTE1ZGQifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L35-L37",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L38-L40",
           "version": "repo-lines-v1:sha256:2d362f613e77d2f14fc0ce422126e29ef54d61888e45af80ea9babb3e7d470bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDY4ZjczN2FkMDhjNWFmYTlkNzIwOTYzOTRmNzMyN2ZkN2ZkMTEzZGVmY2EwOTRlN2UyZTU1NDcyZDFjNjIwOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWNmM2E4MWVmMjQwMWFhZjY4NzUzMDk3ZDExOThiNDgxOWNjNDMzYzJkYWJhNzhmYmE2MjIzYjdhY2NmMzFiZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTQ0NWMyMTFjZTg0YWJiNTYxMzA3ODFkYmVlMzk5YTExZGUxZWQ1YWRjNWNhYWZiYTlkMzcyNDhjZTM1YjllNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWNlMTZhYTg4MDU4N2VhZjBjNjJiYjkyZGMxYzQwOGIxNDVjYjc5M2ZjNzNkYmU2ZGQ5YjNiYjVhMjEyYWIwZCJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L86-L89",
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L89-L92",
           "version": "repo-lines-v1:sha256:680ee9a88534b0acb1bf34bd0a0bc5c3d532f1de738fe4a204821c9f9482b08f:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTA0OWRjYTMwZWNhZjE5YTRjMjg3OGZlYjRmOTBiYmQ1NzA4ODViZGZiMzJmYzQ0ZjQ1NWFiNTdmMDhkMzZlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGE5YWUxNzM1Mzc0MTgzMTgxOGUyZmNmNzI5NTU5YjA0OTZjMDUxNjQ2YmFjOWQxMDhlNGE3MDA0MGI3ZGZkYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI5ZmQ1OGUyNWIyMWE3ZmJiZmY1NmNhYTk2Y2U4MTIwZWJlZTllMWZlMzFiYjBhY2NhN2M4ZGI5NWMzMzk0NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVmZDk1ZDllNzc4N2EwOWI3ZjFkYjlkNjNjZTYzMDBiODQyNmQyMDkyNmQzYjg1OTEwZmU3NGQwZTAzMTMzZSJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
+          "resource": "repo://fastlane/lib/screenshots.rb#L194-L242",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         }
       ]
@@ -560,17 +494,173 @@
         },
         {
           "resource": "repo://Scripts/run-screenshot-demo.sh",
-          "version": "repo-file-v1:sha256:7804acdc3063c484bfd3a3dcba697d17afb1be0ed39940215a01e6dbdb61aa55"
+          "version": "repo-file-v1:sha256:8513f4426ffd4eb48639c24aaeea970daabdd6fc741e74e93e7af272cb24be34"
         },
         {
           "resource": "repo://fastlane/Fastfile",
-          "version": "repo-file-v1:sha256:66888831bd0be796eeae2c5af639cf7592e40c3a33e6a363a6fdcacb44ff915c"
+          "version": "repo-file-v1:sha256:012805c8ecd90e5d0a308af0f743ebd27e03166d99a81e66116ccce10785d924"
+        }
+      ]
+    },
+    {
+      "id": "claim_659fcbb470b942f780ac6c0e6e675398",
+      "statement": "The website repository README links separate assets and design guides; parent capture and frame paths do not establish final artwork delivery contracts.",
+      "evidence": [
+        {
+          "resource": "repo://com.akinokaede.termind/README.md",
+          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshot_frames.rb",
+          "version": "repo-file-v1:sha256:0dbe921bcde6dd3399423a0c52c6e02feb0f61149cb3bc39c5ca0e392daaadaf"
+        }
+      ]
+    },
+    {
+      "id": "claim_70b0363114c04f2fb598bca5d3c4b4b6",
+      "statement": "Runtime host artwork is independent of connection status and application branding. HostIconCatalog loads bundled HostIcons.json, falling back to an empty catalog on missing or undecodable data; Automatic matches detected ID, ordered related IDs, then generic Linux, with server.rack when detection or matching artwork is absent.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift",
+          "version": "repo-file-v1:sha256:e7774a0d69b4b69a753def465270c354ffcbcbaf3010e8fd22bd5a0998921f9f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
+          "version": "repo-file-v1:sha256:c8414fb4f5e50c4b959c46ac7b3604acc7fb82a8fa3923e7ae121f57881c5dd4"
+        }
+      ]
+    },
+    {
+      "id": "claim_d670b8f20ed1416882459a13c598ab6c",
+      "statement": "Explicit host artwork overrides select general-purpose SF Symbols or catalog assets and never fall through to detection when unknown: unknown overrides use server.rack. The picker preserves unknown selections and separates Automatic, declared-order localized general choices and verbatim catalog titles sorted case-insensitively with en_US and stable ID tie-breaking.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostGeneralIcon.swift",
+          "version": "repo-file-v1:sha256:4c4a2638467d3ada266052db2bacd0014579458dbd6ebc0fb0d5ae6eb7bceb27"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
+          "version": "repo-file-v1:sha256:c8414fb4f5e50c4b959c46ac7b3604acc7fb82a8fa3923e7ae121f57881c5dd4"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconPicker.swift",
+          "version": "repo-file-v1:sha256:6b8eb5ec57f272dd636a1e3666c7624ad56193bb0ee74035b773531f5cf2c833"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec9a6103a9ee4cfa9a3033051fdde70c",
+      "statement": "Host detection normalizes family and related IDs without versions. Darwin resolves to macos, BSD kernels to lowercase kernel IDs and metadata-free Linux to linux; missing kernel information is unavailable whereas unsupported kernels resolve to no distribution. Windows artwork is manual, and DragonFly matches the generated BSD alias.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/RemoteSystemInfoTests.swift",
+          "version": "repo-file-v1:sha256:daada4f11aa13364fee3a49d140c965268ac157b00ac829f61f08833443708f2"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/DetectedDistribution.swift",
+          "version": "repo-file-v1:sha256:24f52e110321dea1a9406ef9877d99af3664f3c76e528c0c87e3b42b7d3c0938"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift",
+          "version": "repo-file-v1:sha256:2203cd6b0f5aa83035e806b6f1246e7e54def697939f0af14e97d90e8906cc66"
+        },
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:c50166466a7119727d64d9ee77e82ee6d0a5b61218c64376869ded0b358efeac"
+        }
+      ]
+    },
+    {
+      "id": "claim_3ae9b78792974610bb123d17e52bfafc",
+      "statement": "Saved artwork overrides persist and sync including Tailscale, preserve unknown IDs and default legacy data to Automatic; they do not change ongoing detection or reconnect sessions, and failed saves must not publish draft artwork. Focused HostIconTests cover these persistence, migration and presentation-isolation contracts.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/HostIconTests.swift",
+          "version": "repo-file-v1:sha256:505df039886cce337edea19873f5a17efedce96ba4406a42b5c3f8f7b96b315a"
+        }
+      ]
+    },
+    {
+      "id": "claim_85d834b9c7f24fccbcb7bcd5ab058a33",
+      "statement": "HostDistributionIcon prefers explicit host color, then adapted catalog brand color, then accent. Brand adaptation blends toward semantic label color in 5% steps seeking 3:1 contrast against a 16%-tinted semantic surface. macOS artwork uses Simple Icons macos rather than the Apple corporate logo; Windows uses presentation-chosen 0078D4.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift",
+          "version": "repo-file-v1:sha256:e7774a0d69b4b69a753def465270c354ffcbcbaf3010e8fd22bd5a0998921f9f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconBrandColor.swift",
+          "version": "repo-file-v1:sha256:f02cfb4a906dbabe65318cc53a95ca62e01fdf65d63f2d878027a142f3c792f7"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift",
+          "version": "repo-file-v1:sha256:416d98f0d88387ced4a8af6fc1ba542e93a8a7588ecc217064459c4468d19a97"
+        },
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:c50166466a7119727d64d9ee77e82ee6d0a5b61218c64376869ded0b358efeac"
+        },
+        {
+          "resource": "repo://TFMTests/HostIconPresentationTests.swift",
+          "version": "repo-file-v1:sha256:3c396057cd3b5614d76fc82785838370335bb19f947c4ba258adb9c9caf28b7e"
+        }
+      ]
+    },
+    {
+      "id": "claim_3a04a3eda7db41ada60f87e58eafe8ca",
+      "statement": "Scripts/update-host-icons.py generates host resources independently of the website, using Linux selections and aliases from Configuration/HostIcons/linux-distribution-icons.json and Python OS-family additions. It defaults to Simple Icons 16.29.0 and Tabler 3.49.0, requires release-shaped versions and verifies npm version and SHA-512 integrity. General-purpose choices instead use HostGeneralIcon system symbols.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostGeneralIcon.swift",
+          "version": "repo-file-v1:sha256:4c4a2638467d3ada266052db2bacd0014579458dbd6ebc0fb0d5ae6eb7bceb27"
+        },
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:c50166466a7119727d64d9ee77e82ee6d0a5b61218c64376869ded0b358efeac"
+        }
+      ]
+    },
+    {
+      "id": "claim_042744fcf65b44fd9351eebd7467deb1",
+      "statement": "The host-icon updater validates SVG documents, rejects unsafe embedded content and links, replaces currentColor with black, and stages vector-preserving template assets, provenance catalog JSON and licenses before non-atomic directory replacement. All generated outputs should be reviewed together.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:c50166466a7119727d64d9ee77e82ee6d0a5b61218c64376869ded0b358efeac"
+        }
+      ]
+    },
+    {
+      "id": "claim_27e7d6b699f848028fa101e11296582d",
+      "statement": "Simple Icons package CC0 does not establish every brand icon's license or trademark permission; retain its license and disclaimer and review individual rights. Tabler MIT requires preservation of its copyright and permission notice.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md",
+          "version": "repo-file-v1:sha256:f921095158b73e61e675ff99b327930fa95ad6f4cf667d414ffe8ae585205724"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/HostIcons/Tabler.LICENSE",
+          "version": "repo-file-v1:sha256:b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
+        },
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:c50166466a7119727d64d9ee77e82ee6d0a5b61218c64376869ded0b358efeac"
+        }
+      ]
+    },
+    {
+      "id": "claim_6236fcd8da544a4f98e76952d49a3a59",
+      "statement": "HostIconPresentationTests checks bundled assets, available general-purpose symbols, distro/BSD aliases, generic Linux fallback and macOS platform-logo provenance. Its separate opt-in visible-window suite verifies menu groups and 16-by-16 native menu images while rendering light/dark forms; it does not currently assert brand-color contrast.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/HostIconPresentationTests.swift",
+          "version": "repo-file-v1:sha256:3c396057cd3b5614d76fc82785838370335bb19f947c4ba258adb9c9caf28b7e"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-19T23:15:37.894Z"
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

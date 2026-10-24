@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2ed59dcbf9ae0617b9e3291aa35a453ee0b51b401583e3290e80d5ead6188004",
+  "pageVersion": "sha256:3254bda9526e85c60356a736a60222c54041f77a0a28ccde2a269027aa06ca66",
   "claims": [
     {
       "id": "claim_76238c3763424dc2adc461f7b47120b3",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift",
-          "version": "repo-file-v1:sha256:06902bea97b04726a031f8ba1c2217fbd5fc4954e580a4b3d885e312e0830d25"
+          "version": "repo-file-v1:sha256:32d801f0a94b2f4de33974b457ac1f18404e6255206cb30aa2a4c112706130b1"
         }
       ]
     },
@@ -18,11 +18,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift",
-          "version": "repo-file-v1:sha256:6bef927c6c5ef37dfe0cef82bb595a2a116e4574327e4151d90e8c66630d2382"
+          "version": "repo-file-v1:sha256:551a4b52cb23ccbdcd7d298b7771c674ce45ea555bbe46b41e8d8d3645688b95"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift",
-          "version": "repo-file-v1:sha256:06902bea97b04726a031f8ba1c2217fbd5fc4954e580a4b3d885e312e0830d25"
+          "version": "repo-file-v1:sha256:32d801f0a94b2f4de33974b457ac1f18404e6255206cb30aa2a4c112706130b1"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/ResumableTerminalStartup.swift",
-          "version": "repo-file-v1:sha256:f1751ac54b299416a75ad75315adbbde205e506292076d02399c6d6571c78a81"
+          "version": "repo-file-v1:sha256:6a8a7bc57b361fa27d2086ef155877b21dded101e20a77484d4ec1b5244d0711"
         }
       ]
     },
@@ -42,7 +42,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
-          "version": "repo-file-v1:sha256:1d83a77d14da298d8f1792c8dec9e2575d63588c7cd0f5423a1a425e3940dfd6"
+          "version": "repo-file-v1:sha256:ffe2f7e57c2c8819bffe35f0e9effe8c20e88a19b06e6ab467f457f58ae1d9a3"
         }
       ]
     },
@@ -51,15 +51,15 @@
       "statement": "Ordinary SSH close transfers its channel out of the workspace into the cleanup request, whereas resumable transports do not transfer their interactive control callback; mobile can enqueue unopened descriptors and prioritizes transferred connections.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L913-L926",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L916-L929",
           "version": "repo-lines-v1:sha256:0f7a4311d59b7f901424b4dcff33b43342fa531271b24d59845011538fab2d84:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYjQ3Yjk1MThlODliMGNhMTdkNzEwNTc0NzVjZjM4YTA2NTFiYzIzYzI1ZTVjZDc2ODBlNDliMmUxY2I4NTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxZmZhNzdiNjBhNzE0ODk4OTNjYzNlMDBjYmE1NjJhZTc3YjIwNDk5ZjVmMTQzZWY1YWY3NDMwZThlOTRjMmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiYWM5NGE5OWNkNjc3MGZlYjhjZmFjNWU5MjM2NTVhNzE2NGU3OTcyZGVjNDMxYzQ0YWFkMjA3MDU2NzQ0YTAifQ"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1729-L1750",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1732-L1753",
           "version": "repo-lines-v1:sha256:445d99cda3953ce36807092c1b8bf60361db61dc81c67a884493ece210311c40:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlMDJhOTVkMGMzOTcxZjhmMmNiZWQ4Nzk4MWMyYmUxODc0MzBkZWEyMDk3YjZiMjFhNzFlMzg5OTA1MzI4ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2NTFhMjU5YTM1ZDI3MDBkYjM0ZmY5OWNkODI1NGU4MGUyZjVlNjdhMTI4YjEyZTQyZDllZTQyZGM1MGZmZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2ZGMzODIwMjNmZDQ2NDhkYjQzZmZhNjFjNWJmYjQ3ZjliOTZjZTIyZjFmNGI2OGYxZTczZGY3ODkxN2VlMDkifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1150-L1169",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1153-L1172",
           "version": "repo-lines-v1:sha256:f6032fd268e5b1d099f643115c01f8923055c215c855348078e802cb0efb3908:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiZjAxYjNlMmJmOTVlM2MwMmFkNTc1ZmRjYzUwNjBjMmYyY2Y1ZTJlNzViMjJiYjdkNDI4MGFkNmNhMjZiMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZjE3MjBmOTZlNWU0MzZmMzcwMGNhZTM5NTA1MzkyYzJmODFjNTNjNGU5YzU3NzRmOTgxNTc3MzYyYWViOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2ZTNlNmI5OGE1NjU5YWZmNmJlNmNkYzhhYWY5Y2YzNWRkYzYxNjEyNTE2OWU2MjdhOWVlNzBkZDU5MGFmNTIifQ"
         }
       ]
@@ -69,12 +69,12 @@
       "statement": "RemoteSessionCloseConnection serializes exactly-once release by marking released before awaiting cleanup; rejected and duplicate requests release transfers, and coordinator cancellation before execution still releases ownership.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L108-L139",
+          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L111-L142",
           "version": "repo-lines-v1:sha256:369ca2b1e5d7a0784c2a074199765072f5b36b052531a975f7876957795044fd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1YzkxYjQzYmJjZWI2MjBhODlmMWI0Mzg3MjdlZGFkMTYxNjQyZmI3ODBhZDBhYjdmY2Y0YWYzY2ZkODkxODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0MjQ3NTQyMDY2Nzc2YjYzODlmYmRlMzA2MzQ4OTE5YjI2MDIwNTk0MDUxYzYxZjM1YzlhNmM2Mjk5NTc2NmYifQ"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift",
-          "version": "repo-file-v1:sha256:6bef927c6c5ef37dfe0cef82bb595a2a116e4574327e4151d90e8c66630d2382"
+          "version": "repo-file-v1:sha256:551a4b52cb23ccbdcd7d298b7771c674ce45ea555bbe46b41e8d8d3645688b95"
         }
       ]
     },
@@ -83,11 +83,11 @@
       "statement": "RemoteSessionTerminator validates and uses a transferred connection first, allows one silent replacement only after eligible preflight failure, and never retries an attempted termination command or reconnects after semantic identity mismatch.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L9-L106",
+          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L12-L109",
           "version": "repo-lines-v1:sha256:f80740fce0ed26f336f34b6076ad0fd084ba1e9f15736cf3b066518a33497aa9:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMWNkZDg3YTEyMDhlYTNjY2Q1ZWY0MjI0ZDNiODgxMGUwODJjNDhlYWE3OTQwNjM2MDE1OGEyNjY1MzQwYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmNmYzMjI3YTU0YmM5YjI0ZWM3ODBiMjRmNDIwYjBmMWY5Y2ViY2Q1MmMzYTQyYzE5MTAyZWU1MzU4NjRjM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjZDg3YjBlOWM1Y2Q2YmI2ZjVmNzY0ZTczODhlZTg4ODFmMWY5MzY2OTgwOGY5Y2RiZTUxYWIzMWY0NmM3MDMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift#L22-L89",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift#L25-L92",
           "version": "repo-lines-v1:sha256:36d50ccf92009b735238e453412152547f919558fff81964672ad0e9a755a6eb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3NzgyOTA4NzkwYzVlZjBkYTI1OTJkNTdkYTc1MzAyNzQ1NWE0YzUzMmY0NGU2ZmU2ZjU5MjBiOGFlNzc3YTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE2NmIwNjI0ZTRmYjM1NjAzZjE1NzdjMDc0YzYxZmZjMDliNTg5YTg3YTI5M2M2NWZlZjg0YzU0ODE2MjMxZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzY2E5YjM3ODI0MmVjZTgxMzNiYjg1MThmMzA0MDNkOGZmNzNlMTBmMmM5ZjE5OWJkM2Q1YmRlOTE2YTkwYmYifQ"
         }
       ]
@@ -97,11 +97,11 @@
       "statement": "Replacement cleanup uses snapshot-derived credentials without interaction, wake hooks or agent forwarding, checks Host ID, endpoint and username before connecting, validates backend session identity and disconnects on success or failure.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L24-L106",
+          "resource": "repo://FrameworkTests/RemoteSessionTerminatorTests.swift#L27-L109",
           "version": "repo-lines-v1:sha256:b2f82159a3cb7a8f9601944988944087d5569136ae5383247f0449db5993fb87:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4YTUwMDQ4OWZiYzcwYTU4ODA3MzkyMTQwOTY0ZmVlZDM1M2MzOWZmYzhmYmYzNTExNzM3ZjE3MzBjNTkwYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjZDg3YjBlOWM1Y2Q2YmI2ZjVmNzY0ZTczODhlZTg4ODFmMWY5MzY2OTgwOGY5Y2RiZTUxYWIzMWY0NmM3MDMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift#L50-L89",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionTerminator.swift#L53-L92",
           "version": "repo-lines-v1:sha256:3943aee4cb51f9f2e29800cecf1e50073935bfe225b741c68e6da51ff0aeb3aa:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJjNGFjYjFkMzUxZTBjMzk0M2E0OTc3NTY5MTJmY2U5ODIyNzFlZTMxYmQ2YTg4MDQ3OGY3OGNmM2YwMjlkYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjZThkMTM3ZmE0NGFjNjY0OGIzYTRhNmY1NmY1MGJhYmE2NzczNDE0NWQwNDc0YTRlNTU1Njk3ZmQyNmJlYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzY2E5YjM3ODI0MmVjZTgxMzNiYjg1MThmMzA0MDNkOGZmNzNlMTBmMmM5ZjE5OWJkM2Q1YmRlOTE2YTkwYmYifQ"
         }
       ]
@@ -111,15 +111,15 @@
       "statement": "Mobile passive window dismissal preserves reopen references, while explicit close removes references from reopen records for accepted cleanup, including unopened descriptors, rather than restoring them after cleanup failure.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L265-L333",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L268-L336",
           "version": "repo-lines-v1:sha256:d619f444399ec389104de9c60d91149fabe3e15f0fc4436ec2017bac0e7fb39f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwNmQ5ZTRhNzUwOWNiMGZjMThiNjdkZGQ0OGY0ZTgwMjc3NDBlMmVmMTZlNTZhNzY1N2JlZGFkOWJiMmU4ZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3NzIzZGZhNjgwNDJkMWZjNDUyOTZkMjQxZWYwMmRiMmEyMDcyODViY2I2YjU2OGIxNGFjMGJkNTM2NjUxNzUifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L98-L104",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L101-L107",
           "version": "repo-lines-v1:sha256:79eb25a9a83595dfc00a1888d47373f5e42d740a72c89e689fed49109a4d5f74:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODc5OTdlZjExNDIwMjU4ODk2YTFkMzU5MmQwMWQ4ZDY1YWViOTQ3N2RlYWExMmNlZmVkNDIzZjg4ZTFkNjM0YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJlNTE1M2IwYTQyNDU3MjcwMWNlZjkwZTBjMmYyNzkzMTI4YjQwZmY3OTQ0NGZlODQ0YzY0NGU4ODEyMGFkYyJ9"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L11-L64",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L14-L67",
           "version": "repo-lines-v1:sha256:416c229d8d39cbb1f6cc83fc6497747e350bbf5d584f8b9c46d9fb188c4d08e3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxYzA3ZWIyOTgzYmEwNDYzMTFhMWQzZDM2ZDgwMDkyZjc1Y2RhZGVmMDkzZjlhNTQ2ZTgzODRmNDRhNzA4ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxZTAxMTEyZjg0NWYzZWIwMzg0N2YzOGUwY2E0YmE3OGIxYzU3MDYzYmQyNDg5NTcxMWZmNDUzODE3NmQwOTYifQ"
         }
       ]
@@ -129,12 +129,12 @@
       "statement": "Mobile snapshot validation rejects unknown versions, empty session keys and globally duplicate descriptor IDs; failed loading fences future saves on that store instance and failed reads do not authorize empty live-activity updates.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L483-L515",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L486-L518",
           "version": "repo-lines-v1:sha256:4496ee8357331876a5efecedfa4d97a69ad862ece8c9eb8a83946b7a635c236f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMjU4YjdiNGY1YjRhZjg4NjE4ZDI4NGJkODg1Y2VmYzNiMmQxOWRhMTk5OTlmN2ExNDI0YmQxMDliMjNjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhYmVmYTVjN2RiMjIwYjUyZjE1ZDc5MmQ4YTk2NWQzZGQ0NThhNzk5MTFjNGQyZDFmYWQ1YWQ1ODQ3YzMyMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwZGU0NWI5NGI3MmRiOThkOTFkNDAyYzUwYjZmY2MxOTRmODEwMDdiMTI1YTMyMDBlMjFiOWY3MTdjYWNjYjAifQ"
         },
         {
           "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
-          "version": "repo-file-v1:sha256:1d83a77d14da298d8f1792c8dec9e2575d63588c7cd0f5423a1a425e3940dfd6"
+          "version": "repo-file-v1:sha256:ffe2f7e57c2c8819bffe35f0e9effe8c20e88a19b06e6ab467f457f58ae1d9a3"
         }
       ]
     },
@@ -143,19 +143,19 @@
       "statement": "Cold launch restores native-session descriptor lists without live connections; opening lazily publishes or reuses a workspace and retains unavailable-Host descriptors for later discovery.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L483-L499",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L486-L502",
           "version": "repo-lines-v1:sha256:c74e3c5afcce390464cd429a0ccb05e45e0ebecf9b1a3afbe17c5d21bd280872:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMjU4YjdiNGY1YjRhZjg4NjE4ZDI4NGJkODg1Y2VmYzNiMmQxOWRhMTk5OTlmN2ExNDI0YmQxMDliMjNjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjY2RiMGE5NGVjZDZlNmFiYjI0MWFlZDkwODRjNjU0ZGI0MGI0YjM4ZTg2YWQwMjEyODhlZTkyYWQ0MDdjZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhYmVmYTVjN2RiMjIwYjUyZjE1ZDc5MmQ4YTk2NWQzZGQ0NThhNzk5MTFjNGQyZDFmYWQ1YWQ1ODQ3YzMyMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOGY3YjVkODYwM2I1YTA2OWY3MWUwNjIyMzQ2Y2RiZjNhM2VhNTJmMWQ4YjAxZmU3YWIyOWE3NGE3ZmJkOTcifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L370-L390",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L373-L393",
           "version": "repo-lines-v1:sha256:48376444cccd1e2597912eb4004a7bc31917638d46e56305436b205d428c888d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZTZjZDRmM2UxZDUwNmViYjcyOGNjZDk1OGNjNGE2ZjUyOTIwZGJkNWQxZGVkNTFkMTQ2NGQ5NzQxMTY4YjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1OTRkNzNjNzQ0ZDE4YWVhMDM4MjgzOGE5YWFhYzVmMjJmNjhhNTljNTc4ZjJlMWM1OWIzYTQ0NzA5M2FhY2EifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L313-L348",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L316-L351",
           "version": "repo-lines-v1:sha256:f52228f4075ba163cb3ce64962c7316b938632829f95d950d70e67acf8d70fc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjOGM2MWRhMGQzNTMzODVmMGFhOWNiYjkxNDc5ZmM1ZWI5YTM3Y2NjODBiNTUzNjEzNWE2ZTI3ZWVlYjdmNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmYTgwNjI2YmI1NTgyYjM2NzRlODI4ZGI1ZDczMzI1NGQ2YTRmMzk1ZjI0MDdlNTE1MGFlOTczZTNlMTliNGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyMDU4Y2FmNDQyYjVjZjQ0ZmU3NTg5OWQzMWZmMTZkMDMyZDJkNjc5NThkMzNhODk1NTBjYTI0OGQ1MzRmZmQifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L442-L452",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L445-L455",
           "version": "repo-lines-v1:sha256:b6f34ce97e9b7297318efc41b6e7f00e1f1cb26a6cab6f99a32a69b0ab7ffd19:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmNmU1YTM0YTBiMmNlNmI2YzkyZmI5MWJiNWYyOTgxNmI1MDBmMTQxZWRlZDhhM2VkZDI5NTAxOTZjOTUzNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxOGNhMWE2NTM1NDRjZTAxY2Q1MzU5ZjBmYmMzNjVjZDRmNzFjNzkyZDZkNDRmNTE5MjFmMTA0Y2E5ZjgzNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1Y2ZiZmFkZDE0NTEyNjE0NzI3ZWM5ZDgzYjY0OGEyNmIzMWJiMjg0MGQ3MzI2NzA0NWU1OWI2Y2Y4M2IwYWQifQ"
         }
       ]
@@ -165,15 +165,15 @@
       "statement": "Missing or incompatible resumable checkpoints do not silently bootstrap a shell on repeated selection; a saved multiplexer reference can survive missing-checkpoint recovery and lead to explicit selection without initial-command replay.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L260-L294",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L263-L297",
           "version": "repo-lines-v1:sha256:df80ae1293cdbe6be6dc7560d7f84d64ffa21fa29e6d64f5e91d3d87f1a27e55:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGNiYzIxYzZkNzFhZDZkZDU1YmU5M2ZhZjA4M2Y5NjRlNzQ5YjdiMWRmZTVkNGVhNjBjOTgyYjM4MWYxZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjNjRmNzVlZDlhOWU4NTNkYTNlNTEyYjhjYWFiMzBiMmUzYmVjMmYwNGI4OGViM2JkN2RkN2RkOGNiMTg3MTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5ZTMzZDc4MWY0ZjgxODNhZTQxZTljNGRkMzExNTJjZWYwY2JmZTEzNzdiNzA3YmU5YTNiMWIyZTJmNWIxNTcifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L350-L429",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L353-L432",
           "version": "repo-lines-v1:sha256:b3ac5cc080507e15201a3e284956bd38c683116fb81d5867a24a1f584a92813a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxNjBjNTU5MmZhNzJmMWE3YjcxN2JhZjk3MTc5ZGM1NWYxYTc1OTZkNmVmMjFjZGQ2ZTk4MThiZWNjOTUwNjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4ZGY5MjlkZDQwZDEyNzJkZmEwOWQyNDBjMmY0ZmRjMjg0MWQ0NTIyZjQ4MDA0NzVjNmFjNzMxODUxZjIxMzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYjBhZTgxZDJhODE2MjM5MmE3ZjlhMmVhMWIyZTBiODdhZGYzZTM5YzY1NGEwOWY0YjM4MGZlMjY1MjMzMzUifQ"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L108-L139",
+          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L111-L142",
           "version": "repo-lines-v1:sha256:6ae601b43809aa7a4af746ebbaa99687538f14815b9f999dbc50db178101fc49:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkMDkyZDBhMGFkYTU3ODllN2RlMzMyMGZiZjE4N2E2MDdiNTE1MWMwMGY1NjA1NmZlODFlZjdlMWViMmQ1NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5MTVjZjZkZjc1ODg4MzA5MTc1OWVmMTgzYjJkY2UzMTdjMjA4NmEwN2I4ZGY2NjlkNTBhZTQzOTc0ZGJkYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5MTVjZjZkZjc1ODg4MzA5MTc1OWVmMTgzYjJkY2UzMTdjMjA4NmEwN2I4ZGY2NjlkNTBhZTQzOTc0ZGJkYjkifQ"
         }
       ]
@@ -183,11 +183,11 @@
       "statement": "Session selection is generation-bound, cancellation of the current prompt clears attachment and closes synchronously, and uncertain creation tokens are scoped to backend, Host, endpoint, username, command, integration and environment intent.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L124-L156",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L127-L159",
           "version": "repo-lines-v1:sha256:d2ae0f743a1d573d399d05ba2e862328c0f0c135bd93a30032709d84af976145:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjOThhZTM4ZTg2NTgwYjkyNjE5NWU0MDk2MDkyYmNlMmI0Y2ZjM2ExYmM1NWZhZmY5YjZlNmVlYTExNTk1ODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4MTE2OTE1MGI0M2Q4YzVlMjUxNGViNDhjYTgyNWNmYTU5YTgwMjc2ODgwY2YyMzE0MGNhOWI2ODE0NDhkYjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwMTVhZDljZjIyNTc3ZTg3NzA4YmJlMDQ1MmMxY2Y1ZmY4NzlkNGYzZDQ5ZDY5ZGU4NzI0MjljNTVlNzRhYjUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L238-L255",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L241-L258",
           "version": "repo-lines-v1:sha256:15dfb08529e1dd424981bebbd3ef0307153d07f9dc5813e3dd05307c58720c05:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlMGE0NjZkNzEzZWNkNTVkOGI1ZWZmYmE1MGIzZjc1YTdjNWY0MTQ3YmI2YzE3YjI5YjE1ZDkyM2I2ZjkwYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxYWFlNjNmYTRiNDllZGVkM2U5M2ViMWVkMjExNmU2YzE0Y2ZlMWFmODk0NmIxMWE1ZTYyZDA5NTRkODEzM2IifQ"
         }
       ]
@@ -197,7 +197,7 @@
       "statement": "Remote exit clears recovery identity only when inspection confirms absence; only a successful confirmed end closes the terminal, while failed or unknown inspection preserves detached identity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L158-L181",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L161-L184",
           "version": "repo-lines-v1:sha256:9ae3cdd5eceadece1656d4594226b09bc1525b03c87b9b9ecabd33c32f0a08f4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZTczODc3OTZjZDE2MDU3ZDg5ZDdjODBhYTgzNTljODY1OWMzY2ZhMjFjNGFhMWQ0OTJhODViYjBkNjVlNDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhNWQ0YWZkOWZlMTEwNzZkNTk1ZmU0MWQ3NDcxYTJjMTE3ZWI3N2YyMzQ5OWI2ZThlMTYxNTZmODIwYzVhMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkYjg1ZWVhYzA2ZjkzZjk2MDYxMmMwZDk4ZmQ4M2U1NWY3ODBjYjMxOWIxMzM4YWZjOWZlMzIzNzgxNTAzMzcifQ"
         }
       ]
@@ -207,7 +207,7 @@
       "statement": "Backend integration requires probing, listing, reference validation and matching, creation, launch and termination; capabilities explicitly declare window counts, client counts and shell integration with false defaults, and unknown registry identifiers fail unsupported rather than selecting a substitute.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L41-L92",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L44-L95",
           "version": "repo-lines-v1:sha256:2babbe07e0212eed69736bde66d5d7ec0c570863ba537c767617e2a091b403ad:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMjE0Njg0ODNiODEyMjQxNzE0ZDBkZTEyNjllMDRiNzk1Y2UxNGQ4MzA0ZDAwNmI3MDczZWUzY2Q4OTI2NDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5ZDEwMjgzNDA4YjQyMTRkZDg2YzAxMGIyZjU2ZTllZTMxMjk2NzBkNzY2ZWU5NTU1YjQ2OTQ5MmY4NzljMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyMmMwMWQ0MzJiYWM3OGM0MWM3ODQ0ZDQ2MmUxZWJhNjZlMzRmMDk3MzYwNWU1NDY5YjM1ZjgzOWIwMWMzODAifQ"
         }
       ]
@@ -218,27 +218,27 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteHerdrCommands.swift",
-          "version": "repo-file-v1:sha256:7fe10bdf3b707457ebe30a0aeb68fc62c5249bc031d1b5a70d4d74e7a1d88f17"
+          "version": "repo-file-v1:sha256:f328416850b4f79af3c699eeb9986ec420f2a582b073d891d68f9507c46d6080"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift",
-          "version": "repo-file-v1:sha256:57065c0d2f0cb2c8c435cf530981b439d6d81d6c18be19ce7c3a879c6e34ee8c"
+          "version": "repo-file-v1:sha256:4c6cfcb29126ea59f3d6ba89074ce55a18b047b444069f70d7c7e0e07cb96073"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteSessionBackendRegistry.swift",
-          "version": "repo-file-v1:sha256:f68721dc1664a48e6a68b4d939dc1f21e9e9be68e5d0e74734442e7bb565a7d0"
+          "version": "repo-file-v1:sha256:0a36db0008542c23d302125605163d6b5edf3b5352d11bbabab792418d2db278"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxDialect.swift",
-          "version": "repo-file-v1:sha256:27e74713b3d81257c82c7c25454aad07fd04d48377f6a0217a9c3e070f7d86f0"
+          "version": "repo-file-v1:sha256:3511c7160a2e2ca466279e81bd1789006521c57f52f314ae38a2799588d087cc"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteZellijCommands.swift",
-          "version": "repo-file-v1:sha256:e2cb7c3ffda779419500305a906fd9ebac566e937767784de0eba492215d5125"
+          "version": "repo-file-v1:sha256:583f1ef122299fb77e8b512e03a37a4345ce585b3070becf4bbc31fb46976a18"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteZmxCommands.swift",
-          "version": "repo-file-v1:sha256:8b2f100bcfc9cdb5b5497526136d9a39385657aa5906ee46a2eb8df7964493bd"
+          "version": "repo-file-v1:sha256:162350a1a0daa2df4b8331ea902cfc24ef20e29594f31ddd0e533711f1ef54f4"
         }
       ]
     },
@@ -247,11 +247,11 @@
       "statement": "Live dialect probing discovers the executable and validates its version; managed creation enables shell integration only when both the request and probed capability permit it.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L264-L325",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L267-L328",
           "version": "repo-lines-v1:sha256:6262ad82d0a9dd766fb393409e7ddbfaaad4c49351ff0a8301565787b95b58ad:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNDQ0ODU2Y2U5OTY3MTUxZjBlZDQ2ZmYyY2Y2Yzk4YWNlM2UwZWIwNzQyZjMzYjQ3OTgwMzZhNjY4Zjc4NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMzEyZTViMGJkNGZmZjAzOGFhZTViNGQ3MDllNWI1NzgyZmI4MTMzNTljZTM5YWM0NDQ1ZTliZWRlYjk1ZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyZDdhNjA4OTkzNWQxMGE0YzU2ZWJmYWFhN2JiZmUxOGYwMTkxYmQ0YjQ0M2Q4MGQzYjhjNDA1MDRiYWMyYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwMjc0NWVjZjdhNWExNGZmZTcwOTVlNzA0MTZkOGFmNzc2ZWIxNmFmMmRjMmFlZTU5MjQzM2UwZjE4YmVjZjEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift#L41-L47",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerDialect.swift#L44-L50",
           "version": "repo-lines-v1:sha256:05627ce52572ccbdea03abd095e9df0d24aefe6dbc7b3dfdc1cfa1d2af1e3413:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODY4OWZkMmU3MjA2NGRiYTZhZWQwMTZiZmNhOTZkYWFjN2M4YzAxMTEzYWM4NGU4NzEyNDU2NTFlZmNkNGIwZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGExZTQyODcwOGJmMmU5NTMzZGRkY2ExZGQxY2UzYTc1NWJiNmZiM2U4Y2I2ODI2NTcxZTA3ZWI4ZThiNGU0ZiJ9"
         }
       ]
@@ -261,7 +261,7 @@
       "statement": "SSHPTYStartupPlan contains a command and optional runtime attachment, without a shell-event token.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L17-L24",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L20-L27",
           "version": "repo-lines-v1:sha256:1f626d2e3135b25d14a808ba46045745ad48eee248b68506039bd5e87895728e:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2RkMGNkNDc2NTZlMzA0MGVhYzEwOTQ2MjMxYjQyNzczODQ5ZTI0N2U5ZTE5MzljNzkwYzYxMmJiZjRkODBiZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzAyZmRiZTA2ZjFiOTVmZDlkMzMyYzQyODQ3YTAyN2ZjODQ3ZDJiZDdiYjRhZGJmNzBhM2MxOGNlNTA0MWYzNyJ9"
         }
       ]
@@ -271,15 +271,15 @@
       "statement": "Registry session existence inspection propagates listing or registry errors as unknown rather than false; native SSH exit handling retains nil on failure and discards inspection results after the connection attempt or attachment changes.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L63-L70",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L66-L73",
           "version": "repo-lines-v1:sha256:f665cb2e7b3b1f6a2418761852563c1078062e2fa66e35129394f4192133e128:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGQ2NzE2NzFhMjlmOTAyNjMxYmI3MTkxMTFmYjYyODI2MGMwN2M2NGU4NjI3YzBmNDBkZDBjNDY0MDFiNTNhMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzcwYTliOGI0NmZiNmYzNzg0YWUzNTE0OGU1ZmM0Njg4OTkxMWZiZDY2MjgyODIyMDEyYjE4Y2ExNDk3ZWU5ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGNiMDNmNGRhNzRmZGI4M2Q3YjQ2Y2VlMmJiZmU5ZjkwZTEzYjBlY2IyMmFmYmY1MGViZDUwNmMyOTYxNDUyZCJ9"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1759-L1768",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1762-L1771",
           "version": "repo-lines-v1:sha256:46ae2b7b1d178e182aefd7d22df5ef67d0d581990f7617a0db9a3f4215458b21:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNmJiYmU4OWY2NzU5YmJmNjkwNjZhM2IzZjViZGI1YzdjMDg5ZTBkMWViNmMzZDVkY2YzODJiYTkwMDA2NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljN2FiMmU5NGE2MzA0MjI4ZDk0YTJmM2MxNDQ5MGFhNjVjYzRjNzIxZDZmODljZTY3ZmMwMDhkNTVlZmEzYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwMDYwNDRiNDY5YTQ5OTU3YjQyYjkyMTlkNTI4MjczZDg5M2M3NTAzMDg1MzI0ZWVmYWIzYjIyZjIwOTVmODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3MjJiMzk4MDVmNTQ2ZGI3ZWFjMzYxNjNmOWRhNDYzNmMxZjExYzlkOTQ2ZjcwMTFmMjBiODcyMmE3OTMyNjcifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1173-L1192",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1176-L1195",
           "version": "repo-lines-v1:sha256:cfc518bc71469dabb0f72f61310fef670912c7947b3a3387d49d660a37666670:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhMDg2NmY4NDQ2ZTI2OTM0MzQ4M2RkMjZhZGE5ZDcyMmZjNzMyMjI4MDhkYmRjODI2NDI5ZmJmZGRiMmQ3MzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljN2FiMmU5NGE2MzA0MjI4ZDk0YTJmM2MxNDQ5MGFhNjVjYzRjNzIxZDZmODljZTY3ZmMwMDhkNTVlZmEzYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2ZTNlNmI5OGE1NjU5YWZmNmJlNmNkYzhhYWY5Y2YzNWRkYzYxNjEyNTE2OWU2MjdhOWVlNzBkZDU5MGFmNTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5MjNjMTZlMTBkNDdlNDM3OTkwZjYwMDI2MzRiNWFiNTc1ZDdlMjA0OTRlY2QwOWVhZDE2MzRiZmM4N2E1NWUifQ"
         }
       ]
@@ -289,22 +289,74 @@
       "statement": "Preparation reuses a saved reference only after validation and matching backend, Host, endpoint, account and remote identity; confirmed ended sessions require explicit selection even under createManaged instead of automatic replacement.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SessionPersistenceTests.swift#L295-L332",
+          "resource": "repo://FrameworkTests/SessionPersistenceTests.swift#L298-L335",
           "version": "repo-lines-v1:sha256:7f62f780d7761d63e0e4e0f20a8206df143ca23214d5ab4d13d9157d51e28a2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwMmQ4ZGYyZjFmZmU0ZDY1M2E0ZjU3YWNkMTMxNzRkY2VlYzc5OWVkYjEyNWQ4Mzg0MGFhZTBiZmIyYWI2YzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhNzNjNTVhZTE5MDQwYWEyNzEwZGExMjBkMWRlMTRiNzZjY2NlYjFiZTQ0NDI3YWJkZDEwZDAzNzRiZmEyMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3ZTNkOTNjZTZlMDQwN2I4NTg5YTMwM2MzYTE4MTM3YzI4OTU5YTVkZjNlMmNjOTljMjY3OTc5OGQ5NWJmOTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L171-L175",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L174-L178",
           "version": "repo-lines-v1:sha256:b834d69657287e4b133a609e7ea809aa9210d7661dab565134045a73be102b64:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGExZDY3YmIzNmMyN2Y0ODRjZjNhZjJmOTVlMGIyMTJiNWRkMmJkYjg3ZGY4M2I2YWRhYjI2NDliNjM4NzBhMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGFiYmZhZjg3YjM3MDdkNWE0YTQwYzEwYWNjYjBhZTljNDVlZTIyYWZiZDcwNTdlZDQzOWIzMjA2NGNhNzIxMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjI4MWY3NmYwZDBkNDMxYWJlYWE1MWE4NGQxMjFkZmQ4NjI4MTBlMTlhNTY1MTZhZGJkYmI5MmU1ZjJlYWJjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTE2YmZlZGE1MzFiNjlmNTQ4YjEzZjAzMGFmMjZhYjJiZjg4ODIyNDMyODJjNmI2OWM1ZDJkNTIxZWQxMmJjMSJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L260-L300",
+          "resource": "repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift#L263-L303",
           "version": "repo-lines-v1:sha256:3b5647ac2577585cddafb4006d9e744903dbb2fe2c490329428af95a6a5f228a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlY2E0NjFhMTA0OTg3NmE1YzJlZTk4Yjk5NmExZmMyNTUwYjk0NzhhZDI5MjlkMjJiMzlhZDExNDlmZGZiOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYWVjYmY4NDVhMmQ5YjY0YjEyYmJhMTJlODI2Zjk5ZTc5ZDhjYWQ3ZGM1ODY5MzExNmMyNWUzZWZkMTM2OGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5NDZkMWIzZmJhN2U3ZDc3NDIyYjRlNzM1YjY1NjMzZTYzODFlZTcwZDRmNTI3NDAxMDIyNTc5NjQ1ZGUwNjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_03bc2b64634a49e8a6f30b81d771ead6",
+      "statement": "TerminalRecoveryStore is device-local and independent of SwiftData, Vault and CloudKit; it encrypts checkpoint payloads with AES-GCM while authenticating unencrypted record metadata as associated data.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L12-L22",
+          "version": "repo-lines-v1:sha256:864247910b6ac98ba643a2612a690ce76444cb9c2caaf1ebca14b26539b5ab20:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjNTU1M2ZjOTQ3M2JhYTJmNzljZTgzYjg0MWVmN2VmODFiZjQxZmFmYzZkNWU4YjVjOGE4ZTJiNDA1YzRjYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhOGUxMzk3ZDZhYTMxNTUwZjZhY2ZhMWNiZTMwMWUxYjM2NmEzNDJlNzZhYWJlMWJlZTExOWZlZGZiMTIzNjEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L60-L78",
+          "version": "repo-lines-v1:sha256:2009b0b27ac1d2cbd5b7e7f7571fa98039e3fe84225f81f78fcb3760df9f7df6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0MDNiNDU5ZTg5NjRlZjBkNzUzNWUyNGY1N2IwNWY4Nzc2YWVmN2EyM2MxMTAzMzFmY2IyNGUwOTc0OWFhNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjZjk4NDM0YTBmNmQ5Y2U1ZTBjYTRmNGJjZWY4NjNhNmRlODdkOTNiMzM1YWEyOWQ3NzNhMmM4M2UxNjQxMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiMjgyNWNiNTJmMzQ1M2M2MDM5ZDhhYTc5MzJmODE3OWJkY2FhYmIwZDYwZDZkYjIyZTM4MGU0YjBjMjg1OWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_99c29fe5a9ce4515951b6f6f65efd366",
+      "statement": "The production transport recovery key is non-synchronizing and uses AfterFirstUnlockThisDeviceOnly Keychain accessibility; missing key material with existing checkpoint files fails instead of generating a replacement key.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L111-L142",
+          "version": "repo-lines-v1:sha256:331ff88783c04b7d4a9472ac68bee2da5434edea34ec18340868c23eb68fae81:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYmExYjNhMjhhY2Q5ZjJkYTA4MDIxM2ZhYWZmNDk0ZWExYTk2OGMxNmU4ZWQxODU1MmY0Y2E2ZDAxMzNiM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0YjhjMjU0MDM0NjFhNjBmMWU2ZmI4MWNjZGJhMTM4NzlkOWNjZWMzYzZhOTA5ODg2Y2I0OTc0YTM0ODhhZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzZDUyYTk5MzVkNmMyZGE5ZjU1Y2UzODE2Y2YzMDgxOTY2ZTE5MWNlNmU4MTNmMmUxNGFiZTlkNmFmMWQ3YzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e0b217929f2b443ab6cb305ce2d041ef",
+      "statement": "Transport checkpoint consumption authenticates the envelope, checks record ID and Host matching plus checkpoint version and transport, and removes the file before returning transmissible protocol state; failed validation does not consume the file.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L80-L93",
+          "version": "repo-lines-v1:sha256:a77371a80b383a11ab0bea0d58dea9b6d0322f3b1885ddf321732707125f7df8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4NmVjOGE4YTFhYTY0ZjEyMjI0YzQwMDA0YzE1Y2I0ZmFlNmM2MjhhZDQ0MWRiNjkwNTdiYzA5ZWEzY2M4ZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4MjgxYmIwZjg1ZjJlMTUwMWVlYzliMGFhYzNiNzk4YmY3MGU5MmI4ZDJhMDQ2NTM5ZDU1ODdjZTZkMjIyOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxZmE1YmU5MDMyYTA3MGEzNDg3YzcxYWIwM2E5MTM5OWIyYTE5YWI4ZWYyZTliODBiZGUxYzY3YTg2MzRiMDYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_96fe588ce0304af4a09b46879cad7a3b",
+      "statement": "TerminalRecoveryStore requires a current per-record lease and matching transport to save; discard revokes the lease before file removal to fence late saves, whereas invalidate only removes the file.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L32-L36",
+          "version": "repo-lines-v1:sha256:c4634b0b718f0f1c7b0adcc03d0d1a72472d40b922ea907a4d26af306908dc3a:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTA4MjliMGI4MDZkZjY4NmE1MjUwMGJlZTNjZTI1ODI3OGRmYzg0NDI1MjMwOTRhY2YyYjZjNDg2NWZhYjUyZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODMzMzAwOTRhNGQ4ZjViNjJmMTc4Y2E1NWQwMDlhYTZmNDdiNDRmMDcwYzM2MWI5ZWMxYjEyNjUzMmI1OTUyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjEzMDA0MTA4NTExMTgwYjIwYzNmNmRjNDg4YTZhNGZhNTk1YjFiNGEwNmYyMGI2OWQyYThmZDE5MjVjMGY1NSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L60-L65",
+          "version": "repo-lines-v1:sha256:b5e1b86969d085e7ff4592ee8f8e4429a33bdbbbd19eb1515b9b4aadd5c1158f:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjQwM2I0NTllODk2NGVmMGQ3NTM1ZTI0ZjU3YjA1Zjg3NzZhZWY3YTIzYzExMDMzMWZjYjI0ZTA5NzQ5YWE0NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWNmOTg0MzRhMGY2ZDljZTVlMGNhNGY0YmNlZjg2M2E2ZGU4N2Q5M2IzMzVhYTI5ZDc3M2EyYzgzZTE2NDEyNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmIyNmY0MjBmNDQ3YWFhMDk2MTU5MjFkMTVhNmI1MWIyMGM1N2M0ZjVhODQ3MTUwNzIwMWQ4OWViMzAwODM2MCJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/TerminalRecoveryStore.swift#L95-L105",
+          "version": "repo-lines-v1:sha256:295d1dd83f822fb29c2f19380f102056468053c0abbbda1af3c49735b2eb3c8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmY2NjNzk4Y2M5MGUzNDE2MTgxMjMzYWJiODlhNjNkMzMxYTVlNjliY2ViZGE2NTYzNjFkOWJjNGFjYjE1MTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNjk1MjQwYTNmMWY1YjFhNWFkYmFkZGNlZDA1OWQwMmIwMjdhYjNmYmMwNzBmOTJiYTdmZTEwN2M0Y2ZmZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExM2ZkNDEzN2UyZTc3MmZlNWQ1YjYxOTBjNjE3MmM4MTg0ZmIxZjkzNzA4NGJjNmRiODA4M2NmMTczNGUzZDMifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

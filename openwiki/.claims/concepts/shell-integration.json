@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:23f30a866e4ea5eecc6052d4148f5020a0c180d8abc1eb35806fb73e02c37352",
+  "pageVersion": "sha256:a4bc5eb38d09a0a05d0c48e93a15fff097b8cd6003bfa347f057b023524700ee",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellStartup.swift",
-          "version": "repo-file-v1:sha256:7eabdce8c74ccfd8e2f636862282ce1d2eaa5930dd5cf69999095e1bb077103c"
+          "version": "repo-file-v1:sha256:50a8dddae8887064866985556e105c5510dd51be4049494bf3a1b4002696b17a"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -21,16 +21,16 @@
       "statement": "Desktop and mobile capture the host/global shell integration decision at connection-attempt start and explicitly disable it for Mosh; changing preferences does not retrofit the live shell.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L968-L971",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L971-L974",
           "version": "repo-lines-v1:sha256:22259b0faa9f2a08d6c614dbf102ec2c3499970b2c046a4b2a6ed3915e9d2413:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTY5OTJiNGIyYjVhYTNmMjFjOTQ0NzdjYWRlYzBkZTI4NjBmZmRhZGZlYjFjZDE0NTllZGQ2MTQ3YjkxNjc3NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ1YzU4MjU2NTIxMTBkNDRjNjU5YjA4ZjQzYTU4NzAwYjVkMTU1OGFiZTRiZmQ1Nzg1ZDk2MzEwM2U4ZmRkMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTBiNDk1M2NkNzhiZWZlMzg3MTEyMWQ5MzEzMGY3ZDAyOWQ5M2I5N2NiNThjMDE3NzFhNDdiNGU1Y2FmZjAzNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjUyNDJjMGQ1NWFmOGVkOTY5YmJmZDMxYzM4ZjgwMzYyMjcxYTgxMGRhYzJiODY0MmYyNTJkNjNkMDg1NDQxNCJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L537-L540",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L540-L543",
           "version": "repo-lines-v1:sha256:73d00859b8370670d63fe58dc6131e80d2d3f0c9f5143ec54e9470a1899755b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTY5OTJiNGIyYjVhYTNmMjFjOTQ0NzdjYWRlYzBkZTI4NjBmZmRhZGZlYjFjZDE0NTllZGQ2MTQ3YjkxNjc3NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjlhN2Y2OGYxN2JkZTA0ZWU5MGM4MGU2NDk2MjZlZWY1NTVhOWFiYzNiM2ZlN2IxYjdjNDIxOTQ1NzdmOTQyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFmODM0YTdjMWNjZTA1ZDBkY2Y5NzJjNzQ3Yzc1YzU5ZTM2ZDY4NGFjMzNhNTM1ZjE3NjZlYTYwYzBhYzE5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDYwYzRhMjJhODE4ZmY5YmIwOTM0N2E0MGMyYzZhNDEwZjk2Mjc5NjUxMDQxNTEzOTI2ZTc0YTMxMjRhMzMzNyJ9"
         },
         {
           "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift",
-          "version": "repo-file-v1:sha256:00c381e7559bf58bdab401a58d7007855125c4d9ec314225e620849f91dc3b20"
+          "version": "repo-file-v1:sha256:cd94284e6780ec446270406927f299ded0634b0db89648451631b058b243eaaa"
         }
       ]
     },
@@ -40,7 +40,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -50,7 +50,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -60,11 +60,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellStartup.swift",
-          "version": "repo-file-v1:sha256:7eabdce8c74ccfd8e2f636862282ce1d2eaa5930dd5cf69999095e1bb077103c"
+          "version": "repo-file-v1:sha256:50a8dddae8887064866985556e105c5510dd51be4049494bf3a1b4002696b17a"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -74,11 +74,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellContextJournal.swift",
-          "version": "repo-file-v1:sha256:939b7e954ce6bdc3f9a60aec21dcb5a6dfe8d91fbb00821726b8e10dd41f9a00"
+          "version": "repo-file-v1:sha256:b4fdeff8dbd0233d1c7bbf018cb0a3fccff823d43db7d79a688775e36606e0ad"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -88,11 +88,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalContextFilter.swift",
-          "version": "repo-file-v1:sha256:2b26db01383ed5036383b880463e60dac1c6537dc68867940cb7afe0bc0bd19f"
+          "version": "repo-file-v1:sha256:a7fcd7a522a08cd00e860e38967757fa8464d6a49b7dd93ddcfd42b4a0ad25f5"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -102,15 +102,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift",
-          "version": "repo-file-v1:sha256:5ad609e72e13b956732e4caed6985007183463781525f7f26f34a0bef078302c"
+          "version": "repo-file-v1:sha256:3c2e472b116eb05ce9ba196b956f4de3612d3243a4ec834a84e3b190c659ebe9"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:2396ae943e1aea2fc51fa8d95d7b83634e4ab58e17fb57961f9a1afbf6bc79ce"
+          "version": "repo-file-v1:sha256:24e9f6c37e8a2e1c67cb479024ca9e1965ccd58729a7c5da2fdebc961f06bc2c"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:2440ee0dcaefa26d0a876a77b672721457d909e0d85835d935d71e45e52b0c82"
+          "version": "repo-file-v1:sha256:571e1c20a3d1dd491fba12068feb417070ae8889ddb5d1f2834b0110584af7b8"
         }
       ]
     },
@@ -120,23 +120,23 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift",
-          "version": "repo-file-v1:sha256:fc44a26ef61e2458b840faddf0f857194b3399ff8f52eb9fe7b9f7d4d3cafd59"
+          "version": "repo-file-v1:sha256:5c28216d4400a8a439cc4349b2bdf5cf1f4234b34a1c7aa79d4fdb4e7ce82ee7"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteMultiplexerRuntimeAdapter.swift",
-          "version": "repo-file-v1:sha256:e926c9cb52f143a067b72e5dde0afeaf1876567a1b5c449b54074e10235ec001"
+          "version": "repo-file-v1:sha256:7f9f9cb3bb7cd61d068a8301a6193239d1b175463293ff3c002af6031ad98dec"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift",
-          "version": "repo-file-v1:sha256:1b7adcb6777f33cac99d4fdd9bd730f9bc4b8fc62ec2afdd496612b70f9c7062"
+          "version": "repo-file-v1:sha256:b467da5f48d07807693ee52a20468307656f35201b94450eed691cfa54545d89"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift",
-          "version": "repo-file-v1:sha256:19881963d3f27ed05370366c36b15a2ed09357660868b68f9a174150c593224f"
+          "version": "repo-file-v1:sha256:6e4aa9c0fd1bb2640c311e0547dbaac83c3536dc5d24e62436495a8e74d4ca93"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -146,15 +146,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:2396ae943e1aea2fc51fa8d95d7b83634e4ab58e17fb57961f9a1afbf6bc79ce"
+          "version": "repo-file-v1:sha256:24e9f6c37e8a2e1c67cb479024ca9e1965ccd58729a7c5da2fdebc961f06bc2c"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:2440ee0dcaefa26d0a876a77b672721457d909e0d85835d935d71e45e52b0c82"
+          "version": "repo-file-v1:sha256:571e1c20a3d1dd491fba12068feb417070ae8889ddb5d1f2834b0110584af7b8"
         }
       ]
     },
@@ -164,11 +164,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/RemoteCharsetTests.swift",
-          "version": "repo-file-v1:sha256:5078e65bb98f232433bcd599cdc4d36335ccbc4e0d4633f28ce40c3611b14857"
+          "version": "repo-file-v1:sha256:9703e67c8a1ad9f92f3803c7c52f4da7a0965f3618f4f267ae3f5c886dee7d0b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -177,11 +177,11 @@
       "statement": "The OSC 7 cwd filter buffers split `file://localhost` frames, decodes percent-unescaped remote-charset path bytes and rewrites them as percent-encoded UTF-8 for terminal parsing; malformed UTF-8 path bytes are rewritten lossily, while oversized unterminated frames pass through rather than remaining buffered.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L113-L130",
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L116-L133",
           "version": "repo-lines-v1:sha256:d993b57e4ee07fe64963235749b3d1da91c896eb37a806687ec3a4924fae8690:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYzBiNjNlMjc4YjhiYWZjNThhZjEyZWU1NDUxOGMxZTEzZjEzYThkNmY4N2JmNDlhNzJiYjEzYjc5MTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L181-L273",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L184-L276",
           "version": "repo-lines-v1:sha256:e7ea57fa715adb612cda6efc399b9228eae034c7e3ac707b780e2faf8a354e91:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
@@ -192,11 +192,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/RemoteCharsetTests.swift",
-          "version": "repo-file-v1:sha256:5078e65bb98f232433bcd599cdc4d36335ccbc4e0d4633f28ce40c3611b14857"
+          "version": "repo-file-v1:sha256:9703e67c8a1ad9f92f3803c7c52f4da7a0965f3618f4f267ae3f5c886dee7d0b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift",
-          "version": "repo-file-v1:sha256:5e79d48ba68c0b51bc48cf4552a2d20518dc84dd98b24edba3b774fec824bfa1"
+          "version": "repo-file-v1:sha256:c927cd575fb74a3aae25a3bdfb89c08c443d58506f4a5b17a7ac0fa549d1411b"
         }
       ]
     },
@@ -206,7 +206,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -216,7 +216,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
-          "version": "repo-file-v1:sha256:ff53b7afb78a3cc3049d930e84f667641397ceb095a8377134cc5eb5a11dd4df"
+          "version": "repo-file-v1:sha256:da2dfb03b55cdd166ff177e55419b421efa807486231127a15b808e9a51d8ca6"
         }
       ]
     },
@@ -226,11 +226,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift",
-          "version": "repo-file-v1:sha256:5e79d48ba68c0b51bc48cf4552a2d20518dc84dd98b24edba3b774fec824bfa1"
+          "version": "repo-file-v1:sha256:c927cd575fb74a3aae25a3bdfb89c08c443d58506f4a5b17a7ac0fa549d1411b"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
-          "version": "repo-file-v1:sha256:ff53b7afb78a3cc3049d930e84f667641397ceb095a8377134cc5eb5a11dd4df"
+          "version": "repo-file-v1:sha256:da2dfb03b55cdd166ff177e55419b421efa807486231127a15b808e9a51d8ca6"
         }
       ]
     },
@@ -240,11 +240,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift",
-          "version": "repo-file-v1:sha256:5ad609e72e13b956732e4caed6985007183463781525f7f26f34a0bef078302c"
+          "version": "repo-file-v1:sha256:3c2e472b116eb05ce9ba196b956f4de3612d3243a4ec834a84e3b190c659ebe9"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
-          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
+          "version": "repo-file-v1:sha256:49131494fb33a2cd5f7e71df51feac708d63a424311b4f8eafd87f458ef03bf6"
         }
       ]
     },
@@ -254,11 +254,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
-          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
+          "version": "repo-file-v1:sha256:49131494fb33a2cd5f7e71df51feac708d63a424311b4f8eafd87f458ef03bf6"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandObservation.swift",
-          "version": "repo-file-v1:sha256:83bf16376d4cce45b3b6ce23bceabb8a970cd1846bcf9f3bb39f0606d198577d"
+          "version": "repo-file-v1:sha256:9c0e32a34c256013da7f005ab93917e1e6cf4683cce91238fbd1602720a7e1c6"
         }
       ]
     },
@@ -267,11 +267,11 @@
       "statement": "For private hook completions the monitor uses a valid nonnegative finite reported duration or falls back to nonnegative elapsed uptime, and consumes the pending command once so duplicate or unmatched finishes do not create another completion.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L48-L69",
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L51-L72",
           "version": "repo-lines-v1:sha256:73d362608852535adc1f5f8d0c39a08fe31c3c78883bb73febe175dcf1f5a580:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OThmMWIzODRjMzY4Yjg2YmQ3ZGNlNjBjZDBhY2QwYjllYTY2MzFkOTA4MDA3YmFiNWMwMzFmZWI2MjRhMTgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L67-L76",
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L70-L79",
           "version": "repo-lines-v1:sha256:02cdc77f1b2e982e33347d82adfd20b9689c3fca269ebed38612af4cf557e8da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDYyNmQ1OTMxYWU2ZTQ2NTU4ZTVjYzYyNjkyOWViMDc4ZjZhYTlmZTE5MWEwODEyZDUxMDNhN2FmMmFlYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllYTkyMTMxZGM5Y2ZjNGIxOWFhNjgwODlmNjA4YzlhNjJiYmQ0NzMyZDVhMDU1NDNlYjQ4ZWM1OGIyNWU3ODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkMjAzMDNjMGIxMDVjZWI2ZTc0YTVhNmQwZjAyN2Y5Yjg0NjJiNDU4NWJmZDhjZGY3MDVjODUwMGQxZmYwOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMDZjMThlOGM0ZGZhM2I0ZmIzZWU1Yjk2NGY1Zjg4ZGU3MjBlZGJjM2IxYWMzMWQyZGI5ZGYxZGE2OWM5YzQifQ"
         }
       ]
@@ -282,11 +282,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
-          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
+          "version": "repo-file-v1:sha256:49131494fb33a2cd5f7e71df51feac708d63a424311b4f8eafd87f458ef03bf6"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift",
-          "version": "repo-file-v1:sha256:5c28819dfdeb1b32230067a640fb4739d93e90e02ee2571bd0bb47eb0bc9f094"
+          "version": "repo-file-v1:sha256:858356f18c35dbab00b32d873375415262920d0933ccbe6763d63a83e7a7c8c9"
         }
       ]
     },
@@ -296,11 +296,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift",
-          "version": "repo-file-v1:sha256:7f8cc12762c79f20ce0cdd67f388a427aa24ecedef20cd5a26c8054344ca59ad"
+          "version": "repo-file-v1:sha256:5cb2e50cb5cca0bcc227c16f42266836fff2b32fff72a9ea3d242b42a0d7de31"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
-          "version": "repo-file-v1:sha256:a01c468cd1a7a1afcd19404f71ee330bc5b6806dbafc17de896c75e505e9b73a"
+          "version": "repo-file-v1:sha256:aaf6e639f57b6e94618852e0d60d3ee15a6d4852a2318c0265d881428c4dba55"
         }
       ]
     },
@@ -310,11 +310,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
-          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
+          "version": "repo-file-v1:sha256:49131494fb33a2cd5f7e71df51feac708d63a424311b4f8eafd87f458ef03bf6"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandNotificationContent.swift",
-          "version": "repo-file-v1:sha256:f7445af4053af1f4e3326569318d9728c47818e40dc3fc643341f1d602a2f4d1"
+          "version": "repo-file-v1:sha256:f5115b525b923677870f6c3b143b9cb737c951b39d426ec2135347c0c8235378"
         }
       ]
     },
@@ -323,15 +323,15 @@
       "statement": "Desktop SSH and mobile SSH-terminal consumers call requireScopedEvents immediately after monitor beginConnection, disabling OSC 133 completion fallback before runtime events arrive, even if hooks are unavailable.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L81-L93",
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L84-L96",
           "version": "repo-lines-v1:sha256:b9775db76028e69b2eba0e113d941ea26bbe570cfc85b8b80c7bad32b77c2699:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5NGZlMDExNGE0MDk2N2Q0ODNkYTFiM2M5NzYyNTQyZjIyYzMzYTIyZTI2YmEyMjg1OTc0NzNiZDZhMTk2ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYzhmZWJkNjJkMGE1NjAwYWE3MGJkNjE3Zjk0NjczYjhkOTJmMDE5MGZiN2ExY2FhMmI0ZWRiZTA1MzU5MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiNDJjZDNkNzE1MmM0ZGVmYjRlY2M2NmU1ZjQxMzZlY2M0Njc3MjhlNWI0MDk0ODg5ZjJlNTA1ZDc5Y2E3NTkifQ"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L940-L941",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L943-L944",
           "version": "repo-lines-v1:sha256:793c23c93e109cc350ebac30d1de7f70e701dd3b78ab839fcdc8c77e4834e9e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjkwNTJiOWI4YmQwNDJjOGY1MmI3ODc1OWI2YmQ5YTJiN2FlYjRhZmZkMWI5ZjhiNGI3YTM4NTBhN2U3OTczNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjI4OTdiMmVjODk5OGM4OThmMDY2YTlhM2FkMzcxOTY5NTM3MGJhODBiMmJkM2JlMTFlNGZkOWFhOTlhZjdjNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGI0YjU5MGQwYWQ0NWEwOGFlYzk1NDM3MGQwOTI4N2RlNTM5YzUxODIyZDBhYmRmYjJjMDZhNWI4ZjA4NzBkNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGJlYTZlYTM1YTg1MmY5OGUzYjBmMDM3YTJkZmU5MDI5ZTg3ZDllNGQ3M2RjOWI1ZTQyNjg0NWM1N2VhYmMzMSJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L946-L947",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L949-L950",
           "version": "repo-lines-v1:sha256:7c5f2e6733c4da73406a9c149a6959beb39ade6eb93487c176bea2d035690de7:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjkwNTJiOWI4YmQwNDJjOGY1MmI3ODc1OWI2YmQ5YTJiN2FlYjRhZmZkMWI5ZjhiNGI3YTM4NTBhN2U3OTczNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmMzMTFhMDg5OTQyNzMzMGI0M2M4M2FmOWE1ODZlZGRlYzQ3ZjhjMWFhOTEyZDAwYjAwOGVkZDlhNGNmM2NlNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGY0MzZjOGE2NGZlZWExOTY5ZDZmZjRhNWI0N2IzYzcyMWI4YWQyYTRlZTU2MzQwOGE2Yjg4MjMxZjdmOWIxMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDY3YmZjNmUyMDgyNWMxM2FhZjZhYzhiN2U2ZDJiOTNmNTBkZDMwMWE3NDE5NTg0YWY3Y2MyNGI0ZTMwMzYxZSJ9"
         }
       ]
@@ -341,23 +341,23 @@
       "statement": "Both platforms handle ordinaryStartupUnavailable outside the legacy-event gate: managed attachments reject it and nil tickets discard pending startup. Fallback grants no capabilities. The worker consumes a generation/input-bound ticket, verifies the discovered tty is an ordinary shell over runtime exec, then rechecks generation, input/runtime revisions, tty and absence of attachments or detected multiplexers before writing; failure skips without replay.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1413-L1442",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1416-L1445",
           "version": "repo-lines-v1:sha256:96a1e09e176650789f20d496a304b10acda537c4520321de3a50d236f525fb13:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4NTUwOTJmYjcyMGYyZWZlYzNlMzIxN2RmNGJiMDFkOWYyNzQ5MWMxODkwMmY3OGNiNTExNmFjMjZjM2FhYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NzMxN2M3ZTkxMmViMzBjNzJiMDRjNWZmMzRhYjAwNzdiZDg0MWQzNjEzNjZjOGI1YTcyMzJkNjY1ZjExZjYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2108-L2118",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2111-L2121",
           "version": "repo-lines-v1:sha256:3fe97799bed5df38e5a1e7a091efc2f5f6404b007337371419719ed9aa1abced:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4YWJkNDJkZDEzYTBkMzY2ZDhjMzQ4ZmU4OWRhNmI1MzY4YmZhZmQ4ZmJkYzgzZjgzMjFmMDVlNWMzMGVjMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMWZiMDdkNTVmY2JmYTZkYjk4NWJjNmVjN2U1MzA4ODhjODE0ZWUyYjhjZTMxZGI4ZGI5YWI2ODgyZTRkYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZlZTg2MTYxZGU2YTMzOWI5ODUyNzQxNjhiNDk2MDM2NDgyZDllOGNkN2EzMTJkNTEzODQ5MTViNmU3NzM2YjAifQ"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L715-L738",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L718-L741",
           "version": "repo-lines-v1:sha256:a1a5c8158ee6eb1197eeaebf87f70a8da2d97ac5de1e26283eb3c6fbef9f6b14:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNmI1YzY4ZDUzMjk0NzYxNjkyN2YzMTc3MmEzNmY5ZmY5ZWZmZDA2NDQyOGE0YTJlNDQwYzMxYTZhODYyNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjNWI0ODljOWRiN2QzZjE2ZDQ4MGRjZTIzNjBhYjllNDhmMGE0Yzk3YWQzN2NkODNiY2FiNTRiNmZkOWFjNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODIxZTIwZTQzYWNkNDk3OWZhMmVhMjViOWFhOGJjNjE3YTYxNGU2NmM5MjA4ZTg5MDZjNzBmNWI1NWY3NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzYjA4MzQxMmYyZWM4NDVjNWI3MjJhNzAxN2Y4NTJmZTEyZjAwMjAwZjJkYzBjZTE0N2EyNmUzOGI4MGVmMjYifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1453-L1472",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1456-L1475",
           "version": "repo-lines-v1:sha256:c0bc51bc05a739f64bae89d88226161a2de0539dc79c4c668f7d1874b4dadcfc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkOTMyMmU2NzAzNDJjNDJkNGYxYTE2NjI1ZTZiZmRkMTgzNWQ1Mjg3ZDU5NjEwYzVjZDUzMDMyNjRlMzQ1ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjNWI0ODljOWRiN2QzZjE2ZDQ4MGRjZTIzNjBhYjllNDhmMGE0Yzk3YWQzN2NkODNiY2FiNTRiNmZkOWFjNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM1ZDAwMjY3NzNmNjA0NDkwYzZkY2E4ZmVjNmZlZDczODI5ZjczMGEwYzkxNWE0MjUwNzVmMjczZDU3Y2I5OGUifQ"
         },
         {
-          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L117-L157",
+          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L120-L160",
           "version": "repo-lines-v1:sha256:d34621c78efa8868892453386c0179889a59582cc21484095b9a092e6e653128:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzOGQzNzQwNDJkNDdmYTU4YWE0MjIwMjNmYTJjYmRjYWUzMGMzMDUyMDA5NjViMWVlYzk5ZTNkMWE1MzkwYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmZWE4ZmQ1YmZlOWNkMjBjZTM0ZDliMjg4ZDhiYmY1NDE2ZjM4ZWVjN2FlYzU3ZWVmYWM5MWI1ZGU5NWU3ZjIifQ"
         }
       ]
@@ -367,11 +367,11 @@
       "statement": "Desktop workspace unread counts combine summed pane-monitor completions with a manual-unread floor of one; mobile applies that floor per workspace including saved items, and marking read clears the manual flag and live monitor counts.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L31-L51",
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L34-L54",
           "version": "repo-lines-v1:sha256:d72a3b7d62d3e66dd65e55177fdc899cd50b9eb6c00746bd8b52bffcc307b79b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2M2E3YjUzN2U2NjUwMTE0YmY1NWFlOTFmOTI3OTUwM2ZiMGJlZWQ5YTg4MjdkMDhjMDk3MGJiYmM5NGE4ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxNjNhNzcxOTYxYTRhMGU4ZDI1YjZmMjlmYWQ1ZTJmODliYjliOWY0ZmJjMWM0ZGExMDBmYjM0ZDM4MGJmOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlMDcyODE2YzY2YjkxM2FiZDQ2MTI5NmY3ZWNhNjllMDVlMTk2N2E4MjdmMzE4ZDIxNzBmMTUwZWU3Y2JmZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMDEwNTIyZTQyNjVkOTI0MzViNWRkZjI1NmNhZmU2MjBmNzE2ZGY1ZmIyZTUyZmUxMDEwZjM1MzIxYmZkNGUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/Workspace.swift#L119-L128",
+          "resource": "repo://TFM/Features/Workspaces/Workspace.swift#L122-L131",
           "version": "repo-lines-v1:sha256:02fbda149fcf0932d760ae6bfa89e9438378c8c507f4850d20f8a2024e4c56f9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNjgyYjZiZjgwNjlmMWJlZjIwMGQ3ODU5MWJjNjI3MGQ0YmFmN2I1NDc0Y2RjYWUzZTBjMTg1NGQ1MjExYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3OTJjMzI3NDU5ZDI2MGFkMmNlMjgwYTAyOGJmNjRlODczZmFiOWJiMTFkOGNlODQwZmEwNDRhYzcxOTM5NDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmYzJkMTUxYzk2NmZmZGI0NWNjZDUxZGJjOTI2OGM4NjE3NjMzYzQ5NTkwNzZiNjBmZjlmNjYxODc4ZjU2NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0YzdmNmUxMTZmZGQzZGNmZTExMGU5ZjNmYjg2MDNjNDViNzM0NTQ1NDY0ZmRiZGIxNTNhMmU4NDFkNTgyYmUifQ"
         }
       ]
@@ -382,14 +382,14 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CommandNotificationContentTests.swift",
-          "version": "repo-file-v1:sha256:2f32df0834efd73adb2a30b8f1d86bf6bc217cf20caed83e0b00c2d1de7a514b"
+          "version": "repo-file-v1:sha256:e6c463c8f50089c0c1c77260fb58d4f141f22e2de537a5f0c227fb385e6dff0c"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L39-L45",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L42-L48",
           "version": "repo-lines-v1:sha256:41bef5c34c9a5f9b81ac4121d3f27ba1ba4412672de06bb9affaf07dba6bdc13:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjMyOTUxMmUwYjVlMDRjNDU2M2E5ZDhiMzBmOWJiYzEzYTk2M2JlOTNkMDQ5MGNmYjI5ZGNmMmQxNjRjYjllNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmFiOGYyMjIyZjYzMjQ0NTQ4Y2UxOGU2MTNkZTE1ZDQ2NjA3Zjk2YzBiODg4ODVmMTgzYzUxNTZkZmU2NzFhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjZlMzc5OGM1OGM5MThhZDljY2FmMmRiOGQ2ODA1MWM5ZDJiNTNmOTlkNzQzYTViMjhjZmY1ZTU2Zjk3MGIzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzc3NjE1ZDk1NTZmYTIwYjQ2MGYyMmZiNWMzMDlkMzQ3YTg0ODAxNzQ1YTMzMzdlNTYyYTI2MDZhMDg4MWRlNSJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L128-L137",
+          "resource": "repo://TFM/App/AppModel.swift#L131-L140",
           "version": "repo-lines-v1:sha256:4a5208199a5cc60999f19fec4121863618c74abaaf32077824989a7f6ac2f5c0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzMjk1MTJlMGI1ZTA0YzQ1NjNhOWQ4YjMwZjliYmMxM2E5NjNiZTkzZDA0OTBjZmIyOWRjZjJkMTY0Y2I5ZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYjhmMjIyMmY2MzI0NDU0OGNlMThlNjEzZGUxNWQ0NjYwN2Y5NmMwYjg4ODg1ZjE4M2M1MTU2ZGZlNjcxYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjNDU4ZDUwMWUyMzZjZTY0NTU3ZWJiNWIwMmUwNTM1NDg5MzZjYWJiNGIwOGMwZmRiMDNmMDNiYTJiY2ZiMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3NzYxNWQ5NTU2ZmEyMGI0NjBmMjJmYjVjMzA5ZDM0N2E4NDgwMTc0NWEzMzM3ZTU2MmEyNjA2YTA4ODFkZTUifQ"
         }
       ]
@@ -399,11 +399,11 @@
       "statement": "Desktop SSH resize throttling uses 35 ms without live enabled lifecycle integration, zero at an interactive prompt, and 128 ms otherwise. Runtime ordinary and multiplexer prompts require a readDraft ticket for zero delay, not replaceDraft; legacy completion alone does not restore readiness and reconnect requires fresh shell state.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L364-L383",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L367-L386",
           "version": "repo-lines-v1:sha256:128a4e2b820ce780888af3876a1da29945d7fcf1afa6e2c9ce387e615228cd9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NjhhNWJlODljODcxYTdlMGE2ZWIzNWE2Y2FjMTA0ZWYxZjM2N2I2NmFlZjhhZjgxMDVmZGNmOTNiZWY0MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ODg1NGUzMDI5MzQ5NDRhNGFkOGI4NzY1MjRlYzY1MWEwOTYxMWI2M2I3ZTVkMGYyOTY3NzMxZWI2MDI5YTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYTkzMDc3N2RlN2I0ODVjNTA2NTRlOTI1MDU5NzI1NjJiYjc5ZjEzMzZlMTJiOGUzOGI2NTgyZDJlOTZhMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjM2NlYzk1NjgyNTU3ZjU3YzFhZWI5ZjRjM2FhOTNjZTA3YmMyZmNjNTRjMTI5ZjNjYzhhYjQxYzQ0Mjc1YjQifQ"
         },
         {
-          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L12-L115",
+          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L15-L118",
           "version": "repo-lines-v1:sha256:a5e82d10880ede601b7fa494eb42299e609d2e726a1cbebc10611c605e8ddbc7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZDhlNTY3MGNiZmVlODdjNmI2MTkzZjUwMjBlYzU4NWI5NjY1YzMwMDNlNzRjZWExM2QyY2U4MjQxZmM3NjU2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5ZjdkYmYxYmE0YThlNTViMDAwNjVkYmEwYTMwYWQ5NDcwZGE0NDRhMmMwNjJmNTliMWJlNDg1ZmI0OWU2ODQ2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjZTRhN2ZhMGI3M2ExM2U1ZmY5MDUwNGRjOTI1MWQ3NGI3ZDNhMDdiNmUwNWIwOGI3ODUwNmRhOTk3NjI4ZWYyIn0"
         }
       ]
@@ -411,6 +411,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

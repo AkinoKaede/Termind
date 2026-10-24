@@ -8,6 +8,8 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-1ec9ab80a210ef2b285346a3
+    resource: repo://Configuration/README.md
   - id: openwiki-source-1635d0be12e44ef9134ffabc
     resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -82,10 +84,10 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "pi", at: "2026-10-19T04:32:02.799Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T04:32:02.799Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # Termind Engineering Quickstart
@@ -103,7 +105,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | Desktop navigation, window commands, workspace ownership | [Desktop UI and Window Ownership](architecture/desktop-ui.md) | Window/navigation and layout regressions |
 | Mobile tabs, scene routes, editors, workspace continuity | [Mobile UI and Scene Ownership](architecture/mobile-ui.md) | `MobileWorkspaceSessionTests`, `MobileAdaptiveLayoutTests`, `MobileNavigationParityTests` |
 | Shared fields, tokens, accessibility, native presentation contracts | [UI Design and Presentation Contracts](concepts/ui-design-principles.md) | Affected platform rendering and `ArchitectureBoundaryTests` |
-| Workspace/pane sorting, merging, drag-out windows, Assistant reordering | [Desktop Workspace Drag and Drop](workflows/desktop-drag-and-drop.md) | `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests`, `AssistantConversationListDropTests` |
+| Workspace/pane sorting, merging, drag-out windows, Assistant reordering | [Desktop Windows and Workspace UI](architecture/desktop-ui.md) | `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests`, `AssistantConversationListDropTests` |
 | File drops, Assistant attachments, terminal uploads, remote-file dragging, key import | [File Drops and Terminal Uploads](workflows/file-drag-and-drop.md) | `FileURLDropTargetTests`, `MobileDropTests`, then the guide's upload/import suites |
 
 ### Connections and remote services
@@ -146,7 +148,7 @@ These are routing reminders, not substitute specifications.
 - **Runtime owners:** app services are shared, desktop workspaces belong to window-local `WindowModel`s, and mobile navigation/Assistant presentation belongs to `MobileSceneModel`. Mobile descriptors and live workspaces belong to persistent native UIKit scene sessions, not an interchangeable cross-window pool. Desktop `RootView` registers its window and publishes the focused window value while preserving mounted workspace views across destination changes.
 - **Saved mobile intent is not a live connection:** legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` defaults are retired without migration, but `mobile.restorableWorkspaces.v1` stores scene-keyed saved descriptors. Persistence is not limited to resumable transports or SSH with remote persistence: ordinary saved workspaces also retain connection intent; transient external connections are excluded. Cold launch loads descriptors **without creating live connections**. Selecting a descriptor publishes one live workspace before connecting; repeated selection reuses it, and links in another scene activate its owner. One-shot commands and initial paths are live construction inputs, not restoration descriptors, so restoration must not replay them. Recently closed records remain process-local. See [Mobile UI](architecture/mobile-ui.md) and [Session Lifecycle](workflows/ssh-session-lifecycle.md).
 - **Separate the recovery mechanisms:** SSH session persistence uses remote-session references and selection/attachment policy; Mosh/Eternal Terminal use resumable transport checkpoints and their recovery state, not ordinary SSH reconnect. A missing or incompatible checkpoint must not silently bootstrap a replacement shell. `MobileTerminalRestorationTests` covers this distinction, retained terminal identity and cold-launch restoration; shared engine/journey tests cover retry without startup replay.
-- **Scene lifecycle:** disconnect/background alone preserves workspace ownership. Native-session reconciliation can transfer live objects without reconnecting; a late explicit discard still targets only the source session's recovered workspaces. Background services pause when all scenes background; expiration suspends workspaces, stops forwards, pauses transfers and expires Assistant work. An active scene resumes eligible services. Follow [Platform Runtime](architecture/platform-runtime.md).
+- **Scene lifecycle:** disconnect/background alone preserves workspace ownership. Native-session reconciliation commits the complete saved-descriptor handoff before transferring live objects without reconnecting; a failed save leaves source ownership intact. A late explicit discard targets the recovered workspaces of a window used in this process. Cold-launch records from unbound archived windows instead remain recoverable when UIKit discards their old sessions. Background services pause when all scenes background; expiration suspends workspaces, stops forwards, pauses transfers and expires Assistant work. An active scene resumes eligible services. Follow [Platform Runtime](architecture/platform-runtime.md).
 - **Desktop close and quit:** live connections alone no longer trigger a window-close or application-wide quit confirmation. Native window vetoes and unsaved terminal-theme protection remain; quit saves theme edits, asks before discarding any still-unsaved theme, then rechecks pending SFTP edits with cancellation before shutdown. Termination fences new Assistant work and drains conversations/preparations before agent resource closure while stopping MCP/transfers. Its three-second fallback bounds the once-only AppKit reply, not asynchronous cleanup completion. Debug tests do not terminate on last-window close; otherwise menu-bar metrics settings and running metrics decide. See [Desktop UI](architecture/desktop-ui.md) and [Platform Runtime](architecture/platform-runtime.md).
 - **Connection presentation:** shared `ConnectionJourney` owns route progress and authentication/host-key checkpoints; `ConnectionJourneyRouteView` draws the shared route while apps supply native controls. `ConnectionJourneyTests` checks shared state; `MobileMetricsJourneyTests` checks native authentication presentation with a test sampler rather than live SSH. These checks are not live SSH validation. Mobile terminal search stays on stable chrome, and terminal surfaces remain mounted beneath journey gates. SSH, Mosh, Eternal Terminal and Telnet use workspace-owned `TerminalFindController`; SFTP filters bind to `sftpChannel.query`.
 - **Local and wire compatibility are independent:** the live local schema is **V59**. Use migration/reopen tests rather than hard-coding the latest schema into unrelated tests. `SyncRecordFormats` independently defines per-kind wire readers/writers: Host writes V8, HostGroup V7, SSHKey V3, Snippet V2, WorkspaceTemplate V2 and Metrics V2. Follow the persistence/sync guides before changing compatibility; a successful build does not prove migration or CloudKit readiness.
@@ -155,6 +157,8 @@ These are routing reminders, not substitute specifications.
 ## Validate narrowly, then validate the product
 
 Use [AGENTS.md](../AGENTS.md) and [Build, Test and Release](operations/build-test-and-release.md) for full setup and release procedures. Project settings use Swift 6, complete strict concurrency, warnings as errors, approachable concurrency and default `MainActor` isolation; bridge/benchmark targets use `nonisolated` isolation. Read the selected target's effective settings rather than treating project defaults as product metadata.
+
+For optional Firebase/RevenueCat setup, follow [Local service configuration](../Configuration/README.md). Missing local configuration leaves those services unconfigured and Crashlytics symbol upload disabled by default; it does **not** bypass Pro access checks. Keep local service files out of Git.
 
 Keep `-onlyUsePackageVersionsFromResolvedFile` so routine validation cannot silently move the dependency graph:
 

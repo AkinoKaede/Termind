@@ -128,10 +128,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 ## Commerce ownership and configuration
@@ -155,12 +155,14 @@ flowchart TD
     Verify -->|yes| Unverified
     Verify -->|no| Present{"Configured entitlement present"}
     Present -->|no| Free["Free access"]
-    Present -->|yes| Lifetime{"Active with no expiration"}
-    Lifetime -->|yes| Pro["Lifetime Pro"]
-    Lifetime -->|no| Phase["Classify subscription phase and deadline"]
-    Phase -->|trial subscribed grace| Pro
+    Present -->|yes| Expiration{"Has expiration"}
+    Expiration -->|no| Active{"Active entitlement"}
+    Active -->|yes| LifetimePro["Lifetime Pro without expiry timer"]
+    Active -->|no| Free
+    Expiration -->|yes| Phase["Classify subscription phase and deadline"]
+    Phase -->|trial subscribed grace| SubscriptionPro["Subscription Pro"]
     Phase -->|retry expired revoked| Free
-    Pro --> Timer["Schedule refresh at future expiry"]
+    SubscriptionPro --> Timer["Schedule refresh at future expiry"]
     Timer --> Fetch
 ```
 
@@ -168,7 +170,7 @@ This is the access-resolution and refresh path, not a guarantee that a remote pa
 
 `RevenueCatEntitlementResolver` rejects failed CustomerInfo or entitlement verification and ignores entitlements other than the configured ID. An active entitlement without an expiration maps to lifetime purchased access (including family-shared ownership); an inactive one is free. A subscription grants access for an active trial or subscription before its deadline, and for an active billing-issue grace period before the **grace** deadline. Refund maps to revoked; after the deadline a billing issue maps to billing retry and otherwise to expiry. Cancellation disables renewal but does not itself withdraw access before expiration. Unlike the previous StoreKit `.subscribed` fallback, a cached `isActive` flag cannot extend access beyond a past deadline. `apply` cancels its prior expiration timer and schedules a re-fetch at a future granting subscription deadline; no timer is installed without a future deadline. iOS scene activation and macOS app activation also refresh access. A refresh failure without cache can retain an established controller status, so neither a timer nor an offline test proves a server-side revocation was observed.
 
-`ProFeature` now enumerates **Vault sync, unlimited Hosts, Tailscale, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration**. `canUse` reflects current entitlement; `require` returns false and presents the shared paywall when denied, without recording a requested feature. Assistant execution, remote MCP and the built-in macOS MCP server are no longer independently Pro-gated. Host operations performed through those features still obey saved-Host admission. SSH terminal uploads need a ready session and destination, not a separate Pro upload entitlement.
+`ProFeature` now enumerates **Vault sync, unlimited Hosts, Tailscale, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration**. `canUse` reflects current entitlement and fails closed for `.loading`, `.verificationFailed` and `.free`; `require` returns false and presents the shared paywall when denied, without recording a requested feature. This generic feature gate does not await initial resolution or distinguish verification errors; saved-Host admission below does. Assistant execution, remote MCP and the built-in macOS MCP server are no longer independently Pro-gated. Host operations performed through those features still obey saved-Host admission. SSH terminal uploads need a ready session and destination, not a separate Pro upload entitlement.
 
 ### Deterministic free Hosts and operation admission
 
@@ -182,14 +184,18 @@ flowchart TD
     Within -->|yes| Admit["Proceed"]
     Within -->|no| Loading{"Entitlement loading"}
     Loading -->|yes| Refresh["Await initial refresh and recheck"]
-    Refresh --> Within
+    Refresh --> Recheck{"Admission now allowed"}
+    Recheck -->|yes| Admit
+    Recheck -->|no| Resolved{"Entitlement resolved"}
+    Resolved -->|no| Error["Report verification error"]
+    Resolved -->|yes| Deny["Deny excess operation and offer upgrade"]
     Loading -->|no| Failed{"Verification failed"}
     Failed -->|yes| Error["Report verification error"]
     Failed -->|no| Deny["Deny excess operation and offer upgrade"]
 ```
 Host admission distinguishes unresolved verification from a resolved quota denial; it is not just a card overlay.
 
-Connection admission includes the target and jump-host route. Prepared configurations carry a `HostOperationAccessCheck` backed by a lock-protected current policy/Host snapshot, so cached configurations do not freeze the entitlement that existed at preparation time. SSH execution, cached Agent connections, SFTP operations and forwarding admission consult these checks. The SFTP wrapper admits each new operation without cancelling a transfer already delegated to its channel. Preserve these runtime checks when adding alternate entrypoints; see [Remote Services and Forwarding](remote-services-and-forwarding.md).
+SSH-based connection admission includes the target and jump-host route; Telnet checks only its target, not the Host's independent SSH jump configuration. Prepared configurations carry a `HostOperationAccessCheck` backed by a lock-protected current policy/Host snapshot, so cached configurations do not freeze the entitlement that existed at preparation time. SSH execution, cached Agent connections, SFTP operations and forwarding admission consult these checks. The SFTP wrapper admits each new operation without cancelling a transfer already delegated to its channel. Preserve these runtime checks when adding alternate entrypoints; see [Remote Services and Forwarding](remote-services-and-forwarding.md).
 
 Metrics no longer has an independent three-card cap or `.unlimitedMetrics` gate. The shared model retains selections outside the edited picker, deduplicates additions and persists the replacement in one operation. Collection instead follows Host access: locked Hosts surface a locked monitoring state, and the mobile locked card opens Pro rather than detail. Picker save failures report storage errors, not an automatic unlimited-Metrics paywall.
 

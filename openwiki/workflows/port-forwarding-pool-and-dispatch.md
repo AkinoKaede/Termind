@@ -1,6 +1,6 @@
 ---
 type: implementation workflow
-title: Port Forwarding Pool and Dispatch
+title: Forwarding Pool and Dispatch Lifecycle
 description: "Trace explicit forwarding Start through Host access checks, primary authentication, pooled TCP flow dispatch, auxiliary connection recovery, and teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
 sources:
@@ -32,13 +32,13 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Port Forwarding Pool and Dispatch
+# Forwarding Pool and Dispatch Lifecycle
 
 ## Two scheduling decisions, three kinds of rule
 
@@ -154,6 +154,29 @@ The pool-local listener accepts up to 32 descriptors in one callback. `assign` t
 5. Call that worker's `acceptShared`. The worker rechecks connection, rule, generation, non-stopped state and non-remote kind before registering the flow. If it rejects, the pool closes the socket; it does not retry assignment across every slot.
 
 For a rule whose reported counts are `[3, 1, 1]`, the next choice is between the second and third eligible slots, not the first. This is **per-rule live-flow-count balancing**, not bytes-per-second, CPU-load or total-all-rules balancing. Counts arrive asynchronously from worker callbacks, and assignment does not reserve an optimistic count before awaiting the worker. Therefore burst distribution is not an exact equal-share guarantee; the wire test verifies that flows reach multiple physical connections, not a precise 3/3/3/3 split.
+
+### Descriptor ownership and draining across suspension
+
+The pool increments `assignments[slot.id]` before awaiting `acceptShared` and decrements it afterward. This is a **retirement guard**, not an optimistic flow-count reservation for balancing. `retireIfIdle` asks the worker's `hasActiveFlows()` rather than trusting asynchronous count callbacks, then rechecks that the slot is still the same object, still draining, not primary, and has no assignment in flight. Overlapping idle checks request a recheck instead of issuing concurrent queries.
+
+A descriptor remains the pool's cleanup responsibility until the worker accepts it. Access denial, an obsolete generation, no eligible slot, or worker rejection closes it in the pool. Successful `acceptShared` registers and watches a flow on the worker; subsequent flow closure cancels its socket events and closes the descriptor in the cancellation completion. The pool listener also closes accepted descriptors if its weak pool owner is gone.
+
+```mermaid
+flowchart TD
+    Accepted["Local or dynamic socket accepted"] --> Guard["Check access and rule generation"]
+    Guard -->|Rejected| Close["Pool closes descriptor"]
+    Guard -->|Valid| Select["Choose non-draining installed slot by reported count"]
+    Select -->|No eligible slot| Close
+    Select -->|Selected| Pending["Increment in-flight assignments"]
+    Pending --> Worker["Worker rechecks access and generation"]
+    Worker -->|Accepted| Owned["Worker owns registered flow"]
+    Worker -->|Rejected| Rejected["Pool closes rejected descriptor"]
+    Owned --> Done["Decrement assignments and check idle retirement"]
+    Rejected --> Done
+    Done --> Idle["Draining slot with no assignments or active flows"]
+    Idle --> Retire["Unpublish and disconnect slot"]
+```
+The decrement and idle check apply only after a selected worker returns; early admission failures simply close the descriptor. Reconnect tests separately verify that retired intent rejects late starts and that replacement opens wait for old cleanup.
 
 ## What each worker does after assignment
 

@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistence, Compatibility and Secrets
+title: Persistence, Migrations, and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -174,13 +174,13 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Persistence, Compatibility and Secrets
+# Persistence, Migrations, and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -201,9 +201,12 @@ flowchart TD
     Keychain --> Resolver["SecretStoring resolution"]
     Resolver --> Runtime["SSHSecret one-shot runtime allocation"]
     Runtime --> Session["Live SSH session"]
+    Session --> Recovery["Device-local AES-GCM recovery files"]
+    RecoveryKey["Device-only Keychain recovery key"] --> Recovery
+    Mobile --> Defaults["Local workspace descriptors in UserDefaults"]
 ```
 
-This diagram distinguishes durable SwiftData and GRDB records from Keychain material and session-only secret allocations.
+This diagram distinguishes durable SwiftData and GRDB records, Keychain material, runtime secret allocations, encrypted transport checkpoints, and non-secret workspace restoration intent. Recovery files and defaults snapshots are not SwiftData or CloudKit replicas.
 
 ## Store ownership and startup
 
@@ -214,6 +217,8 @@ CloudKit replication is explicit rather than a side effect of declaring a SwiftD
 **macOS file-store exclusivity:** Before `ModelContainer` can open or migrate a file-backed store, the factory creates the parent directory, canonicalizes the URL (symlinks and standardized file URL), and obtains an exclusive nonblocking `flock` on a stable adjacent `.lock` file. A different process holding the lease causes `PersistentStoreAccessError.inUse` before database or WAL access; other POSIX failures propagate. Never unlink the lock file: a process may already have the inode open. The factory weakly indexes active leases by canonical URL so multiple containers for the *same store in one process* share the lease; each container retains it until deallocation, when closing the descriptor releases the kernel lock (including after forced exit). Different stores and in-memory containers do not contend. This mechanism is macOS-only, not a cross-platform mobile file lock. [PersistentStoreLockTests](../../FrameworkTests/PersistentStoreLockTests.swift) cover blocked opens before migration, symlink aliases and last-container release, a separate process killed while holding the lock followed by intact Vault/journal reopening, and noncontending stores.
 
 The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. Before normal open, `DatabaseStartupGuard` checks for another running instance of the same bundle identifier, including older versions that do **not** use the new lock; a busy store presents an alert and exits, while other open/setup errors are fatal rather than replaced with an empty database. It supplies `KeychainSecretStore` for live composition and passes the same container to the main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before live repository wiring; XCTest uses an in-memory container but disables cloud coordinators (it still constructs a Keychain secret store). The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` when `inMemory` is set or hosts are injected. A supplied container overrides factory construction; otherwise mobile initialization throws on open failure rather than replacing the store. `TermindIOSApp` retains the startup result and `MobileStartupView` injects the container on success or shows an unavailable-data-store view on failure. Data availability is an explicit startup condition.
+
+For the composition and scene-lifetime context, see [Platform Runtime](../architecture/platform-runtime.md).
 
 These are app-lifetime dependencies, not per-window stores: desktop retains `AppModel` alongside the container, and passes the same `KeychainSecretStore` to the Host library, AI configuration/AI secret-location service, and built-in MCP server token storage. MCP client OAuth authorization uses its separate `MCPKeychainCredentialStore` in live composition (an in-memory authorization store in XCTest). The root prepares Settings, Metrics and History persistence before constructing their feature models. `AppDependencies` carries repositories and secret ports into `AppModel`; windows consume the shared application model rather than opening another database or allocating their own secret store.
 

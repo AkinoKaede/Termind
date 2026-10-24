@@ -74,10 +74,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 ## Scope and operating model
@@ -197,6 +197,12 @@ This has three consequences:
 - A remote copy consumes one global permit and one slot per distinct Host, regardless of whether it later needs one or two endpoint leases. Channel exclusivity belongs to managed-context lease ownership, not a separate borrowed-resource admission axis.
 
 Tests make the policy concrete: after a workspace used the sole slot, a queued Agent source can precede more work from that workspace; another Host gets a turn before the previous Host; two workspace queues can split five same-host grants 3/2. These are controlled queued examples, not a guarantee that a later-arriving operation displaces an already active file.
+
+### Cancellation releases admission separately from leases
+
+Cancelling a scheduler waiter removes its queued request, resumes it with `CancellationError`, and drains other eligible work. Once a permit has been granted, cancellation is **not automatic permit revocation**: the holder must release it. `SFTPConcurrencyPermit.release()` is idempotent. The coordinator handles the grant/cancel race by releasing a returned permit if the queue row is no longer eligible; for running work it closes acquired endpoint leases, releases context slots and transfer references, and then releases the active permit in `finish`. Thus cancellation while waiting for a channel must still unwind file admission, not merely close a socket. [^permit-cancellation]
+
+[^permit-cancellation]: [scheduler cancellation and release](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L13-L29); [queued cancellation](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L66-L124); [grant eligibility checks](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L455-L489); [endpoint cleanup](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L560-L572); [copy cleanup and finish](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L635-L644); [permit release](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L723-L742).
 
 ### Smart mode is selected at grant time
 
@@ -492,7 +498,7 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^edit-snapshot]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift#L267-L295`; `TFMTests/SFTPEditTests.swift#L105-L120`.
 [^edit-discard]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift#L205-L234`; `TFMTests/SFTPEditTests.swift#L232-L269`.
 [^edit-invalidation]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift#L186-L203`.
-[^scheduler-tests]: `TFMTests/SFTPConcurrencySchedulerTests.swift#L7-L150`.
+[^scheduler-tests]: [grant-time preferences and Smart boundary](../../TFMTests/SFTPConcurrencySchedulerTests.swift#L11-L56); [host/source fairness and cross-host accounting](../../TFMTests/SFTPConcurrencySchedulerTests.swift#L58-L176).
 [^context-tests]: `TFMTests/SFTPTransferContextTests.swift#L129-L364`.
 [^resolver-tests]: `FrameworkTests/SFTPRemoteConflictResolverTests.swift#L9-L167`.
 [^edit-tests]: `TFMTests/SFTPEditTests.swift#L12-L269`.

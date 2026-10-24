@@ -3,6 +3,9 @@ type: benchmark-operations
 title: Port Forwarding Benchmarks
 description: Historical forwarding measurements, workload semantics, retained transport decisions, comparison limits, and reproducible loopback commands.
 tags: [ssh, port-forwarding, benchmark, performance, openssh]
+verified:
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 sources:
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
@@ -12,16 +15,15 @@ sources:
     resource: repo://Scripts/benchmark-external-port-forwarding.py
   - id: openwiki-source-d32eeff4d814c0dbd05e14b8
     resource: repo://Scripts/benchmark-port-forwarding.py
+  - id: openwiki-source-5e6e09024b34971fef43cd4e
+    resource: repo://Scripts/port_forwarding_benchmark_common.py
   - id: openwiki-source-61e25d353d86139455e8edbd
     resource: repo://Scripts/ssh-forwarding-openssh-fixture.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
-verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 ---
 
 # Port Forwarding Benchmarks
@@ -93,6 +95,20 @@ python3 Scripts/benchmark-external-port-forwarding.py \
   system-ssh
 ```
 
+### Comparison boundaries and driver options
+
+The shared JSON envelope (`environment`, `note`, `records`, `medians`) does **not** mean the drivers run identical workloads. The external driver runs only direct request/response exchanges of 64 KiB, defaulting to 128 rounds at 1, 16, and 64 streams. It does not run the Swift runner's duplex, mixed, jump, or idle cases. Its ready timer stops after TCP connect and optional SOCKS negotiation, **without** the Swift runner's first payload probe; Local/Remote channel admission can therefore appear in the external driver's first request latency instead. Compare matching workloads and retain their round counts rather than treating all p95 or throughput fields as interchangeable.
+
+| Driver | Repetition and workload controls |
+| --- | --- |
+| Termind | `--repetitions N` defaults to 5 and must be positive; `--quick` forces one repetition of the entire matrix. `--termind-connections` defaults to `1`, preserves candidate order, and removes duplicates. |
+| External/system SSH | `--repetitions N` defaults to 5; `--rounds N` defaults to 128; both must be positive. `--quick` uses one repetition and only 1 and 16 streams, without changing rounds. Put these global options before `system-ssh` or `external`. |
+| Manual external | Requires `--name`, `--kind local|dynamic|remote`, and `--port` in 1–65535. The script labels the connection count as one; it does not discover or enforce the third-party client's topology. |
+
+System-SSH network timing begins after its listener becomes reachable, but `cpu_s` includes Python client CPU plus child-process CPU from before SSH launch through termination. `forwarder_peak_rss_mib`, despite its name, is a single `ps` RSS observation after the workload, not a measured lifetime peak. Neither is directly equivalent to the Swift runner's warmed-workload CPU interval and process-lifetime peak RSS. Manual external mode supplies neither CPU nor RSS.
+
+Medians group samples by implementation, kind, streams, jumps, workload, and reported SSH connection count; they summarize per-run p95 values rather than pooling all request latencies. Keep the raw records alongside the medians. Output is written only after all requested measurements complete, so a failed run does not produce a partial result file. The Termind driver captures runner stdout but extracts only `FORWARDING_METRIC` records: the separate `FORWARDING_IDLE` line is not retained in its JSON.
+
 ## Historical connection-pool result
 
 These five-run medians were recorded on the M3 Pro, macOS 26.6.2, Xcode 27.0 Release (`-O`, `ENABLE_TESTABILITY=YES`) with the loopback OpenSSH fixture. MiB/s is useful throughput per direction. This table compares historical Termind configurations with one another, not with the later single-connection system-SSH baseline.
@@ -147,6 +163,10 @@ The original report named `PORT_FORWARDING_BENCHMARK.json` and `PORT_FORWARDING_
 
 ## Reproduction
 
+Run commands from the repository root on macOS with Python 3, a working Xcode `xcodebuild` toolchain, `ssh-keygen` on PATH, and `/usr/sbin/sshd` available. The Termind build selects the macOS destination, Release configuration, active architecture, and resolved package versions. The Python benchmark/fixture scripts use the standard library; Paramiko is needed only for the separate delayed-listener fixture below. The system comparison additionally uses `/usr/bin/ssh` and `/bin/ps`.
+
+Choose a metadata path that does not already exist: the fixture creates it exclusively and will fail rather than overwrite it. Wait for the fixture's listening message before starting a driver, and keep it running for the whole measurement. Metadata contains the private key as well as SSH/echo ports, username, server identity, and host-key fingerprint; treat it as a secret, not a benchmark artifact.
+
 Use the loopback-only temporary OpenSSH fixture with ephemeral keys, public-key authentication, restricted SSH/echo destinations, and `MaxSessions 0`. It does not modify system SSH or `authorized_keys`. Metadata and the temporary client key are private mode 0600; stop the fixture normally to remove them.
 
 ```sh
@@ -174,6 +194,14 @@ python3 Scripts/benchmark-external-port-forwarding.py \
 ```
 
 The deliberately delayed remote-listener case uses a temporary environment with `paramiko==4.0.0` and `python Scripts/ssh-authentication-fixture.py --metadata /tmp/ssh-fixture.json`, substituting that metadata path. Other wire/lifecycle cases run against both fixtures.
+
+### Safe teardown and failure handling
+
+Finish or stop the benchmark clients first, then stop the fixture with Ctrl-C or SIGTERM. Its cleanup signals the owned sshd process group, waits up to five seconds, escalates to SIGKILL if necessary, removes metadata only if this invocation created it, and lets the temporary-directory context remove its keys/configuration. Avoid killing the fixture itself with SIGKILL: that bypasses Python cleanup. After an abnormal termination, verify owned processes and listeners are gone before removing leftover secret files or reusing ports; do not delete metadata belonging to a still-running fixture.
+
+The system-SSH driver owns a new SSH child for each measurement and terminates/waits for it in `finally`, killing it after a five-second timeout; its temporary client-key directory is scoped to the run. Manual `external` mode never owns the listener, so stop that forwarder yourself. The Swift workload stops its rule and disconnects after success and disconnects on workload failure. A pool warm-up timeout reports connected/target counts and the last recorded failure rather than emitting a warmed measurement.
+
+The system-SSH command disables host-key checking and writes no known-hosts entries. This is an isolated-loopback comparison convenience, not a production SSH security configuration. Do not adapt these fixture commands to untrusted remote hosts.
 
 ### Validation after test pruning
 

@@ -1,6 +1,6 @@
 ---
 type: release operations
-title: Build, Test, and Release
+title: Build, Test, and Release Operations
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 sources:
@@ -12,6 +12,8 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-1ec9ab80a210ef2b285346a3
+    resource: repo://Configuration/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
@@ -62,13 +64,13 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Build, Test, and Release
+# Build, Test, and Release Operations
 
 This is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The public Astro website and assets are an independent Git submodule at `com.akinokaede.termind`, with its Node project at that root.
 
@@ -123,10 +125,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.17.1` | `70` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.17.1` | `107` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.17.1` | `96` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.1` | `96` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.17.2` | `71` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.17.2` | `108` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.17.2` | `97` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.2` | `97` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -153,7 +155,7 @@ For shared Find state and binding changes, use the headless controller suite fir
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:FrameworkTests/TerminalFindControllerTests
 ```
 
-`TerminalFindControllerTests` checks that presenting restarts a retained query, navigation without a query emits no binding, and dismissal ends search once. Default dismissal requests terminal focus; native dismissal with `restoringFocus: false` does not, while retaining the query for reopening. It also checks resize suspension, latest-query resume, navigation suppression and closing during suspension without reopening.
+`TerminalFindControllerTests` checks that presenting restarts a retained query, navigation without a query emits no binding, and dismissal ends search once. Default dismissal requests terminal focus; native dismissal with `restoringFocus: false` does not, while retaining the query for reopening. It also checks resize suspension, latest-query resume and closing during suspension without reopening.
 
 Native mobile search needs a separate, deliberate integration run. The file is `TFITests/MobileTerminalSearchTests.swift`, but the **suite identifier is `MobileTerminalSearchIntegrationTests`**:
 
@@ -163,7 +165,7 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 
 Replace the destination placeholder with an available simulator. This serialized suite is disabled unless the test host sees `TERMIND_MOBILE_UI_TESTS=1`; use the `TEST_RUNNER_` prefix on the command line, or set `TERMIND_MOBILE_UI_TESTS=1` in Xcode's Test action. A default passing test run is not evidence for this suite.
 
-It exercises repeated terminal search presentation after native cancellation, terminal-focus-then-native cancellation, and programmatic dismissal; empty-query editing and retained queries; SFTP filter close/reopen; and SSH/SFTP connection-journey overlays without replacing the search controller (or the SSH terminal view). A full-workspace SSH fixture additionally reopens search with empty, matching and missing queries and verifies retained surface/output and unchanged connection generation. The fixtures use an in-memory app model and a temporary key `UIWindow`, restores the previous key window, and disconnects the workspace on cleanup. These are local UIKit integration checks, not live SSH/SFTP connection tests. Run them when changing `MobileWorkspaceSearchModifier` or `MobileToolbarSearch`: native cancellation maps to `find.dismiss(restoringFocus: false)`, and the UIKit adapter blocks presentation synchronization during dismissal to prevent reopening mid-transition. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for broader fixture guidance.
+It exercises repeated terminal search presentation after native cancellation, terminal-focus-then-native cancellation, and programmatic dismissal; empty-query editing and retained queries; SFTP filter close/reopen; and SSH/SFTP connection-journey overlays without replacing the search controller (or the SSH terminal view). A full-workspace SSH fixture additionally reopens search with empty, matching and missing queries and verifies retained surface/output and unchanged connection generation. Full-root SSH/SFTP cases verify that leaving workspace search restores Vault navigation across resizing, that hidden workspace model updates do not reactivate search, and that returning retains the search controller and updated query. A compact-to-regular case also checks sidebar availability after switching to Vault. The fixtures use an in-memory app model and a temporary key `UIWindow`, restores the previous key window, and disconnects the workspace on cleanup. These are local UIKit integration checks, not live SSH/SFTP connection tests. Run them when changing `MobileWorkspaceSearchModifier` or `MobileToolbarSearch`: native cancellation maps to `find.dismiss(restoringFocus: false)`, and the UIKit adapter blocks presentation synchronization during dismissal to prevent reopening mid-transition. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for broader fixture guidance.
 
 ### Formatting is a strict check
 
@@ -222,6 +224,12 @@ Planning does not open windows. `Scripts/Tests/test_screenshots.rb` is a deleted
 ### Network fixtures are a separate opt-in
 
 Keep wire-level fixture gates unset during routine verification; a default green run is not evidence of live SSH/SFTP behavior. For example, shared `TailscaleSSHWireTests` is serialized and enabled only when the test host receives `TERMIND_SSH_FIXTURE` (a JSON file path) or `TERMIND_SSH_FIXTURE_JSON` (inline JSON, preferred when sandbox file access is a concern). The inline value takes precedence and supplies `port` and `hostFingerprint`. This suite connects to a real local SSH/SFTP endpoint through a loopback `SSHNetworkDialing` adapter, checks none-authentication and repeated connections, and disconnects on failure. It does not contact a real tailnet. Prepare the matching fixture deliberately and follow [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the other wire suites; do not enable network fixtures by setting a visible-window or screenshot gate.
+
+### Optional local service setup
+
+Native builds do not require production Firebase or RevenueCat configuration. Both app targets use `Configuration/Services.xcconfig` for Debug and Release; absent local configuration leaves the corresponding service unconfigured and symbol upload disabled, without bypassing Pro access checks.
+
+For deliberate service testing, follow [Configuration/README.md](../../Configuration/README.md): copy `Configuration/Services.local.xcconfig.example` to `Configuration/Services.local.xcconfig`, set the RevenueCat **public Apple SDK key** and entitlement ID, and supply your own matching-bundle-ID `Configuration/Firebase/GoogleService-Info.plist`. Never embed a private RevenueCat management key. Release symbol upload additionally requires `FIREBASE_UPLOAD_SYMBOLS = YES`; runtime diagnostics still require consent. The build removes a previously bundled Firebase plist when the local file is missing and skips symbol upload. Keep these ignored files and logs containing their values out of commits; CI may provision the same files or build-setting overrides. Client configuration shipped in binaries does not replace service-side restrictions or security rules.
 
 ### Commerce validation
 

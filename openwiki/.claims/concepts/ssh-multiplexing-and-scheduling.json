@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:49af55e7534ff981f1806d37725b4437e5c29f4d4c7e7b903dfab4731df4f63b",
+  "pageVersion": "sha256:e5b3421d2cf249ccddfcc902c401b62da41442b5c373c7aab6ce1f4338acd345",
   "claims": [
     {
       "id": "claim_c56b98e3167443d9a8aa8d3405b35eca",
       "statement": "SSH workers serialize libssh2 and share multiplexed exec/SFTP owners. Explicit PTY disconnect preserves only live SFTP channels, not pending exec closes; prepared sessions may deliberately retain post-exit control. SFTP drivers retain the worker without a reverse cycle, and worker destruction avoids synchronous queue self-reentry.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L24-L49",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L27-L52",
           "version": "repo-lines-v1:sha256:0aa7fd8c05f8307efae02d58a5b32a144f538b088448b8e4772a3c31733d9289:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMmVkZThjM2M0Y2M5YWNkNDA5OWQzOGI2NWI5ZWEzZGM0MGI1YzNlMmYzOGJjZTI5NDUzYzQ2NDg1OTBiMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4ZjNhZDJhYmQyNzJhYTk0NGZkMmNiNzIzYWYyYzgyZGQxZjA4YzJjYjlmMDRiZTQwM2QzYmU0NmZkZWYwYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwNGJiMzcxZjcxZGMwZDVlZjJiMGY4NjM3MTUyZTBlMmVmOTVmZDBjMTY3ZGI4MGEzYTBlYzI2MmIxZTZjNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2YjM0MzY1Yzk2OTBlODQ4MmE4NDY2NWU1MWRkM2QwY2RjOTBjZmQ2MTU4ZDllNDdkMDgxNTFiNzM3ZTA5MzQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2149-L2178",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2152-L2181",
           "version": "repo-lines-v1:sha256:135b06450754355cb9d32590844a88bef03728d3721ddf836e4446424419088a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNGYzOWQ5NWIwMDNmZTBlN2JmNWFhYzUzMTFhNDkzZGM5YWMwOWNiNzhmNmYzZjIxZmYwMjczZWUyZjliYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmZmMzZTllYmFiMzc1MTMxNDkyZWI2NzEzMTJiMjYyNGQ1ZDg4YWMyNTk2ODBiZTMyOGZmNGEwZDE3ZDk2ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ODQ3YmFkMWRhM2M2OGViNjAzZTY5Mjc3ODU3MjExYTM1ZjY1Nzg3NGVlNTIyZDZmZjk1NjRhMGNlYzE0NGEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2522-L2598",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2525-L2601",
           "version": "repo-lines-v1:sha256:7193827aafb8aa317a381ab53bab1e06e44bc2c39be20bc6ba838b4411807c7c:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2NjNmEzMDAwMmRhNWFmNDk0Y2Q2MDNlMGNkYTY4Mzk4NTNkYWE2ZmE3Y2M2Mzk4Nzg3NDI4NDlmOWUyOWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1043-L1092",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1046-L1095",
           "version": "repo-lines-v1:sha256:8e1832669c027c6d31e53d6639399a03d8328b6f7fec9fa316c712bef3cdb199:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMWI5YjJlYzFmZWIwMGZkYWE5MzRiZTgxMTE4ZDg4Y2I2OTBiNTUwYzg3OGU3NGMwY2JmMTY2MjY5YjRhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMzJiNDYyMjMxZDk4ZGU0NTZlZWVmN2ViM2NkNWZhOThmYmJjOWE4YmFkZTNkMDBlMThlYTQyMTAzMjA1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2NDcxYThiNDA0OWYxMTlkMmU0Yjc5N2E0M2MzOGYzM2VmZGZmMGMzZTIwZTA4YjY3ODc5YzM5ODk2ZDg4NzcifQ"
         },
         {
-          "resource": "repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift#L18-L57",
+          "resource": "repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift#L21-L60",
           "version": "repo-lines-v1:sha256:b14b8c3adb3c9e78416d6f63fc621b2979d98e3ddf8f51f6a58abb0532f2088c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NjNhZTJmMjJkN2E0MTk3ODAzZTI4ZDEyMjAwNjgzMzM3YzU1ODYyNDM1Y2QzMGMwZmI1ZWZlMTJjZjVmMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0ZTRkYThlZTU5ZTc2ODk4OTYzNTI2MjhhMGNlN2JkZTgyZmVjNmQxMzc2NzAyZThiOGRlZWU5NzA5ZmQzNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2NWRmNzI1NjI1N2ZiZDY0ZmRjZWY0YjhjYWQwY2I4NzdlYzZjMDVkYWYxYTNlMmU5NjdlNTg1NjM0OTg1MTUifQ"
         }
       ]
@@ -33,7 +33,7 @@
       "statement": "The client-side SSH ceiling defaults to ten and normalizes to 1–100, with independent per-connection FIFO budgets, non-revoking decreases and cancellation-safe queued admission. tryAcquire refuses closed or saturated budgets and budgets with queued waiters; permitsConcurrentControl describes configured concurrency rather than current free capacity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L98-L107",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L101-L110",
           "version": "repo-lines-v1:sha256:7d8ea284f3673c3ef0d5f02bea44607291e423712c1b610a0a8708424e1559af:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZjNjODRjMTMxYmNkNjBjNzM4OTg3YTc2ZWE0MDA0MWUwZGY5NDhiNWYyNjI3YThhZjdlODE4OWQ0OTlkYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0ZDkzOGMzMWViYTRjMDJiZjg1MGM4ZTk4MDg5MDVlYjlmOTY0ZGFjMTU5NzBiYTUxN2FlOGE2ZDY1OWM3NzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExNjkwMDBkOTc2YmNmYzNjNDAwZWIxMDIzZTAxNWI5ODQ3ZmU4OGM2ZjAxNzYwYzU1MjA0OWE1ODE5ODMxYTEifQ"
         }
       ]
@@ -44,21 +44,25 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
-          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
+          "version": "repo-file-v1:sha256:3079937b916d8635dcc64793da058288d3db09208e8b8346d3f275a7df2e8d4c"
         }
       ]
     },
     {
       "id": "claim_d04e37fdde2f4f209036467448f0a0e0",
-      "statement": "Exec serializes pending opens and advances optional Agent forwarding, startup, running, closing, waitingForClose and freeing in bounded ready-queue turns. Exit status is captured after waiting for close; socket events and a 100 ms worker timer wake work, and output limits count remote bytes separately per stream.",
+      "statement": "Exec serializes pending opens and advances optional Agent forwarding, startup, running, closing, waitingForClose and freeing in bounded ready-queue turns. Exit status is captured in waitingForClose; socket events and a 100 ms worker timer wake work. Legacy output limits count remote bytes separately per stream, while session-backed execution decodes and delivers all output and retains bounded decoded tails per stream; executeSession uses a 256 KiB per-stream limit.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
-          "version": "repo-file-v1:sha256:f79ba0c69059f20e6bcee5a1f91434a289c81fa30eea07d3369faaa2c07faf2e"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L163-L205",
+          "version": "repo-lines-v1:sha256:bc30908114c5a65d8c8565a94575561dc71ca5bb10d8b4b01a14cfbcc75143b7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4ZmZmOTdlY2E4YTVkZWU1ODA3MTIwYTFjYmNmZDAxYTZlMjk1YzhlZWIyYTE2ZGZjNzA2MWU3MGU3MjJiODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyN2VjY2I5NWMyZjY1NjZkMDQwYTM1OGY0OGJmMmM4ZGYwOWZjMTg1ZDg3MmQwMWUxNWM3ZjA2MTg2OWVjYjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkNTIzNDY5MmQ2NTliNDY4NDJmNWUwYjUwNGMwNjFhNzk2ZmZjZDEzODQyYmRiODQ4MDlmODQxZTc3MGRkOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0ZTc4YjkyNzUyNjI4MDU2M2Y3NDAxMGFiODQ4NGMwZjhjYTZiN2JlYzdjZDZiMmU2MWM5ZWI0ZDZhMjhjNDEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
-          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L274-L550",
+          "version": "repo-lines-v1:sha256:e5a103a986eb8b9d519cdd4a2bd0ff290059c0152db92dcfbae2ae22b8378d7b:eyJzZWxlY3RlZExpbmVDb3VudCI6Mjc3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyODJkMGI1OTQxMmI2MWM2ODQ2NTMwOGI0NmYzZGNiNGQwNDYwZmZjYjQyZDZiMTQ3MThmMzI3NmE3N2EzMjkxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyYTIzMDYzNjNkNGJlNDIwNTc2YWI3NDE1YWUzNDFhNDJmNDQwNzNiZGZmNmQ1NWJkOGI5ZjIyYThhYTk4MWFjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2MzZkNmRjMTdjNTNkMWEyMjc3ZTQ1ZmM3ZjZiYzc0MGFiMWVlYTE1Njg2Mjk2M2JhNzA3ZTA5MTAzMDcyYmE2In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L620-L629",
+          "version": "repo-lines-v1:sha256:123614f2cd5d9aefa543aff610e35e584790d24944a9f2fa67f68804a8c9ff15:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3Zjk3YjUwMTEwNWU5MjZiMGJmZmU5NzQ4Y2Y2N2ZmYzQ4YzA0NTBmODBhNGQ5NDViY2VlNzg2NjgyNDI0NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyZGUyY2ZmM2NiMWUwNTE5NTFhM2QxMWRiNjVjOTMxNDhlYmNlNWJhYWFiZGMyZTE0NzlmYjQ2YzRjMDI2N2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1ZTk3YzBlYTkwZDg4ZDFhYjA5MDE0YTYyYjkxZThmN2QzZWZiZjBjZDZkZmUwNDBjNDQ3Mzg1OWZhZDkyZTEifQ"
         }
       ]
     },
@@ -67,7 +71,7 @@
       "statement": "Multiplexed SFTP serializes initialization, retains a session-channel lease per subsystem, performs bounded operations on the enclosing SSH queue, and asynchronously sleeps two milliseconds on EAGAIN rather than using the exec ready dictionary.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift#L88-L224",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift#L91-L227",
           "version": "repo-lines-v1:sha256:c49e91690e4a2f60a01b7fddcfc037638243470bc3b5830bc6615ebe87acbaf8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmN2I5NjRhMzI1MmExNWU5ZmFkMDA0YzMzMTY5ZThhMDM0MWU2ZGRmZTY2ODQzN2M2ZmQ0MzJhZTQzOGEwOGM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2MjRmYzIwYmRmNzE1MmRlYWRlMzU5M2U3M2YyMmI4NTJiMzQwODE1ZmQ2ZDhiMTlmMjE2OWUxNTk2ZDUzOGU5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         }
       ]
@@ -77,11 +81,11 @@
       "statement": "SFTPClient owns its primary channel and connection with a generation check, while SFTPChannel siblings reuse the same driver and channel disconnect does not itself close the underlying connection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L125-L165",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L128-L168",
           "version": "repo-lines-v1:sha256:90b011ae02e3bee10bcf09a48d4f9819fcca02e9e11cbcf34e581456a40567ff:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjMWVlZmFhYWRhNDYyNWFiN2IyZTQwNzk5YWQ2ZDRiY2YyZGE2OThhZjJkNjgwMTg2MjBhNTlmZmU1MDFmMGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNzhlZGQ4OTljZjYzZTBiZTcyNjJmMzk3MjYxZTlkNjkyYjFiYWJmNzVmNjcwN2ZmZTE4YTMzOGE2MDhiZWYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L297-L347",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L300-L350",
           "version": "repo-lines-v1:sha256:92ce054ba0cac6bd0131387d6bdc854f0f3b544f12dfab215488a400e10280e8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5NWUzNGNlMjIwYmQ4ZWVlOWIxZjg3NTNiZmIyMzkwYjRmODk2MjA0MjNiOTAwMWUyNjM3MTNhZmZiYWE5YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMzOWU0MDJkMjEzYjIyYTdlMDhhN2M4YTEwODIxZDljMmUzZTA2ZTNjNzBkOGQ4YWE0MWM3NDNjNTI5ZWMyNzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzMWE0ZmExMDhlMmM3NGVmZjgzN2RhODlmMDcwZWI3YWY2MTcwMWI5MjU1NjQ4N2MzMjkxMThjZmNhMDZjNjcifQ"
         }
       ]
@@ -91,11 +95,11 @@
       "statement": "Current I/O tuning uses a 256 KiB quantum/read allowance, two-millisecond slice and 2 MiB/1 MiB flow watermarks; immutable chunk storage preserves libssh2 retry pointers and vectored flush avoids coalescing.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift#L300-L417",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift#L303-L420",
           "version": "repo-lines-v1:sha256:704ee736507518a694cd306166f32c5c6f35d75ea96ccf62eafe3efe0045b80f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1Yjk4ODEzNTM2ZGVhY2Y4NDYxMDM0Yzg0NmMwMmM1ZjI0NTRhMjQ2NzQzNWJlZTZmYjQyNTI0MTNjNTc4MzU1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMmNlYjliODNiNjE4ZGEzNmIwZWUxYzNlMDAxMDM3NTBiMjBkYWYxODY0ZGFjYWQ3ZWJlYjEzNjRiMWIxYzU4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyNTdiZDUwYTljZDkxMDQ2NDA0NDc0YmZkNDRmNmY4ZTdiZDVmMzA2ZDg3NGMyODc2OGVhZGNlZGNkNGQzNTYyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmNzk5MWYxYzhkNmFkODAzMzg5ZGQ2YTdlZTQzMGYxMThlYTcyM2I5YWVjMGNmOTMzODAyYTlhNTFmNGFjMTEwIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift#L6-L165",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift#L9-L168",
           "version": "repo-lines-v1:sha256:9fa0f5c2789a7f740933d13ad1ad45bb27316ecf3c4558a77696962016aee953:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmNWU3MGRhMDMxNjdkYjk1NmU2ZGEwMDg3NmY4ZDFhOWRmNmM2MmJmODcwYTNjNzU2ZTdhNTc4MWFiYWQyMmY4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhYWM2NWE5N2I4ZTY3YzdmYTViZWI2MTE3MDg1MmU2ZTdmY2MwNjM2ZGNkZTE2Nzc2ZGVmZGQ1NTcwZDk0ZjdlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjNDZmOGNkZDAwNDQ5ODFmZDcyNDdhMGM4OTMxNjgzNGQzZWRhYzllNTEwMDU4ZDRjMDRjYTNkZDg3M2MxYWE2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzODNiMzdkYjM1YWI4NzUyZDZmYWQ5ODU0ZGQxMjdmM2Q4Zjg1OWUyMjRlNmE5ZTJkMmIyMTdkZjdjNzYwNDhjIn0"
         }
       ]
@@ -105,11 +109,11 @@
       "statement": "SSHConnectionBuffer accepts full encrypted writes and queues unsent remainders to avoid the documented pinned-library forwarding confirmation retry problem, applies receive/pass backpressure, and makes disposal independent of peer I/O.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionBuffer.swift#L5-L124",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionBuffer.swift#L8-L127",
           "version": "repo-lines-v1:sha256:f217ef87c85a48e561b994643b246ce46eace5948d5da9cbf766a8ead5e71734:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmY2M5OWUyOTBkMTYxYjM4NDUzYWRjZDQwNDBjZmRkODI2ZmU5MTdkMzg5ZjljZGIzOTZiNjg4NjFlMDIxN2VkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxNDg3MWFmOTQ4NWM4N2U4YzBjNGRjYTdiMmEyNzE4YjlmOWEyZjdkMTNkZWFjNWNjMmE2OWM4MjVlYWNlYmZkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         },
         {
-          "resource": "repo://TFMTests/SSHForwardingPumpTests.swift#L275-L315",
+          "resource": "repo://TFMTests/SSHForwardingPumpTests.swift#L278-L318",
           "version": "repo-lines-v1:sha256:41bb566425d10190c8b15e32246dc1f40e0c12d9b3396e5f63f3b3281bcef92f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiZGMyN2M1OWUzNGVjNzY3MTNiYWM3YjNjNTNiODNjNjRiNDYyYTAzNjE0ZTI4MmQ0MGMxOWE4MzVjYzM3ODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZlOGI1YTBjMTc0ZGNhZjdhY2VkNGQwYTM1MGJhOTZlN2U4YTkwOTQ2MzJjNTBiZWUwYjM4ZjkzOTQ4M2RhNjUifQ"
         }
       ]
@@ -120,15 +124,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift",
-          "version": "repo-file-v1:sha256:ba859ead380c52c8568d3bda809b7f92c4d63b45e3cae76442a296ba875565f6"
+          "version": "repo-file-v1:sha256:ecd22bbf7bbcef084e576633f1f63e5db3fc2cb1564a0db2d156e2719fcf0b72"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
-          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
+          "version": "repo-file-v1:sha256:3079937b916d8635dcc64793da058288d3db09208e8b8346d3f275a7df2e8d4c"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -137,15 +141,15 @@
       "statement": "With Agent Forwarding disabled, AgentConnectionPool reuses Host/route-fingerprint keyed primary SSH and SFTP, joins concurrent opens and protects active operation leases from default 180-second idle retirement. Agent Forwarding exec acquisition instead opens isolated connections that withExecLease disconnects on success or failure; pool disconnect/closeAll also cancel isolated openings and discard late successes. Execute retries once only for connectionUnavailable before channel start.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1456-L1556",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1459-L1559",
           "version": "repo-lines-v1:sha256:23495e3923e47b2c1ae101d1d344fe4ebfbefeaeb554116c18b45240c29f8dd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMWJjZmQzNGY3MWM2ZjZmZTRiYWEyZjg2YWI5MzcwYjA5MzFlYWNjNjQ1OGVhMGVmMTAzMmE3YWQyZTNjZDE2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxYjhiYjcxNGNhMDJmMzQwOWM3MDk5MTczNTUyMTgxOWM0NzZhZTliM2JjODMzN2Y4YWQ2ZjU4ZjRhNDY4OGRjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlMjU5ZDI1YWU0MWMxYzAxOTcyYTJjZTlhMjk0NWFiNWQ5ZTMwY2NhNDQyYmQzZjllMmI1NDc2ODQ1OTlmOWQxIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1666-L1775",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1669-L1778",
           "version": "repo-lines-v1:sha256:f04900ff8419cc32c853bd98232c7ad96acefec1e7b7f204f6136302e1ea97af:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzOTA2Y2EyOWJlYzI3YTBkMzUxYjRlY2RlYzE4NGFkMjZmNzgzOTgzNDFiMmIzODljYTM1MTM3MGEwM2QyNzRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyMDljNWY0OGI3M2E4NTI5YzViNGM1MDI1Nzg4NzU4ZDNhODJlOGMxZDEyNzkyMzk1ZDk3YmI1MTk4ZTU2YjBkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxNTA1OTA1MDFhOGI1YWM0OWJiZDk3OTc2Y2UyZGE5NTA0YTQ0MzcxNmZjYzY4M2E5ZTRkN2M0MmRmOWRhODE5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhODcwNzdlMTdhMmU2ZjM0MzNkOGY0NTJiNzUxZDUxYzRjODQ4M2Y1YmNjNjg5YWI2ZjI1N2E1ODVmNDVmYzY3In0"
         },
         {
-          "resource": "repo://TFMTests/AgentConnectionPoolTests.swift#L13-L49",
+          "resource": "repo://TFMTests/AgentConnectionPoolTests.swift#L16-L52",
           "version": "repo-lines-v1:sha256:aafbd1b605c2fc900d9f86a728a00a87b79d2d624bd2ac3c3b4f46dbc9062fd0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzc4NDRhYjhiMjVhZTRiYWM1Y2M1Y2Q3NTIxZmQzZjI0N2ZmZjVlN2ZlOTgzOWU0ZmYyYWQ0OWQ2ZWQzNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5MmE1MmZhNGY1ZWE2OTZmYTgyNzhmZWUwMGM0MjE1M2ViMmM1ZTAyYzZjNWNjZjI4M2YxODhiMGNmMDQwMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczYzk0YzAwNDRiZmUxOTBkZGVmMmM0NTE2ODE1MzFlYjdmODlkNjNkNmEzMDMxYWRlZGVkZDgyNTQyNDdjYTgifQ"
         }
       ]
@@ -155,7 +159,7 @@
       "statement": "SSHExclusiveConnectionAdapter serializes complete operations on one owned connection and has no topology or fallback selection policy.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHExclusiveConnectionAdapter.swift#L3-L36",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHExclusiveConnectionAdapter.swift#L6-L39",
           "version": "repo-lines-v1:sha256:ef2acbffed6b7a7fd6955d7fa3a6f0c7c93e6cca2ed82d431dbc1a64ff794d6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0OWUxM2UyOGRlY2Q3Y2U5NDdmMjMzNzM5NGQ2MWQ5Y2I1MGIzZGI1OGJlYjUzM2M1Zjg1NjVmNGUwNzdiYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
@@ -165,11 +169,11 @@
       "statement": "AgentSSHAuthenticationRegistry normally shares a temporary per-host context among overlapping operations until the last caller finishes, but Agent Forwarding operations get fresh contexts and resolve configuration attempts even when a reusable primary exists. Configuration attempts join by generation, the last cancelled waiter cancels the shared attempt, and successful authentication consumes staged one-shot secrets.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1094-L1168",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1097-L1171",
           "version": "repo-lines-v1:sha256:6661dfdfbda6c37c8f4a63df7da3a4541ca1066cb3bc9d0dbb255f8258e1dc23:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2M2E1N2M2NDE3Y2NlY2M1YWYzMmNiNjNmMWNlNzBkZThjMTQ4ZDI0YjViMTVjOTk1NzA1MmZkOTY1MGUwYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkYTc3YzM5ZTVlMTNkZjhjMzU5Y2VkYzUwY2JkZmRjMzZkMTBmOThiN2MwOGIyZmYxMDRkMDkyMjlkNzdkOTcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L626-L834",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L629-L837",
           "version": "repo-lines-v1:sha256:5b52a8556b7cbe283f378ee3fea037758f538840501ea667a109a0c1944c2827:eyJzZWxlY3RlZExpbmVDb3VudCI6MjA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3YzlkYTc4YzkyZTMxMzcyNThmNDcwOTBkNTIzOTk2NmVhMmFkODE3M2M0YmRmZDE0MjM4Y2IxNjc3MWYzNTEzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1OTA5YTUzYTYxOGQwMjhlMWQzMDAwYzBhN2FiY2VlY2JlNWZiMzdmNGU1MTFlZmU0NjY0M2ZhZDZlNjY4NzJmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2ZjRkMThjZjQ2YjljOWZkNDA1YmJlZGY5YWQ3OWZlZjBjYTRmM2IyODU3ZmFkOTAwNDQyOTBiZDVjNDU1ZDBhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNGMxZWU4MjE0MWM1ZmQ5Y2Q1MzcyYjNhYTE2YTI0Yzg0NmM2MzgyZjU5MmYxZDY0MWI4NmQ5OWJmN2IxZDUxIn0"
         }
       ]
@@ -180,7 +184,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
-          "version": "repo-file-v1:sha256:2dd591c2148b27efd0378d573de5c19db714099c336025ab6fbdc808528509d6"
+          "version": "repo-file-v1:sha256:dee770ddd9b3469cf4c7b54b338bd9333455a841d868676b4de015cf0c1b86ad"
         }
       ]
     },
@@ -190,7 +194,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
-          "version": "repo-file-v1:sha256:2dd591c2148b27efd0378d573de5c19db714099c336025ab6fbdc808528509d6"
+          "version": "repo-file-v1:sha256:dee770ddd9b3469cf4c7b54b338bd9333455a841d868676b4de015cf0c1b86ad"
         }
       ]
     },
@@ -199,11 +203,11 @@
       "statement": "Agent pool connection-opening waiters cancel independently: the last waiter cancels the shared open, late successful opens are disconnected, and disconnect cancels pending opens; a committed connection uses the post-authentication route fingerprint so identity saves during prompting remain reusable.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1740-L1877",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1743-L1880",
           "version": "repo-lines-v1:sha256:14bbcbc6f4f6ede9a9dfc1337048678ec15326c1c41a3b236d5aefa414ebc717:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhZTE1M2Y3ZDQ0ZmFiNGE1NDY3NzdmOTE0YjZkZDBlMDIyMjEwNGYzOTk2NDk3YTA2MzQyZmExYmVlM2FlNTVmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNmMyYzFhM2IyZWMzOGYxOTBiZDc5ZTNjNjczYjhjZDVhOTFjMmRhMmE4ZDgzODM3ZWY4MzRlYTc1N2Y2YjA3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NDcyMmRmYjk2MDYxMDVlNTFhZjZkZDllYzI0YjNjZGE4ZDQ1MDU0NzA1YzUxN2UwNGU4OTJlM2U1YzQ2MjZhIn0"
         },
         {
-          "resource": "repo://TFMTests/AgentConnectionPoolTests.swift#L116-L171",
+          "resource": "repo://TFMTests/AgentConnectionPoolTests.swift#L119-L174",
           "version": "repo-lines-v1:sha256:d95648ff624d1d27ac3b91f3160d9838f89a87415238b4b0cb01adfe233f5c30:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkYjQ3M2ZjZDlkMDk4NWVmMjIzOTYzMjlkMjQyMjU2OTNiZjkwNzllNDMyODg1M2NlZTRhMzhlZWZhZjQ5YzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkM2E2ODhlNGZhYzk1MGJkNTg3MDgzYzY4YmQ5MGIyODM3ZDY1MDlhNTEzNWUyYTk0ZTAwOWZiMGFkM2RmNjgifQ"
         }
       ]
@@ -213,11 +217,11 @@
       "statement": "Route changes or missing targets invalidate Agent primary SSH/SFTP reuse. Idle sweeping retires unused auxiliary SFTP connections separately and closes the primary only without active exec/SFTP leases. openConnectionCount counts reusable primaries and auxiliary SFTP connections, excluding sibling channels and isolated Agent Forwarding exec connections; reusable-primary opens disable Agent Forwarding.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1641-L1737",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1644-L1740",
           "version": "repo-lines-v1:sha256:140660ab193184cc978a634a5ab2ed5368cbaed429e0a45ed4e0a7de7ad86a47:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZDUzYmFhYzE4Nzg1MmI0MzFjMjMyZTA1MTYwNjFkNDk2ZjdhMjE1NmVlNGJmN2RlYTY0N2ZjNjY0OTg2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0MWZlNzViNTUyMjBiMTk1ZDE3ZDQ4NGNlY2Y2ZDEzZjZjOTgzOThiY2RmOWQ5N2UyNDA0ZDk3YTAzMGFlMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmMjYwM2M2NjE3MjczMjAwN2FmZWRmMzZiZDRmZTU5NWEzNzI4MTU4YzA5YzI4MWIwZmUyYmIyNGUxNTI0YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4MWUzMzFkZmNmYTQyZTgxMzlhMWZjYjQ1NTZhODhlZWRiYjQzZGMzNjg3NGVkNDViOTA0ZjliZWNlZjE1YjgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1750-L1760",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1753-L1763",
           "version": "repo-lines-v1:sha256:e24d5522a4f475a5dc9890fc3c8e611b3e1174496fbddf17a04e1dec6a057c78:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0MmY0MTVmM2E5YTBlMGUzMDgyYjE1NTMyNzYzYWQ1M2U0YTdhMTljNDFhNDI4ZWNjZDBhOTU5OTUwNGVkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlNGJlZjE1NTFmNDViOWZlNTZiMGZhYmIyMDFmMDk0ZjIxZDc0ODZlZGQ3NTUyZGQ5NzAwYzVlOWVmMjczNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0NTRjY2ExYWFjNGM5M2Q5N2I3OTZmNzUwMjliMDhiOWNhZTk4MjZmOWZiMjA1OTk2ZjdjYjA4NGUyOWRiNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlZWY2ZDQ0MTZkODgyZGFkOGFkMzQxY2IyYWU0YmZkMTkyZTcyZjc4NWY3MGEwNWNkNmFiZDgwNmQyMDQ1ZjQifQ"
         }
       ]
@@ -227,15 +231,15 @@
       "statement": "Agent SFTP operations take exclusive channel leases, use optional file scheduler permits and may acquire auxiliary connections or sibling channels for overlap; acquisition can retry authentication but an already-started operation is not replayed and connection-loss SFTP errors evict the host.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1281-L1433",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1284-L1436",
           "version": "repo-lines-v1:sha256:0d522e13e574b8ef5c00ed8f3dbd3f78e3e82f87134aea5b234da0050fc24c8a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMmFmYWUxNGQzNWFkOTMyNDZlYmI2NGJlZjM4YzQzMDk2ODk5NzlkMWY0MTU3OTU2NDc1Y2E2ZTYxNDNkNDlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMjcyMThhY2IyOTllMWRhMDk5OTEyZWE4ZTdhOTA3ZjY4NjI3MDMzZmI1MGUyZjgxODA2MWJlYWI5YmFkMjcwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlZTJhMGYyYzdiNWQwYWYzNmM0ZDZjODU5YzM4NWQ5OWYyOTdiOWZjYzg0NDE2NGE1MDBkNWE3NjI5YTgzNDRmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMTIzMjYyNTBiMjhmN2M4NDZkZjg1ZDg2YTFjNTJjNTIwYTYzNWNmOWRiMzE2NzIxYTUxNTA3Y2NhNjYxODRmIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1024-L1091",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1027-L1094",
           "version": "repo-lines-v1:sha256:4764e52cb2e683023092ba7f5d9c94da56dfb4f16f1ff142e91032ba5797e27a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYTE1ZjYyYjQ4YzU3NTI4ZjAxMThiMzcwZGJlZDA4ODAyNDBlNTk3MzM0ZDk3ZWFhZWM4ZTExM2NjYzdjOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5MThkNTljN2Q1YmU1MTgzZTMyNDhiNjhiNzhiNzdkM2JlMzkxNWEwMGVhNjA4YjIxNmY5ZjEzYjRkMWM5MDAifQ"
         },
         {
-          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L798-L850",
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L801-L853",
           "version": "repo-lines-v1:sha256:4dd9039bd21715f37990fd518ca73cb901c0ad62ec4f732409137e701b3123ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMDM3YWQ2ZjQ0NmMwNGMxMzUzZjE1MDM3OGQ5OTEwMmRmZjkyZmRmMmNlN2JmZmRiMTdkMjRiNjI0NGRjMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjMTRkOGZmOGYyYTBlY2IyOTMxZTY2NjQ5NmJlNGNjMmJhOTIzYmY3NWM5OWJiMzQ3MDc2MzBkYTY0M2I0NTAifQ"
         }
       ]
@@ -245,11 +249,11 @@
       "statement": "SSHConnectionWorker teardown remains queue-confined even when its last reference is released by an owning-queue callback: deinit cleans up directly on that queue and synchronously dispatches cleanup to it only when released elsewhere, avoiding synchronous self-reentry.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift#L7-L34",
+          "resource": "repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift#L10-L37",
           "version": "repo-lines-v1:sha256:df40e1862c0e0f28fe049dfdccd7c962616c911d68a4fee99043675efb157d1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhM2Q2ZGI3NWZmMTQxZTlhNTA5NTRkYzMzMDFmOWE4NzEzOWFkZjlhM2MyNjY3NDViYzg3MGQ1ZTk2Y2VjZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNGM2OTVlMTdjOTZiN2U4MjJlYjAyMTAwMDcwZTkxZDgzZjlkNzk5N2Y4YWI2YWQ0YjNiOTk1OGNlNDc1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L76-L84",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L79-L87",
           "version": "repo-lines-v1:sha256:3b7e6cd46ab689f6fdaf48fa5060a82cba01cbbdb28ebf68617cf5bed74cdac2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWY3NjQ1ODQxNTFhZDMwYjI4MDdjMTI2NjJhNTY3YmNjNTRiYjE1ZTMzNDM1YjM0OWE3YWJiMGRiNmJiZGY5MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhmODk0MGJkNmYzYzMyMzA5MmZiYTBjODM4YmEwMDRjZWM2ZmZlN2Q2NjA3NjhlYjE5NTQ4ZDU1YTRkMDhkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGViNWQyODAyNDgwMjhjYWU1YjE3ZTRkYmUxNTMwMjMwNTQ1MjAyMzY2ZGNkODI4MTI4MDdmYWM2MTM5YTIwMyJ9"
         }
       ]
@@ -259,15 +263,15 @@
       "statement": "SFTPConcurrencyScheduler accounts one global logical-file permit and one per-host slot per distinct endpoint, rotating eligible hosts then sources within each host rather than scheduling libssh2 bytes.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L123-L153",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L126-L156",
           "version": "repo-lines-v1:sha256:4fa81a522e0fe235ad54a51fe2c9be94c6b5d2b410eea840d479838eda5d2ee1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MTNjNjAzZWU5NjQ5OTU5OTJhMmUyZjYxY2ZkYTY5OTU2ZDM1MDU5YmU3ZDYzYjhkYjBhMDMwMmQ2OTUxMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NTExNDMwNzk3NTU2OWExNzJhZGZhNDAwMDdmOTFjNzE1NmE2MzU1MDZmZDAyNzIzM2FhMWU3MmVjZTdmNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxNWMwYTUwODE5YzIwMTM2MzIyOTUxMzk0NTYwNGM2YTBmZWMxZTAzOWRjZjdmMGEwNjJiYTNiNTZkYzgzMmMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L29-L53",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L32-L56",
           "version": "repo-lines-v1:sha256:7f3354851edcb0a159010464086eeb472cd422aa0e5ac7412ef2353897911ace:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MzMxZDIxZmVjZDMyZTdkMTUyOTg5OTZjMDkxOGJhZDVhNGViNGMyNzE3OGJmMzRlZTA4ZmU1OTk2YWU3YTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYwODljODhiODA4ZmQ4ZGVjOWM0N2M3OWQ0ZDE3ZWQzYzBjYWU0MmY0YzQ2YzEwN2M2ZGM4OGQ0MWJiNDJlMTEifQ"
         },
         {
-          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L55-L136",
+          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L58-L139",
           "version": "repo-lines-v1:sha256:48d1b351f0acf522015965eecb894a9e957f2210826b1795916a34310cb405a3:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzYjgwZmU4NzVkYWJkOGI0NzcxMGYzNTlhZTZjZWJiYjU0M2UyODNiYmI3YzE1N2ZlY2FjNmEzZDk2YjIxMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZmVkYzgxYmM2OTM2MTY4ZGNlODA0NGEzMmQ3NDg0NDVhZjI3MjFlYTcxYWFjOTkwNTc3NzE3NDU3N2I5YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3MmQ1MzlmYTY4MmY3YjM3OGQ4YmUwMDAwOTFlODNhNTc2OTRiMmIyMmNkNWI5MzI5ZGQ1NWM4OWFjZWRiZWMifQ"
         }
       ]
@@ -277,19 +281,19 @@
       "statement": "With smart SFTP scheduling, unknown size and files of at most 64,000,000 bytes select channelsOnly while larger files select connectionsPreferred; the permit's scheduling mode is distinct from session-channel admission.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L57-L58",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L60-L61",
           "version": "repo-lines-v1:sha256:d1f726759be5ee9343b7bbe2d018d38ecb3e9a18c899e4a0c20770875cfa36ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzViZjk0NTZiMTIzODU0Mjk4NmM0MjRkYjIwYWE1MWQ5OWY4MWFjNTg1MjU3YTRjZjg5ODg3MzhiYzI2ZDI5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmMxNzZlZTI1OTZmMGVjNjUyZjI0MWUwMjJhZDQxMjJjZTkxNWJmMWZkNDA3MDE3ZjkyZWZlZDZkMTA4M2Y1ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQzMzU2MGNlODY0YThmOTUzMTYxMWYyZmY0OTExMGQ0YzMyODBmNjRkZTE2MTYyMzdkNWUzNmVhOGQyOWU4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2VmNjgzNTNmNjhmMGE0ZDFjZTU3ZjNkZDZlMDYxMDBhYjA0ZjI4OWJiNmM0ZWZkNDY4ODY3YmJiYWVhYWY2NyJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L10-L26",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L13-L29",
           "version": "repo-lines-v1:sha256:d6ae9fa0d57100ec247042a99758810972cd9f64132fa882ec46b96667a81395:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NzA3MjUyYjUyYWVhYThlZDI2NDdjZGM3M2I2MzJiYjAxYWMzOTIzMWM4NDMwOTJiYjBhOGNhYjI5YzE0YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMzIzNDkyYWZlYWI2YjVhZDE5OGE2NTM2Yzg1ZjVhNWI4MzliNTc5ZjhjNzE5MWE5MWNkYjRlZDliNzFmNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNTQ4M2JhYTVjZDEwYjkwYTVmMGI0MzdjM2Q5M2IyODhhMTVjZjkzNTYwMzRmZWM4OThiMzQxMTQzNTljZTIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L155-L168",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L158-L171",
           "version": "repo-lines-v1:sha256:6ede6cd5e9b2351dbd9fd55c595e761d34c268db3f909d18087b64fa1ecf06d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkNjQzODE2N2U1MmE1YjVlOTM5OTdiNzcxZDBhMzcxOTc4ZjdmYzU4M2FiMjE4MDZjNzlhNWUwYTJjZTIwYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4YWNlOWI3NWYyZWQ5ZTRiMDk4NTZlNGJjYjFhMDJiMzVjNzY1MzRjNzhiZjM0MjZlYjllYWQxNWM2YmUyYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNjU1MDc5MjZlNjQ1MWUzZmYzNWIyNWUzNTM0MmU5N2ZiY2YzYTI2YTgwNzdmNzFjMTJkYmQ1YjM4OTYwMzMifQ"
         },
         {
-          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L32-L53",
+          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L35-L56",
           "version": "repo-lines-v1:sha256:55c90256c73fdf48a07b1c47d05f2285c09e3309166e2053f12b4c7821824bf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNzk2ODAyMDQwMDM5ZTNlZjgwZDk3Mzc4MGU0YWVhNmNjMDQxYzFkYmY1MGUyOGYyYTg1YWJkMTk0OGIzNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhMjM0MmZiMGQ4MjEyNWRmMmVhZmMwMDUwMGQyZWRmODBlNzExZjYzY2QxZWJlMDIwOTBhYzU5YTc0MDBlMDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZWM0NGYyMzYxNDlmOTRhMjViZjU1ODMyODM3YWMzOTIxMGIyYjc4ZGFiYTNhYzM2NTMzMzNjMjE3YTc1YWYifQ"
         }
       ]
@@ -300,15 +304,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
-          "version": "repo-file-v1:sha256:f79ba0c69059f20e6bcee5a1f91434a289c81fa30eea07d3369faaa2c07faf2e"
+          "version": "repo-file-v1:sha256:11325bb55ba13e793b9007d369b490b93308a7b9c7f0719220a650133b96a776"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
-          "version": "repo-file-v1:sha256:cd3040e86c8570ea7473a031d019d0ad4f18c245dec4d3f361d93f1102642486"
+          "version": "repo-file-v1:sha256:3079937b916d8635dcc64793da058288d3db09208e8b8346d3f275a7df2e8d4c"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:dfe28ccd7ced97300324959ec0e5468781cbd7bc13a20ca940aaea945a9f9df4"
+          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
         }
       ]
     },
@@ -317,19 +321,19 @@
       "statement": "Terminal activity is published from focused, visible native keyboard focus and forwarded only for SSH transport; optional tmux activation waits for detected client identity and synchronized PTY resize, requires runtime control and concurrent channel policy, and runs at most one task through the existing immediate-capacity, two-second runtime exec path rather than another authenticated connection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1470-L1525",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1473-L1528",
           "version": "repo-lines-v1:sha256:108ee59d3129a00a442950b91e65f2a8f6134cddd5d8b81de754ae4d8614b7e7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNzZlNTA2Yjc2MWNjYjBjNWEyNzIyYmI3Y2FhMzljZGJhNmYwZWVmNjE0MWVmODU2NTI0NmQzZDRmZWM3ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5MjQwODMxZDkxMjNlYjc2ZGQ3M2UwMjQ4M2Y4OWM1MDc2N2JmOTZmNjJmOTE4NWZkNDg2OWYzNzc0Yzk5OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjM2IwMjU5MmNhMjhiMDkxMjc2ZTcwNzg5YzhiNmE2NTBiZDlmMzVhZDEzNzc2NzJiZmU4ZDFhOTkzZjU0ZmUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2192-L2222",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2195-L2225",
           "version": "repo-lines-v1:sha256:18ad6e30714e66533dc63a6e5a83fef50699d963c59b386a298d7c4b837907b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5ODk4ZjUzMmNhMjMyODNkNzI2MTIzMGFmOGFmZjJlODRmMjI5NjAzMTA5MTFjY2QwMzI0ZDg0ZTJhNGMzMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliYmFjOWE0NjIyOGI1ODY4M2U5MDk0YTQ4YmRkNTU5N2M2NmFhODM4NmNmNDA1Y2I5Mjg1ZWYzNDExNmUzNTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjYWYzYzMyOTA2MTFkOWVjNTgzODI3M2FmYzMwYWFjNzQ4ZWUxOGUzZTU2YzcwOWQ5M2VhMGZjYWI4MDVlYTAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L879-L886",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L882-L889",
           "version": "repo-lines-v1:sha256:12c2fa5f419ceb28bcf3a94beed5cb0780517b3d520edd3f0e6e51262150632e:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjE4ZmMyMzlkNmZhOTkxNzZjNmU1ZDJhOGE2NmU0NWM0NmUxYjYxYTI2ZjU1M2FhMzhhMGEzOWQ0ZWJhYjNjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDQ1MTM0NTA0NmExMjdmNjJlODRmNTVkN2I0OWQ4MDc3ZGQ1NDk1MGQ2ZDllMDllN2IwMzA4NmQ0MWNiNzMyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDY5MjIwNGZkNDc4NGQxNGNlNTZiNzU3ZjcyODkzZDAwN2M0NjgzNmUwOWE4MGFlN2IwY2I3OTA3YmZhZTNiMCJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1422-L1433",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1425-L1436",
           "version": "repo-lines-v1:sha256:265df6c0adb2b5fd1c7543801b7279698cad4d3edda957db35055636c2447b90:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxNTI4MTJlZDYwMzk2NWJhMTI1NmFlOTU2Njg5NWYxNzhjOTg4ZDI1ZDI5YTI2Mzg5YTVmZTgxNThkMDhlMWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzOWM2NThkYzJiNDUwN2ViY2NjNTk3N2I0NjllOGU0ODc1NDY5ZWYwMjAyYmQ3ZmFlNDFmZjVkM2ZmNzU3MGIifQ"
         }
       ]
@@ -339,19 +343,19 @@
       "statement": "PTY activation intent is one-shot per focus transition or changed client; duplicate publications do not reclaim size, pending or in-flight viewport changes invalidate requests, and blur, input, detach and reset invalidate stale work. Runtime exec validates activation currency, synchronized resize, live PTY, generation and input revision during progression.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SSHPTYActivationTests.swift#L10-L114",
+          "resource": "repo://FrameworkTests/SSHPTYActivationTests.swift#L13-L117",
           "version": "repo-lines-v1:sha256:b432fadb494dad3d0ea5ec7be73a00410d48f82ac92d9addd5eb2ace2538baad:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmNjQ1NjNhZWUzNWI4ZGY1YzI3MDU0MjU4ZWExODVkYzg0NjRhZjdmOWFhYjBiNDFhNDliY2NjZjQ1MTk4ZWRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0MGIyOTIyYWM3ZTE2ZjExZTI2ZmZjNGZkYzM0YjM2OTZiMzMxNDkwMmI0NzQ1ZWVmZGM0Zjc2YjZiMjNhNjQyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlNTllNDA2ODU0OWNjMDYxMGU3YTUzMGVjMmEyMTEyOTdmZTZkNjViMzllYjA4OWM3OWJjN2RlMTBkZGQ1ODljIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L642-L647",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L645-L650",
           "version": "repo-lines-v1:sha256:4bc95f94710bedbef3c14a502eeedcdb5e4b8fedfc9bdd90c24d00e1ec55dfa7:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGUzM2RiODA4MDRkNDY1MWE4OWQ4OTA4MWFmNTY0YzRkODI1ZTMzZTE4MjY3M2U5YTY0NWIwMTk2OTQzMTMzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJjNjAxYWE3NjIwMTQwNzE5YThmYjZkNzAzMGFiNDRkMjhlYzk1MjEwZjlhM2VlNjY1YmE2YjljMDkwNWY5NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzgwNTU1MjI3YjE0YzVmYTBhNDQ1MDU2OGYzZTQ3ZGY3MDEwODU2MWVkNTg2MzdlNmI4OWRkNzlmZWE4YTc3OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGE4Y2UzYTU1N2I4M2YyYzE5MTIzMTY0NWE3ODA2YTFiMWQ1NTc4YzcxZTg3ZGMwZmFjYjgxNWQzY2FiYTNiNCJ9"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYActivationState.swift",
-          "version": "repo-file-v1:sha256:32e1f3fc8c83001486df750866ae05604e72acc247528cebb71cedce84f4716b"
+          "version": "repo-file-v1:sha256:b968207ced14d4288bd068ab36ac8a97f59fa60b7c48cab0cc1f38d0f39d82d7"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1493-L1503",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1496-L1506",
           "version": "repo-lines-v1:sha256:e1f901ffb95d3da54c05e3ef2c7727cde697bb273d6602e8002f5045032065c0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MmQ2ZDE1YzBmZDk3Y2UxOThiZGYyNDYzZGM1NjM2Zjg5MTk2ODQwMGM4ZDMyZjM0NDAxOWZjY2QzYTYwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNGExMWVkYzU0NmRlMzA1Y2I5YmZmNWM5ZjExMjkwYzhkZGM3Y2ViZTQyMTg3NWU1MGI1ZmM4OWE5YTMwYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4MzRkZGM2MTM3NmVkZWQ0MzkxMGY4ZDIyZjFiODhiNTI0NDE4YTFmMGVlYjExMGFhNDAwZWNkNjBiZWZlM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExOTEyZWUxNWE4ZDEyZDgwMGE5OTU0MmZhODVjY2FjNGZhMTdmY2E0ZTFhZTYwYWQwNjhhMzhhNGI4NWFiZDQifQ"
         }
       ]
@@ -361,22 +365,32 @@
       "statement": "Optional tmux activation revalidates remote client identity and eligible flags before signalling the client with SIGWINCH, never injects fallback terminal input, and treats assistance failure as nonfatal to the terminal; wire tests cover duplicate focus, stale identity, preserved drafts/layouts and usable input without integration or with one-channel capacity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift#L30-L58",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeDialect.swift#L33-L61",
           "version": "repo-lines-v1:sha256:7cdd0a3738235e51f3af8409384e5166146e486be14052591161d6aa2742d3bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhNWExNzQ3ODMwZmFmNzlmMjhlYmM3MDc4MzMwNjc1YzBkNzIyYzg5YjBmYTA4MDFiMzY5NDExNmQ2Mzk0ZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNmM0OGUxNWZmOGQxNmI4YWE5M2YyMDY0NGYyMDI4ZTc2ZDhlYjJlMTZiNDA2NjMwYjAxNzIzZmYxZmQyOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkZmY5YTBmNDQwNGVmNTk5MTY4MjI0ZGFlYTFkYzMwZDk2Yjk3NWE2MmU1NDE3MDQwZGQwYWFkYzJhMjZmZjYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2198-L2222",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2201-L2225",
           "version": "repo-lines-v1:sha256:9cba138bf19e4fbe3085abf163a4330dce879caf7a7694e88fd2d69b93a2dbe2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMzY3MzAxZTQ0NDlhNmNjOTkzZWZlYTRjNjE1OGZjOTFlZTE5MTQ2ODUxNTk2NTEwZDNhODcwYzU5NzBmMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxODY4OTY1YjgyMTcxYjkxNzBmMTgzM2IzNjUwNzk2YWRjZjFjOGQ5MzVjYzIzMzNhMTg2NzJhYTdhMDZmMmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjYWYzYzMyOTA2MTFkOWVjNTgzODI3M2FmYzMwYWFjNzQ4ZWUxOGUzZTU2YzcwOWQ5M2VhMGZjYWI4MDVlYTAifQ"
         },
         {
-          "resource": "repo://TFMTests/TerminalActivationWireTests.swift#L8-L219",
+          "resource": "repo://TFMTests/TerminalActivationWireTests.swift#L11-L222",
           "version": "repo-lines-v1:sha256:bcca6ed04358b59461635b91ecbd0b2ae18170e3d1991ee8a407db20d95ca8e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlYTI5NjM1ZWY5NWQxZDYzMmUyOWM1YzBhY2NhMGZlNmViZjUwMDQzZGRhYjFlNmUxNGM2N2ZkNWRjOTc1NDJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyMjRjNjk1ZTE3Yzk2YjdlODIyZWIwMjEwMDA3MGU5MWQ4M2Y5ZDc5OTdmOGFiNmFkNGIzYjk5NThjZTQ3NTdiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2YzRmNjFkNGFhMzc5MTE0OGE1MjRmZjcwNmFhOWE4NjI0MDA2ZDRjYTEyM2VjNzVlOGI0Mzk0ZWJmZGI3YTllIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_146ea1f268f04081a1e0ce8cb5ffc559",
+      "statement": "The shared exec owner serializes Agent-forwarding negotiation with one request owner and remembers successful negotiation for subsequent channels. Cancellation while that connection-wide request is unanswered fails the connection because repeating it on another channel could repeat an already accepted request.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L322-L371",
+          "version": "repo-lines-v1:sha256:019913d203fbecbc3687be6df46a731279b513ead47f293f7bf5b0f1fddd56a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYmUzZDcwNzVlZDUzZjM4ZWEzNTRhZGJkYzQ3YjlmOWZiZGU2NjI4MTUxYmM3MzU1MTdlYzk0MDZlNWNjNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZmEwNzc1OWU4MjAyMzk4YzQ1M2RkYThmZTMyZDdlZDU2Yjg3YTQyNTM5NDI4Y2IwOWQ0YTIzZDlmMjNjNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZmMwNGVjYzE3Zjk3ZjVjNTlhZTQ1MzI1MTVkZWI3NWVjYzJjMjM0MmU3ZGNkMjQ1NDhhN2ViMGQyMzkxZmQifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-18T12:28:54.264Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

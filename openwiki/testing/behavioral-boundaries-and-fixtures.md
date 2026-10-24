@@ -164,10 +164,10 @@ sources:
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # Behavioral Boundaries and Test Fixtures
@@ -452,7 +452,7 @@ Retired disk snapshots do not restore native scenes; the new descriptor/checkpoi
 
 For desktop Find routing, start with `WindowToolbarFindTests`: it exercises `WindowModel` without presenting a native window. Vault destinations resolve their own Find target, Welcome requests its content search instead of adding a titlebar field, and terminal-theme light/dark/custom queries remain independent across settings navigation. This policy coverage complements, rather than replaces, native focus tests.
 
-Start with always-on `FrameworkTests/TerminalFindControllerTests.swift`. It injects binding-action and focus closures rather than Ghostty or UIKit. The retained-query test checks the actual search/navigation/end action sequence and one focus return across dismiss/reopen. Empty-query navigation opens Find without issuing a navigation action. The shared native-dismissal regression calls `dismiss(restoringFocus: false)` twice: Find closes, emits exactly one `end_search`, and never requests terminal focus. Reopening restarts the retained query; a later ordinary dismissal returns focus once. This protects idempotence and responder ownership, not just fixture values. Resize tests suspend engine search while retaining UI state, edit the query during suspension, resume only the latest query, suppress navigation and ensure closing during resize cannot reopen search.
+Start with always-on `FrameworkTests/TerminalFindControllerTests.swift`. It injects binding-action and focus closures rather than Ghostty or UIKit. The retained-query test checks the actual search/navigation/end action sequence and one focus return across dismiss/reopen. Empty-query navigation opens Find without issuing a navigation action. The shared native-dismissal regression calls `dismiss(restoringFocus: false)` twice: Find closes, emits exactly one `end_search`, and never requests terminal focus. Reopening restarts the retained query; a later ordinary dismissal returns focus once. This protects idempotence and responder ownership, not just fixture values. Resize tests suspend engine search while retaining UI state, edit the query during suspension, resume only the latest query and ensure closing during resize cannot reopen search. The controller also guards navigation while suspended; the current resize tests do not explicitly invoke navigation during that interval.
 
 The production seam is `TerminalFindController`: it retains query independently of presentation, restarts a nonempty query on a closed-to-open transition, and ignores dismissal when already closed. `MobileWorkspaceSearchModifier` binds SSH/Mosh/Eternal Terminal/Telnet search to that controller and translates native closure into `dismiss(restoringFocus: false)`; SFTP binds directly to `sftpChannel.query` instead. The workspace supplies Ghostty binding execution and terminal focus through closures.
 
@@ -482,7 +482,9 @@ Run the separately **serialized, opt-in** `MobileTerminalSearchIntegrationTests`
 - SFTP filtering closes and reopens three times with its retained filter. Clearing the filter must not deactivate search, and cancellation must release the responder without clearing `sftpChannel.query`.
 - SSH and SFTP journey begin/hide transitions keep the **same** search controller, active text while the journey appears, and closed state after cancellation. SSH additionally retains the same attached terminal view and can reopen Find with its query after the journey hides.
 
-Its fixture uses an in-memory app, a standalone workspace and a key `UIWindow`, mounts the production search modifier and SSH terminal surface, restores the prior key window and disconnects on teardown. The journey fixture simulates its overlay and uses a text projection for SFTP, not the full file browser. A separate full-`MobileWorkspaceView` SSH fixture repeatedly reopens Find with empty, matching and missing queries and checks native surface, output and upload generation retention. Cancel is invoked through the search-bar delegate and UIKit settling uses timed waits. These are native presentation regressions, not real SSH/SFTP connection or physical button-tap tests.
+Full-root cases additionally leave SSH or SFTP search for Vault, update the hidden workspace query, resize and return: the retained workspace search must remain closed while Vault navigation stays available. An explicit compact-to-regular case checks sidebar and tab-bar availability after leaving workspace search.
+
+Its fixture uses an in-memory app, a standalone workspace and a key `UIWindow`, mounts the production search modifier and SSH terminal surface (or `MobileRootView` for navigation cases), restores the prior key window and disconnects on teardown. The journey fixture simulates its overlay and uses a text projection for SFTP, not the full file browser. A separate full-`MobileWorkspaceView` SSH fixture repeatedly reopens Find with empty, matching and missing queries and checks native surface, output and upload generation retention. Cancel is invoked through the search-bar delegate and UIKit settling uses timed waits. These are native presentation regressions, not real SSH/SFTP connection or physical button-tap tests.
 
 `MobileWorkspaceMenuTests` is no longer checked in. Its former native-menu assertions are not current coverage, nor does their removal establish removal of workspace ordering, unread indicators or lifecycle actions. Use scene/model tests for ownership and add a narrowly gated native-menu test when changing presentation. See [Mobile UI](../architecture/mobile-ui.md) for presentation ownership and [Engineering Invariants](../architecture/engineering-invariants.md) for safe-change rules.
 
@@ -549,7 +551,7 @@ Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: 
 - `SnippetColorTests` checks tolerant legacy JSON, unsaved draft isolation, duplicate color, V1/V2 wire/tombstone behavior and a real V50 upgrade through V51 to the current V59 schema followed by saved-color reopen.
 - `RetiredTerminalHighlightingTests` opens V46/V51 disk stores, upgrades/reopens to verify other preferences survive while retired tables and uploads disappear, and ignores malformed legacy conflict/deletion records without blocking active Settings.
 - `HostEditorBindingsTests` exercises creation callbacks without changing existing selections, independent SSH/Telnet custom/none choices, proxy default-port transitions and no recreation of a removed proxy.
-- `MobileWorkspacePresentationTests` checks importer dismissal-before-result and once-only target consumption, and preview/export sequencing without UIKit windows.
+- `MobileWorkspacePresentationTests` parameterizes importer result consumption before and after dismissal, consumes the target once, and replaces cancelled requests on reopening. Preview export waits for `previewDidDismiss()` whether staged before or during dismissal; a new preview discards an older pending export. These are state-machine tests without UIKit windows.
 - `MobileOperationConfirmationTests` is serialized and mobile-UI gated; English and both Chinese fixtures compare row anchoring against window-centered arrowless popovers, action order, animated transitions and post-dismissal action timing. It uses temporary windows and restores their predecessor; these are not a real destructive business-operation run.
 - `SSHPTYChannelLifecycleWireTests` requires `TERMIND_PTY_LIFECYCLE_FIXTURE` with the Python SSH peer. The peer deliberately leaves exec CLOSE unacknowledged. Tests observe transport closure after explicit disconnect and owner release, and prove a retained SFTP sibling survives PTY release until the final subsystem closes. These are opt-in local wire fixtures, not arbitrary-server coverage.
 

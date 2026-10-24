@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Lifetimes
+title: Platform Startup and Runtime Lifecycle
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -122,13 +122,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Platform Runtime and Lifetimes
+# Platform Startup and Runtime Lifecycle
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -349,6 +349,10 @@ flowchart TD
 
 This diagram shows app-managed mobile workspace sessions with distinct native-window ownership and scene-local navigation.
 
+### Startup failure boundaries
+
+The mobile startup result distinguishes **runtime construction failure** from **workspace restoration failure**. Errors thrown while opening the container or preparing required persistence reach `MobileStartupView`'s unavailable-store branch; there is no empty-store fallback. By contrast, `MobileAppModel` catches a workspace snapshot load error locally, sets `app.error`, and still completes construction. It does not call Live Activity restoration in that case, and `hasLoadedWorkspaceSnapshot` prevents subsequent activity updates or starts from treating the unread snapshot as an empty list. The workspace store also fences writes after that failed read. Diagnose these as separate failures rather than resetting the database to repair a descriptor snapshot. Sources: [startup result](../../TFI/App/TermindIOSApp.swift), [startup presentation](../../TFI/App/MobileStartupView.swift), [model assembly and restoration](../../TFI/App/MobileAppModel.swift), [snapshot validation](../../TFI/Infrastructure/MobileWorkspaceStore.swift).
+
 ### Dependency assembly and test seams
 
 `MobileAppDependencies` is the mobile assembly seam. Live dependencies create a launch file logger and a single `RemoteConnectionCoordinator`, shared by workspace connections, metrics, the injected app coordinator and `RemoteSessionTerminator`. The app also uses that coordinator for assistant host services, transfers, SSH preferences and agent forwarding; forwarding receives its own labeled logger. `persistentSessionTerminator`, terminal recovery storage and terminal effects are injectable as well. The convenience initializer and default property values are not substitutes for this explicitly shared live assembly. Test dependencies use in-memory mode and permit replacement of the host repository, defaults, background-task manager, workspace connection services, metrics services, review controller, container, live-activity controller, native scene routing callbacks, and forwarding factory.
@@ -456,6 +460,10 @@ stateDiagram-v2
 ```
 
 Mobile phase aggregation controls a single background lease and foreground sync eligibility; resumable transports checkpoint on background entry, while expiration retires remaining runtime work without removing recovery descriptors. An empty scene registry is not treated as all-backgrounded.
+
+### Mobile termination is not desktop Quit
+
+`MobileAppDelegate.applicationWillTerminate` only calls `clearNotificationBadge()`, which stops badge/notification observers and routing. It does not invoke a desktop-style asynchronous service drain or discard all workspace sessions. Mobile recovery instead depends on the descriptor persistence and background checkpoint paths above; do not move those responsibilities into the termination callback or treat background-task expiration as explicit workspace closure. Sources: [UIKit delegate](../../TFI/Platform/MobileAppDelegate.swift), [notification cleanup and background policy](../../TFI/App/MobileAppModel.swift).
 
 ## Ownership invariants and safe extension points
 

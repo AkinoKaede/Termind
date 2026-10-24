@@ -1,6 +1,6 @@
 ---
 type: architecture map
-title: Module and Dependency Map
+title: Module and Public Surface Map
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-e67e20bc76b0da7e73bb5fac
+    resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionBackend.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
@@ -98,13 +100,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Module and Dependency Map
+# Module and Public Surface Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -197,6 +199,17 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | Edit and synchronize Vault data | Domain snapshots and mutations; Application library/use-case state. | Persistence local stores and journals; Infrastructure CloudKit coordinators; Keychain secret implementation. | Platform editors and app-level service assembly. |
 | Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and a device-kind History journal; Infrastructure's `DeviceSyncCoordinator` writes native `DeviceItem` fields through its own sync engine, subject to the app's iCloud/Pro sync gate. | Platform composition supplies the stable installation ID and system display name. |
 | Display remote metrics | Domain metrics; Application sampling/snapshot interfaces and model. | Remote SSH sampler plus Infrastructure output parsers. | Native dashboards and desktop menu-bar integration. |
+
+### Public contracts to use at feature boundaries
+
+| Surface | Owner and intended use | Not interchangeable with |
+| --- | --- | --- |
+| `RemoteFileSystem` | Application's `Sendable`, async throwing file-operation port; its helpers sort directories first, validate names, and mask permissions to `0o7777`. | Concrete SFTP clients or the transfer queue/coordinator. |
+| `RemoteSessionBackend` / `RemoteSessionBackendRegistry` | Application's persistent-session contract and injected factory map. Lookup of an unregistered backend throws `RemoteSessionFailure.unsupported`; a failed session listing propagates an error rather than proving that a session ended. | Remote Infrastructure's multiplexer command dialects or resumable transport engines. |
+| `AssistantExecutionController.RegistryFactory` | Application's injected tool-registry assembly seam, alongside authorization, persistence, and title generation. | The host-aware SSH/SFTP tool implementations in Remote Infrastructure. |
+| `TerminalFindController` | Application-owned Find state with native action and focus callbacks. | The terminal rendering engine or native search field. |
+
+These are feature-facing contracts and policies, not a promise that every public transport type belongs in Application. See [System Boundaries](system-boundaries.md) for the wider contract map and [Desktop UI](desktop-ui.md) / [Mobile UI](mobile-ui.md) for native consumers.
 
 ### Transport construction and extension seams
 

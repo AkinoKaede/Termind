@@ -1,6 +1,6 @@
 ---
 type: release-readiness
-title: CloudKit Release Readiness
+title: CloudKit Compatibility and Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 sources:
@@ -44,6 +44,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
     resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
+  - id: openwiki-source-2f7267f869168e6fd20257dd
+    resource: repo://Frameworks/TermindPersistence/TerminalThemePersistence.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-79e0f2a939e874c6a6803c19
@@ -112,13 +114,13 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# CloudKit Release Readiness
+# CloudKit Compatibility and Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
@@ -226,7 +228,9 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 [TerminalThemeCloudRecordV1](../../Frameworks/TermindInfrastructure/Cloud/TerminalThemeCloudRecordV1.swift) is a separate native-field protocol within Settings, not a Vault JSON envelope. Both types carry version/kind/identity/clock/deletion metadata. Themes add `name`, `appearance`, `baseThemeName` and exactly one of `configuration` (STRING) or `configurationAsset` (raw UTF-8 CKAsset), protected by SHA-256 `configurationHash`. The asset threshold is the shared 700,000-byte limit. Selections add `appearance`, `selectionKind` (`builtin` or `custom`), `builtInThemeName` and optional `customThemeID`; appearance must match the stable selection key. Tombstone writes clear live fields. Unknown versions, invalid appearance, invalid selection combinations and corrupt asset/hash data fail decoding rather than defaulting.
 
-[TerminalCustomThemeTests](../../FrameworkTests/TerminalCustomThemeTests.swift#L162-L305) checks native records without JSON payload fields, large-asset corruption, selection-before-theme arrival, independent per-theme merges, deletion without bootstrap resurrection, and one-time migration of legacy custom text from a V56 disk store followed by reopening. An unresolved custom selection remains stored until its theme arrives; legacy terminal preference updates do not erase the new library. Deploy both native types and exercise inline/asset configurations, optional fields, light/dark choices and selection-before-theme ordering on signed devices. Local tests are not deployment evidence.
+[TerminalCustomThemeTests](../../FrameworkTests/TerminalCustomThemeTests.swift#L416-L559) checks native records without JSON payload fields, large-asset corruption, selection-before-theme arrival, independent per-theme merges, deletion without bootstrap resurrection, and migration of legacy custom text from a V56 disk store followed by reopening. An unresolved custom selection remains stored until its theme arrives. Deploy both native types and exercise inline/asset configurations, optional fields, light/dark choices and selection-before-theme ordering on signed devices. Local tests are not deployment evidence.
+
+Legacy-write isolation is conditional, not a blanket refusal of legacy Settings updates. [Theme migration](../../Frameworks/TermindPersistence/TerminalThemePersistence.swift#L104-L165) lets untouched baseline seeds follow a subsequently accepted legacy winner without inventing a new user-choice clock. Explicit native selections, edits and tombstones protect the affected appearance; the other appearance can still reconcile. Existing native theme IDs are not overwritten or resurrected. [Reconciliation tests](../../FrameworkTests/TerminalCustomThemeTests.swift#L146-L395) cover accepted versus rejected legacy winners, per-appearance protection, stable IDs across reopening and rollback of journal, projection and upload intent. Include these cases in the mixed-version matrix rather than treating migration as unconditional one-time isolation.
 
 ## Installed-store upgrade gate
 
@@ -251,6 +255,20 @@ The current repository does **not** supply `Scripts/generate-v28-fixture.swift`,
 V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model; V46 historically adds terminal keyword-highlighting preferences; V51 adds Snippet color and V52 removes the retired highlighting model. The notification test creates a disk store with the V40 schema and an existing Workspace preference, opens it through the current container factory, saves a V41-introduced notification preference, then reopens the file and checks both values. It checks schema membership in V41 but not V40; the independent V41→V42 migration test retains an existing Host group and starts with empty collaboration sidecars. These checks are separate from historical Host migration coverage and deployment of active CloudKit types such as `NotificationPreferencesItem`; legacy highlighting is ignored rather than a new active deployment requirement. The notification test does not itself establish signed-device delivery.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
+
+```mermaid
+flowchart TD
+    Incoming["Fetched record or save conflict"] --> Decode{"Supported and valid"}
+    Decode -- No --> Quarantine["Persist quarantine and block this ID"]
+    Quarantine --> Keep["Keep local intent and allow compatible IDs"]
+    Keep --> Replay["Capability change requires full refetch"]
+    Replay --> Decode
+    Decode -- Yes --> Merge{"Reconciliation commits"}
+    Merge -- Yes --> Clear["Clear record restriction atomically"]
+    Merge -- No --> Rollback["Roll back data and unblock together"]
+    Rollback --> Blocked["Restriction remains"]
+```
+Quarantine is per record and scope; retry alone is not reconciliation, and full-fetch recovery fencing remains an independent upload gate.
 
 Include the following matrix in release validation:
 

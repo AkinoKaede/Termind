@@ -1,6 +1,6 @@
 ---
 type: asset-production-operations
-title: Marketing Assets and App Icons
+title: Marketing Assets, Screenshots, and Icons
 description: Ownership and safe updates for localized marketing captures, layered app icons, and runtime host artwork. Covers asset gitlinks, reproducible generation, licensing boundaries, and focused validation.
 tags: [marketing, screenshots, fastlane, frameit, figma, app-store, app-icons, localization, submodules]
 sources:
@@ -8,8 +8,8 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-cdbd4afdca339b59b83eee2e
-    resource: repo://Configuration/HostIcons/linux-distribution-icons.json
+  - id: openwiki-source-fcca55af6fa67b76822099ae
+    resource: repo://com.akinokaede.termind/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-aec5c30e7c4ab1864f968273
@@ -70,17 +70,17 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-19T23:15:37.894Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-19T23:15:37.894Z
+  - by: openwiki/0.7.2
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Marketing Assets and App Icons
+# Marketing Assets, Screenshots, and Icons
 
 This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; `AGENTS.md` assigns the public website and marketing/brand assets to the independent `com.akinokaede.termind` submodule. Native builds do not require that checkout.
 
-**Verification boundary:** the available `com.akinokaede.termind/` checkout is empty, so external READMEs, images, design masters and delivery contracts could not be inspected. Dimensions below are parent tooling contracts, not an audit of external files. Initialize the submodule before checking its inventory or publication instructions. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
+**Verification boundary:** the website/assets checkout is available, and its [README](../../com.akinokaede.termind/README.md) points to asset and design documentation. Dimensions below remain parent tooling contracts, not a visual audit of external images or design masters. Initialize the optional submodule when absent, then inspect its current inventory and publication instructions. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
 
 The former MockUPhone pipeline, feature-first `Marketing/` layout, `LandingPage/` project and Pro Max captures are obsolete. The current pipeline uses **fastlane `run_tests` (scan)** with hosted Swift Testing fixtures, **frameit** plus local Apple templates, locale/device-first asset paths, iPhone 18 Pro and optional Duo displays, and native 14-inch Mac Workspace captures. This is not XCUITest `snapshot` automation.
 
@@ -270,7 +270,7 @@ bundle exec fastlane frames devices:mac locales:en
 
 The default is 49 jobs: iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in seven locales. **Duo remains opt-in**; explicit Duo selectors default to all five mobile scenes. `WEBSITE_SCENES` is the parent selection policy, not proof of current site consumption. Mac frames support Workspace only.
 
-`input:` and `output:` support review directories; supply **both** to work without the submodule. `plan:true` lists jobs without importing templates or changing images. Every selected source/template size is checked before rendering. The lane stages copies, masks their screen apertures, renders all selected jobs, verifies each PNG, then publishes `<locale>/<device>/<feature>.png`. A frameit action that only logs an error and omits an output still fails publication. Validation prevents a failed render batch from replacing existing frames; per-file rename does not make the final publication loop crash-atomic. Raw captures are never masked or resized.
+`input:` and `output:` support review directories; supply **both**, plus explicit frame-path overrides for every selected device, to work without the submodule's captures, outputs or templates. `plan:true` lists jobs without importing templates or changing images. Every selected source/template size is checked before rendering. The lane stages copies, masks their screen apertures, renders all selected jobs, verifies each PNG, then publishes `<locale>/<device>/<feature>.png`. A frameit action that only logs an error and omits an output still fails publication. Validation prevents a failed render batch from replacing existing frames; per-file rename does not make the final publication loop crash-atomic. Raw captures are never masked or resized.
 
 ### Local licensed templates
 
@@ -306,7 +306,7 @@ The mask algorithm expects transparency both outside the device and inside its d
 
 ## External composition, website and store delivery
 
-[AGENTS.md](../../AGENTS.md) identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. Its website, asset and design documentation is unavailable in this checkout. After initialization, locate and read the current instructions for development, composition and publication; do not infer final artwork directories or delivery contracts from the parent runner's capture and frame paths.
+[AGENTS.md](../../AGENTS.md) identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. The available [website README](../../com.akinokaede.termind/README.md) links its asset and design guides. Read those current instructions before composition or publication; do not infer final artwork directories or delivery contracts from the parent runner's capture and frame paths.
 
 Before publishing, initialize and inspect the external repository separately:
 
@@ -371,7 +371,7 @@ flowchart TD
 ```
 The override is authoritative even when unknown; detection is only consulted in Automatic mode.
 
-`HostDistributionIcon` applies the host color tag first, then `HostIconBrandColor` from the entry's six-digit brand hex, then AccentColor. Brand adaptation blends toward the current semantic label color in 5% steps until it reaches 3:1 against the semantic surface with the icon's 16%-opacity tint background, or exhausts the steps. Explicit host colors bypass this adaptation. macOS starts from Simple Icons Apple black; Windows uses `0078D4`, explicitly recorded as a Termind presentation choice rather than upstream color metadata.
+`HostDistributionIcon` applies the host color tag first, then `HostIconBrandColor` from the entry's six-digit brand hex, then AccentColor. Brand adaptation blends toward the current semantic label color in 5% steps until it reaches 3:1 against the semantic surface with the icon's 16%-opacity tint background, or exhausts the steps. Explicit host colors bypass this adaptation. macOS uses the Simple Icons `macos` platform-logo source, not the Apple corporate logo; Windows uses `0078D4`, explicitly recorded as a Termind presentation choice rather than upstream color metadata.
 
 ### Reproducible resource generation and licenses
 
@@ -387,7 +387,7 @@ Generation parses SVGs, rejects scripts, foreign objects, embedded images and li
 
 Retain `SimpleIcons.LICENSE.md`, `SimpleIcons.DISCLAIMER.md` and `Tabler.LICENSE` with generated artwork. Simple Icons' package CC0 dedication does not establish that every brand icon is CC0: check individual licenses, source URLs, trademarks and current brand guidelines; null license metadata is not permission. Tabler's MIT notice requires its copyright and permission notice in copies or substantial portions. These host-artwork obligations are separate from the local Apple device-template licenses and external brand-master review.
 
-Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: general-purpose overrides and stable ordering, exact/related/generic Linux matching, unknown-choice fallback, returning to Automatic without reconnects, persistence/sync and Tailscale round trips, migration and failed-save isolation. `FrameworkTests/RemoteSystemInfoTests.swift` checks BSD kernel detection regardless of misleading Linux metadata, missing-kernel versus unsupported-kernel behavior, and metadata-free Linux detection. `TFMTests/HostIconPresentationTests.swift` checks bundled assets and general-purpose SF Symbols load, expanded distro/BSD aliases and generic Linux match, and black/Windows brand colors meet 3:1 in light/dark appearance; its separate visible-window rendering suite is opt-in and verifies the three menu groups. Inspect these tests when changing catalog IDs, generation, tint or persistence. No generator network run or visual approval was performed for this update.
+Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: general-purpose overrides and stable ordering, exact/related/generic Linux matching, unknown-choice fallback, returning to Automatic without reconnects, persistence/sync and Tailscale round trips, migration and failed-save isolation. `FrameworkTests/RemoteSystemInfoTests.swift` checks BSD kernel detection regardless of misleading Linux metadata, missing-kernel versus unsupported-kernel behavior, and metadata-free Linux detection. `TFMTests/HostIconPresentationTests.swift` checks bundled assets and general-purpose SF Symbols load, expanded distro/BSD aliases and generic Linux match, and macOS platform-logo provenance. Its separate visible-window rendering suite is opt-in and verifies the three menu groups and 16×16 native menu images in light/dark form rendering. The current suite does not assert brand-color contrast. Inspect these tests when changing catalog IDs, generation, tint or persistence. No generator network run or visual approval was performed for this update.
 
 ## Validation and release checklist
 

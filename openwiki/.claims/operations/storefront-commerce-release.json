@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:82d0fae38821417c72562320aab2387b243e412dbb2765c5fb4a8ffa17c843b8",
+  "pageVersion": "sha256:b1558e1c7d84af6e09aa5c2687ecf98f0e0dafa0e4d8faf9d7e7934f5246d1cf",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -28,15 +28,15 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift",
-          "version": "repo-file-v1:sha256:e22edc3aad812e06646840e93c4ac407f616f3634c9f011eb7b0be7b76c24e33"
+          "version": "repo-file-v1:sha256:2fe7bb144c7ef553565d2510b9ced41a501917266936cd2b8352788d3a0bd169"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift",
-          "version": "repo-file-v1:sha256:28ad5d11b8ba84deb4f689d0f7fbd9739f54719e980aa5cf8dbaf396965030ad"
+          "version": "repo-file-v1:sha256:7b8a0e0094e5d3b8d6cb4d9aeae0344239fada13184c6990bf0383a318b0fb0d"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift",
-          "version": "repo-file-v1:sha256:dd42357119254c1541b3d6922ddd622de83345f6804617fa21f1500c552fa96a"
+          "version": "repo-file-v1:sha256:128265464afb313905c566c465b4afc1ed2e6926cce2fcaae43f625a64d940f2"
         }
       ]
     },
@@ -46,15 +46,15 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift",
-          "version": "repo-file-v1:sha256:e22edc3aad812e06646840e93c4ac407f616f3634c9f011eb7b0be7b76c24e33"
+          "version": "repo-file-v1:sha256:2fe7bb144c7ef553565d2510b9ced41a501917266936cd2b8352788d3a0bd169"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift",
-          "version": "repo-file-v1:sha256:4c55a6cb391e39b7782c8e4349cfc225a653e549728bec2a7071b6bfdf764e95"
+          "version": "repo-file-v1:sha256:38c17bddd3deee436be631ea07543b1a7e3235b5ddd7ff21927993f3f83ed28d"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift",
-          "version": "repo-file-v1:sha256:2880a37dbf58e7269bd15645cd1aba462620959b62c32929037f9e8023a16d7e"
+          "version": "repo-file-v1:sha256:d5d87b3f2b3dd793f70c4b48f620d7b00de616fffb9d9cf9b6af2d032c6e9590"
         }
       ]
     },
@@ -63,7 +63,7 @@
       "statement": "ProAccessController gates Vault sync, unlimited Hosts, Tailscale and optional SFTP/port-forwarding multi-connection acceleration through entitlement status and denied require presents the paywall; Assistant, MCP and unlimited Metrics are not current ProFeature cases. Ordinary workspaces and SSH terminal uploads remain free under their normal admission gates. Mac AppModel defaults to unrestricted testing access but TermindApp injects live access for normal launches and unrestricted access for tests and DEBUG screenshot demos. Mobile normal launches select live dependencies and XCTestConfigurationFilePath selects testing dependencies. Neither mobile factory explicitly injects proAccess; MobileAppModel honors an injected controller first, otherwise choosing unrestricted access for in-memory or supplied-host fixtures and live access for production.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L3-L9",
+          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L6-L12",
           "version": "repo-lines-v1:sha256:c0da1cae0367ba8a107d958649a1de1463617072a3aef87cfb78d43479a1b21a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGRlMWMyNzI0YTk5NDlkNGNmODMxOGZmZDFhNzIyMzNjMzZlN2M5OWE4ZGQwMGFkMzhkODgzY2M1OWJmNjI1ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjIsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTE4YmZjYzA1ZGE1ZWQ5YjU1ZGM1NzI1YTRmY2RhZWM1YzI1NzVmZGY0Y2UyMmExOTkwOWIxYjNmNGRlODFmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzMzYzVkNDFmMjAyMWQwOTk1YzcwYmYxZjU1ZDE2ZmY3YjM5OTkxYmY2MDg1OTU2NTQ3NmFhNjU1MDM4ZDRiOCJ9"
         }
       ]
@@ -73,15 +73,15 @@
       "statement": "Mac and mobile wrappers both present RevenueCatUI PaywallView with controller-derived ProPaywallState custom variables, show loading and unconfigured-service fallbacks, block initiating purchases while access exists, refresh after completed purchase or restore and suppress the first post-purchase SDK dismissal to leave the account variant visible; remote dashboard content rather than local shared paywall code owns offer layout.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L59",
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L7-L62",
           "version": "repo-lines-v1:sha256:de32f3b5361f4438e6369d3f96af0b84f708b9102ffdc1742ecf8c734ad14bb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L13-L63",
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L16-L66",
           "version": "repo-lines-v1:sha256:0261875c7f9578d03ed7328ec8534ed936c5decee6961e75002924c490c08c74:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNmY0MjkzMGVhNDgxNDEzNjA1NjBmN2UxNTIwNmM4YTgyMmU1MWIzNjg4YTllZTg2YWE2MWI1NmY4NzFlYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNjMzOWEyYTdmNjU5ZGU4ZmI5YjBhZGMyZWI5ZDljNTdkYTAwY2Q3OWY0MGI3NjE3MGUwZmRmYTZmMWNlOWUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L15-L66",
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L18-L69",
           "version": "repo-lines-v1:sha256:022ecfc62e6c317585ea0f8f0df01105df4ee4a1ae6c29497e39f41583520925:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MTc0MGI5Y2FmN2I5NGNiNjM3MTQyODBmMjA1NDUzNWYyODY1MjMzYWM2NzBjM2YwNjFiZjkxNjZjYTMxOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNjMzOWEyYTdmNjU5ZGU4ZmI5YjBhZGMyZWI5ZDljNTdkYTAwY2Q3OWY0MGI3NjE3MGUwZmRmYTZmMWNlOWUifQ"
         }
       ]
@@ -96,21 +96,25 @@
         },
         {
           "resource": "repo://FrameworkTests/ProPaywallStateTests.swift",
-          "version": "repo-file-v1:sha256:e0fe29278e95a733872749512b751155e330feb13f964c902082b5e88072a7bb"
+          "version": "repo-file-v1:sha256:bc129168b45a3b8b9fd3c84dc6f4ccdbcad8f881c31e0ee776139d99365c8a88"
         },
         {
           "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift",
-          "version": "repo-file-v1:sha256:e22edc3aad812e06646840e93c4ac407f616f3634c9f011eb7b0be7b76c24e33"
+          "version": "repo-file-v1:sha256:2fe7bb144c7ef553565d2510b9ced41a501917266936cd2b8352788d3a0bd169"
         }
       ]
     },
     {
       "id": "claim_bfdb3849716843bd941c4d567891acf5",
-      "statement": "Final storefront imagery requires separate release verification in the initialized independent website/assets checkout; parent screenshot dimensions describe capture inputs, not verified final board dimensions or upload acceptance. The runner supports and defaults to en, zh-Hans, zh-Hant, ja, ko, de and fr with options or environment overrides and per-capture test language, region and Apple locale. Capture coverage does not establish remote paywall translations or final board inventory.",
+      "statement": "Final storefront imagery needs separate release verification against the independent assets checkout's delivery contract, which distinguishes captures, frames and final artwork; documentation and parent capture dimensions do not prove final export properties or upload acceptance. The runner defaults to en, zh-Hans, zh-Hant, ja, ko, de and fr, supports option/environment selection, and sets test language, region and Apple locale per capture. Capture coverage does not establish remote paywall translations or final board inventory.",
       "evidence": [
         {
+          "resource": "repo://com.akinokaede.termind/assets/README.md",
+          "version": "repo-file-v1:sha256:a8407a8d6efec959916d23fde6a288083180b8620da8fed9d64b1d8b964458bf"
+        },
+        {
           "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
+          "version": "repo-file-v1:sha256:a92f975371d00249a21eaeead4f956f761a3b91c1988b9cd850c23e42d5bc87d"
         }
       ]
     },
@@ -119,19 +123,19 @@
       "statement": "Applying a granting subscription status with future expiration cancels the old deadline task and schedules a RevenueCat refresh at that deadline rather than directly revoking access; applying another status replaces the task, teardown cancels it, and Mac activation or iOS scene activation also refreshes access.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L113-L129",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L116-L132",
           "version": "repo-lines-v1:sha256:f81930edce1151c4f677306deef9e5c12b38ec0608727bd20aa95df8a88fd67e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNjZlMzE4NTZlZTEyNThkNmVlOGY3YmZhMTFlYTI2MGY0YTI0NTY5ODcwNWY2NGUxODNjNGJlMDVhNTQxZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0ODdmMzJlNGFmZDFhZTMzNjcwYzRjNmI1OWRlMTI3YmJlZmFhOWIwZGQ3Mjk0MmE3NzJmMzVhOGI4ZTAxMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L57-L61",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L60-L64",
           "version": "repo-lines-v1:sha256:acb492e096e07f3e492976c7f8644d97a05068ab41c7de68158ee1fb401c8a44:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQ4MmZiNGU5Y2MzNzlkYTQ4NjY0N2ExYzAyODEwOTMyMzYwMjdkMmJlMjI0MTljOTBiOTNhYjU4NTkzMzMzMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTU1NWU3YTZmYjg2YWNiNmMwMjgxYmYxMDk1NTFiZGNmYmI5YmQzM2FhNzdiNjQxNmFlZjk2MjMwODVmYzdmNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzAxZDMzYzJkZjkxNGIyZmY3MTcwNTIxZDAxZTA5MDIxODAyYmM0NzdiNjVhNGMzZGEzMTBiMzNkZmQwODllYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2UzNTE1MWRlZWYyZTlhZmVlYTVkNWZlOTQ3ZTg1YTNjNjU0MTBmYzJlMTYxZGNiOGM1ZDNjNjNhYmE3Nzc5OCJ9"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L672-L681",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L675-L684",
           "version": "repo-lines-v1:sha256:02278b9d780de45b225f7ff945b0dee32250830559f2d0a2e6e3e3a50f544e47:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNGQ2YzQ0OTAxNGQ3MmNkNjM3ZGJkOGMxMzQzNTYzYzIwN2VhZmJhNDJlNTExNzg2ODNmNTk4MzdkMTI2ZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4YzdjMTdkNWM4ZWQ0NGM5NTc1OGI4NmU0NDFiOTMxNDA0ZTdiMWM0NjQ2YjE3ZTlhNGU4MmQxNjM2MThkODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzMzIzMGY3NmM3YmM1ZjMyZjE4OWJjMWRkODI3ZWRiNmExOWFkZmM4ZGQ3Y2IyNWM3OTEzNDk4MWM4MzA1MDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxM2U2ZDQ5OGExNWQ1Y2I4OTFlYzU0NjE0ZDQyYTNjYTFhMGI0ODlhNGVhODM5OTFjNzc1Mzk5Mzc4NzI0YjkifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L399-L402",
+          "resource": "repo://TFM/App/TermindApp.swift#L402-L405",
           "version": "repo-lines-v1:sha256:1ee408a9a5507918379d16437b19820e165a6ac4f23f4bb06987770b0e8aa179:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDU5MDRhNmM4Yzk5NmRhZmEwYmM3Mzc4YTJhNDQ4YjM2MTNhODQzNDgzNGYxYjdmMGU5MTMxMzc5MGU0ZmJmOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGZiMTRiOTAyOWQ0OTg1MmNiYWU1ZDNkMjc3M2I2NTA1NGFjYTU0NWI2NDI5MmZjNWY5MWEyYjU2MGQ5MDU2OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWU1YTUxMTlhNGMzM2E2ZWM5ZTIzNjRlZDZhNDQwZmY1YzAzMWU5YWJiNmUwZTA2NGJjZGNiMGM0NjM3Y2I3ZiJ9"
         }
       ]
@@ -150,7 +154,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
+          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
         }
       ]
     },
@@ -159,23 +163,23 @@
       "statement": "The Mac built-in MCP server is constructed without a Pro access predicate and its settings directly call setEnabled; mobile remote MCP Add and Import actions also have no Pro gate. Neither mcpServer nor remoteMCP is a current ProFeature, and mobile remote-client settings do not establish mobile built-in server availability.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L3-L9",
+          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L6-L12",
           "version": "repo-lines-v1:sha256:c0da1cae0367ba8a107d958649a1de1463617072a3aef87cfb78d43479a1b21a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGRlMWMyNzI0YTk5NDlkNGNmODMxOGZmZDFhNzIyMzNjMzZlN2M5OWE4ZGQwMGFkMzhkODgzY2M1OWJmNjI1ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjIsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTE4YmZjYzA1ZGE1ZWQ5YjU1ZGM1NzI1YTRmY2RhZWM1YzI1NzVmZGY0Y2UyMmExOTkwOWIxYjNmNGRlODFmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzMzYzVkNDFmMjAyMWQwOTk1YzcwYmYxZjU1ZDE2ZmY3YjM5OTkxYmY2MDg1OTU2NTQ3NmFhNjU1MDM4ZDRiOCJ9"
         },
         {
-          "resource": "repo://TFI/Features/Settings/MobileMCPSettings.swift#L50-L80",
+          "resource": "repo://TFI/Features/Settings/MobileMCPSettings.swift#L53-L83",
           "version": "repo-lines-v1:sha256:108ab580b93a93798eddb39a85855c565303c640f8fb96f063bcbacbce1fa2ab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxM2VhOTlhMmJhZGM3M2U0MjQ0Y2YwZGEwYzRjNWEyZWY5OTI1MWM3M2NkZDI2OTQ1MjVjZWE2MTliY2E5ZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlYWY2NWQ4ZTJkYTRkMmRjZDVhZGIzYjRkZDlkNWNjZTU4NGQ3YTJjZmVhZWNhMGYyNmI2YmM0YjMzYWI3MzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjZTIxNzVmZTBmNGVhZmI5OWQwMGU3N2ViNmNmMmZkYWQxODAwODc5ZThkODZlNjMwM2U1ZmJkZjE5Y2JmNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiODlkNTljMjE3MGEwZWFmOWY0NDc2YmVjMjRjOThlYjdlYTRiMWNlYTY4ZDQ5MmQ2OGNkNzAzOGZkNDE0YmQifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L375-L380",
+          "resource": "repo://TFM/App/AppModel.swift#L378-L383",
           "version": "repo-lines-v1:sha256:d56b47a6cebd3d2ec9da44df0fc74c6f1b664cca7b8ff156c3d2c03e2e18ba56:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGEyYWQ1MjgyOWE0NDM4NjVhMDI3NTVjMjQ1ZGFhZGY5OGViNTAzMDc4MTdmMTMyYTBkOTk0MjQ4NjIxMWJhNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTkwOWE1M2E2MThkMDI4ZTFkMzAwMGMwYTdhYmNlZWNiZTVmYjM3ZjRlNTExZWZlNDY2NDNmYWQ2ZTY2ODcyZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDg4ODAzZDYzMjJmZDM2YjkyMTExMWNlZTUxYjJmNjZmZWRjNjdiYWRiNDk1ZTFlZGNiMDc1ZTc0MzA4NmY2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzBkYTJjY2ZmZmI5YzRlYzg1MjMwZTk0MzNkZWYwMWU0MjFhYjgyMmQ3YjllZDBhMDhjZDMwYjA4ODhhYmQ1MCJ9"
         },
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L46-L90",
+          "resource": "repo://TFM/App/MCPServerController.swift#L49-L93",
           "version": "repo-lines-v1:sha256:9c44d1e8e2847f86d76a9b09ee60cf508bd009c33f66f55d1d074692326cfaf8:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyODgwNTA4Y2FkZTAwMmU3ZWE3Y2MxZGNkMmEzZjgxNTJkMWViMDlkMTU4MmU1ZmFiNjc0YzY5NzkyZDk3NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkOGI2MDc2ODk5NWRiYTM2MjViYmJjNmFlMzVkNTEzMWM3OWY2N2U5MTNiMGIzMDU3MTc1YWQ3NTcwMDQ4OTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmY2NkMzMwZTE0NTY0YTcwNTIzNDM0ZGUyZGE2M2QxYzE3MzBjYzk1NjcwZTdkNzkxNWQ3N2ZjNzRjNzAwZjQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Settings/MCPServerSettings.swift#L13-L20",
+          "resource": "repo://TFM/Features/Settings/MCPServerSettings.swift#L16-L23",
           "version": "repo-lines-v1:sha256:e0375831da091c85acfac03c54f89f1524d9863ff94afeff97227c63b66d5119:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JhNDEyODJiOTI3ZjUzNTc4OGMzMGY5ZWE3NjJhY2RmNDRjNDBiZjk4YzljNTk5ZWI5YjY3MmY4ODM2NjUxYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzM1YzJjYTZjNGMwNDc3NzNjZGU5ZDUxNTVhOTgyZWY3NjliMDFmZjYyMTcwYjgyYzM1Yzc5ZDg5NTJlOTkzZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDc0YWQ1MzlmZWQ5ODU4NGI2ZTMwYmZiYjcxZjFkZmZmMWZlOTJjMzJiYWI4MWU4ZWU3OWU1YmYwOGRjMzQyOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzgwN2FlN2NiNzg2NjZmODc2ZGY3ZjQ0YWI5YWRiNWIyOTI5N2MzM2ZiOTQ3OGVhOGM2YmZhZmFiYTMzNGI0NCJ9"
         }
       ]
@@ -185,42 +189,50 @@
       "statement": "Live Pro access requires valid bundled RevenueCat key and entitlement configuration; a missing or invalid config leaves the controller verificationFailed without an alternate StoreKit observer, and release builds reject test_ keys while DEBUG allows them.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L12-L30",
+          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L15-L33",
           "version": "repo-lines-v1:sha256:851e9df9dc41b43d3de6173f3f95463057ca309de7828e0a308c68dfb3a41005:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmNDM3MjU0YTU3ZDc5MjU4NzU1OWMyZGI0NWJjY2YyNDc3MTM4YzM2NDU3MzM3YTRjYjNjY2JkMzdjN2Y4YmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkZjcxMjQ3OWRkMDgwZWNiNTRkZjJkOTFkYWYwOWFlZWM4ZjA4YTJiNzNmNWI0MGNjYzVjMTcyZTU3MmZkYjcifQ"
         },
         {
-          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L202-L209",
+          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L205-L212",
           "version": "repo-lines-v1:sha256:2fdffc1724d98f7c4c9e02d7a6822ac01d80272073fdadc7fadb9c682731a635:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGNmMDllYjBjNTc0NGZiOTczMzFiOThmZjNmYmYwNWE2MDJiYTNmN2Y2N2U1ZGE1YmU5MDk1MDMzZjYyNTgyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTFiNDhjM2QzZTlkODJhMjJlMTMzNmEzMGMzOGI4ODQ0N2I5ZmViYjlkMmFlNTlmN2Y5ZjhkNTkwNTIzZWUzMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzhjNGVkNTVmNWQ0N2RkMGYxYzQzNjczMmNhYTZiMDNkNDM1N2NhMzRmMWU2MDM1YTg1NzhlMWRhMGJkYjA5YyJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L20-L46",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L23-L49",
           "version": "repo-lines-v1:sha256:63a7ad88ba8032af5ee30c44e3b313d5a9b45ee03ce6eb5228575eb91ff90568:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjOTgzNGQyZjMwZmUyNjk1NmFhOThkMjE2OWEyMjBlMDg5Y2IzNjQ2ZTMwYmVjMThhODBkNWQxMTViZDc3NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmZGY2NTE2MzdlNjgyZDViMWNjM2RmYjA4N2FlY2U4ZWMzNTBkZmY1Njk1YjE5MWEyNWU0MjIwYjQ2YmU3MDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1NzkxMTE0ZGM4MzRkNWNiNmY4OTU5ODdkOTUwOGQwMjA2N2U0MWIxZWYxZjEyOTJlODkzODhkZjJiODdkNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZjVmMTE1NGJhY2VlZmVjMWE3MmQxMjgxZDVjNjBjYzk1ZTViZGFiOTMyOGZjYTU3ZDE1OTczZTE1OGQyYzUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L77-L83",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L80-L86",
           "version": "repo-lines-v1:sha256:6962e869205ce721876244b6f0a6ca4f92fa8db2a7d4b3f3164d26cbe2986354:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDc2ZjdlNjNiY2YxYzc5YTI5NjVhODU5ZmFkMDY1MDk5NWY2NzcxMTIxNTNlNTU5ZWU5YTMwYjk2NzA0YWE3MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTY5MWZhNTliZTY4OTIzNjhmMjM3MDVkZWY5M2U0ZjY3OTczYjAxNGQxMGQwMGEzMjQxODQ0OGU1NmEwMDZlZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjk5NTdjMWU3ZTNiNmQ1OTIxZjU4MzNlNGYyM2NjNGEyYmQ2NTk4OWM5ZDQzOGNiMGQwZjQyMjUxYjI1M2Y0MiJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift#L3-L31",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift#L6-L34",
           "version": "repo-lines-v1:sha256:a8683e158edf51fc033e634d7a341aa64156ed3d6134d12901ad6c1aea66ad1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2OTZiMTU1NTliMTA2N2M3MzBiYmFhOWZjOTI4Mjc5NTdjZjc0NmY0ODcyZjY5ZjVjNjA4MmYxMjFhYjUwNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     },
     {
       "id": "claim_b4844f0b67c748968d66eb725ff69a86",
-      "statement": "Both Info.plist files substitute RevenueCat API-key/entitlement macros from Xcode build settings; the project supplies a public Apple SDK key and termind_pro. Effective signed release configuration and live product/entitlement dashboard mapping require separate checks from the manual StoreKit fixture.",
+      "statement": "Both app Info.plists substitute RevenueCat key and entitlement build settings inherited from project Debug/Release Services.xcconfig bases without target service overrides. Tracked defaults leave the key empty and entitlement termind_pro, and optionally include an ignored Services.local.xcconfig; local or CI configuration must supply the intended public Apple SDK key. Effective signed configuration and live dashboard product mapping require checks separate from the StoreKit fixture.",
       "evidence": [
         {
-          "resource": "repo://TFI/Info.plist#L57-L63",
-          "version": "repo-lines-v1:sha256:9c2f4a6a60a86a23e4201a1b9ecf6d4297d8474f50705d4bafb1e1a36ea39cfd:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjc2N2FjZDc1ZGEyOTgzZWNhNjE0MjE5MDA0MzU1NDk4YmM4MTdmNGM1ODRjMGMyZDU2ODRhYjg2MjVhNjVlZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTJkODg5NTcwYjVhNmE2OTAzNjRmODQ3MDRmNDlmNWJkMjY4ODliODQ2MDZmNzcxNjViM2JjYzZjMWVkNjQyOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzAwMGZiNzVlNzhlN2VlZWVjNzhlYjY3OTE5NWFhNzRjNGUzNDNkY2I0NjM1NzBkYzdjMGIzZWEyMzVmZTkxNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzNmZjFmMTgxYzEwMGNhMTUwNTk3NzhmYjc4N2JhY2UzZTViMjlmZDdhNGQwMDczNTRmYTM2MmE5ZDAyN2ZjOCJ9"
+          "resource": "repo://Configuration/README.md",
+          "version": "repo-file-v1:sha256:fc6249bfff2e51e95e294294a14ee7680ecf306ea4b61bb8088bbdb92caec5a2"
         },
         {
-          "resource": "repo://TFM/Info.plist#L10-L15",
-          "version": "repo-lines-v1:sha256:70ea7aed1a7a526e81343020dcd07a822c4a015d780c8c8673bf2344bc2c99e0:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjc2N2FjZDc1ZGEyOTgzZWNhNjE0MjE5MDA0MzU1NDk4YmM4MTdmNGM1ODRjMGMyZDU2ODRhYjg2MjVhNjVlZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGEzNTNkN2ViYjRmNmZlZTdmYThlZGY5MjczNmNhODkzZWViZWZlMTQ4MjU2NzM0MDNhOTNjNDZmMWE4ZmZlZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkZjAyZDIyMDc5Y2YzNzEyZWU4YTc5ZjE4ZDE3ODA1ZjgyNzYyOTI0Y2VhYmZhOWVhMjI2ZjE2NmU2ODY1NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDUzNzQyZmFlZDZjMzk3N2I4MDNlM2ZjZWZiMzgzNDcxMjQwMGQwOTFjYTI0ZjAwYTE3ZmJmYjkxN2JmMTc5ZCJ9"
+          "resource": "repo://Configuration/Services.xcconfig",
+          "version": "repo-file-v1:sha256:ec2a4323b714912653744c9951e23a85e61ef0431a20e426fc66681d43f5c9f3"
+        },
+        {
+          "resource": "repo://TFI/Info.plist#L57-L60",
+          "version": "repo-lines-v1:sha256:1f242b73e39085e3fb282da3f7e51b439d8d945b07b2af75690b86796298609c:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjc2N2FjZDc1ZGEyOTgzZWNhNjE0MjE5MDA0MzU1NDk4YmM4MTdmNGM1ODRjMGMyZDU2ODRhYjg2MjVhNjVlZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmRhNjczZWFiYzExMDE5Y2FmNDgwZTg1MzQ1YmE2ZmI1NGFhZmJkZmYwNzFkMmI4MDZiMmU1N2ExMzVkNDc2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzAwMGZiNzVlNzhlN2VlZWVjNzhlYjY3OTE5NWFhNzRjNGUzNDNkY2I0NjM1NzBkYzdjMGIzZWEyMzVmZTkxNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDE2MzM3MWI1MTQ5OTYyZThmNDdiOTE1MzY5ZTU5MTk0ODgxYjFkOWEzYmMyY2IzZTZkOTkzOTRlMDYxNzM2NiJ9"
+        },
+        {
+          "resource": "repo://TFM/Info.plist#L10-L13",
+          "version": "repo-lines-v1:sha256:1f242b73e39085e3fb282da3f7e51b439d8d945b07b2af75690b86796298609c:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjc2N2FjZDc1ZGEyOTgzZWNhNjE0MjE5MDA0MzU1NDk4YmM4MTdmNGM1ODRjMGMyZDU2ODRhYjg2MjVhNjVlZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmRhNjczZWFiYzExMDE5Y2FmNDgwZTg1MzQ1YmE2ZmI1NGFhZmJkZmYwNzFkMmI4MDZiMmU1N2ExMzVkNDc2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzg3MTY5NjM0MTc4YmU2NTA1ZmQzZmQzNDhiNzI1NDRiMTM5OTcxOTYwMTJmODgzMTJkMTc1YWE1NWRkMjg0OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmQ1ZDQ2NjUxYTdjNTMyNGFiMjcxMzg3NTIyMTQxOGEzNzBlYTc5OGQzNGQ2OGZkOTMxYjA5NTY4YjYwNTgzYiJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:37a3b1d39658658ea880ab6b7160005e1dc5becff6e59f8b991985a80047cc98"
+          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
         }
       ]
     },
@@ -229,7 +241,7 @@
       "statement": "RevenueCat purchase service configures StoreKit 2, informational verification, preferred UI language from stored AppLanguage and no automatic device identifier collection; it uses anonymous RevenueCat IDs and avoids a device or iCloud account based custom ID.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift#L17-L34",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift#L20-L37",
           "version": "repo-lines-v1:sha256:7eeac3419d6d10aac5af323c1ba29b3325601569b2e7b5ca46d6e3f229226fc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyODgwNTA4Y2FkZTAwMmU3ZWE3Y2MxZGNkMmEzZjgxNTJkMWViMDlkMTU4MmU1ZmFiNjc0YzY5NzkyZDk3NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJjZmYxZjNjMjEzMTE4MzkzYWM4MzBhNzA2OTcwZGFiYWY3ODA2NzhmNjAxZjhhYzA3MjM0MjM2MTU5MTExMmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwMjRiMGI0M2VkYjdmZjk2MjZjZjA0NGE2MTMwMzg4YzM4YzJjMzUzNzQ4NmRiOGUzMzgwMGU5ZTM1YTMyNTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MDkyNmI3NjY1MDJlMWZlY2ZlNGU0Njg4OThjYWUzNGQ1Zjg1NGFiYjc5NzYzZGU1NjUwN2ViOTMzOTRhMTYifQ"
         }
       ]
@@ -239,11 +251,11 @@
       "statement": "On a non-test store, the service attempts syncPurchases once per anonymous app user when a valid fetched status does not grant access, persisting a successful migration marker; this import of pre-integration Apple purchases is distinct from a user's remote restore action.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift#L50-L69",
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift#L53-L72",
           "version": "repo-lines-v1:sha256:750b1a4c361bc675d1ca4eb0e907c32931789e4969cdc5d5e5c1ab52d0546b91:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5ZmQxMzQyNTY3Yzc1OTE4NzNiMDBiNmU0ODBjODQwOWM2ZDM2ZjU5NDljZDYxZGY4YWNkNjcyMjI5ZGRhMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2ZWFiODMzNzI3NjY0NzYzMTczN2YwZTExNmQyY2U2NTIxMzAxODA5NTI2ZDRlYjQ1OTkzMWVjZWMzYTk0N2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlYThkNjEwMzMwM2RmZDcyY2RkYzIxNDE1ZDAzZWE3YjY0ZGNjMjMyYzMzNDFiNDNkNmJhYWMyZjQ4ZTE4NmEifQ"
         },
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L25-L29",
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L28-L32",
           "version": "repo-lines-v1:sha256:9724281c04596f06761317d34af8ce56d6245e57e38251da8bbc153faea384d5:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDRlNGRkMTNjNTk2ZGQ4NzM5ZjNlZDhlNmZkZmMxZjIwNWM1YzM5NTZjMTE5NWM4ZjA3NDE0MmFiNzg4ZTY5ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjhlMjZiMGJjMzEzZmU2NDg5M2Y1MzdkZmMwYzY1ZjU2NTJiYjE1MmMxOGRmNjE3OTUwNWUwNTIxMTg0ZjI4NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjk2ZWQ2YmQ4NTJiOWUwMDMxMzFlZmFmNDQ5MDAwNDQxYjA1YzEzZDc5OTIxNjdkZmMwNThkNjIyYmUwYWU4NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjRmZmNjZDczZTU5MGQwNzk2MDQ0ZDJmNTMxYTc3OWQwZTBkMDBjMGIwODEzZDg4MDVkOTNiMDVjNTAzNWI4OSJ9"
         }
       ]
@@ -253,15 +265,15 @@
       "statement": "ProPaywallState maps subscription phases, renewal and ownership to nonlocalized RevenueCat dashboard protocol values and separately supplies access, management permission, Family Sharing and optional expiration; manage is true only for purchaser-owned subscriptions, not family-shared or lifetime purchases.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/ProPaywallStateTests.swift#L6-L61",
+          "resource": "repo://FrameworkTests/ProPaywallStateTests.swift#L9-L64",
           "version": "repo-lines-v1:sha256:fa6b621059f54165badf21b98f7748bac8e2ff6ecfc165da20b0ab9076ef82b5:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNTI0N2U0ZDM4MTk4MGY2MDRlOGEzZjdlZTk1N2I0MmI0MzM1MjI2OTcyNGVhMGEzMTVhNGJhM2JhYzkxOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L59",
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L7-L62",
           "version": "repo-lines-v1:sha256:de32f3b5361f4438e6369d3f96af0b84f708b9102ffdc1742ecf8c734ad14bb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L51-L63",
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L54-L66",
           "version": "repo-lines-v1:sha256:e11ff8466a9fc7ec54fca5664556081ecbe0e835bbc67ee44d4f3e2929f1959a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZmFkNTNiMDFkZTJlNGVhNDRlNmYzMjdkNTUyYTQyMGZjZWZlOGQyYTliYzhjZTVlODZkNDI4ZGM5MjJlYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3MTYzMWI3NjkzZjMxZDk3MTAzYjBiOTgwZjNmZGYwNDJhZjkwNjI2MzQzNjU2NmYyZGJjNjMyODA2NDA5MDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNjMzOWEyYTdmNjU5ZGU4ZmI5YjBhZGMyZWI5ZDljNTdkYTAwY2Q3OWY0MGI3NjE3MGUwZmRmYTZmMWNlOWUifQ"
         }
       ]
@@ -272,27 +284,27 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AppReviewControllerTests.swift",
-          "version": "repo-file-v1:sha256:52a1deeeea5b7db6a9a926f9e7647b33657caab224a8f433d1c4edfee6dc8a2c"
+          "version": "repo-file-v1:sha256:6895d40567c54710a941ed4ebc9801bdcec5252d0472e583172cef26a49cb71b"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift",
-          "version": "repo-file-v1:sha256:d086d8a4ea9933ffda2ba7c8511f1ec3c86e802dd12a542f6c779328c748180a"
+          "version": "repo-file-v1:sha256:8e4346e507ec917cd4a62fd899f492613649bf8d4f5708b146993c8752c0a721"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift",
-          "version": "repo-file-v1:sha256:4c55a6cb391e39b7782c8e4349cfc225a653e549728bec2a7071b6bfdf764e95"
+          "version": "repo-file-v1:sha256:38c17bddd3deee436be631ea07543b1a7e3235b5ddd7ff21927993f3f83ed28d"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/AppReviewInvitationView.swift",
-          "version": "repo-file-v1:sha256:f5849d2c7ea9f045b3b54569d270eda919d891f7564403c5faa0f620cd0dde3d"
+          "version": "repo-file-v1:sha256:e8379cb8a1bbb3d4e93d425cc0737b381f8df95d71066159cb0cc2095a6cef04"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift",
-          "version": "repo-file-v1:sha256:5f7c8bae7a5301bdc33db6ee4fab0216cf9e5cef2fd75e31f37ac3f990eb278a"
+          "version": "repo-file-v1:sha256:2143d505340064d02ae275128f5b72b82069a751a34e360b4cc8705c031f2ddb"
         },
         {
           "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift",
-          "version": "repo-file-v1:sha256:99673b713795d4e35cd5d38d1502ec0bff6b1e0ad516afaa6ffc4b0b5e0dc28b"
+          "version": "repo-file-v1:sha256:36621c7532753f2f73e13b78952ff9b45173b9c8f548fc4eb69761c273bd88f9"
         }
       ]
     },
@@ -301,7 +313,7 @@
       "statement": "The local fixture's product descriptions, two-week offer and price do not supply native paywall feature rows or guarantee RevenueCat eligibility or dashboard trial disclosure; current native views render the SDK paywall using remote configuration and controller-derived variables.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L11",
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L7-L14",
           "version": "repo-lines-v1:sha256:8afd5cf27881d764a41ee2249f3ed0d7767c679d8e1481e1a37ed437274dfc3b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjY2ZjMwNjQzYmVhNzI2N2I4MzVhZjY0YzRlZGM2ZTk4NGNlY2ZkMjBkNTU2ZGRmYTA2YjJjZGQwMzI2MTI3OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWIzOWRlMWRkOTI5NzJkMjU0ZTg5YmJiZjIzODczNTk0MGMwNWJmYmFkZjRhM2QyYWI3ZDNlM2QzY2RmYTkwMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTU4ZDRhOTEwNzQwNTlmMGM4ZDIxMzZmOWJmODA4MzQ2MTQ4ZmM4Y2ZiMzU0M2RkY2JjNzUwZTc1NzZlNzI2MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWNjNjA4ODljNTkzMjUyNDQ5NWQ2ZmRkNDViMGQ1MjZjZWI3MDVmZTAwMGEzMDY1YmNkMTc1YTc3MzM1OTM5NSJ9"
         },
         {
@@ -309,36 +321,66 @@
           "version": "repo-lines-v1:sha256:b05d0899544832ae20d688983865055fba058a8e72e94aee68327eab85d91e0c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDVmMjI4YjczOWM5YjM1MjdjZDU3NjFhODllYjdmZThmZDJjNWVjMjhmZGUyOGM5MWY5NmFiNTBhMWIxYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3YjQ5YWNmYTAyODkxYzBlNjRhYTg4OGIzOWM5NTMyOWIyMTE5MzZjYmFjNDc0YjJkOWEzYzA3MGIyOTkzN2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0MmNlMWQ2N2RkNzliNTQ2ZTRlNWNjMDdhMDkxY2YxOWIzOWNhZjBlODBlMzk5MzA1YjU5ZDhlYTM0MjYyYzUifQ"
         },
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L13-L23",
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L16-L26",
           "version": "repo-lines-v1:sha256:15e8347050f090d8e4307ba358c98603c096db4e64cd5154c18b4b168849da7f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5YzI4ZWYzNDk5ODY0ODNjZjYzODM3NzVhOWUyZGU1OTE1Nzc0MzRkOTc2YzRlNDhkM2Q5YjBmZDMyMmVmNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNmY0MjkzMGVhNDgxNDEzNjA1NjBmN2UxNTIwNmM4YTgyMmU1MWIzNjg4YTllZTg2YWE2MWI1NmY4NzFlYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxNDZkNTA4ODZkOGIxZjBiOTI0MmEwNzNhMmQwZDJmYmJjM2RkZDY4ZjE2ZGNmMTE0Y2IzNzI4NGQwNGEyMjUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L15-L24",
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L18-L27",
           "version": "repo-lines-v1:sha256:a4759d4d202a78f85e6c6676dbea9adfc0582878cd4851679ba12de807d258a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzODY5N2ZlOTljYWZmNDY3Nzc1YjFhYzhiMzVlZjYwNWU5MzFkOGQwOTYwYWIxNjI0NmZkYjllY2VkMGVhZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MTc0MGI5Y2FmN2I5NGNiNjM3MTQyODBmMjA1NDUzNWYyODY1MjMzYWM2NzBjM2YwNjFiZjkxNjZjYTMxOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwNjNjM2VhODkzOWM1ZWQ5Y2VhNDdjNzUzYTQxNmE2NGE3OGRhYTc4MDQzNzIyNDM1NWM0YzlhNjVkYjU5ZTkifQ"
         }
       ]
     },
     {
       "id": "claim_1cb1e24791994626aabf7e058bec95e6",
-      "statement": "Native Release settings use marketing version 1.17.1 for both apps with target-specific build numbers 107 for Mac TFM and 96 for mobile TFI, overriding the project-level CURRENT_PROJECT_VERSION of 70; release artifact version checks must use resolved target settings rather than the project default.",
+      "statement": "Native Release target settings specify marketing version 1.17.2 and builds 108 for TFM and 97 for TFI, overriding project CURRENT_PROJECT_VERSION 71. Project Debug/Release inherit Services.xcconfig, whose tracked contents do not set versions; actual archive settings including local and invocation overrides, rather than the project default, determine artifact verification.",
       "evidence": [
         {
+          "resource": "repo://Configuration/Services.xcconfig",
+          "version": "repo-file-v1:sha256:ec2a4323b714912653744c9951e23a85e61ef0431a20e426fc66681d43f5c9f3"
+        },
+        {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L2340-L2380",
-          "version": "repo-lines-v1:sha256:815bff9224689f3b0e87e427973e24af26d7c45f5930eb13b9e98c32ab2fbd11:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
+          "version": "repo-lines-v1:sha256:fca8d8a05a0880ccecb6a167720ad78380a55abc758e839430301d848e5c0d62:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2526-L2588",
-          "version": "repo-lines-v1:sha256:6dba2ef6897b548798325db59435802ec6cd804b839432c9c22041a276bdb306:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MTNkZjIzZmQ0MGQ1NTU2MDQxZWRlMGMxNzIxNDg0MjBkYzcwZjI3NjA0NzExMTYxNjM1NmMyMDRkNmQ2MjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzN2NmOTZkOTg2OGE1OTNjYWZkYzk0NGNkOWU2MmZmOTQ1MDNkODRmNjIwMGU0ZTk1MjYwNGZlYjdlZjcwOGQifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2456-L2667",
+          "version": "repo-lines-v1:sha256:d4107ec86c45ea5666686dd406b81aa7d048e7296134d878e604407fdca8e6b0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwODY4MDUzNjE0YTI4ZTc3ZWIyYzU1ZDYxMGM4ZmU1NjU3MGFmOGFhNjVjZDdjMGZlZWNhZTcwN2ZhMzFlNmJiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMWYyNjk3OTRlOTI4ODE4YmFiMjcwYjY4ZGM5ZTIyMTkwYjU2ODgwYTgxOTBjOTJkNzkyZDUyMDI3ZGZhN2YzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MjRiMGFlNjE2ODUxMDY0OWUzNTQ2MTQyMzY3OWY4MTYxMjU2MDVmMjBmNzc1ODc4ODhkZWM1ZWRlYmY3MmZjIn0"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2628-L2668",
-          "version": "repo-lines-v1:sha256:60519cc0151f04dcea6f0e4621ec2390a2636aab8f6eb6c6be16ba3072f05700:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNmZiOGVmOGFkNTliY2JkYmNjZDBmNTc3N2QxOTA2MTI5MzY0YmY4MTgyMzgxZTNlZmM4OTM2ZGM1MjRiN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5ZTZjYTAzY2VlOTg1OTZkMzcxOTViOTAxMzMyMTI5ZDhlOWZjNzhjNmU2MjQzMWFhNzhkOTE2M2JkOTAyMTUifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2777-L2785",
+          "version": "repo-lines-v1:sha256:c4a48085705fe2f538ad88e3b50272837bc055857bfde99925e96999d2ce17c8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDFlY2U1NWVkZjFkY2EwYTgyYTMxZjQ4MjdiYTJmMGRiZDk5MDdmYzYwZTc1OTZhM2IyZGUxYWQwMzE0M2FmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzZiYjc2ZWMzNTlhOGRkZDA2MjMwNzI4MjM0ZmUxMDgwYjZjYTczNjExMGI5ZWFmNjExZjRkMmM2Y2JjNmE0NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjZjOGZmNDU1MzkzNTVhZDQ0NDA3ZTkyYTEzMWJjMTNiNjI0NDdkZDFiZjlhMmI0NmY5ZTNmMjk2MGJjNTk1OCJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2858-L2875",
+          "version": "repo-lines-v1:sha256:119a46558c7e7c09a0d69533bf543418a1ae6c6788eff97bde6d9d4435461d9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5ZmQzYWIyNjYzZGYyOWJiMjY2NTZhZThlM2ZjYjYzM2RmN2FkMmQyNDk1Mjc0YmJkYmNlZThmZmY2ZTIzY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2YmI3NmVjMzU5YThkZGQwNjIzMDcyODIzNGZlMTA4MGI2Y2E3MzYxMTBiOWVhZjYxMWY0ZDJjNmNiYzZhNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5OGYyNWM0ZGMxOWIwOGExOGQwMzBlNzQ5MzdhMWFiYWQ3NjliMjNlODk5ZjY5NzhlMTFkYmM4ZTQ4YjJjZmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a19ed4b2d5d4f1b8dcd027905575000",
+      "statement": "Local services may remain unconfigured without bypassing Pro checks: missing RevenueCat configuration yields verificationFailed without a StoreKit fallback; Firebase configuration is separately optional and Crashlytics symbol upload defaults to disabled. Local service files are ignored, and private RevenueCat management credentials must never be put in app builds.",
+      "evidence": [
+        {
+          "resource": "repo://Configuration/README.md",
+          "version": "repo-file-v1:sha256:fc6249bfff2e51e95e294294a14ee7680ecf306ea4b61bb8088bbdb92caec5a2"
+        },
+        {
+          "resource": "repo://Configuration/Services.xcconfig",
+          "version": "repo-file-v1:sha256:ec2a4323b714912653744c9951e23a85e61ef0431a20e426fc66681d43f5c9f3"
+        },
+        {
+          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L205-L212",
+          "version": "repo-lines-v1:sha256:2fdffc1724d98f7c4c9e02d7a6822ac01d80272073fdadc7fadb9c682731a635:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGNmMDllYjBjNTc0NGZiOTczMzFiOThmZjNmYmYwNWE2MDJiYTNmN2Y2N2U1ZGE1YmU5MDk1MDMzZjYyNTgyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTFiNDhjM2QzZTlkODJhMjJlMTMzNmEzMGMzOGI4ODQ0N2I5ZmViYjlkMmFlNTlmN2Y5ZjhkNTkwNTIzZWUzMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzhjNGVkNTVmNWQ0N2RkMGYxYzQzNjczMmNhYTZiMDNkNDM1N2NhMzRmMWU2MDM1YTg1NzhlMWRhMGJkYjA5YyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L26-L49",
+          "version": "repo-lines-v1:sha256:077251ef802a6976a75fc68593ec8b931cff0df479bbc9f2e45d1721999f6a79:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliMmI4YjA0ZGQ4MGJhYmQ4OTYwOTkyODMwZDdiOTc1Nzc0YzBmM2RiZGZkZWQ4NTc4Njg1NWFkODE4NmFkNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmZGY2NTE2MzdlNjgyZDViMWNjM2RmYjA4N2FlY2U4ZWMzNTBkZmY1Njk1YjE5MWEyNWU0MjIwYjQ2YmU3MDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5MmE3NjFjOTcxYWE4MDVlOThjYzAxNGIxYjA5NWZhMWVjNmNlNThhNmM2YTNjZjRjZDFlZGE2ZjNhZmM4M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZjVmMTE1NGJhY2VlZmVjMWE3MmQxMjgxZDVjNjBjYzk1ZTViZGFiOTMyOGZjYTU3ZDE1OTczZTE1OGQyYzUifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.2",
-    "at": "2026-10-19T03:39:12.674Z"
+    "at": "2026-10-24T09:28:40.039Z"
   }
 }

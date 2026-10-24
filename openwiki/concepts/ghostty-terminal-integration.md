@@ -1,6 +1,6 @@
 ---
 type: integration guide
-title: Ghostty Terminal Integration
+title: Ghostty Terminal Surfaces
 description: Explain the boundary between Ghostty rendering and input and Termind transport, retained native surfaces, Find lifecycle, menu customization, upload policy, and appearance on macOS and iOS.
 tags: [ghostty, terminal, menus, macos, ios, integration]
 sources:
@@ -12,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/ResumableTerminalSession.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
+  - id: openwiki-source-9f901321faf927c1696ac6e6
+    resource: repo://Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift
   - id: openwiki-source-e4f5ea9b30063cdc7d027956
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
@@ -70,13 +72,13 @@ sources:
     resource: repo://TFMTests/TerminalResizeThrottleTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "pi", at: "2026-10-19T04:32:02.799Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T04:32:02.799Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Ghostty Terminal Integration
+# Ghostty Terminal Surfaces
 
 Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH-backed terminals (SSH, Mosh and Eternal Terminal), Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
 
@@ -150,7 +152,7 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 `MobileTerminalView` maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It preserves the package handlers, places editing actions in a medium-sized inline group, and places localized Upload File actions in a separate inline group before other inherited items. Non-action elements and unrecognized actions are preserved after those groups. This preserves an inherited system menu if supplied, but does not establish when UIKit supplies AutoFill.
 
-`MobileWorkspace.configureTerminalUpload` installs handlers only for SSH-backed terminal workspaces (`isSSHTerminal`: SSH, Mosh and Eternal Terminal). The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
+`MobileWorkspace.configureTerminalUpload` installs handlers only for SSH-backed terminal workspaces (`isSSHTerminal`: SSH, Mosh and Eternal Terminal). The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the workspace must have a reported usable directory, supplied by terminal working-directory reporting or the active runtime context. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
 
 **Package evidence boundary:** the mobile menu contract here is derived from [Termind's overrides](../../TFI/Platform/MobileTerminalSurface.swift), not an audit of package internals or a currently available mobile menu test suite. The repository records the direct upstream remote package pin, and the host overrides establish the touch-hook contract used by Termind. They do not establish the package's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
 
@@ -167,6 +169,12 @@ The desktop menu also offers **Open with SFTP** in the current or a new workspac
 Desktop `PersistentTerminalViewOwner` creates the in-memory backend, `TerminalViewState` and `TermindTerminalView` once, then mounts the same view in a changing `NSViewRepresentable` container. Mobile `MobileWorkspace` likewise creates a backend and state once and returns its retained `MobileTerminalSurface` view through `makePlatformView`. Both pass remote output into the backend and route keyboard/paste output to their transport. Do not reset surface options on an ordinary view update: replacing the controller or backend can tear down the live surface.
 
 Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for all non-SFTP workspaces, hiding it and disabling hit testing and accessibility rather than replacing it. `MobileTerminalInitialFocus` also disables native interaction and resigns first responder while Journey blocks input. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
+
+Despite its name, desktop `TerminalPlaceholderView` is the live SSH terminal composition, not a disposable connection placeholder. The retained surface determines pane geometry; Journey and upload decorations are overlays so their minimum sizes cannot enlarge a short pane. A connection Journey or remote-session selection prompt hides the surface, disables hit testing and accessibility, and passes false visibility/focus requests to its mount. Cancelling the connection closes the pane rather than exposing the pre-Journey buffer. On appearance the view reasserts `sshSession.inputRouter = workspace`, keeping input routed to the current workspace after pane moves.
+
+### Selection and input provenance
+
+Desktop Copy on Select copies after a local mouse-selection gesture completes; remote mouse capture does not arm that copy. Registered Termind shortcuts fall through to the application command chain, while other key equivalents use Ghostty. Keyboard and paste handling are wrapped in `TerminalInteractiveInputCapture` before the backend write callback classifies outgoing bytes. This distinguishes interactive writes for Broadcast Input from ordinary backend writes such as protocol replies. A short-lived deferred ticket accommodates asynchronous callbacks, and bracketed-paste provenance is retained through the closing marker with an expiry. Uploaded-text insertion uses a local-paste scope rather than becoming broadcast input. The backend callback alone is therefore not sufficient evidence that bytes came from a user keystroke.
 
 ### Reparenting and keyboard focus
 
@@ -251,7 +259,7 @@ The former app-owned keyword-highlighting feature and its shared modifier/rule m
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.
 - [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys. Its full-workspace SSH fixture also checks unchanged native surface, output and connection generation through repeated reopening with empty, matching and missing queries.
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
-- `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All, conditional Copy, right-click-paste with Option bypass, live Upload File availability and stale pane-binding teardown.
+- `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All and absence of Copy without selection, right-click-paste menu suppression with Option bypass, live Upload File availability and stale pane-binding teardown. Selection-present Copy composition and remote mouse capture are supported by the implementation, not exercised by this suite.
 - `MobileTerminalUploadMenuTests.swift` is no longer present in `TFITests`. For mobile menu changes, verify both touch contexts, inherited-item ordering, absent upload handlers and live availability checks; these are regression targets, not claims of current test coverage. Package gesture mechanics require inspecting the pinned upstream source and testing the targeted interaction.
 - `FrameworkTests/RetiredTerminalHighlightingTests.swift` opens V46/V51 stores, checks cleanup after upgrading/reopening, retires pending uploads and verifies malformed legacy records do not disrupt other settings. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
 

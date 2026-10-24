@@ -50,10 +50,10 @@ sources:
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
   - id: openwiki-source-e2a181897da756060494e573
     resource: repo://TFMTests/TerminalActivationWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
 # SSH Multiplexing and Scheduling
@@ -136,9 +136,27 @@ Each command owns:
 - Its own stdin byte queue with consumed-byte zeroization, stdout/stderr decoders and buffers, truncation counters, deadline, cancellation token, and completion continuation.
 - For legacy one-shot execution, a deadline clamped to 1–900 seconds and created **after** channel-budget admission. Session-backed Agent execution has no command runtime deadline; its explicit session controls stdin and cancellation.
 
-Only one `opening` command is advanced through `libssh2_channel_open_ex` at a time; an EAGAIN leaves that pending open in place. Ordinary session-control commands can retry server channel-open failure after 50 ms, within their deadline, but only **before** sending exec; runtime observation disables that retry. Once opened, a command optionally requests Agent forwarding, advances to exec startup, and then runs. A running turn writes queued stdin, sends EOF when appropriate, drains stdout/stderr within the quantum/deadline, and moves to closing when remote EOF arrives. Close is followed by `waitingForClose` and freeing; exit status/signal are captured after waiting for close, and freeing retries native channel release. Stream output limits count accepted **remote bytes per stream**, not a single combined decoded-character limit; excess is drained but marked truncated. The output callback runs on the serial owner and must return promptly.
+Only one `opening` command is advanced through `libssh2_channel_open_ex` at a time; an EAGAIN leaves that pending open in place. Ordinary session-control commands can retry server channel-open failure after 50 ms, within their deadline, but only **before** sending exec; runtime observation disables that retry. Once opened, a command optionally requests Agent forwarding, advances to exec startup, and then runs. A running turn writes queued stdin, sends EOF when appropriate, drains stdout/stderr within the quantum/deadline, and moves to closing when remote EOF arrives. Close is followed by `waitingForClose` and freeing; exit status/signal are captured after waiting for close, and freeing retries native channel release. For legacy one-shot execution, output limits count accepted **remote bytes per stream**, not a combined decoded-character limit; excess is drained but marked truncated. Session-backed execution instead decodes all output, delivers it to the callback, and retains a bounded decoded output tail per stream (256 KiB per stream through `SSHConnectionWorker.executeSession`). The output callback runs on the serial owner and must return promptly.
 
 Cancellation or timeout can resume the caller **before native close completes**. The command and its lease remain owned until close/free finishes or connection teardown disposes all state. Returning from a cancelled call is therefore not evidence that a session slot is free.
+
+Agent-forwarding negotiation has a connection-wide safety boundary: the exec owner serializes the request through one command and remembers success so later channels do not repeat it. Cancelling that command while its request is unanswered fails the connection, rather than retrying a potentially accepted request on another channel. This is an exception to ordinary channel-local cancellation.
+
+```mermaid
+flowchart TD
+    Caller[Caller cancellation or timeout] --> Reply[Complete caller promptly]
+    Caller --> Logical[Logical exec enters close and free]
+    Logical --> Lease[Release session lease after native retirement]
+    Lease --> Alive[Physical worker can continue serving peers]
+    Caller --> Pending{Unanswered Agent forwarding request?}
+    Pending -->|yes| Teardown[Fail physical connection]
+    Disconnect[Explicit worker disconnect or transport failure] --> Teardown
+    Teardown --> Fence[Advance generation and close owners and budget]
+    Fence --> Sources[Cancel both socket sources]
+    Sources --> Close[Close transport after handlers retire]
+```
+
+Logical command completion and lease retirement are separate from physical worker teardown; cancellation of an unanswered connection-wide forwarding request crosses that boundary.
 
 The main pump and its admission boundary can be read as this reduced scheduling flow:
 

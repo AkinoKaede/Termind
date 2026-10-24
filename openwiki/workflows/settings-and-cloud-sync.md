@@ -1,6 +1,6 @@
 ---
 type: synchronization workflow
-title: Settings and Cloud Sync
+title: Settings and Cloud Sync Workflow
 description: Settings mutation and persistence, device-local desktop language selection, and app-wide ownership of CloudKit synchronization, journals, recovery, and secret boundaries.
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
 sources:
@@ -14,10 +14,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-d7d857d696a915d0708e13b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift
-  - id: openwiki-source-ff7e1a7fb4c2e41f0599b10c
-    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalCustomThemeDraft.swift
-  - id: openwiki-source-4ae2a0061a7bd729d6e132b4
-    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-44f3b562f3c7b739d591cf92
@@ -40,6 +36,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-a8fad452641063d08c718602
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordReceiving.swift
   - id: openwiki-source-178dc6c157419c602103a0ba
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncReplicaStore.swift
   - id: openwiki-source-e9c12faee0c7be74b1cc02af
@@ -174,13 +172,13 @@ sources:
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Settings and Cloud Sync
+# Settings and Cloud Sync Workflow
 
 Termind replicates a SwiftData-backed journal into the private `iCloud.com.akinokaede.termind` CloudKit container; this is **not** SwiftData CloudKit mirroring (`TermindPersistence.makeContainer` uses `cloudKitDatabase: .none`). Five writable owners—Vault, Settings, Metrics, Connection History, and Device—each own an engine, subscription, binding, queue, and lifecycle. History and Device retain the **same deployed zone**, `TermindConnectionHistoryV1`, but use separate subscriptions, kind-filtered journals and state rows, and separate safety scopes (Device's scope has consumer `device`; History keeps the original empty consumer). Neither should consume, reset or acknowledge the other's records. `HistoryRecordSyncCoordinator` shares the record-handling implementation, **not** their engine or account state. The former legacy importer is retired: Vault ignores obsolete History/Device copies in its own zone; it neither imports nor currently schedules physical cleanup of those copies. [CloudSyncJournal](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift), [HistoryRecordSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift), [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift).
 
@@ -417,6 +415,24 @@ Host V3 is **not** a production reader. Record names retain their `v1/` identity
 
 Unsupported versions/kinds, malformed payloads, invalid native fields and known-ID conflicts are quarantined with reason, received bytes (full secure `CKRecord` archive for native fields) and system fields in the container/environment/account/zone/**consumer** scope. Valid remote records, including `serverRecordChanged` replies, merge in a transaction with system-field updates and quarantine removal; failed persistence rolls back the unblock. Future unknown record types in an ordinary fetch may be ignored, but an unexpected type on a conflicting known ID cannot bypass validation. Scoped restrictions persist across pause, retry, relaunch and normal account/environment/zone resets, retain local pending intent, and do not block unrelated records. History and Device restrictions cannot leak into each other. [CloudSyncLifecycleSafety](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L49-L90), [CloudSyncSafetyStore](../../Frameworks/TermindPersistence/CloudSyncSafetyStore.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift).
 
+Within a received batch, an unreadable representation wins over every readable representation of the **same record name**, regardless of arrival order. The shared decoder quarantines the bad representation and removes all decoded candidates for that name, so a supported duplicate cannot immediately clear the restriction. Failure to persist quarantine propagates rather than allowing the merge to proceed. [Shared receive decoder](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordReceiving.swift), [Batch-order regressions](../../FrameworkTests/CloudSyncSafetyTests.swift#L195-L227).
+
+```mermaid
+flowchart TD
+    Records["Fetched records or conflict replies"] --> Filter["Apply owner and retired-kind filters"]
+    Filter --> Decode["Validate type, identity, version and payload"]
+    Decode -->|Unreadable| Quarantine["Persist scoped quarantine and reject this record name"]
+    Decode -->|Readable| Candidates["Collect decoded candidates"]
+    Candidates --> Exclude["Remove every candidate with a rejected name"]
+    Quarantine --> Exclude
+    Exclude --> Commit["Commit winners, projection, metadata and valid-record unblock"]
+    Commit --> UI["Publish committed snapshot"]
+    Quarantine --> Held["Preserve intent but block outgoing record"]
+    Held --> Replay["Later supported fetch or capability-driven refetch"]
+    Replay --> Decode
+```
+A readable duplicate cannot undo quarantine in the same batch; recovery requires a later successfully validated and committed receive path.
+
 Three checks protect outgoing changes: the replica sidecar omits blocked IDs when it enumerates journal mutations; reconciliation removes obsolete/blocked restored engine entries; and the synchronous batch checks current engine, fetch readiness, mutation operation and restriction again in each record provider. Each batch admits **at most 250 materialized changes in total (saves plus deletes)**, not 250 saves plus deletes; invalid/blocked entries do not consume that limit. A deletion cannot leave before its causal handoff is saved, and sent-record or delete acknowledgement cannot clear a newer pending incarnation. An unreadable safety/journal state fails closed rather than being read as an empty set. [CloudSyncRecordStateStore](../../Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L122-L148), [CloudSyncLifecycle](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L523-L600), [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecycleTests.swift#L11-L30).
 
 A changed decoder capability ID in **Vault, Settings and each native History/Device consumer** forces a scoped refetch and checkpoints capability only after a successful fetch/merge; Settings computes its ID from participating record kinds at V1, while Metrics passes its versioned decoder capability ID. Vault's capability string is derived from sorted kind names and their sorted **reading versions**, not the local SwiftData schema or the writing version. Adding V4/V5 readers therefore replays unchanged CloudKit records skipped under earlier capabilities, without discarding pending local edits. No current fence can retrofit a previously shipped unsafe binary; adding silently ignored fields in an existing version without raising the breaking version remains unsafe. [CloudSyncLifecycleSafety](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L65), [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L78-L95), [HistoryRecordSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift#L61-L98), [SettingsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L91-L105), [MetricsSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L81-L94).
@@ -468,7 +484,7 @@ UI edits live in `TerminalCustomThemeDraft` until a save entrypoint succeeds. De
 
 The existing Settings owner writes native `TerminalCustomThemeItem` and `TerminalThemeSelectionItem` records in its existing zone. They use typed V1 metadata and fields rather than a JSON payload. Configuration is inline text or a raw UTF-8 `configurationAsset` above the shared inline threshold, with a SHA-256 `configurationHash`; readers reject inconsistent field combinations, corrupt hashes, invalid identities/appearance and unsupported versions. Tombstones clear live fields. Native-field quarantine preserves the record archive for later decoding. Committed remote snapshots reach `applyRemoteThemes` on both app models, not the draft Save path. [Native theme contract](../../Frameworks/TermindInfrastructure/Cloud/TerminalThemeCloudRecordV1.swift), [Settings owner](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L242-L295), [Desktop reconciliation](../../TFM/App/AppModel.swift#L468-L477), [Mobile reconciliation](../../TFI/App/MobileAppModel.swift#L448-L457).
 
-Legacy dark/light custom configuration is migrated during preparation and after a remote journal merge. Migration uses deterministic IDs derived from appearance, base and text, and baseline clocks that cannot outrank an explicit newer choice. A selection envelope—including its tombstone—is the per-mode migration marker. Fresh defaults do not publish an empty migration; later legacy cloud settings can still seed the library. Once a native selection exists, old terminal-singleton writes do not erase that library. [Migration](../../Frameworks/TermindPersistence/TerminalThemePersistence.swift#L101-L159), [Remote materialization](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L174-L222), [Migration tests](../../FrameworkTests/TerminalCustomThemeTests.swift#L114-L160).
+Legacy dark/light custom configuration is migrated during preparation and when a remote terminal-singleton winner is accepted. Migration uses deterministic IDs derived from appearance, base and text, and baseline clocks that cannot outrank an explicit newer choice. Explicit native selections and tombstones finish migration for their appearance; an **untouched baseline seed** can still follow a later accepted legacy winner without acquiring a new user-choice clock. This requires both the selection and any seeded theme to match the previous legacy value at baseline. Native selections accepted in the same batch take precedence, and an existing theme edit or tombstone owns its deterministic ID. Unrelated remote traffic does not migrate locally changed legacy preferences. Fresh defaults do not publish an empty migration; later legacy cloud settings can still seed the library. [Migration](../../Frameworks/TermindPersistence/TerminalThemePersistence.swift#L101-L159), [Remote materialization](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L174-L222), [Migration tests](../../FrameworkTests/TerminalCustomThemeTests.swift#L114-L160).
 
 ```mermaid
 flowchart TD

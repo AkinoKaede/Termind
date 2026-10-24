@@ -1,6 +1,6 @@
 ---
 type: workflow
-title: Terminal Connection and Session Lifecycle
+title: Connection and SSH Session Lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 sources:
@@ -118,6 +118,8 @@ sources:
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
   - id: openwiki-source-28243bbeecc381626d39eeb6
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
+  - id: openwiki-source-72e61dbb0cab28991fe07481
+    resource: repo://TFITests/MobileWorkspacePersistenceTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
@@ -156,13 +158,13 @@ sources:
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Terminal Connection and Session Lifecycle
+# Connection and SSH Session Lifecycle
 
 Terminal lifetime has three independent dimensions: the local pane/workspace owner, the remote shell or multiplexer session, and the network transport. SSH reconnection authenticates a new transport; a managed backend can preserve the shell across that replacement. Mosh and Eternal Terminal (ET) instead recover their protocol session, optionally with a managed multiplexer running inside it. Neither a transport checkpoint nor a display name grants permission to terminate a remote session.
 
@@ -208,7 +210,7 @@ Host selection is not permission to open indefinitely. Desktop `AppModel.open` a
 
 ## Prepare the route and attribute proxies correctly
 
-`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. Cancellation cancels that worker; if it has already returned a configuration, the awaiting task checks cancellation and clears its secrets before throwing. Partial resolution also clears any collected jump/target credentials and proxy passwords on failure. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes an unavailable secret-store error from an absent credential, permits username-only identities to reach server authentication, and avoids reading a protected key before a required passphrase has been supplied. Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
+`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. Cancellation cancels that worker; if it has already returned a configuration, the awaiting task checks cancellation and clears its secrets before throwing. Partial resolution also clears any collected jump/target credentials and proxy passwords on failure. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes an unavailable secret-store error from an absent credential, permits username-only identities to reach server authentication, and rejects a protected key lacking both a saved passphrase and a supplied passphrase, clearing the resolved key material before throwing. Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
 
 Each node may carry a separate proxy configuration and proxy identity/submission. The proxy password is resolved independently from SSH credentials and becomes an `SSHTransportProxy` with `ownerHostID` set to the host whose proxy it is. This preserves a key UI and retry invariant:
 
@@ -493,7 +495,7 @@ An ET data-route snapshot is progress, not protocol readiness. A `.ready` route 
 
 ## Latest viewport at startup
 
-PTY size belongs to the current connection generation, not the configuration captured before a trust or authentication prompt. Desktop primes a new ordinary SSH channel with `latestViewport`, including pixel dimensions, before connect. `SSHPTYResizeState` preserves a valid pre-connect viewport for the first attempt, coalesces updates during authentication, ignores zero dimensions, and discards old requests when an attempt is replaced or disconnected. The initial PTY uses the latest requested size. Prepared startup uses `SSHPTYStartupSizing` to synchronize pending window changes before starting the remote process; libssh2 retries remain queue-confined. See [SSHPTYResizeTests](../../TFMTests/SSHPTYResizeTests.swift) and the [PTY worker](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
+PTY size belongs to the current connection generation, not the configuration captured before a trust or authentication prompt. Desktop primes a new ordinary SSH channel with `latestViewport`, including pixel dimensions, before connect. `SSHPTYResizeState` preserves a valid pre-connect viewport for the first attempt, coalesces updates during authentication, ignores zero dimensions, and discards old requests when an attempt is replaced or disconnected. The initial PTY uses the latest requested size. Prepared startup uses `SSHPTYStartupSizing` to synchronize pending window changes before starting the remote process. The PTY request retains its original geometry across `EAGAIN`; newer geometry is flushed between PTY creation and the first process-start request, whose arguments also remain stable across retries. libssh2 retries remain queue-confined. See [SSHPTYResizeTests](../../TFMTests/SSHPTYResizeTests.swift) and the [PTY worker](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
 
 Resumable startup has a related ordering barrier: after engine start, `ResumableTerminalClient` repeatedly reconciles the latest viewport across awaits, sends startup/integration input once, and disconnects bootstrap SSH before publishing startup completion. A resize received while startup is suspended cannot be overwritten by a stale initial size. Protocol-specific mechanics belong to [Mosh + Eternal Terminal](../integrations/mosh-and-eternal-terminal.md).
 
@@ -515,7 +517,7 @@ The platform rules intentionally differ:
 
 | Situation | Desktop macOS | Mobile iOS and iPadOS |
 | --- | --- | --- |
-| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `MobileWorkspaceStore.retire` deletes legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`, including malformed bytes. A separate versioned `mobile.restorableWorkspaces.v1` stores eligible resumable and managed-SSH descriptors in their original scene lists. Cold launch loads descriptors but creates no live workspace, transport or history attempt until selection. Corrupt restoration data blocks subsequent overwriting and reports an error. Recently-closed records remain process-local. |
+| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `MobileWorkspaceStore.retire` deletes legacy `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`, including malformed bytes. A separate versioned `mobile.restorableWorkspaces.v1` stores saved-Host SSH, SFTP, Telnet, Mosh and ET descriptors in their original scene lists, even when session persistence is disabled. Plain SSH restoration is connection intent, not shell recovery. Cold launch loads descriptors but creates no live workspace, transport or history attempt until selection. Corrupt restoration data blocks subsequent overwriting and reports an error. Recently-closed records remain process-local. |
 | Reopen/select and scene ownership | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Within the same process, selection reuses the owning scene's live object. Links to another owner activate its native scene. Scene disconnect alone preserves ownership while its native session exists. Reconciliation hands off existing live objects without reconnect or new history, while descriptor mutations persist the changed scene ownership. A late explicit discard still closes only the originating scene's handed-off workspaces. |
 | Background/foreground | Native window close can be vetoed before any teardown; accepted closure retires only that window's workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks unsaved themes and pending external edits, not open workspaces, before shared shutdown and a bounded native termination reply. | When all scenes background, resumable workspaces begin checkpoint suspension immediately. Sync, metrics and outbox pause and external-edit monitoring stops; a UIKit background task protects remaining work. Expiration suspends active non-resumable flows, stops forwarding, pauses transfers and cancels Assistant runs, whose drains precede closing Agent background commands/pool. Foreground resumes only recorded intent: a live resumable client waits for checkpoint saving, invalidates its disk recovery and resumes its protocol; ordinary SSH reconnects. Returning before expiration keeps healthy ordinary SSH intact. |
 | Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes live and saved entries immediately and remembers reopen intent without references accepted for cleanup; deleting a saved Host also removes its live and unopened records across scenes. |
@@ -525,6 +527,10 @@ Mobile recently-closed intent is shared across scenes **only in this process**. 
 Live Activity links select an existing workspace ID rather than reconstructing a connection from the card. `MobileSceneModel.open` finds the owning scene, activates another owner when necessary, or selects the local saved/live workspace. Unknown IDs report unavailable; a stale card cannot rebuild an explicitly closed session. Cold launch publishes saved descriptors as disconnected activity entries without creating transports. Selection restores the same descriptor ID and its managed reference, not a new ID or an unconditional `requiresSelection` override. URLs exclude recovery capabilities and commands; the restoration store is the source of connection intent.
 
 Selecting a resumable descriptor requires its transport checkpoint; missing/incompatible checkpoints fail visibly rather than bootstrap a new shell. If a separate managed reference exists, the feature may discard failed transport recovery and require backend selection/identity validation over a new transport, without replaying the command.
+
+A disabled protocol or not-yet-discovered Host does not delete its dormant descriptor: selection returns unavailable, the record remains closable, and later Host discovery can make it selectable. Descriptor handoff commits the complete destination snapshot before releasing source objects; a failed save leaves the source runtime and ownership intact. Native discard of an unbound prior-launch scene marks its descriptors for recovery rather than treating them as an explicit workspace close. Late discard only closes transferred work from a scene used in this process.
+
+[MobileWorkspacePersistenceTests](../../TFITests/MobileWorkspacePersistenceTests.swift) covers all five saved-Host protocols with persistence enabled and disabled, plain SSH versus transient external links, disabled/missing Hosts, attachment changes, and exclusion of one-shot commands from cold restoration.
 
 These boundaries are asserted by [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift), [MobileLiveActivityRestorationTests](../../TFITests/MobileLiveActivityRestorationTests.swift), [MobileWorkspaceStoreTests](../../TFITests/MobileWorkspaceStoreTests.swift) and [MobileWorkspaceSessionTests](../../TFITests/MobileWorkspaceSessionTests.swift). Legacy-cache deletion tests do not imply that the new restoration store is empty.
 
@@ -600,7 +606,7 @@ stateDiagram-v2
 
 When changing connection code, preserve these boundaries:
 
-- Build only `SSHConnectionPreparation` snapshots from UI/store state; do not carry plaintext through retry state or reusable snapshots.
+- For preparation-based callers, snapshot UI/store state into `SSHConnectionPreparation`; preserve the desktop prompt-first path's equivalent one-shot ownership. Do not carry plaintext through retry state or reusable snapshots.
 - Keep proxy submission and SSH submission separate, and preserve the proxy `ownerHostID` so the Journey stays on the prior endpoint.
 - Do not make a URI fingerprint or temporary approval durable trust, and do not bypass authorization on a known-host mismatch.
 - Put callbacks from sockets, timers, detached preparation, and authentication behind the current attempt/generation check before touching feature state; clear secrets if preparation is cancelled after resolving them.

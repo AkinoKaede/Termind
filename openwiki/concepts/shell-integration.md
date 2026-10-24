@@ -1,6 +1,6 @@
 ---
 type: implementation guide
-title: Shell Integration and Terminal Context
+title: Shell Integration and Command Context
 description: "SSH shell startup, multiplexer context inspection, display-only native directories, context-bound history and capability-gated drafts. Explains active-context authority, replay protection, command notifications and separate Telnet semantics."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
 sources:
@@ -58,13 +58,13 @@ sources:
     resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-18T12:28:54.264Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-18T12:28:54.264Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# Shell Integration and Terminal Context
+# Shell Integration and Command Context
 
 ## Ownership and entrypoint
 
@@ -166,21 +166,31 @@ Runtime composition uses `.readDraft`/`.replaceDraft` tickets, `SSHPTYChannel.co
 
 ## End-to-end byte and event path
 
-The diagram below preserves the **legacy bootstrap/command-filter path**. Prepared runtime sessions instead select `RemoteTerminalContextFilter` first and publish scoped runtime updates; they do not also run the legacy command filter on those bytes. Both paths feed visible bytes into OSC 7 rewriting and the streaming charset converter. The diagram is not the active-context authority for runtime sessions.
+Prepared runtime sessions select `RemoteTerminalContextFilter` and publish scoped runtime updates; they do not also run the legacy command filter on those bytes. The retained legacy bootstrap/command-filter path is separate. Both paths feed visible bytes into OSC 7 rewriting and the streaming charset converter, but only coordinator-accepted runtime events drive context-bound history and completion reporting.
 
 ```mermaid
 flowchart TD
-    Shell[Remote PTY output] --> Bootstrap[Bootstrap receive or poll]
+    Shell[Remote PTY output] --> Select{Runtime filter configured?}
+    Select -->|Yes| Runtime[Token-scoped runtime context filter]
+    Select -->|No| Bootstrap[Legacy bootstrap receive or poll]
     Bootstrap -->|probe or install command| Writes[PTY pending writes]
-    Bootstrap -->|availability and system metadata| Events[Shell integration events]
+    Bootstrap -->|availability and system metadata| Events[Legacy shell events]
     Bootstrap -->|visible bytes| Filter[Token-scoped OSC 777 filter]
     Filter -->|command prompt draft events| Events
     Filter -->|remaining bytes| Cwd[OSC 7 remote-charset rewrite]
+    Runtime -->|visible bytes| Cwd
+    Runtime -->|runtime updates| Coordinator[TerminalContextCoordinator]
+    Journal[Multiplexer journal inspection over exec] --> Coordinator
+    Coordinator -->|active snapshot and tickets| Feature[Desktop session or mobile workspace]
+    Coordinator -->|accepted events| History[Context-bound command history]
+    Coordinator -->|accepted events| Monitor[TerminalCommandMonitor]
+    Feature -->|validated draft request| Draft[Context-bound draft control]
+    Monitor --> Alerts[Unread accounting and notification policy]
     Cwd --> Charset[Streaming charset conversion to UTF-8]
     Charset --> Terminal[Native terminal backend]
     Terminal --> WorkingDirectory[Parsed working directory]
-    Events --> Feature[Desktop session or mobile workspace]
-    WorkingDirectory --> Feature
+    Events --> Feature
+    WorkingDirectory -->|before runtime ownership| Feature
 ```
 
 SSH PTY receive flow: event frames are removed before charset conversion, while cwd is rewritten before terminal parsing.

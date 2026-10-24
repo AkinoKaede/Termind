@@ -1,6 +1,6 @@
 ---
 type: integration guide
-title: MCP Server and Bridge
+title: MCP Server, Bridge, and External Tools
 description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
 tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
 sources:
@@ -48,6 +48,8 @@ sources:
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-c9bf78a232400ae8f6ee792c
+    resource: repo://TFM/Application/FeatureModels/ToolAuditModel.swift
   - id: openwiki-source-8a6e94328a445c3566ef9d57
     resource: repo://TFM/Application/MCPServer/MCPDownloadCoordinator.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -80,13 +82,13 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-19T03:39:12.674Z" }
+generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
 verified:
   - by: openwiki/0.7.2
-    at: 2026-10-19T03:39:12.674Z
+    at: 2026-10-24T09:28:40.039Z
 ---
 
-# MCP Server and Bridge
+# MCP Server, Bridge, and External Tools
 
 Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, configure a manual Bearer credential or OAuth, set per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
@@ -181,13 +183,17 @@ The bridge has an independent startup: an external client launches the bundled e
 
 The long-lived server token is generated from 32 secure random bytes and encoded as URL-safe Base64. It is stored only in this-device Keychain storage. Older iCloud-stored values are migrated only after a verified local copy exists, then the cloud copy is removed; a failed migration remains retryable rather than silently losing the credential.
 
-**Rotation is a revocation event, not just a preference update.** The controller stops transfers and all MCP sessions, replaces the HTTP token, and disconnects existing HTTP connections. Clients must update their configuration with the new token; a token/port change invalidates copied setup commands.
+Token storage failures are not treated as a missing credential: `ensureToken()` returns nil while `tokenStorageError` is set, and startup clears persisted enablement if it cannot obtain a token. Saving a replacement verifies the stored value and attempts to restore the previous value on failure. Generation or save failure reports failed status and returns before scheduling session revocation or HTTP token replacement; do not assume a failed rotation disconnected existing clients. See [token storage](../../TFM/Infrastructure/Security/MCPServerTokenStore.swift).
+
+**Successful rotation is a revocation event, not just a preference update.** The controller stops transfers and all MCP sessions, replaces the HTTP token, and disconnects existing HTTP connections. Clients must update their configuration with the new token; a token/port change invalidates copied setup commands.
 
 ## Listener security boundary
 
 `LoopbackHTTPServer` creates listeners specifically bound to IPv4 loopback (`127.0.0.1`) and IPv6 loopback (`::1`) with `acceptLocalOnly`; it does not bind an externally reachable interface. It limits connections to 64, headers to 64 KiB, and ordinary MCP request bodies to 4 MiB. Normal routes require `Authorization: Bearer <server-token>` and compare token bytes in constant time.
 
 If an `Origin` header is present, it must be a bare HTTP(S) loopback origin: `localhost`, `::1`, or a `127.x.x.x` address. Clients without `Origin` remain supported. Unauthenticated/invalid-origin requests are closed after their response so an unconsumed body cannot be reused on a persistent connection.
+
+Browser preflight is a narrow exception to Bearer authentication: `OPTIONS` on `/mcp`, `/sse`, or `/messages` validates a supplied loopback Origin, route-specific requested method, and allowlisted request headers, then returns `204` without dispatching RPC. Invalid origins, methods, and headers return `403`, `405`, and `400` respectively. MCP responses to allowed origins echo that origin and expose `Mcp-Session-Id`, `MCP-Protocol-Version`, and `WWW-Authenticate`. This does not authorize tool execution or extend CORS handling to byte routes; even though preflight permits `GET /mcp`, the actual protocol route returns `405`. See [listener CORS handling](../../TFM/Infrastructure/Networking/LoopbackHTTPServer.swift).
 
 The two file byte routes are intentionally different:
 
@@ -208,6 +214,7 @@ sequenceDiagram
     participant Protocol as MCP protocol
     participant Tools as MCP tools
     participant Auth as External auth UI
+    participant Audit as Tool audit metadata store
     Client->>HTTP: POST /mcp with Bearer token
     HTTP->>HTTP: verify token and loopback Origin
     HTTP->>Protocol: forward bounded JSON request
@@ -217,7 +224,9 @@ sequenceDiagram
         Tools->>Auth: enqueue request for client and session
         Auth-->>Tools: user response or cancellation
     end
-    Tools-->>Protocol: tool result and audit metadata
+    Tools->>Audit: ordered execution events for registered run
+    Note over Audit: retain metadata only, not result or file bodies
+    Tools-->>Protocol: externally projected tool result
     Protocol-->>HTTP: JSON-RPC response and session header
     HTTP-->>Client: HTTP response
 ```
