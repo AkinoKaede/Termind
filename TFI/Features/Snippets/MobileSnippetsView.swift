@@ -70,11 +70,17 @@ struct MobileSnippetsView: View {
                 ForEach(sections) { section in
                     VStack(alignment: .leading, spacing: 12) {
                         sectionHeader(section)
+                            .modifier(
+                                MobileCardDropTarget(
+                                    reordering: cardReordering, orderedIDs: section.snippets.map(\.id),
+                                    move: { moveSnippet($0, into: section.id.packageID, before: $1) }))
                         if section.isExpanded != false {
-                            MobileCardGrid(compact: compactCards) {
-                                ForEach(section.snippets) { snippet in
-                                    snippetCard(snippet, showsPackage: !query.isEmpty)
-                                }
+                            MobileReorderableCardGrid(
+                                items: section.snippets, compact: compactCards, reordering: cardReordering
+                            ) { id, before in
+                                moveSnippet(id, into: section.id.packageID, before: before)
+                            } content: { snippet in
+                                snippetCard(snippet, showsPackage: !query.isEmpty)
                             }
                         }
                     }
@@ -175,6 +181,16 @@ struct MobileSnippetsView: View {
                 .buttonStyle(.borderedProminent)
             }
         }
+    }
+
+    private var cardReordering: MobileCardReordering? {
+        guard query.isEmpty else { return nil }
+        return MobileCardReordering(collection: .snippets, allowedIDs: Set(app.snippets.snippets.map(\.id)))
+    }
+
+    private func moveSnippet(_ id: UUID, into package: UUID?, before next: UUID?) {
+        app.snippets.move(snippetIDs: [id], into: package, before: next)
+        reportStorageError()
     }
 
     private func sectionHeader(_ section: SnippetLibrarySection) -> some View {

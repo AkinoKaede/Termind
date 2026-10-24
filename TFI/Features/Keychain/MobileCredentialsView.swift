@@ -36,58 +36,62 @@ struct MobileCredentialsView: View {
                     if app.credentials.keys.isEmpty {
                         ContentUnavailableView(AppStrings.Keychain.noKeys.swiftUIKey, systemImage: "key")
                     }
-                    MobileCardGrid(compact: compactCards) {
-                        ForEach(keys) { key in
-                            MobileActionCard(compact: compactCards) {
+                    MobileReorderableCardGrid(
+                        items: keys, compact: compactCards,
+                        reordering: query.isEmpty
+                            ? MobileCardReordering(collection: .keys, allowedIDs: Set(keys.map(\.id))) : nil
+                    ) { id, before in
+                        app.credentials.move(keyIDs: [id], before: before)
+                        if let error = app.credentials.storageError { app.error = error }
+                    } content: { key in
+                        MobileActionCard(compact: compactCards) {
+                            exportingKey = key
+                        } content: {
+                            MobileKeyCredentialCard(key: key, credentials: app.credentials, compact: compactCards)
+                        } actions: {
+                            Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: "square.and.arrow.up") {
                                 exportingKey = key
-                            } content: {
-                                MobileKeyCredentialCard(key: key, credentials: app.credentials, compact: compactCards)
-                            } actions: {
-                                Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: "square.and.arrow.up")
-                                {
-                                    exportingKey = key
+                            }
+                            Divider()
+                            Menu(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                                Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "key") {
+                                    UIPasteboard.general.string = key.publicKey
                                 }
-                                Divider()
-                                Menu(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
-                                    Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "key") {
-                                        UIPasteboard.general.string = key.publicKey
-                                    }
-                                    .disabled(key.publicKey.isEmpty)
-                                    Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "touchid") {
-                                        UIPasteboard.general.string = key.fingerprint
-                                    }
-                                    .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)
+                                .disabled(key.publicKey.isEmpty)
+                                Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "touchid") {
+                                    UIPasteboard.general.string = key.fingerprint
                                 }
-                                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
-                                    if key.algorithm == .securityKey {
-                                        editingSecurityKey = key
-                                    } else {
-                                        keyEditor = MobileKeyEditorModel(
-                                            mode: .edit, credentials: app.credentials, key: key)
-                                    }
-                                }
-                                Divider()
-                                Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
-                                    deletingKey = key
+                                .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)
+                            }
+                            Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
+                                if key.algorithm == .securityKey {
+                                    editingSecurityKey = key
+                                } else {
+                                    keyEditor = MobileKeyEditorModel(
+                                        mode: .edit, credentials: app.credentials, key: key)
                                 }
                             }
-                            .operationConfirmation(
-                                .init(AppStrings.Keychain.deleteKeyConfirmation),
-                                isPresented: $deletingKey.isPresenting { $0.id == key.id },
-                                actions: [
-                                    .init(AppStrings.Common.delete, role: .destructive) {
-                                        if let key = deletingKey {
-                                            do { try app.credentials.delete(keyID: key.id) } catch {
-                                                self.error = error.localizedDescription
-                                            }
-                                        }
-                                        deletingKey = nil
-                                    },
-                                    .init(AppStrings.Common.cancel, role: .cancel) { deletingKey = nil },
-                                ],
-                                message: .init(AppStrings.Keychain.deleteKeyWarning)
-                            )
+                            Divider()
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                                deletingKey = key
+                            }
                         }
+                        .operationConfirmation(
+                            .init(AppStrings.Keychain.deleteKeyConfirmation),
+                            isPresented: $deletingKey.isPresenting { $0.id == key.id },
+                            actions: [
+                                .init(AppStrings.Common.delete, role: .destructive) {
+                                    if let key = deletingKey {
+                                        do { try app.credentials.delete(keyID: key.id) } catch {
+                                            self.error = error.localizedDescription
+                                        }
+                                    }
+                                    deletingKey = nil
+                                },
+                                .init(AppStrings.Common.cancel, role: .cancel) { deletingKey = nil },
+                            ],
+                            message: .init(AppStrings.Keychain.deleteKeyWarning)
+                        )
                     }
                 }
             }
@@ -97,37 +101,42 @@ struct MobileCredentialsView: View {
                         ContentUnavailableView(
                             AppStrings.Keychain.noIdentities.swiftUIKey, systemImage: "person.crop.square")
                     }
-                    MobileCardGrid(compact: compactCards) {
-                        ForEach(identities) { identity in
-                            MobileActionCard(compact: compactCards) {
-                                editing = identity
-                            } content: {
-                                MobileIdentityCredentialCard(
-                                    identity: identity, credentials: app.credentials, compact: compactCards)
-                            } actions: {
-                                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = identity }
-                                Divider()
-                                Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
-                                    deletingIdentity = identity
-                                }
+                    MobileReorderableCardGrid(
+                        items: identities, compact: compactCards,
+                        reordering: query.isEmpty
+                            ? MobileCardReordering(collection: .identities, allowedIDs: Set(identities.map(\.id))) : nil
+                    ) { id, before in
+                        app.credentials.move(identityIDs: [id], before: before)
+                        if let error = app.credentials.storageError { app.error = error }
+                    } content: { identity in
+                        MobileActionCard(compact: compactCards) {
+                            editing = identity
+                        } content: {
+                            MobileIdentityCredentialCard(
+                                identity: identity, credentials: app.credentials, compact: compactCards)
+                        } actions: {
+                            Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = identity }
+                            Divider()
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                                deletingIdentity = identity
                             }
-                            .operationConfirmation(
-                                .init(AppStrings.Keychain.deleteIdentityConfirmation),
-                                isPresented: $deletingIdentity.isPresenting { $0.id == identity.id },
-                                actions: [
-                                    .init(AppStrings.Common.delete, role: .destructive) {
-                                        if let identity = deletingIdentity,
-                                            !app.credentials.delete(identityID: identity.id)
-                                        {
-                                            error = app.credentials.storageError
-                                        }
-                                        deletingIdentity = nil
-                                    },
-                                    .init(AppStrings.Common.cancel, role: .cancel) { deletingIdentity = nil },
-                                ],
-                                message: .init(AppStrings.Keychain.deleteIdentityWarning)
-                            )
                         }
+                        .operationConfirmation(
+                            .init(AppStrings.Keychain.deleteIdentityConfirmation),
+                            isPresented: $deletingIdentity.isPresenting { $0.id == identity.id },
+                            actions: [
+                                .init(AppStrings.Common.delete, role: .destructive) {
+                                    if let identity = deletingIdentity,
+                                        !app.credentials.delete(identityID: identity.id)
+                                    {
+                                        error = app.credentials.storageError
+                                    }
+                                    deletingIdentity = nil
+                                },
+                                .init(AppStrings.Common.cancel, role: .cancel) { deletingIdentity = nil },
+                            ],
+                            message: .init(AppStrings.Keychain.deleteIdentityWarning)
+                        )
                     }
                 }
             }

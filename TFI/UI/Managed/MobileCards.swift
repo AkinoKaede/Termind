@@ -7,12 +7,14 @@ import UIKit
 
 struct MobileCardPage<Content: View>: View {
     @ViewBuilder var content: Content
+    @State private var reorderScope = UUID()
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) { content }
                 .padding(16)
         }
+        .environment(\.mobileCardReorderScope, reorderScope)
         .background(Color(uiColor: .systemGroupedBackground))
     }
 }
@@ -94,7 +96,7 @@ private struct MobileCardSurface: ViewModifier {
             .containerShape(
                 RoundedRectangle(cornerRadius: containerRadius, style: .continuous)
             )
-            .contentShape([.interaction, .contextMenuPreview], shape)
+            .contentShape([.interaction, .contextMenuPreview, .dragPreview], shape)
     }
 
     @ViewBuilder private func filledSurface<S: Shape>(_ content: Content, shape: S) -> some View {
@@ -170,6 +172,7 @@ struct MobileActionCard<Content: View, Actions: View>: View {
                 .contextMenu {
                     actions
                 }
+                .modifier(MobileCardDragSource())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .contain)

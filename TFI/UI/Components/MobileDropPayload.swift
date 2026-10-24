@@ -100,6 +100,7 @@ enum MobileDropPayloadLoader {
     private static func representation(
         of provider: NSItemProvider, kinds: Set<MobileDropKind>, fileMode: MobileDropFileMode
     ) -> Representation? {
+        guard !provider.hasItemConformingToTypeIdentifier(UTType.mobileCardOrder.identifier) else { return nil }
         if kinds.contains(.files), provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             return .fileURL
         }

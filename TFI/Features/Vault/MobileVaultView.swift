@@ -485,9 +485,17 @@ struct MobileVaultView: View {
                 ForEach(hostSections) { section in
                     VStack(alignment: .leading, spacing: 12) {
                         hostSectionHeader(section)
+                            .modifier(
+                                MobileCardDropTarget(
+                                    reordering: cardReordering, orderedIDs: section.hosts.map(\.id),
+                                    move: { moveHost($0, into: section.id.groupID, before: $1) }))
                         if section.isExpanded != false {
-                            MobileCardGrid(compact: compactCards) {
-                                ForEach(section.hosts) { row($0) }
+                            MobileReorderableCardGrid(
+                                items: section.hosts, compact: compactCards, reordering: cardReordering
+                            ) { id, before in
+                                moveHost(id, into: section.id.groupID, before: before)
+                            } content: {
+                                row($0)
                             }
                         }
                     }
@@ -674,6 +682,17 @@ struct MobileVaultView: View {
         case .metrics:
             EmptyView()
         }
+    }
+
+    private var cardReordering: MobileCardReordering {
+        MobileCardReordering(
+            collection: .hosts,
+            allowedIDs: Set(app.library.hosts.filter { !$0.isTailscaleManaged }.map(\.id)))
+    }
+
+    private func moveHost(_ id: UUID, into group: UUID?, before next: UUID?) {
+        app.library.move(hostIDs: [id], into: group, before: next)
+        if let error = app.library.storageError { app.error = error }
     }
 
     private func hostSectionHeader(_ section: HostLibrarySection) -> some View {

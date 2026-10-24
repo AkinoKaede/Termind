@@ -80,6 +80,14 @@
 			<array>
 				<string>public.data</string>
 			</array>
+			<key>UTTypeIdentifier</key>
+			<string>com.akinokaede.termind.mobile-card-order</string>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
 			<key>UTTypeDescription</key>
 			<string>Termind SFTP Items</string>
 			<key>UTTypeIdentifier</key>

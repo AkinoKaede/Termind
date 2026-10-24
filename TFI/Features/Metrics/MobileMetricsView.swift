@@ -28,36 +28,41 @@ struct MobileMetricsView: View {
                     AppStrings.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
                     description: Text(AppStrings.Metrics.addASavedLinuxServerToStartMonitoring))
             }
-            MobileCardGrid {
-                ForEach(app.metrics.servers) { server in
-                    MobileActionCard {
-                        app.activateMetrics(server) { selectedID = server.id }
-                    } content: {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(server.name).font(.subheadline.bold()).lineLimit(1)
-                            if server.isHostLocked {
-                                MetricsHostLockNotice()
-                            } else {
-                                MetricsInstrumentBody(
-                                    server: server, sleeping: app.metrics.core.sleeping,
-                                    layout: typeSize.isAccessibilitySize ? .adaptive : .horizontal)
-                            }
+            MobileReorderableCardGrid(
+                items: app.metrics.servers,
+                reordering: MobileCardReordering(
+                    collection: .metrics, allowedIDs: Set(app.metrics.servers.map(\.id)))
+            ) { id, before in
+                app.metrics.core.move([id], before: before)
+                if let error = app.metrics.core.storageError { app.error = error }
+            } content: { server in
+                MobileActionCard {
+                    app.activateMetrics(server) { selectedID = server.id }
+                } content: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(server.name).font(.subheadline.bold()).lineLimit(1)
+                        if server.isHostLocked {
+                            MetricsHostLockNotice()
+                        } else {
+                            MetricsInstrumentBody(
+                                server: server, sleeping: app.metrics.core.sleeping,
+                                layout: typeSize.isAccessibilitySize ? .adaptive : .horizontal)
                         }
-                    } actions: {
-                        Button(
-                            server.selection.enabled
-                                ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
-                            systemImage: server.selection.enabled ? "pause" : "play"
-                        ) {
-                            app.metrics.core.setEnabled(!server.selection.enabled, for: server)
-                        }
-                        Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
-                            app.metrics.core.retry(server)
-                        }
-                        Divider()
-                        Button(AppStrings.Common.remove.swiftUIKey, systemImage: "trash", role: .destructive) {
-                            app.metrics.remove(server.id)
-                        }
+                    }
+                } actions: {
+                    Button(
+                        server.selection.enabled
+                            ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
+                        systemImage: server.selection.enabled ? "pause" : "play"
+                    ) {
+                        app.metrics.core.setEnabled(!server.selection.enabled, for: server)
+                    }
+                    Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                        app.metrics.core.retry(server)
+                    }
+                    Divider()
+                    Button(AppStrings.Common.remove.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        app.metrics.remove(server.id)
                     }
                 }
             }
