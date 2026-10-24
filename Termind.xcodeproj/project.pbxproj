@@ -491,7 +491,7 @@
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
 		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
-		F1BA00000000000000000021 /* Services.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Services.xcconfig; sourceTree = SOURCE_ROOT; };
+		F1BA00000000000000000021 /* Configuration/Services.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Services.xcconfig; sourceTree = SOURCE_ROOT; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -855,7 +855,7 @@
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
-				F1BA00000000000000000021 /* Services.xcconfig */,
+				F1BA00000000000000000021 /* Configuration/Services.xcconfig */,
 				BENC00000000000000000010 /* Benchmarks/PortForwarding */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
 				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
@@ -2033,7 +2033,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 99;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Development;
@@ -2162,7 +2162,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 99;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TFIWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Termind Workspaces";
@@ -2345,7 +2345,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 99;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Production;
@@ -2384,7 +2384,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 99;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TFIWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Termind Workspaces";
@@ -2455,7 +2455,7 @@
 		};
 		TRMD000000000000000000B0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F1BA00000000000000000021 /* Services.xcconfig */;
+			baseConfigurationReference = F1BA00000000000000000021 /* Configuration/Services.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -2482,7 +2482,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 71;
+				CURRENT_PROJECT_VERSION = 73;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
@@ -2524,7 +2524,7 @@
 		};
 		TRMD000000000000000000C0 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F1BA00000000000000000021 /* Services.xcconfig */;
+			baseConfigurationReference = F1BA00000000000000000021 /* Configuration/Services.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -2551,7 +2551,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 71;
+				CURRENT_PROJECT_VERSION = 73;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
@@ -2595,7 +2595,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 108;
+				CURRENT_PROJECT_VERSION = 110;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -2633,7 +2633,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 108;
+				CURRENT_PROJECT_VERSION = 110;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
