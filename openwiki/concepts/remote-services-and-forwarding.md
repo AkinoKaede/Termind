@@ -1,6 +1,6 @@
 ---
 type: Remote service ownership
-title: Remote Services and Host Access
+title: Remote Services and Forwarding
 description: Shared Host admission and service ownership across terminals, Metrics, Agent SSH/SFTP tools, and TCP forwarding. Explains operation-time access checks, connection reuse, session limits, and silent recovery.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 sources:
@@ -82,10 +82,10 @@ sources:
     resource: repo://TFI/Application/Metrics/MobileMetricsModel.swift
   - id: openwiki-source-a053f8c3524e81f98b0b0938
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
+  - id: openwiki-source-72d3cbdcda7790780fc552ff
+    resource: repo://TFITests/MobileMetricsHostAccessTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-  - id: openwiki-source-9e75ae93f5450c1993472c5d
-    resource: repo://TFM/Features/Metrics/MetricsView.swift
   - id: openwiki-source-f37e94b15a9d2f74bcbe83bc
     resource: repo://TFMTests/AgentBackgroundCommandTests.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
@@ -96,10 +96,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 
@@ -222,6 +222,39 @@ Focused regression coverage: `TFMTests/SSHMaxSessionsPolicyTests.swift` checks d
 Remote shells can emit banners, OSC sequences, or exit-hook text around an exec command. The sampler wraps every command in `__TERMIND_METRICS_BEGIN__` and `__TERMIND_METRICS_END__` markers, parses only the enclosed payload, and permits a small framing allowance beyond the payload limit. Invalid primary-sample diagnostics redact the address section before logging and record sizes rather than treating raw remote output as safe telemetry.
 
 Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that framing ignores shell preamble/trailer, that absent/truncated/oversized frames fail, and that unsupported/GPU exit codes retain their special meanings. `FrameworkTests/MetricsJourneyTests.swift` exercises background sampler callbacks, restored monitor reconciliation, independent prompts and retry behavior; `FrameworkTests/MetricsSyncTests.swift` checks that selections survive missing Hosts, sync across devices, and failed saves leave the runtime unchanged.
+
+### Mobile entrypoints into the shared model
+
+The mobile surface changes presentation and selection, not transport ownership:
+
+- **Activate a card:** `MobileActionCard` calls `app.activateMetrics`. A locked Host opens the paywall instead of selecting details; otherwise `selectedID` drives navigation to the existing `ServerMetric`. An entitlement-verification failure is not treated as a quota lock by this activation gate.
+- **Reorder:** `MobileReorderableCardGrid` passes the moved ID and destination to `app.metrics.core.move`. The core derives the order from persisted selections, saves before applying it, and leaves runtime order unchanged on save failure. The mobile callback copies `core.storageError` into `app.error`. Desktop `MetricsManagedCardPage` also delegates ordering to the same core operation, with reordering disabled during search.
+- **Choose Hosts:** opening the picker intersects current selections with available Metrics Hosts. The picker stages the chosen IDs and the union of initial and chosen IDs as its editable set. On sheet dismissal, `saveSelectedHosts` clears staging and calls `replaceHosts` only if a selection was submitted. The core retains selections outside that editable set (including unavailable Hosts), validates new additions as SSH-enabled, and persists the replacement before applying it. Failed saves surface through `app.error` without changing runtime configuration.
+- **Start collection:** the page's `.task` calls `MobileMetricsModel.start()`, which invokes `core.start()` and `core.resume()`. Core startup is guarded against repetition and loads saved selections; the view does not create a sampler or a separate collection loop.
+
+```mermaid
+flowchart TD
+    Card["Mobile card activation"] --> Gate{"Host locked?"}
+    Gate -->|Yes| Paywall["Present paywall"]
+    Gate -->|No| Detail["Navigate to existing ServerMetric"]
+    Drag["Mobile reorder"] --> Move["core.move"]
+    Picker["Picker submission and dismissal"] --> Replace["core.replaceHosts"]
+    Move --> Save["Persist before applying configuration"]
+    Replace --> Save
+    Save -->|Failure| Error["storageError to app.error"]
+    Save -->|Success| Config["Shared selections and cards"]
+    PageTask["Page task"] --> Wrapper["MobileMetricsModel.start"]
+    Wrapper --> Core["core.start and core.resume"]
+    Core --> Workers["Existing shared Metrics lifecycle"]
+```
+
+Mobile UI actions feed the shared configuration and lifecycle owner rather than introducing another SSH service.
+
+Detail visibility remains independent of card activation and collection startup: mobile details register an observer on appearance outside the connection journey, update it when journey visibility changes, and remove it on disappearance. Desktop details use the same observation interface. These observers gate filesystem and process probes in the existing worker; reading a snapshot neither admits a Host nor starts collection, and can report `locked`, `paused`, `sleeping`, `stopped`, or `awaitingAuthentication`.
+
+Sources: [mobile surface](../../TFI/Features/Metrics/MobileMetricsView.swift), [mobile wrapper](../../TFI/Application/Metrics/MobileMetricsModel.swift), [shared configuration and lifecycle](../../Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift), and [desktop card consumer](../../TFM/Features/Metrics/MetricsManagedCardPage.swift). See [Mobile UI](../architecture/mobile-ui.md) for shell-level presentation.
+
+Focused coverage: `TFITests/MobileMetricsHostAccessTests.swift` verifies locked-card paywall activation without inspection or cache loss, allows inspection for verification failures, and checks that locked selections persist without samplers before resuming after upgrade. `FrameworkTests/MetricsSyncTests.swift` covers failed persistence leaving runtime configuration unchanged; that test changes enabled state rather than exercising the mobile drag or picker callbacks directly.
 
 ## Agent tools: host services, not terminal or forwarding sessions
 

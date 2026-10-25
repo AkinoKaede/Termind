@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:71d8287babcb5c2f2b44080be3aa3a6883b89f7cc1baad789df89c0b94d3f420",
+  "pageVersion": "sha256:8728adbbbd74abdf07cdcec200e1147663fe520176bb4fca56f27f9a9bd145df",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -862,23 +862,15 @@
     },
     {
       "id": "claim_9ce6216e5d274d0694d82aa08db02728",
-      "statement": "Terminal connection journeys use the selected Mosh or Eternal Terminal purpose rather than labeling every terminal as SSH; protocol recovery preserves terminal state and does not replay authentication, distinct from Agent non-PTY exec channels.",
+      "statement": "Terminal journeys use the selected Mosh/ET purpose and preserve terminal state without replaying authentication, distinct from Agent non-PTY exec. Protocol recovery retains endpoints, logs and log visibility, clears completed checkpoints, ignores repeated states and unchanged failures, and cancels the previous 600-millisecond success hide timer on renewed recovery.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TransportRecoveryJourneyTests.swift",
-          "version": "repo-file-v1:sha256:6403a75d4468773ff423b8890f88e846251ed7924157c0ffa00e93dadb8ecda5"
+          "resource": "repo://FrameworkTests/TransportRecoveryJourneyTests.swift#L13-L76",
+          "version": "repo-lines-v1:sha256:e94d345dca861f527dbe61873ce14dc2bd4e65e1733820b534f995ea38e98303:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMTQyYTUzMzViYTk5MzMyMjY5ZjEyNzcxZGIwZWJjOGJlYjYwNDZhMTkyZDFlNzJiM2Y5OWQ3NTk3YzcwYTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2OTljY2Y2ZTY4MTNkMDU2ZWQ5ZDZlMzY5MWE2ZTkxYjA3YTczM2VkMzU3ZWNhMWRiOTc0ZTNmOWEyYmNlODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0ODBjYjlmMGU2OTcyZWYzYzIzMzYxM2JjYTBiOGE3MzI5YzlmM2I0OGRmYjA0Y2NkYTQ5MzAxYTA5Yzg4NzEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift",
-          "version": "repo-file-v1:sha256:dfb744bca22c113aafb17b9d55be6ce5171a08ea944e9dac60a502f61fee1783"
-        },
-        {
-          "resource": "repo://TFMTests/ConnectionJourneyTests.swift#L17-L41",
-          "version": "repo-lines-v1:sha256:9a1fa4e03b882b328faa5bdc1bf91c3101dafd2d710e24fd9167474b6c31af0f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGNiYzIxYzZkNzFhZDZkZDU1YmU5M2ZhZjA4M2Y5NjRlNzQ5YjdiMWRmZTVkNGVhNjBjOTgyYjM4MWYxZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2ZDlhOTc2ZTY4M2MzZjdmNjZjOGYyOWY1YzhlMTc1ZjRlYzFjYzc3NzA3YjczY2IzNjc1NjdhZjhkZDY0NzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlZDYzYTc0NWY3MDVlNTc4OTIzNTMzNjdiMzg5ZmRmMjIxMzhlNTQwNzFlYmUwOTBhYjg3NDcxZTQyZTIwMGUifQ"
-        },
-        {
-          "resource": "repo://TFMTests/TerminalTransportJourneyTests.swift",
-          "version": "repo-file-v1:sha256:f801bed654688f2d89d2010c28829f47aa8b32c18edb329db62ce1c3bb6faaef"
+          "resource": "repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift#L467-L514",
+          "version": "repo-lines-v1:sha256:e89cdd17a6a1364adf5b9ba6f28433bfbcc39124b157332dbb6b0e1ead3de62c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2NTUwOGNhZTNlNmE1Mjc2Njk1NzQwZDdlYWRmOTdlOGEzMjk5NzFhZGU0NmI4MDExZmQ0MGY1ZTRkOTA0ZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwY2JmNDdhYzI4OTA1ZDA0OTk1YzFjYTE2ODI2OGNiNmNhY2YyY2JmMDBhNThlNWQ2ZGNmYTJhZjcyYjMzOTEifQ"
         }
       ]
     },
@@ -916,19 +908,23 @@
     },
     {
       "id": "claim_b1f1b829fa0547db887627ce123eb71a",
-      "statement": "ET route readiness is not protocol recovery completion: route snapshots do not unblock terminal input or arm ordinary SSH reconnect. Engine connection state completes recovery; desktop preserves the terminal surface, blocks interactive and broadcast writes during recovery and ignores route events after disconnect, while shared Journey handling preserves pending interaction.",
+      "statement": "ET route readiness does not complete protocol recovery, unblock terminal input or arm SSH reconnect. Increasing-revision ET snapshots do not reveal hidden journeys, are ignored by non-ET journeys and reset on begin. Recovering/suspended updates preserve waiting authentication, host-key and local credential interactions. Engine connected state completes active recovery, not initial bootstrap; desktop retains the terminal surface, blocks interactive and broadcast input and ignores events after disconnect.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/TransportRecoveryJourneyTests.swift",
-          "version": "repo-file-v1:sha256:6403a75d4468773ff423b8890f88e846251ed7924157c0ffa00e93dadb8ecda5"
+          "version": "repo-file-v1:sha256:93bb79065646dee3d211c450ad490baad7229f94fa917706bbb163027d1204e8"
         },
         {
-          "resource": "repo://TFITests/MobileTerminalRestorationTests.swift#L170-L200",
-          "version": "repo-lines-v1:sha256:cfe153b4f2ecf76a30780374e26d91e2632cee2bc1c207676f9f702802780690:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NjYyN2E2YjAyYTBiZGYxNTFjODU4ZmFmZmE3ZjlmNDEyODZmMGU2ZmJkOGMzYjJmYzBjYzNiODM2MTRhODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOTY5Yjk1MTVmZTU0YjlkMjRiOGE2YTNlMzkzN2IzYjhkM2FlNzJlY2VlMjQyNzdkMTIyOTY2MzA5YWQzNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2ZGRjOTllNGZmMTA3MmY5NzZhZDdmN2EyZmZmZDc3MTRjMDMwZDVjNzAzYjI4ZjM1YjQzYmEzOTAwZThkZWYifQ"
+          "resource": "repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift#L294-L306",
+          "version": "repo-lines-v1:sha256:7c24a4cb9091b4d60159e06e18f6782ba7d50d0c3edd7c63be8da23f2643226d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYTU5M2YwMzBlMTI5ZDU0Njg0ZTg2NzQyNGYyYzllMmRlNWU3MjUzOGU5MTZlYWIxMmZlMDAxM2I5ZDMxNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiYmJhNGU0YmI2MmQzOWQxNDk4MmExYjRlOTQwM2Q1MjIxMDkwZDIxMTIzZTFiNDI5M2JhMzE3ZjNhYTZmYzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllZTI4M2JhNzY0NDhmZGZhZTkyMmIzOWJkNDFkYWJiNTA1ZTY1YzdmODBlMjU2MjQ1NjM5NzljMGQ5NWZjMmIifQ"
         },
         {
-          "resource": "repo://TFMTests/TerminalTransportJourneyTests.swift#L13-L100",
-          "version": "repo-lines-v1:sha256:5f631f2c1cbc95acb22164e42377b47d206780b570c3bf663d874eca7cccd7c3:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3YjJlZDVmOGJmMThkMmEyMmVkNDgyOGQyZTM0MDQxYzYyZWU5NTNkMjlkZDY1ODk0OTEwZmFlNzUzOTVhNmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkNmFiYWU4MzIyYjc5MjhjZjFmYmQwZDMyZmMyYjQxZGE4NDQxZjJhMWRjN2IwYTE1N2RlOTJjMTM4MjQ0MmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwZWY0Nzc3YzVmMmQzZmFlOGJmMzc3ODQ2MTc4MDhhMDc3Yjc4ODBlMWNmNTk3OWI4ODljMGNhYmZlMzgwZDYifQ"
+          "resource": "repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift#L439-L514",
+          "version": "repo-lines-v1:sha256:594f3dd19eafd07ecf616a8e9e9547122c15da4db2d6e689ba72d2c79489ec11:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYzE3MmEyOGM0NDBkOGVhYTJhNjRjNDg1NGRiNGI2ZWMxYjg4MjA0ODhlNmQxMzc5MDYxZGYwZDYwZGVkMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1ZGFiZGE2YWIwYjNmYmVlMGIyYjEwMDNkN2NmNTdhNDMwMmU3M2YxZGFkOTQ1NTJmMjllNDU4ZDVmZmExNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwY2JmNDdhYzI4OTA1ZDA0OTk1YzFjYTE2ODI2OGNiNmNhY2YyY2JmMDBhNThlNWQ2ZGNmYTJhZjcyYjMzOTEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalTransportJourneyTests.swift",
+          "version": "repo-file-v1:sha256:f801bed654688f2d89d2010c28829f47aa8b32c18edb329db62ce1c3bb6faaef"
         }
       ]
     },
@@ -1006,7 +1002,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

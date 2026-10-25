@@ -1,11 +1,11 @@
 ---
 type: architecture guide
-title: Desktop Windows and Workspace UI
+title: Desktop UI
 description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -29,6 +29,10 @@ sources:
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-02eecf143fd9df60be910051
+    resource: repo://TFM/Features/Hosts/HostsPageView.swift
+  - id: openwiki-source-3c6bda02e1693110639579a7
+    resource: repo://TFM/Features/Metrics/MetricsManagedCardPage.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -65,6 +69,10 @@ sources:
     resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
   - id: openwiki-source-7e279101ce56c0b482381df4
     resource: repo://TFM/UI/Components/WorkspaceNavigatorDragAnimation.swift
+  - id: openwiki-source-baa196773ddb0c73a40debe0
+    resource: repo://TFM/UI/Managed/CardGrid.swift
+  - id: openwiki-source-2301357abfcb0d22fb7a1dfc
+    resource: repo://TFM/UI/Managed/ManagedCardDragPreview.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-38f1f2c3597d520d66dcdd62
@@ -73,6 +81,8 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-0f45576cff16b6adfcaeefc0
     resource: repo://TFMTests/MainWindowSizingTests.swift
+  - id: openwiki-source-080279f032d913bf83636126
+    resource: repo://TFMTests/ManagedCardDragPresentationTests.swift
   - id: openwiki-source-16819267ff0ce6464db099f1
     resource: repo://TFMTests/MetricsInteractionTests.swift
   - id: openwiki-source-a22920a2a9767ac44e072c9f
@@ -97,10 +107,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 ---
 
-# Desktop Windows and Workspace UI
+# Desktop UI
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -391,7 +401,7 @@ Vault management is a list/detail workspace, not a collection of unrelated sheet
 
 `WindowModel` owns the selected Vault page and optional `vaultWorkRoute`: `openPage` clears the work route, `openVaultWork` selects a page and detail route, and `closeVaultWork` dismisses the detail. `VaultWorkDetailView` dispatches the route to a resource-specific editor; its identity is keyed to the route. The view-local `VaultWorkEditingSession` protects dirty inline editors during page or editor transitions: an editor registers its route, dirty predicate, busy predicate and async commit with a token. Navigation offers Save, Discard or Cancel; explicit cancellation offers Keep Editing or Discard Changes, with resource-specific wording for new drafts. Busy editors and an in-progress commit block transitions. A clean or unmatched route proceeds immediately. Save only executes the deferred transition after a successful commit; a failed save cancels it and leaves the editor available for retry. Stale editors cannot unregister a newer editor's registration. This guard is used by the resource pages when routing away from an editor, not as a blanket guard on every direct `WindowModel` assignment.
 
-Resource pages plug into `ManagedCardPage` using typed sections, stable item IDs, externally owned selection, capabilities and page-specific presentation modifiers. `ManagedCardPageRenderer` handles the reusable interaction machinery; the page supplies business cards, section headers, drag ghosts, empty/no-results states and blank-canvas menu entries.
+Resource pages plug into `ManagedCardPage` using typed sections, stable item IDs, externally owned selection, capabilities and page-specific presentation modifiers. `ManagedCardPageRenderer` handles the reusable interaction machinery; the page supplies business cards, section headers, empty/no-results states and blank-canvas menu entries. Drag previews reuse the supplied business card rather than requiring a feature-owned ghost view.
 
 ```mermaid
 flowchart LR
@@ -413,6 +423,35 @@ The renderer resolves a pointer to a section and insertion slot; it does not nee
 - **Selection is external; gesture state is local.** The renderer intersects updates with IDs in its section items and enforces single-selection capability in section order. A selected card's actions receive the selected items in that order; an unselected card acts only on itself. `CardPage` uses native blank-canvas hit testing for marquee and blank clicks, declining cards, headers, controls and scrollbars before input begins. Blank clicks clear selection and then invoke the feature's optional primary action. Pointer-only card geometry lives in a reference store rather than publishing a layout feedback loop through SwiftUI state. [Sources: `ManagedCardPage.swift`, lines 405–451; `CardGrid.swift`, lines 20–120 and 186–218.]
 - **Reordering is capability-gated, not a repository operation.** The renderer filters destination sections by `canAcceptDrop` and the page's drop policy, excludes moving IDs before finding the next sibling, and passes IDs, destination and optional sibling to the feature closure. Collapsed sections append at their end. Hosts allows cross-group moves only when neither query nor tag filtering is active; Known Hosts supplies no reordering capability. [Sources: `ManagedCardPage.swift`, lines 194–219 and 453–524; `HostsPageView.swift`, lines 87–139; `KnownHostsPageView.swift`, lines 22–39.]
 - **Deletion remains feature-owned.** `ManagedCardDeletionPresentation` only coordinates pending-ID bindings, pruning callbacks, confirmation and error UI. Known Hosts supplies the actual delete/storage-error handling. Hosts instead uses its own confirmation route and offers either deleting a group with its hosts or keeping the hosts, then prunes window selections. A generic renderer must not silently turn a card gesture into resource deletion. [Sources: `ManagedCardPage.swift`, lines 71–102; `KnownHostsPageView.swift`, lines 89–99; `HostsPageView.swift`, lines 284–306 and 405–468.]
+
+### Card rendering and drag-preview ownership
+
+`CardPage` owns the scrolling canvas and uses a non-lazy section `VStack`: estimating offscreen section heights would leave stale offsets when groups collapse. `CardGrid` supplies adaptive, top-aligned lazy columns within each section. Features can override minimum and maximum card widths without taking over drag rendering; Metrics uses a 310-point minimum and unbounded maximum. Hosts supplies `HostCard` with the renderer's selection/action context, while Metrics supplies `ServerMetricsCard` with inspect, upgrade and terminal actions. Business behavior stays in those feature closures; neither caller supplies a separate drag ghost. [Sources: `CardGrid.swift`, `HostsPageView.swift`, `MetricsManagedCardPage.swift`.]
+
+Keep the two drag visuals distinct:
+
+| Visual | Owner and sizing | What it paints |
+| --- | --- | --- |
+| Lifted preview | The renderer wraps the same card in `ManagedCardDragPreview`, using its captured source width **and height** and forwarding the page environment. | The complete business card, not a compact label or insertion-slot snapshot. The explicit preview avoids the oversized prohibited-operation badge noted for default macOS 27 glass snapshots. |
+| Insertion placeholders | The renderer inserts one `ManagedCardReorderPlaceholder` per moving ID, using the drag session's captured height; width follows the destination grid. | Nothing: `Color.clear` reserves layout space without card content, surface or border. |
+
+`ManagedCardDragSession` snapshots nonempty measured sizes at lift. An unmeasured or offscreen selected item uses the initiating card's size, or the configured minimum card width and `Metrics.Card.minHeight` if that card is also unmeasured. Later grid reflow does not rewrite these captured sizes. Thus tall cards retain their insertion height even if the destination columns become narrower. Both preview and placeholders disable hit testing and are hidden from accessibility. [Sources: `ManagedCardPage.swift`, lines 226–240, 390–417 and 469–495; `ManagedCardDragPreview.swift`.]
+
+Preview treatment is deliberately **local to the preview environment**, not a redesign of ordinary cards. `ManagedCardDragPreview` sets `managedCardIsDragPreview`; `CardTile` responds by replacing live glass with a standalone rounded `TermindColor.windowSurface` fill and the selected accent tint when applicable. Normal cards retain their interactive glass surface. Clipping and the selection border remain shared. Preview tiles cannot claim Return focus and do not register geometry into the page's card geometry store, so rendering the lifted copy does not pollute canvas hit testing. [Source: `CardGrid.swift`, lines 558–646.]
+
+```mermaid
+flowchart LR
+    Feature[Feature business card and context] --> Renderer[ManagedCardPageRenderer]
+    Renderer --> Live[CardGrid live card]
+    Renderer --> Preview[ManagedCardDragPreview at source size]
+    Preview --> Surface[CardTile standalone preview surface]
+    Session[Captured per-item sizes] --> Preview
+    Session --> Slots[Transparent destination placeholders]
+```
+
+The renderer owns preview composition and insertion space; `CardTile` owns preview-only surface treatment.
+
+When adding a managed feature, provide the real card and capabilities rather than duplicating its visual content for dragging. Keep lift/omission timing, release handling and accepted-drop mutation separate from this rendering contract; see [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md) for the detailed lifecycle.
 
 ### Review invitations belong to the feature surface
 
@@ -468,6 +507,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
 | Narrow editor, dirty Vault route transitions or Metrics detail layout | `ResponsivePageLayoutTests` checks narrow and resized editor identity/geometry; `CardMarqueeSelectionTests.vaultEditingSessionOffersSaveDiscardAndCancelForDirtyRoutes` checks clean, dirty, token replacement and save/discard/cancel transitions. |
 | Managed selection/reordering | `CardMarqueeSelectionTests` pins directional rectangles, partial overlap, Shift extension and true-canvas exclusion. `KeychainOrderTests.dropPoliciesExpressFixedAndExchangeableSections` and `dropResolverFindsGridSlotsAndCollapsedSectionEnd` check policy and placement boundaries; resource-specific move tests check mutations. |
+| Managed drag presentation | `ManagedCardDragPresentationTests.batchPlaceholdersKeepLiftHeightsAfterGridReflowAndPaintNothing` checks mixed heights, zero/unmeasured and offscreen fallback sizes, reflow stability and fully transparent slots. `fullSizePreviewRetainsHeaderFooterAndStandaloneCardSurface` checks full preview dimensions, header/footer retention, opaque interior and transparent rounded corners in light and dark appearance. These are offscreen rendering checks, not an end-to-end native drag test. |
 | Feature-owned review top content | `FrameworkTests/AppReviewControllerTests` covers seven-day eligibility, entry snapshots, filtering, cross-window responses and rejected URL opens. `TFMTests/AppReviewControllerTests` checks accepted store-link handling, localized narrow/wide rendering without preference mutation, and invitation geometry excluded from blank canvas. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
 | Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing and per-page queries. `themeSearchUsesToolbarAndPreservesEachAppearanceQuery` checks independent light/dark and custom-library queries, no editor Find, and restoration on Back; `welcomeOffersNoTitlebarFind` and `focusingFindOnWelcomeRequestsItsContentSearchField` check content-only Welcome search without titlebar focus requests. `focusingFindStartsTheTerminalSearch` checks terminal presentation and direct focus dispatch, while the empty-workspace case checks a no-op; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |

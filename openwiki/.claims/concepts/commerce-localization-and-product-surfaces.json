@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:98481c46710b7374b72ed9b11324f47c9d58bcb21fa4f712fcb65e8ef55ee949",
+  "pageVersion": "sha256:fab3c2dddb797d2d63c4bdb25425958610c9e5e764a1147c7fe8987b5c15e76b",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -322,7 +322,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         }
       ]
     },
@@ -336,7 +336,7 @@
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
-          "version": "repo-file-v1:sha256:b29fd8834b40194583709d6d4131c5a35d5c686f6aa458db9412aef03096d259"
+          "version": "repo-file-v1:sha256:a81d25c893f62f1b3ba0919c0a5820434c088f0a4d63f0df1bd2d0cfc38e165d"
         }
       ]
     },
@@ -349,12 +349,12 @@
           "version": "repo-lines-v1:sha256:54af340b7820078d5e504c6ed845f74721e4e77fa7e55964ef18bd107c1f19c1:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2I4MTkzYzk1ZjQyZTUxYTFkYWVmNDAzZGE5NDZiZGFkMGFmMzk4NWFhMWRlZjkyNWNmY2ZiYjAxZDU4YTU1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGRhMTcyMGQ2MDcxOTI4ODc1NTk0YWFmN2M2YTI3MmU3YTc3MjdiYmNmNGI1NDgzNTMyOTkxZWVkYmMyNGE0NyJ9"
         },
         {
-          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L183-L252",
+          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L202-L271",
           "version": "repo-lines-v1:sha256:8e85f239a538c5e00f968ce3e9e2681ebd5182d4423f24bb33d457f8f8cba2c2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzI4YjFlNDA5ZGQ1ZTVmN2JmOWQ5ODM4YjdjZGI2YTdlZmViNTcyOTAyYTVmNWQ2YjY3YmVkNjVhY2JkZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMTQ2NmFjOTJhOGYyZmJkZDZlNmQxMjYzODAyNjczYTM0ODJjMDQyMWI3YjIyNTliZGU0MmM5YTM1OTMwZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4MTZjNGE2ZmQzYmE4NjNjZTdjNTA2ZGI4NTg2ZDU0ZmI5MTMyNzNhODMxZDk0ZTUyZTBkMTExZjc2MGNjN2YifQ"
         },
         {
-          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L63-L99",
-          "version": "repo-lines-v1:sha256:578bbb2baeeb2da7b19fba513d1e8ddf15fe1d07fc7d892b7f85653d837550bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkOGZmZjY4MDgwNGJkZDg1NjgzYWU5MTc5YzNlNTdjOGUyOTdlNjM2YjI0MjAzNTJlMWQ3YWJlOTc0OWVkOGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyN2FlYWRlOTVkYmRmZDdkM2NhZWVhZTc5MmUwZWMzMjQxNTE3YjA2MjYyNjA4M2ZlMzYyMzRiOTQzNjg2YTYifQ"
+          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L63-L108",
+          "version": "repo-lines-v1:sha256:28370ac2c8ef9767d1ccb971f3dd1188b1b69734176a8fb7d20ee4e35b4d925c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkOGZmZjY4MDgwNGJkZDg1NjgzYWU5MTc5YzNlNTdjOGUyOTdlNjM2YjI0MjAzNTJlMWQ3YWJlOTc0OWVkOGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyN2FlYWRlOTVkYmRmZDdkM2NhZWVhZTc5MmUwZWMzMjQxNTE3YjA2MjYyNjA4M2ZlMzYyMzRiOTQzNjg2YTYifQ"
         }
       ]
     },
@@ -376,37 +376,17 @@
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
-          "version": "repo-file-v1:sha256:b29fd8834b40194583709d6d4131c5a35d5c686f6aa458db9412aef03096d259"
+          "version": "repo-file-v1:sha256:a81d25c893f62f1b3ba0919c0a5820434c088f0a4d63f0df1bd2d0cfc38e165d"
         }
       ]
     },
     {
       "id": "claim_0dc4305d926c43fa9b2d56ac760f614b",
-      "statement": "MobileCardTests covers editor titles, two-tag bounds and SSH/SFTP history timestamps; MobileCompactCardTests checks credential warnings, forwarding badges, snippet risk labels and Compact translations, not multilingual visual approval. mobile.compactCards persists reduced Hosts/Known Hosts/Snippets content without changing actions: standard hosts show address, tags and localized last connection or Never, compact hosts title/icon/status; standard Known Hosts includes algorithm/time, compact title/icon.",
+      "statement": "MobileCardTests covers editor titles, two-tag bounds and SSH/SFTP history timestamps, plus grid width/scaling/accessibility, row-confirmation isolation and Host section folding/search. MobileCompactCardTests checks credential warnings, forwarding badges, snippet risk labels and Compact translations, not multilingual visual approval. mobile.compactCards persists reduced Hosts/Known Hosts/Snippets content without changing actions: standard hosts show address, tags and localized last connection or Never, compact hosts title/icon/status; standard Known Hosts includes algorithm/time, compact title/icon. MobileActionCard makes the whole card a primary button with secondary context actions.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift",
-          "version": "repo-file-v1:sha256:97553e477360c1e873bc1ff5df1074d5226bf18aaee237a097bd9458df2cbe3b"
-        },
-        {
-          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:9aee840974de56ad08de375e83852d8fe17f056ac46f1ba130e084f235c30d6b"
-        },
-        {
-          "resource": "repo://TFI/Features/Vault/MobileHostCardContent.swift",
-          "version": "repo-file-v1:sha256:86c9372595567d6ee9b14336d3cf40c3ad89e065b0337d00859525e5e653f56f"
-        },
-        {
-          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
-        },
-        {
-          "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:ef7fae23fb62408716807b7a1765829fa8ffba9ad4fddee948e7cb675ba93b25"
-        },
-        {
-          "resource": "repo://TFITests/MobileCompactCardTests.swift",
-          "version": "repo-file-v1:sha256:1560b1bca8996a70ad73cd035f0a57956a249dd97583c6f5225a278eb2b12582"
+          "resource": "repo://TFI/UI/Managed/MobileCards.swift#L137-L185",
+          "version": "repo-lines-v1:sha256:c0dd5066d1ae4f3bae65351bc9efad935ada6e835d240aa8eb002cc978e4c857:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMTFjMDQ0N2YxNTA2MjQ0M2MyYTAyZjY4ZmMyNmExOWI4NDE4ZTcyNTQ3YzMxNzk0OTQ2MDA4YWM5ZDRkZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3MmFhZGZlNzc0NjMxNjFiMDU4ZjFlM2IxN2ZlZGEyMTMzZTczMWJiZjc2OWUyOGY0ODU5ODJkNWNiODZkOGUifQ"
         }
       ]
     },
@@ -520,7 +500,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         }
       ]
     },
@@ -662,7 +642,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

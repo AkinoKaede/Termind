@@ -186,10 +186,14 @@ sources:
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-cbe97194a165bb243ddb7eb4
+    resource: repo://TFI/UI/Managed/MobileReorderableCardGrid.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-c9618f94f83d3b529a9860e1
     resource: repo://TFITests/MobileBackgroundControllerTests.swift
+  - id: openwiki-source-eecfc99966f8c35d1b34acb8
+    resource: repo://TFITests/MobileCardReorderSessionTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-28243bbeecc381626d39eeb6
@@ -228,6 +232,8 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-7c65a9e84644dfdb436d849d
     resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
+  - id: openwiki-source-c760fd3440c4d99945238ba5
+    resource: repo://TFMTests/AppleSigningTestTrait.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -236,16 +242,22 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
+  - id: openwiki-source-6f8497046bd15dee0e92df2d
+    resource: repo://TFMTests/MCPAuthorizationKeychainTests.swift
   - id: openwiki-source-ce3f85319052412b85aca9dc
     resource: repo://TFMTests/RemoteOutputToolPresentationTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
+  - id: openwiki-source-1d1efb20e239b1f2142f6cb7
+    resource: repo://TFMTests/SettingsSyncTests.swift
+  - id: openwiki-source-16e5817504836f60fa6fb9bf
+    resource: repo://TFMTests/TailscaleKeychainTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # Engineering Invariants
@@ -278,13 +290,19 @@ Detailed owners: [System Boundaries](system-boundaries.md), [Platform Runtime](p
 - Shared Strings owns `AppStrings`; dialog titles pass `LocalizedStringResource` directly rather than bridging to `.swiftUIKey`. Direct Cloud-directory Swift files with the specified `CKSyncEngineDelegate` declaration must use shared batch/upload/handling and decode/quarantine gates. Nested or differently declared delegates are not discovered by that scan.
 - Forwarding authentication stays feature-owned: no defaults/external-auth fallback, and auxiliary interactions remain forbidden. Mobile app/root/session owners cannot absorb keyboard-interactive queues/forms. Pair these scans with `SSHInteractionPolicyTests` and mobile Journey tests.
 
-Read [project and target configurations](../../Termind.xcodeproj/project.pbxproj) together: absent target settings inherit project defaults. Swift 6.0, approachable concurrency, complete strict concurrency, `ExistentialAny`, MainActor default isolation and Swift warnings-as-errors are project policy. MainActor is a declaration default, not a promise that remote work runs on the main thread. Apps/shared frameworks/tests inherit it; widgets restate it; MCP bridge and forwarding benchmark override isolation to `nonisolated` and use `-parse-as-library`. TFMTests only relaxes imported deprecated-declaration diagnostics via `-Xcc`. Debug enables testability and `-Onone`; Release uses whole-module compilation and disables assertions.
+### Compiler policy versus configuration
+
+Read [project and target configurations](../../Termind.xcodeproj/project.pbxproj) together: absent target settings inherit project defaults. Both configurations enforce Swift 6.0, approachable concurrency, complete strict concurrency, `ExistentialAny`, MainActor default isolation and Swift warnings-as-errors. MainActor is a declaration default, not a promise that remote work runs on the main thread. Apps/shared frameworks/tests inherit it; widgets restate it; MCP bridge and forwarding benchmark override isolation to `nonisolated` and use `-parse-as-library`. TFMTests only relaxes imported deprecated-declaration diagnostics via `-Xcc`.
+
+**Current build configuration, not permanent architectural invariants:** Debug enables testability and `-Onone`; Release uses whole-module compilation and sets `ENABLE_NS_ASSERTIONS = NO`. Current deployment floors are macOS 15.0 and iOS 18.0. The six shared static frameworks and FrameworkTests support macOS, iOS and iOS Simulator; TFI, TFITests and widgets support iPhone/iPad on iOS and Simulator, while TFM, TFMTests, MCP bridge and forwarding benchmark are macOS-only. Read supported platforms alongside deployment settings: a macOS deployment key on an iOS target does not make that target a Mac app. Platform or floor changes require deliberate compatibility review rather than treating these numbers as frozen contracts. See [Module Map](module-map.md).
 
 Both configurations disable generated catalog symbols. Apps emit localization strings; all six shared frameworks, FrameworkTests and TFITests explicitly do not. `TermindWidgets` uses extension-only APIs and TFIWidgets-owned native source/metadata; it is not another app composition root. The macOS forwarding benchmark uses narrow shared-framework SPI and is not hosted by apps/tests. AgentKit, libssh2-spm and libtailscale-spm are remote SPM dependencies, not Termind submodules; Ghostty is also consumed directly from remote `Lakr233/libghostty-spm`, with no local maintenance submodule. Keep Xcode requirements and `Package.resolved` pins aligned, and build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently updating pins. Termind registers its host-aware SSH/SFTP tools through `TermindAgentTools`; AgentKit remains host-neutral.
 
-### Focus-sensitive tests are opt-in
+### Environment-sensitive tests are opt-in
 
 The real macOS app is the XCTest host. DEBUG test detection selects memory-only storage, suppresses automatic windows and restoration for ordinary tests, with explicit screenshot exceptions. Window/focus tests use `.requiresVisibleWindow` and `TEST_RUNNER_TERMIND_WINDOW_TESTS=1`; do not enable them for the default suite. Mobile runs its real scene with testing dependencies. Mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO` and narrow suite filters. See [Build, Test, and Release](../operations/build-test-and-release.md).
+
+Real Keychain/CloudKit integration has a separate gate: [AppleSigningTestTrait](../../TFMTests/AppleSigningTestTrait.swift) enables `.requiresAppleSigning` only when the test host sees `TERMIND_SIGNED_INTEGRATION_TESTS=1`. This is an explicit opt-in, not automatic verification of signing; a provisioned host is still required, not ad-hoc signing. The MCP authorization and Tailscale Keychain suites and two Settings sync coordinator tests use it. Do not interpret their default skip as integration coverage. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md) for test selection and environment setup.
 
 ## Host operation admission
 
@@ -347,6 +365,10 @@ Desktop Quit first attempts to save terminal-theme edits and can ask to discard 
 - Shared Find dismissal is idempotent and retains the query. Default dismissal restores terminal focus; a native search host uses `dismiss(restoringFocus: false)`. Changed queries dispatch only when not resize-suspended; navigation requires presentation, a nonempty query and no suspension. Resume searches only the latest still-presented query. Native dismissal fences model synchronization/text changes/presentation so Cancel cannot reopen search or clear the retained query/filter.
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers shared semantics. [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) is opt-in and serialized: repeated dismissal/reopen and SSH/SFTP Journey host identity, with terminal identity asserted for SSH—not Telnet-specific integration coverage.
 - Command history is per-live-terminal memory, capped at 250. Disconnect cancels the current read but retains a completed snapshot; close clears permanently, including in the reopen stack. Imported history follows the selected shell/file source within a generation; observed live commands remain terminal-wide. See [CommandHistoryModel](../../Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift).
+
+### Presentation-only hover transactions
+
+Mobile card reorder hover must not write to the library or sync store. `MobileCardReorderSession` projects a draft order; commit clears the session before invoking at most one pending move, while cancellation or return to the original slot produces no write. Cross-group previews remain within the same collection. [MobileCardReorderSessionTests](../../TFITests/MobileCardReorderSessionTests.swift) covers these boundaries and ensures idle drag-region registration/removal does not invalidate observed card layout. Keep interaction implementation detail in [Mobile UI](mobile-ui.md) and test guidance in [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).
 
 ### Mobile background and restoration
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7c0489b71bf01cb302d641b04f69a9ce23cefbe72190078e87dc9de4634702ac",
+  "pageVersion": "sha256:13eaeb8f69647258f9f045ae904c92242c5eff7eda9d9f8e9e012b00194fc2d1",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -664,11 +664,39 @@
     },
     {
       "id": "claim_f7731d3ba5e1434a9fca26bd7392e636",
-      "statement": "Both shared app string catalogs remain manually maintained, requiring explicit keys and Chinese translations and canonical Xcode-compatible formatting; single-target stale flags do not justify deleting keys. Both project configurations disable generated catalog symbols. The project defaults are Swift 6.0, approachable concurrency, complete strict concurrency, ExistentialAny, MainActor isolation and Swift warnings-as-errors; apps, shared frameworks and tests inherit the isolation default, widgets restate it, and the MCP bridge and forwarding benchmark override it with nonisolated and -parse-as-library. TFMTests only relaxes imported deprecated-declaration diagnostics through -Xcc. Apps enable localization-string emission while all six shared frameworks, FrameworkTests and TFITests disable it. Debug enables testability and -Onone, while Release uses whole-module compilation and disables assertions. TermindWidgets is an iOS/iPadOS extension with extension-only APIs and TFIWidgets-owned source and metadata.",
+      "statement": "Shared catalogs remain manual, requiring explicit keys, Chinese translations and canonical formatting; single-target stale flags do not justify deletion. Both configurations disable generated catalog symbols and enforce Swift 6.0, approachable and complete strict concurrency, ExistentialAny, MainActor isolation and Swift warnings-as-errors. Apps/frameworks/tests inherit isolation; widgets restate it; MCP bridge and forwarding benchmark use nonisolated and -parse-as-library. TFMTests relaxes imported deprecated-declaration diagnostics via -Xcc. Apps emit localization strings; six shared frameworks, FrameworkTests and TFITests do not. Debug enables testability and -Onone; Release uses whole-module compilation and ENABLE_NS_ASSERTIONS=NO. Widgets use extension-only APIs and TFIWidgets metadata. Current floors are macOS 15.0/iOS 18.0: six static shared frameworks and FrameworkTests support both platforms, mobile app/tests/widgets support iOS/Simulator and iPhone/iPad, and desktop app/tests/bridge/benchmark are macOS-only. These current configuration values are not immutable architecture. Separately, requiresAppleSigning gates MCP authorization/Tailscale Keychain suites and two Settings sync tests on TERMIND_SIGNED_INTEGRATION_TESTS=1 without verifying signing itself; a provisioned host is required. Mobile card hover projects order without writes; commit clears before at most one pending move, cancellation/original-slot return writes nothing, and cross-group drafts remain collection-scoped. MobileCardReorderSessionTests covers these semantics and idle registration/removal not invalidating observed layout.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1911-L2893",
-          "version": "repo-lines-v1:sha256:653155dc72c693e0ddd0de8d61a8c1363b0ae4b18ea3f2ea2a491af25b2fc40e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
+          "resource": "repo://AGENTS.md#L63-L83",
+          "version": "repo-lines-v1:sha256:e2fddda443dac247e3a456c2c53a93536df8f78be46789238324a8dd48f74714:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhMTg2YzAzNmQ4YmE2ZGFmNjE5YWQ5NTczNzVmYzkwYmRlODFkNGU3YWY5NzgzM2QzY2UxMjQzZTEzMzczMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Managed/MobileReorderableCardGrid.swift#L63-L128",
+          "version": "repo-lines-v1:sha256:e590149d17939aaacf96d21f31eec617c3b77edbadaa226818df31a4f912328e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzZTJjY2VjMzEwYjA5MTFkNGI2NGNlMmEwOGRmNTgyOGRkMDFiM2E5ZDI2NGRhN2IxYmJjNTllMjljMDcxOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMzNkNmNjYzE4OWY2NjNiNDQ1NTFiZGJhZDU2YzMwY2I2MTAzYWMxZTcxNDBlYzE5N2Y4NjZjN2Y1NmQwYTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1MTM1ZGRmZmQzMzgzNTY0MmU3OGZiZjExN2U2YzM3Y2VjMGVhNjcxNzZkOWI2ZTYwMTE2MDdkOWU4MmI1Y2EifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardReorderSessionTests.swift",
+          "version": "repo-file-v1:sha256:2f0adfa027b0a0836f0039e17120f9c01ede48028bc33a1d8a31252c8347a153"
+        },
+        {
+          "resource": "repo://TFMTests/AppleSigningTestTrait.swift",
+          "version": "repo-file-v1:sha256:aa1254a7d5d01cbed646669d31f0423fe17b2134bc4ff2ff4b0391d618f2c96f"
+        },
+        {
+          "resource": "repo://TFMTests/MCPAuthorizationKeychainTests.swift",
+          "version": "repo-file-v1:sha256:72fca1389ab0805d3ddf86863883360e250005850ba92fdc0a214f8490d9b0e2"
+        },
+        {
+          "resource": "repo://TFMTests/SettingsSyncTests.swift#L587-L650",
+          "version": "repo-lines-v1:sha256:4eda6dc66e1939c33e9d86615be8130412e4d9c80b95a780e410a88ac46468c9:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxNWRiYzIyYzYyZmU4MTUwNmM4NGEwZDZiNjc3NDYzZDU0MmNjZGYyNmQwNGZlZTBjMjBkMjlmNzY2Yjc4ZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZTkxM2M0MWVlY2MzYzI1ZWJlNWU3NTVmM2M3Mzk3ZjIwYTNkNDYyMjMwYWEwMDUxYjVmMzJhZDQ3YWVkOTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0N2I2YjI1MWM2ZWM5YzI3Yjk1Yjk1MGYzZmUzMjE2YzU5M2Q5MTFiODdkYmYyZDA2NzM4MWZiMmQ2NGRjZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/TailscaleKeychainTests.swift",
+          "version": "repo-file-v1:sha256:54a9151bf682efcb1e73fc5850e58e73b0eb42cd36678f8633b1bd517ef5263c"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1911-L2756",
+          "version": "repo-lines-v1:sha256:adcd235f8a12d4238526ab70fcb40b15b6e4f5895f004c32c6766625265ea55e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQ2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlZDUxYTg3ZWQ0MDdjZDE4YzA2YWE3N2RiZTJiMGVlYWJhOWE0MTRhOTRiN2JiZDEyZDQzYmQ0ODFhZmVmNjQ5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxZGExZmQ1NGU0MDJlYTg2MjEyYTIxNDEwOTUzMmE2YjMzNjE3OGFkMzA5ODYyZDNlZDE0ZGNhNmExZjMxMzc4In0"
         }
       ]
     },
@@ -1242,7 +1270,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

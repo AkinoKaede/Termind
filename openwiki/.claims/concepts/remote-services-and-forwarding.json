@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cdbb983a0d1304aedbae76f6714ce62c3c42e8edf6f3c4bb42ad656f67e525d7",
+  "pageVersion": "sha256:fd2fd30e3985805a968afd4b6ce27e49764d47cc8239a51bd3c7b6f2438f6226",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -217,16 +217,12 @@
       "statement": "Visible Metrics details outside the connection journey register observers that gate filesystem/process probes. Snapshot reads do not admit Hosts or start collection and report locked, paused, sleeping, stopped and awaiting-authentication states.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift",
-          "version": "repo-file-v1:sha256:dda175244f7ad2b6d7627fdeb084826d2b1e11759b79f241224c1a58c988f177"
+          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift#L9-L82",
+          "version": "repo-lines-v1:sha256:8e421680f93db592de733aecb94915a131476212b38ef419d43600e8b61664cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmZGM4MWRhYjUwNDQxNWYzMGExZmNkMTU5YmVlYzBlZjVlOWQ1MmYwOWM0ZDA2NzFkNDZhMjI3NTM1YTZjODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODMzMmZhOTk2MTExMDJiYjgyOTEzYTZjMDFlYWU5N2Q3OTMyN2JlNTViZTY1ODYxMDM3Y2Y0OGRmYWQ5MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmZmQ4YmY4YzNiODczODIzNTc1ZmI2OThiYTg3ZmY4ODEwMmE3OTNjMTk5NmMyYmYxN2M4NGE5OGI2MGYyNTYifQ"
         },
         {
-          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
-        },
-        {
-          "resource": "repo://TFM/Features/Metrics/MetricsView.swift",
-          "version": "repo-file-v1:sha256:1962c4dd2c0c2a5f535ef795d94ae5efd5bef9e06ab21d6e5e731cde17b04e4d"
+          "resource": "repo://TFITests/MobileMetricsHostAccessTests.swift#L54-L72",
+          "version": "repo-lines-v1:sha256:f42d129ab2d429769cfa97efe2d9fda1925aa987a21f67b98d53b33eb30b7eee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhNjRlYTA4ZjY4YjZmNDE5ZDA5OTBkOGQwNmQxOWM1MDdjMzkxNTAzM2IzZTE2Y2RlMGUwNTI0ZWYzZTlhNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmZjIwYmUzMTFlOTk1MWU3NGQ4MDM1ZjFjMjdmNmEwZWU0NmMwNTYxN2JiYjEwNDcyNDEwMTlhYmRhZjk4MTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlYzBlNDUwYjdlOTI3NWFiM2RiODhiZjY5YWQwMzVkZDM3OGFhNGNlM2Q3Y2Q0MmE0MDcwYjgzY2Q2MDc3NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         }
       ]
     },
@@ -588,7 +584,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

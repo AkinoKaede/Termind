@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b1558e1c7d84af6e09aa5c2687ecf98f0e0dafa0e4d8faf9d7e7934f5246d1cf",
+  "pageVersion": "sha256:9ebeab0371a9d747114ef9c0e229fcb7c876a74e8ef713ae27b255270798dc1d",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -106,11 +106,11 @@
     },
     {
       "id": "claim_bfdb3849716843bd941c4d567891acf5",
-      "statement": "Final storefront imagery needs separate release verification against the independent assets checkout's delivery contract, which distinguishes captures, frames and final artwork; documentation and parent capture dimensions do not prove final export properties or upload acceptance. The runner defaults to en, zh-Hans, zh-Hant, ja, ko, de and fr, supports option/environment selection, and sets test language, region and Apple locale per capture. Capture coverage does not establish remote paywall translations or final board inventory.",
+      "statement": "The parent repository declares the website/assets submodule and the screenshot runner requires initialization with an assets directory. Capture defaults cover en, zh-Hans, zh-Hant, ja, ko, de and fr with option/environment selection and per-capture locale settings. These do not establish final artwork inventory, export properties, upload acceptance or remote paywall translations; the unavailable asset README's contract must be inspected in the initialized checkout before release.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:a8407a8d6efec959916d23fde6a288083180b8620da8fed9d64b1d8b964458bf"
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb",
@@ -154,7 +154,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -232,7 +232,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -332,55 +332,59 @@
     },
     {
       "id": "claim_1cb1e24791994626aabf7e058bec95e6",
-      "statement": "Native Release target settings specify marketing version 1.17.2 and builds 108 for TFM and 97 for TFI, overriding project CURRENT_PROJECT_VERSION 71. Project Debug/Release inherit Services.xcconfig, whose tracked contents do not set versions; actual archive settings including local and invocation overrides, rather than the project default, determine artifact verification.",
+      "statement": "Checked-in Release version is 1.17.4 with TFM build 112 and TFI build 101, overriding project build 75; Services.xcconfig supplies no tracked versions. The archive script first applies BUILD_VERSION with bump-version.py, incrementing independent builds and aligning Widgets to TFI. Export uses automatic signing, Production iCloud, symbol upload and Xcode-managed build numbering. Upload is not processing, TestFlight distribution, review submission or release; operators check the final build in App Store Connect and perform downstream distribution and release manually.",
       "evidence": [
         {
           "resource": "repo://Configuration/Services.xcconfig",
           "version": "repo-file-v1:sha256:ec2a4323b714912653744c9951e23a85e61ef0431a20e426fc66681d43f5c9f3"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2340-L2380",
-          "version": "repo-lines-v1:sha256:fca8d8a05a0880ccecb6a167720ad78380a55abc758e839430301d848e5c0d62:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
+          "resource": "repo://Scripts/bump-version.py#L142-L172",
+          "version": "repo-lines-v1:sha256:74bab2a90d1dc8e97061eff859524a3b84228d7c6caabc06349b57772f9bbb59:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwMDNjOWVmZjAxMmY5NTk1Njg1N2UyZmYxYmNmYjQ2YmMxOTJmNDUwYTM1Y2M3OGZiM2NjNTlhOTA0YWExN2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmOWVhNzRiMDFkMGEzOWE0OTk3YWEyMTQ0Y2QzNzE1OWNjYTQyNWViNTJhNmQ2NDc0ZTIyNDg1OGY2M2U3YzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNjg5Zjg0YjMwNDM0ZTdkMzNmNjIyNDVkMmQ5ZTQ5NmQwNmM4NDY3MjdiODc2MzdhMjNkZWUwYjEwZGM1MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YTExNGRiZjgyZmM0MjM1OWY2N2NiMzVkMzEzZWQ5N2JkMWNhMzYxZjYyZGI5MGE4NDVlOTE3OWFiZDIwYTMifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2456-L2667",
-          "version": "repo-lines-v1:sha256:d4107ec86c45ea5666686dd406b81aa7d048e7296134d878e604407fdca8e6b0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwODY4MDUzNjE0YTI4ZTc3ZWIyYzU1ZDYxMGM4ZmU1NjU3MGFmOGFhNjVjZDdjMGZlZWNhZTcwN2ZhMzFlNmJiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMWYyNjk3OTRlOTI4ODE4YmFiMjcwYjY4ZGM5ZTIyMTkwYjU2ODgwYTgxOTBjOTJkNzkyZDUyMDI3ZGZhN2YzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MjRiMGFlNjE2ODUxMDY0OWUzNTQ2MTQyMzY3OWY4MTYxMjU2MDVmMjBmNzc1ODc4ODhkZWM1ZWRlYmY3MmZjIn0"
+          "resource": "repo://Scripts/ci/apple-build.py#L138-L147",
+          "version": "repo-lines-v1:sha256:f9abcfcc105a22c640e28de6cebe0b689f67ad6f22f2ae1aa67247f925a03ad1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxNTc5NGE1ZTk0OTI3NTI5MzEyY2UyMWJlMzlmMWMxYThkZmI1YTI1ZGFlOGFmZTY1Zjg3OTgyNGEyZjE4NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkY2E5N2QyMjc0ZWY0NmI0OTg3ZmU0NDBiNDBiOWI2ODI3Y2YzMmE3ODU0M2ZmMmI4MGMxN2NhZmE4YTYwNTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYTE3YzNhNWQxNTI5MDc2OWMzZjM0NzRjMjRiNjE3MzAwOGI3MTQ1MTAyM2MzNzRhOTU0ZWZkMWY0NjE0MGEifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2777-L2785",
-          "version": "repo-lines-v1:sha256:c4a48085705fe2f538ad88e3b50272837bc055857bfde99925e96999d2ce17c8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDFlY2U1NWVkZjFkY2EwYTgyYTMxZjQ4MjdiYTJmMGRiZDk5MDdmYzYwZTc1OTZhM2IyZGUxYWQwMzE0M2FmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzZiYjc2ZWMzNTlhOGRkZDA2MjMwNzI4MjM0ZmUxMDgwYjZjYTczNjExMGI5ZWFmNjExZjRkMmM2Y2JjNmE0NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjZjOGZmNDU1MzkzNTVhZDQ0NDA3ZTkyYTEzMWJjMTNiNjI0NDdkZDFiZjlhMmI0NmY5ZTNmMjk2MGJjNTk1OCJ9"
+          "resource": "repo://Scripts/ci/archive-apple.sh",
+          "version": "repo-file-v1:sha256:b8061957ec0bcc7baca4b1c7fc27b9979fe9e972d52840372648b8e78983291b"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2858-L2875",
-          "version": "repo-lines-v1:sha256:119a46558c7e7c09a0d69533bf543418a1ae6c6788eff97bde6d9d4435461d9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5ZmQzYWIyNjYzZGYyOWJiMjY2NTZhZThlM2ZjYjYzM2RmN2FkMmQyNDk1Mjc0YmJkYmNlZThmZmY2ZTIzY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2YmI3NmVjMzU5YThkZGQwNjIzMDcyODIzNGZlMTA4MGI2Y2E3MzYxMTBiOWVhZjYxMWY0ZDJjNmNiYzZhNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5OGYyNWM0ZGMxOWIwOGExOGQwMzBlNzQ5MzdhMWFiYWQ3NjliMjNlODk5ZjY5NzhlMTFkYmM4ZTQ4YjJjZmUifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2340-L2667",
+          "version": "repo-lines-v1:sha256:5824d521054b180baf55c49f8e7761609186b69930265070a88f229b70f1f1db:eyJzZWxlY3RlZExpbmVDb3VudCI6MzI4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3NWZlMGJiYTU4NTI3YTQ2YjQ5NWUwODA3Zjk3MTllYjZmMjI2NGEzYmM3OTliYWNkNTMyMDg5NDkxYTJhYzdjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0NjUyOWVkNDIyMjkwNjNmY2JkMDU5MmJhODdiYjU4MmEyZTc1MjBmZTNjNGU5Mjk1ZTVlMTEzMjk3Yjg4Y2VjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MjRiMGFlNjE2ODUxMDY0OWUzNTQ2MTQyMzY3OWY4MTYxMjU2MDVmMjBmNzc1ODc4ODhkZWM1ZWRlYmY3MmZjIn0"
         }
       ]
     },
     {
       "id": "claim_4a19ed4b2d5d4f1b8dcd027905575000",
-      "statement": "Local services may remain unconfigured without bypassing Pro checks: missing RevenueCat configuration yields verificationFailed without a StoreKit fallback; Firebase configuration is separately optional and Crashlytics symbol upload defaults to disabled. Local service files are ignored, and private RevenueCat management credentials must never be put in app builds.",
+      "statement": "Local services may remain unconfigured without bypassing Pro checks, but the manual Build workflow requires release service and signing configuration in the app-store-connect environment. It validates version/platform inputs, skips submodules, avoids canceling in-progress runs, validates Firebase and public Apple RevenueCat settings, installs ignored temporary service files with symbol upload enabled, and schedules cleanup even on failure. Configuration-bearing logs and private build directories must not be published. Its apple-build contract tests cover input and service rejection and export options, not actual upload or Sandbox purchases.",
       "evidence": [
         {
-          "resource": "repo://Configuration/README.md",
-          "version": "repo-file-v1:sha256:fc6249bfff2e51e95e294294a14ee7680ecf306ea4b61bb8088bbdb92caec5a2"
+          "resource": "repo://.github/workflows/build.yml",
+          "version": "repo-file-v1:sha256:3056c5e3ee2995a1e2ada06ddcff3048b112d4e0b4251dcb2bd4ae8560347fd1"
         },
         {
-          "resource": "repo://Configuration/Services.xcconfig",
-          "version": "repo-file-v1:sha256:ec2a4323b714912653744c9951e23a85e61ef0431a20e426fc66681d43f5c9f3"
+          "resource": "repo://Scripts/Tests/test_apple_build.py#L62-L122",
+          "version": "repo-lines-v1:sha256:1642f98bd6f1e3141a222aa26448c7db43c9c0d57a9bfe3f8b02edb39d3e9d55:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ODhiOTI0NTFiZjFiODY3MDMyZDVmYjY2YzhiNDI1NTI2ODIwMTM2NzAyOTBjOTI3MTk5ODY3YmJkYWRhYWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3YWZhYTkxMjlhY2E1ZmVjYWFjOTY2NWEyMzVlNGM1ZDZiM2NhYTM2ZTJlOTUxOThmNjMwOTQ0ZTk2YmIxMGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmYmQwMDkzMTRiYzI3MDg0MTY3MzRhMDJhZTVmZjM5YTFlNDhhMDUwYmU5MWY0M2IyZmFhOTIwMDJjNjJiZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmYTc0MmY4OWQzZDcyY2Q0MmRjNDYwMmFjMTUwMWI5ZmJiMTMzYjgwZjY1ZTFhNTM2NDI5NDc4YmRiMThhY2QifQ"
         },
         {
-          "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L205-L212",
-          "version": "repo-lines-v1:sha256:2fdffc1724d98f7c4c9e02d7a6822ac01d80272073fdadc7fadb9c682731a635:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGNmMDllYjBjNTc0NGZiOTczMzFiOThmZjNmYmYwNWE2MDJiYTNmN2Y2N2U1ZGE1YmU5MDk1MDMzZjYyNTgyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTFiNDhjM2QzZTlkODJhMjJlMTMzNmEzMGMzOGI4ODQ0N2I5ZmViYjlkMmFlNTlmN2Y5ZjhkNTkwNTIzZWUzMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzhjNGVkNTVmNWQ0N2RkMGYxYzQzNjczMmNhYTZiMDNkNDM1N2NhMzRmMWU2MDM1YTg1NzhlMWRhMGJkYjA5YyJ9"
+          "resource": "repo://Scripts/ci/apple-build.py#L165-L221",
+          "version": "repo-lines-v1:sha256:f8eb05c103a7384707f0426ea71afbd37a043e32a6e8c5e00d2dec436a0663d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNjhlYWFkOWEzMzgxZjkzYzkzNmJkNjAxY2E4OGM0ZjRjZWY3ZTA2YTBiMGI5MWM2NDY1OGZmNjE4YjMxMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZTYyN2QyMjcyMmQ1NzlkN2MzYTY3NjNhOTg1ODE1MzJhNzU0Nzk2Yjk1Y2VlYzRkZjRjNjE5ZDJiMzJmZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1YWUyZTJjOWZkMDIyMmVhNjZkNzI4N2MxNjgzZmU5YWE3MzA0NTBhZTI1OWIxNDhiYjBhZmM5YTJlZjZhMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0OWQyMWMwZGE4OGU1ZmJhMWI0ZDE5ZDkwNjUwNGY3N2NkNjVhZTZjMTliOTY3NmRlMjViMjczZTliZTIyOGEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L26-L49",
-          "version": "repo-lines-v1:sha256:077251ef802a6976a75fc68593ec8b931cff0df479bbc9f2e45d1721999f6a79:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliMmI4YjA0ZGQ4MGJhYmQ4OTYwOTkyODMwZDdiOTc1Nzc0YzBmM2RiZGZkZWQ4NTc4Njg1NWFkODE4NmFkNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmZGY2NTE2MzdlNjgyZDViMWNjM2RmYjA4N2FlY2U4ZWMzNTBkZmY1Njk1YjE5MWEyNWU0MjIwYjQ2YmU3MDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5MmE3NjFjOTcxYWE4MDVlOThjYzAxNGIxYjA5NWZhMWVjNmNlNThhNmM2YTNjZjRjZDFlZGE2ZjNhZmM4M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZjVmMTE1NGJhY2VlZmVjMWE3MmQxMjgxZDVjNjBjYzk1ZTViZGFiOTMyOGZjYTU3ZDE1OTczZTE1OGQyYzUifQ"
+          "resource": "repo://Scripts/ci/apple-build.py#L81-L108",
+          "version": "repo-lines-v1:sha256:f8c945d8f21245e55378fcd8b836c528dc009de21850d3a3fce601fdc893baff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNTI4MTQ5MDNjZjkxYzI2ZjE1YjkyMDA4NTBmYmI2ZDczMGYxODdmZDI5OGNjOTA5YTliYWVjNmMzZjE5NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllMTI1NzU3NDU3NzYwOTU3NjkwOTIxOGIwZjRjYWFiYjI5NjZkN2IwZjJhNWZjMWI5Y2ZhNGNkNWNmMjBiMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmZGZmYTIxMjNmY2UxYzRjMTY3NWY4MjM2ODhkYmRmYjdjNGEwYTQxOGRiZWE0Mzg0MzIwNzJiMmI0NTMwMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxYmMxZjRjZTc5NTUzZmQ4NDFmNjllMGEyMTA3MWU2ZjZmMjk4NmZhNzFlNGE4NDI2OTUzYTkyZjY3YTRjOWUifQ"
+        },
+        {
+          "resource": "repo://Scripts/ci/archive-apple.sh",
+          "version": "repo-file-v1:sha256:b8061957ec0bcc7baca4b1c7fc27b9979fe9e972d52840372648b8e78983291b"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

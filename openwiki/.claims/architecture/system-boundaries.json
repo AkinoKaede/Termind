@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:eacbea39368950e13a6c0c2a6db9887bcab53fc7b5d7903a7b72c1e04ba85a04",
+  "pageVersion": "sha256:07f376db2c0fff16f654a3a3cd05a83e4cd079881b80e32037d6b5435fa3e5a3",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -84,7 +84,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -696,7 +696,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }
