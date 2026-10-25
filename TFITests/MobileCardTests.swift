@@ -14,6 +14,33 @@ import Testing
 
 @Suite @MainActor
 struct MobileCardTests {
+    @Test(arguments: [
+        (CGFloat(0), 1), (CGFloat(63), 1), (CGFloat(320), 3), (CGFloat(361), 4),
+        (CGFloat(427), 4), (CGFloat(428), 5), (CGFloat(736), 8),
+        (CGFloat(992), 11), (CGFloat(1334), 15),
+    ])
+    func compactGridFitsColumnsToAvailableWidth(width: CGFloat, expectedColumns: Int) {
+        #expect(
+            MobileCardLayout.columns(width: width, accessibilitySize: false, compact: true) == expectedColumns)
+    }
+
+    @Test func compactGridRespectsScaledCardWidth() {
+        #expect(
+            MobileCardLayout.columns(width: 736, accessibilitySize: false, compact: true, compactWidth: 114) == 5)
+        #expect(
+            MobileCardLayout.columns(width: 736, accessibilitySize: false, compact: true, compactWidth: 40) == 8)
+    }
+
+    @Test(arguments: [false, true])
+    func accessibilityGridKeepsOneColumn(compact: Bool) {
+        #expect(MobileCardLayout.columns(width: 1334, accessibilitySize: true, compact: compact) == 1)
+    }
+
+    @Test(arguments: [(CGFloat(320), 1), (CGFloat(736), 2), (CGFloat(992), 3), (CGFloat(1334), 4)])
+    func regularGridKeepsItsMinimumCardWidth(width: CGFloat, expectedColumns: Int) {
+        #expect(MobileCardLayout.columns(width: width, accessibilitySize: false) == expectedColumns)
+    }
+
     @Test func dismissingAnOldRowDoesNotCancelAnotherRowsConfirmation() {
         var selectedID: UUID?
         let firstID = UUID()
