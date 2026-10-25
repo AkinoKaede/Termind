@@ -64,8 +64,8 @@ jobs:
           OPENWIKI_LANGSMITH_API_KEY: ${{ secrets.OPENWIKI_LANGSMITH_API_KEY }}
           # Optional: also trace this workflow's own OpenWiki run to LangSmith.
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-          LANGCHAIN_PROJECT: openwiki
-          LANGCHAIN_TRACING_V2: "true"
+          LANGCHAIN_PROJECT: ${{ vars.LANGCHAIN_PROJECT || 'openwiki' }}
+          LANGCHAIN_TRACING_V2: ${{ vars.LANGCHAIN_TRACING_V2 || 'false' }}
 
       - name: Remove transient OpenWiki run state
         if: ${{ !cancelled() }}
