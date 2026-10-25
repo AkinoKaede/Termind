@@ -214,9 +214,14 @@ struct MobileCardInteractionTests {
                 _ = delegate.dragInteraction(drag, previewForCancelling: item, withDefault: preview)
             }
             delegate.dragInteraction(drag, session: native, didEndWith: commit ? .move : .cancel)
-            try await Task.sleep(for: .milliseconds(400))
+            let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+            var restored = try frame(cards[1].id, group: nil)
+            while restored != neighbor && ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(20))
+                restored = try frame(cards[1].id, group: nil)
+            }
             #expect(state.payload == nil)
-            #expect(try frame(cards[1].id, group: nil) == neighbor)
+            #expect(restored == neighbor)
         }
     }
 
