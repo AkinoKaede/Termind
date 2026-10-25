@@ -118,6 +118,8 @@ final class MobileCardReorderSession {
     func cancel() { clear() }
 
     private func clear() {
+        // Drag-region registration can cancel during layout; an idle session must not invalidate it.
+        guard payload != nil else { return }
         payload = nil
         placement = nil
         original = nil

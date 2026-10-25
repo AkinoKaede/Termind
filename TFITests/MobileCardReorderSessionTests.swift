@@ -1,13 +1,36 @@
 // SPDX-FileCopyrightText: 2026 Kaede Akino
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Observation
 import SwiftUI
 import Testing
+import UIKit
 
 @testable import TermindIOS
 
 @Suite @MainActor
 struct MobileCardReorderSessionTests {
+    @Test func registeringAndRemovingIdleDragRegionsDoesNotInvalidateCardLayout() {
+        let state = MobileCardReorderSession()
+        let scrollView = UIScrollView()
+        let region = MobileCardDragRegion.RegionView()
+        scrollView.addSubview(region)
+        withObservationTracking {
+            _ = state.payload
+            _ = state.placement
+            _ = state.size
+        } onChange: {
+            Issue.record("Registering idle drag interactions must not invalidate the observed card layout")
+        }
+        state.interaction.register(region)
+        state.interaction.register(region)
+        #expect(scrollView.interactions.contains { $0 is UIDragInteraction })
+        state.interaction.unregister(region)
+        state.interaction.uninstall()
+        state.cancel()
+        #expect(!scrollView.interactions.contains { $0 is UIDragInteraction })
+    }
+
     @Test func hoveringStagesNeighborMovementAndCommitsOnlyOnce() throws {
         let state = MobileCardReorderSession()
         let section = MobileCardSectionID(collection: .hosts)
