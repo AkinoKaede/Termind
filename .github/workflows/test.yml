@@ -6,13 +6,31 @@ on:
       - "**/*.swift"
       - "**/*.py"
       - "**/*.sh"
+      - "**/*.entitlements"
+      - "Termind.xcodeproj/**"
+      - "Configuration/Services.xcconfig"
       - ".github/workflows/**"
   push:
-    branches: [main]
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+      - "refactor/**"
+      - "perf/**"
+      - "test/**"
+      - "build/**"
+      - "ci/**"
+      - "docs/**"
+      - "chore/**"
+      - "style/**"
+      - "revert/**"
     paths:
       - "**/*.swift"
       - "**/*.py"
       - "**/*.sh"
+      - "**/*.entitlements"
+      - "Termind.xcodeproj/**"
+      - "Configuration/Services.xcconfig"
       - ".github/workflows/**"
   workflow_dispatch:
 
@@ -24,8 +42,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  checks:
+    name: Credential-free checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Check localization and CI scripts
+        run: |
+          python3 Scripts/check-localization.py
+          python3 -m unittest discover -s Scripts/Tests -p 'test_*.py'
+
   test:
     name: ${{ matrix.scheme }} tests
+    needs: checks
     # The mobile app uses iOS 27.1 SDK APIs.
     runs-on: xcode-27
     timeout-minutes: 60
@@ -38,6 +72,7 @@ jobs:
       SCHEME: ${{ matrix.scheme }}
       TEST_RUNNER_TERMIND_WINDOW_TESTS: "0"
       TEST_RUNNER_TERMIND_MOBILE_UI_TESTS: "0"
+      TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS: "0"
     defaults:
       run:
         shell: bash
@@ -99,10 +134,11 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p "$RUNNER_TEMP/test-results"
-          # Ad-hoc signing avoids development certificates and provisioned capabilities in CI.
+          # Real Keychain/CloudKit integration tests are opt-in; routine CI needs no signing secrets.
           xcodebuild \
             -project Termind.xcodeproj \
             -scheme "$SCHEME" \
+            -configuration Debug \
             -destination "$TEST_DESTINATION" \
             -destination-timeout 120 \
             -onlyUsePackageVersionsFromResolvedFile \

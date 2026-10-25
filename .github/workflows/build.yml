@@ -1,0 +1,99 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version"
+        required: true
+        type: string
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        default: All
+        options:
+          - All
+          - iOS
+          - macOS
+
+permissions:
+  contents: read
+
+# Do not interrupt an archive or an upload with another release run.
+concurrency:
+  group: app-store-connect-build
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Validate build inputs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.inputs.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Select platforms
+        id: inputs
+        env:
+          BUILD_VERSION: ${{ inputs.version }}
+          BUILD_PLATFORM: ${{ inputs.platform }}
+        run: python3 Scripts/ci/apple-build.py matrix
+
+  build:
+    name: ${{ matrix.platform }} App Store Connect build
+    needs: prepare
+    runs-on: xcode-27
+    timeout-minutes: 90
+    environment: app-store-connect
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      BUILD_VERSION: ${{ inputs.version }}
+      BUILD_PLATFORM: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check toolchain and localization
+        run: |
+          xcodebuild -version
+          python3 Scripts/check-localization.py
+          python3 -m unittest discover -s Scripts/Tests -p 'test_apple_build.py'
+
+      - name: Create private build directory
+        run: |
+          umask 077
+          echo "APPLE_CI_DIR=$(mktemp -d "$RUNNER_TEMP/termind-apple.XXXXXX")" >> "$GITHUB_ENV"
+
+      - name: Install signing and service configuration
+        env:
+          APPLE_CERTIFICATES_P12_BASE64: ${{ secrets.APPLE_CERTIFICATES_P12_BASE64 }}
+          APPLE_CERTIFICATES_PASSWORD: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          APPLE_PROVISIONING_PROFILES_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILES_BASE64 }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          FIREBASE_CONFIG_BASE64: ${{ secrets.FIREBASE_CONFIG_BASE64 }}
+          REVENUECAT_API_KEY: ${{ secrets.REVENUECAT_API_KEY }}
+          REVENUECAT_ENTITLEMENT_ID: ${{ secrets.REVENUECAT_ENTITLEMENT_ID }}
+        run: python3 Scripts/ci/apple-build.py prepare
+
+      - name: Archive and upload to App Store Connect
+        run: bash Scripts/ci/archive-apple.sh
+
+      - name: Remove temporary credentials and build files
+        if: ${{ always() && env.APPLE_CI_DIR != '' }}
+        run: python3 Scripts/ci/apple-build.py cleanup

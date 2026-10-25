@@ -7,7 +7,7 @@ import Security
 import TermindRemoteInfrastructure
 import Testing
 
-@Suite @MainActor
+@Suite(.requiresAppleSigning) @MainActor
 struct TailscaleKeychainTests {
     @Test func nativeStateUsesDataProtectionAndCleanupErasesOnlyTheSelectedProfile() async throws {
         let profiles = [UUID(), UUID()]

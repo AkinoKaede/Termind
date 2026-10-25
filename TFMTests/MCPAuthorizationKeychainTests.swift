@@ -10,7 +10,7 @@ import Testing
 
 @testable import Termind
 
-@Suite @MainActor
+@Suite(.requiresAppleSigning) @MainActor
 struct MCPAuthorizationKeychainTests {
     @Test func nativeKeychainKeepsOAuthInAnIndependentDeviceOnlyService() throws {
         let server = MCPServer(name: "Keychain fixture", url: "https://keychain-fixture.invalid/mcp")

@@ -584,7 +584,7 @@ struct SettingsSyncTests {
         #expect(library.enabledSkills.map(\.id) == AgentSkillLibrary.builtIns.map(\.id) + [low])
     }
 
-    @Test
+    @Test(.requiresAppleSigning)
     func mainSwitchPausesBothCategoriesWithoutClearingSelections() throws {
         let (container, store, defaults) = try fixture()
         SettingsKey.migrateSyncPreferences(in: defaults)
@@ -630,7 +630,7 @@ struct SettingsSyncTests {
         #expect(!defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
     }
 
-    @Test
+    @Test(.requiresAppleSigning)
     func independentSwitchesUseDefaultsAndHonorExplicitOptOut() throws {
         let (container, store, defaults) = try fixture()
         defaults.set(true, forKey: SettingsKey.vaultSyncEnabled)
