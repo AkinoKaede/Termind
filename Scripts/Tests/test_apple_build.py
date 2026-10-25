@@ -5,6 +5,7 @@ import base64
 import datetime
 import importlib.util
 import io
+import itertools
 import json
 import os
 from pathlib import Path
@@ -309,15 +310,50 @@ class AdHocWorkflowTests(unittest.TestCase):
         self.assertIn('TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS: "0"', workflow)
         self.assertNotIn("-allowProvisioningUpdates", workflow)
         self.assertNotIn("security import", workflow)
-        self.assertEqual(re.search(r"^          path: (.+)$", workflow, re.MULTILINE).group(1),
+        artifact_step = workflow.split("      - name: Upload test results\n", 1)[1]
+        self.assertEqual(re.search(r"^          path: (.+)$", artifact_step, re.MULTILINE).group(1),
                          "${{ runner.temp }}/test-results/")
+
+
+class SwiftPackageCacheTests(unittest.TestCase):
+    def test_workflows_share_only_package_cache_with_toolchain_and_lockfile_keys(self):
+        keys = []
+        for filename in ("test.yml", "build.yml"):
+            with self.subTest(workflow=filename):
+                workflow = (ROOT / ".github/workflows" / filename).read_text()
+                self.assertIn('echo "SPM_CACHE_DIR=$RUNNER_TEMP/DerivedData/SourcePackages" >> "$GITHUB_ENV"', workflow)
+                restore = workflow.split("      - name: Restore Swift packages\n", 1)[1].split("\n      - name:", 1)[0]
+                save = workflow.split("      - name: Save Swift packages\n", 1)[1].split("\n      - name:", 1)[0]
+                self.assertIn("uses: actions/cache/restore@", restore)
+                self.assertIn("uses: actions/cache/save@", save)
+                for step in (restore, save):
+                    self.assertEqual(re.findall(r"^          path: (.+)$", step, re.MULTILINE),
+                                     ["${{ env.SPM_CACHE_DIR }}"])
+                key = re.search(r"^          key: (.+)$", restore, re.MULTILINE).group(1)
+                for component in ("runner.os", "runner.arch", "steps.toolchain.outputs.cache-key",
+                                  "hashFiles('Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved')"):
+                    self.assertIn(component, key)
+                self.assertIn("xcodebuild -version | shasum -a 256", workflow)
+                self.assertIn("key: ${{ steps.spm-cache.outputs.cache-primary-key }}", save)
+                self.assertEqual(re.search(r"^        if: (.+)$", save, re.MULTILINE).group(1),
+                                 "${{ steps.spm-cache.outputs.cache-hit != 'true' }}")
+                execution = "Run tests" if filename == "test.yml" else "Archive and upload to App Store Connect"
+                self.assertLess(workflow.index("name: Restore Swift packages"), workflow.index(f"name: {execution}"))
+                self.assertLess(workflow.index(f"name: {execution}"), workflow.index("name: Save Swift packages"))
+                keys.append(key)
+        self.assertEqual(keys[0], keys[1])
+
+    def test_test_job_uses_cached_packages_without_caching_test_results(self):
+        workflow = (ROOT / ".github/workflows/test.yml").read_text()
+        self.assertIn('-clonedSourcePackagesDirPath "$SPM_CACHE_DIR"', workflow)
+        self.assertIn('-derivedDataPath "$RUNNER_TEMP/DerivedData"', workflow)
 
 
 class AppleArchiveTests(unittest.TestCase):
     def test_both_platforms_archive_then_upload_with_pinned_packages_and_matching_widget_version(self):
-        for platform, scheme, destination in (("iOS", "TFI", "generic/platform=iOS"),
-                                               ("macOS", "TFM", "generic/platform=macOS")):
-            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temporary:
+        platforms = (("iOS", "TFI", "generic/platform=iOS"), ("macOS", "TFM", "generic/platform=macOS"))
+        for (platform, scheme, destination), cached in itertools.product(platforms, (False, True)):
+            with self.subTest(platform=platform, cached=cached), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 for relative in ("Scripts/ci/archive-apple.sh", "Scripts/bump-version.py",
                                  "Termind.xcodeproj/project.pbxproj"):
@@ -337,12 +373,24 @@ class AppleArchiveTests(unittest.TestCase):
                 )
                 stub.chmod(0o700)
                 log = root / "commands.jsonl"
+                packages = root / "SourcePackages" if cached else private / "DerivedData/SourcePackages"
+                crashlytics = packages / "checkouts/firebase-ios-sdk/Crashlytics/run"
+                crashlytics.parent.mkdir(parents=True)
+                crashlytics.write_text("fixture Crashlytics script")
+                environment = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
+                               "APPLE_CI_DIR": str(private), "BUILD_PLATFORM": platform,
+                               "BUILD_VERSION": "2.3.4", "COMMAND_LOG": str(log),
+                               "GITHUB_STEP_SUMMARY": str(root / "summary.md")}
+                environment.pop("SPM_CACHE_DIR", None)
+                if cached:
+                    environment["SPM_CACHE_DIR"] = str(packages)
                 subprocess.run(["bash", str(root / "Scripts/ci/archive-apple.sh")], check=True, capture_output=True,
-                               env={**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
-                                    "APPLE_CI_DIR": str(private), "BUILD_PLATFORM": platform,
-                                    "BUILD_VERSION": "2.3.4", "COMMAND_LOG": str(log),
-                                    "GITHUB_STEP_SUMMARY": str(root / "summary.md")})
+                               env=environment)
                 archive, upload = [json.loads(line) for line in log.read_text().splitlines()]
+                self.assertEqual(archive[archive.index("-clonedSourcePackagesDirPath") + 1], str(packages))
+                firebase_lookup = private / "DerivedData/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
+                self.assertEqual(firebase_lookup.resolve(), crashlytics.resolve())
+                self.assertTrue(firebase_lookup.is_file())
                 self.assertEqual(archive[archive.index("-scheme") + 1], scheme)
                 self.assertEqual(archive[archive.index("-destination") + 1], destination)
                 self.assertIn("-onlyUsePackageVersionsFromResolvedFile", archive)
@@ -363,13 +411,13 @@ class AppleArchiveTests(unittest.TestCase):
                 stub.write_text(stub.read_text() + "sys.exit(65)\n")
                 failed = subprocess.run(
                     ["bash", str(root / "Scripts/ci/archive-apple.sh")], capture_output=True,
-                    env={**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
-                         "APPLE_CI_DIR": str(private), "BUILD_PLATFORM": platform,
-                         "BUILD_VERSION": "2.3.4", "COMMAND_LOG": str(log),
-                         "GITHUB_STEP_SUMMARY": str(root / "summary.md")})
+                    env=environment)
                 self.assertEqual(failed.returncode, 65)
                 self.assertEqual(len(log.read_text().splitlines()), 1)
                 self.assertFalse((root / "summary.md").exists())
+                CI.cleanup(private)
+                self.assertFalse(private.exists())
+                self.assertEqual(crashlytics.exists(), cached)
 
 
 if __name__ == "__main__":

@@ -38,6 +38,13 @@ authentication=(
   -authenticationKeyIssuerID "$issuer"
 )
 
+# Keep Crashlytics' DerivedData/SourcePackages lookup while caching only public dependencies.
+packages="${SPM_CACHE_DIR:-$APPLE_CI_DIR/DerivedData/SourcePackages}"
+mkdir -p "$packages" "$APPLE_CI_DIR/DerivedData"
+if [[ "$packages" != "$APPLE_CI_DIR/DerivedData/SourcePackages" ]]; then
+  ln -sfn "$packages" "$APPLE_CI_DIR/DerivedData/SourcePackages"
+fi
+
 # Never dump build settings or publish raw logs containing service configuration.
 xcodebuild -quiet \
   -project Termind.xcodeproj \
@@ -46,7 +53,7 @@ xcodebuild -quiet \
   -destination "$destination" \
   -onlyUsePackageVersionsFromResolvedFile \
   -derivedDataPath "$APPLE_CI_DIR/DerivedData" \
-  -clonedSourcePackagesDirPath "$APPLE_CI_DIR/DerivedData/SourcePackages" \
+  -clonedSourcePackagesDirPath "$packages" \
   -archivePath "$APPLE_CI_DIR/$scheme.xcarchive" \
   "${authentication[@]}" \
   archive

@@ -68,10 +68,23 @@ jobs:
           submodules: false
 
       - name: Check toolchain and localization
+        id: toolchain
         run: |
           xcodebuild -version
+          echo "cache-key=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "SPM_CACHE_DIR=$RUNNER_TEMP/DerivedData/SourcePackages" >> "$GITHUB_ENV"
           python3 Scripts/check-localization.py
           python3 -m unittest discover -s Scripts/Tests -p 'test_apple_build.py'
+
+      # Share only public package downloads with test jobs; never cache the private build directory.
+      - name: Restore Swift packages
+        id: spm-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.SPM_CACHE_DIR }}
+          key: apple-spm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.cache-key }}-${{ hashFiles('Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            apple-spm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.cache-key }}-
 
       - name: Create private build directory
         run: |
@@ -93,6 +106,13 @@ jobs:
 
       - name: Archive and upload to App Store Connect
         run: bash Scripts/ci/archive-apple.sh
+
+      - name: Save Swift packages
+        if: ${{ steps.spm-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.SPM_CACHE_DIR }}
+          key: ${{ steps.spm-cache.outputs.cache-primary-key }}
 
       - name: Remove temporary credentials and build files
         if: ${{ always() && env.APPLE_CI_DIR != '' }}

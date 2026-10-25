@@ -43,7 +43,7 @@ concurrency:
 
 jobs:
   checks:
-    name: Credential-free checks
+    name: Validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -84,10 +84,23 @@ jobs:
           submodules: false
 
       - name: Check toolchain and localization
+        id: toolchain
         run: |
           xcodebuild -version
+          echo "cache-key=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "SPM_CACHE_DIR=$RUNNER_TEMP/DerivedData/SourcePackages" >> "$GITHUB_ENV"
           xcrun swift --version
           python3 Scripts/check-localization.py
+
+      # Cache package sources and downloaded artifacts, not compiled or signed app products.
+      - name: Restore Swift packages
+        id: spm-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.SPM_CACHE_DIR }}
+          key: apple-spm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.cache-key }}-${{ hashFiles('Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            apple-spm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.cache-key }}-
 
       - name: Select test destination
         run: |
@@ -143,6 +156,7 @@ jobs:
             -destination-timeout 120 \
             -onlyUsePackageVersionsFromResolvedFile \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -clonedSourcePackagesDirPath "$SPM_CACHE_DIR" \
             -resultBundlePath "$RUNNER_TEMP/test-results/$SCHEME.xcresult" \
             -parallel-testing-enabled NO \
             CODE_SIGN_IDENTITY=- \
@@ -151,6 +165,13 @@ jobs:
             CODE_SIGN_ENTITLEMENTS= \
             ENABLE_APP_SANDBOX=NO \
             test 2>&1 | tee "$RUNNER_TEMP/test-results/xcodebuild.log"
+
+      - name: Save Swift packages
+        if: ${{ steps.spm-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.SPM_CACHE_DIR }}
+          key: ${{ steps.spm-cache.outputs.cache-primary-key }}
 
       - name: Upload test results
         if: ${{ !cancelled() }}
