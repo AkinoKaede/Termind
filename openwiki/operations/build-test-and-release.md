@@ -1,11 +1,17 @@
 ---
 type: release operations
-title: Build, Test, and Release Operations
-description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
+title: Build, Test, and Release
+description: Reproducible Apple verification, isolated signing and App Store Connect uploads, dependency locking, and explicit integration-test and manual release gates.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 sources:
+  - id: openwiki-source-7a80b79a6fb3618cbfab08a2
+    resource: repo://.github/workflows/build.yml
   - id: openwiki-source-8c4bdfb086f2eff661e05807
     resource: repo://.github/workflows/localization.yml
+  - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
+    resource: repo://.github/workflows/openwiki-update.yml
+  - id: openwiki-source-4f2678f93d3fd3835f9f2909
+    resource: repo://.github/workflows/test.yml
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -24,10 +30,16 @@ sources:
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-d125bef219ce9eee56abf917
     resource: repo://Scripts/check-localization.py
+  - id: openwiki-source-ba52e849ccbc71f7247c983a
+    resource: repo://Scripts/ci/apple-build.py
+  - id: openwiki-source-cc4c1f81aab18928b247e547
+    resource: repo://Scripts/ci/archive-apple.sh
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
+  - id: openwiki-source-af3f04baa8e4f13f98b7d6c7
+    resource: repo://Scripts/Tests/test_apple_build.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -58,19 +70,21 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-c760fd3440c4d99945238ba5
+    resource: repo://TFMTests/AppleSigningTestTrait.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-db017475c6e5a30e0527fd60
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Build, Test, and Release Operations
+# Build, Test, and Release
 
 This is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The public Astro website and assets are an independent Git submodule at `com.akinokaede.termind`, with its Node project at that root.
 
@@ -117,6 +131,55 @@ xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' 
 
 Use the matching mobile scheme and a concrete simulator for `TFITests` work. The `TFM` test action includes `TFMTests` and `FrameworkTests`; `TFI` includes `TFITests` and `FrameworkTests`. Typical focused choices are the test file that names the changed feature, `TFMTests/ArchitectureBoundaryTests.swift` for dependency placement, and `TFMTests/AppLanguageTests.swift` for language-selection/catalog behavior. Do not use an unrelated focused test as a substitute for the affected default suite. Check which suites actually ran: a passing default command does not prove a disabled opt-in suite passed.
 
+### CI verification versus provisioned integration
+
+The [Test workflow](../../.github/workflows/test.yml) runs on path-filtered pull requests and selected branch pushes, or manual dispatch. Ubuntu validation runs localization plus Python discovery before the independent TFM/TFI jobs. Native jobs use `xcode-27` with `DEVELOPER_DIR=/Applications/Xcode_27.1.app/Contents/Developer`; SDK choice is not a deployment minimum. App deployment settings remain macOS **15.0** and iOS **18.0** (including Widgets). TFM tests select arm64 macOS; TFI selects the highest available iPhone runtime between iOS 18.0 and the selected simulator SDK, failing if none exists.
+
+Routine CI uses Debug, serial tests and ad-hoc signing: `CODE_SIGN_IDENTITY=-`, `CODE_SIGN_STYLE=Manual`, empty `DEVELOPMENT_TEAM` and `CODE_SIGN_ENTITLEMENTS`, and `ENABLE_APP_SANDBOX=NO`. It needs no signing secrets, protected environment or provisioning updates. Window, mobile UI and signed-integration gates are explicitly `0`. To reproduce that boundary locally, append those same build-setting overrides to the resolved-package test command above; the unmodified command uses your project's signing settings. Routine ad-hoc/unsigned verification is not entitlement or live-service evidence. CI retains its uncredentialed test-result directory for seven days when not cancelled; do not extend that artifact policy to credentialed release jobs.
+
+`.requiresAppleSigning` gates real Keychain suites (`MCPAuthorizationKeychainTests`, `TailscaleKeychainTests`) and selected `SettingsSyncTests` cases. For a deliberately provisioned test host, opt in with `TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS=1` on the command line, or `TERMIND_SIGNED_INTEGRATION_TESTS=1` in Xcode's Test action. Do not clear the signing team or entitlements for that run. The environment variable enables tests; it does not provision credentials or establish CloudKit readiness.
+
+The signing helper also supports `prepare-development` for isolated GitHub Actions runners, but the routine Test workflow does **not** call it. It requires the separate `APPLE_DEVELOPMENT_CERTIFICATES_P12_BASE64`, `APPLE_DEVELOPMENT_CERTIFICATES_PASSWORD` and `APPLE_DEVELOPMENT_PROFILES_BASE64` inputs, never falls back to distribution credentials, rejects distribution and Production-only CloudKit profiles, and temporarily disables Firebase/RevenueCat configuration and symbol upload. Follow the [CloudKit readiness guide](cloudkit-release-readiness.md) for actual signed-service validation.
+
+### Shared package cache, not shared build state
+
+Build and Test share only `$RUNNER_TEMP/DerivedData/SourcePackages`. Cache keys include OS, architecture, a hash of `xcodebuild -version`, and `Package.resolved`; the fallback prefix preserves the toolchain boundary. Both paths still pass `-onlyUsePackageVersionsFromResolvedFile` and explicitly select the cloned-package directory: a cache hit never authorizes dependency updates. Saves occur after successful execution when there was no exact hit. Do not cache signed products, results, credentials or the private release directory. The archive script links its private `DerivedData/SourcePackages` to this cache so Crashlytics can find its package script without exposing the private build tree.
+
+### Controlled archive and App Store Connect upload
+
+The manual [Build workflow](../../.github/workflows/build.yml) accepts a three-component numeric `version` and `platform` (`All`, `iOS`, `macOS`). `apple-build.py matrix` validates inputs before selecting TFI/TFM jobs. Jobs use the `app-store-connect` environment and Xcode 27.1; release concurrency does not cancel an in-progress archive/upload. Localization and focused CI-script tests run before signing setup. This workflow does not run the native test matrix: obtain that evidence separately before dispatch.
+
+Provision the environment's certificate P12/password, provisioning-profile ZIP, App Store Connect `.p8` key/key ID/issuer UUID, Firebase plist and RevenueCat public Apple SDK key/entitlement via the secret names in the workflow. `apple-build.py prepare` validates required configuration, Firebase bundle identity, key formats and the project's single signing team before modifying signing state; decoded profiles are checked for team and expiry during installation. ZIP entries are read as bytes rather than extracted paths. Release configuration requires valid services even though ordinary local builds do not.
+
+```mermaid
+flowchart TD
+    Inputs["Validate version and platform"] --> Checks["Check localization and script tests"]
+    Checks --> Private["Create private runner directory"]
+    Private --> Prepare["Save state and prepare temporary signing"]
+    Prepare --> Archive["Bump versions and archive Release"]
+    Archive --> Upload["Export and upload to App Store Connect"]
+    Prepare --> Cleanup["Always restore signing and local configuration"]
+    Archive --> Cleanup
+    Upload --> Cleanup
+    Cleanup --> Result["Check processing and perform manual release steps"]
+```
+The release job attempts cleanup after setup, archive or upload failure as well as success; an archive failure prevents export and a success summary.
+
+**Credential lifecycle:** the workflow creates `APPLE_CI_DIR` with `umask 077`; the helper restricts setup/cleanup to isolated GitHub Actions and a `termind-apple.*` directory directly under `RUNNER_TEMP`. Private files are mode `0600`. It saves the original keychain search list, backs up all existing Xcode profiles and local service files with their modes, creates/unlocks a temporary keychain, imports certificates and installs profiles. Generated keychain passwords and decoded service strings are masked; `security` output and password-bearing arguments are never logged. Do not enable shell tracing, dump build settings, or publish raw credentialed build logs or configuration.
+
+The workflow's `always()` cleanup restores the search list, deletes the temporary keychain, removes newly installed/downloaded profiles, restores original files and modes, then removes the private directory. Partial setup is recoverable from `state.json`. Keychain restoration/deletion failures are reported and retain recovery data for retry rather than claiming successful cleanup; treat that retained directory as sensitive. Project version changes are checkout-local, not part of the signing-file backup contract.
+
+`archive-apple.sh` runs `Scripts/bump-version.py` with the requested version, preserving app/widget alignment, then archives Release for generic iOS or macOS with locked packages and App Store Connect authentication plus `-allowProvisioningUpdates`. It preserves real entitlements. Export options use `method=app-store-connect`, `destination=upload`, automatic signing, symbol upload, Xcode-managed version/build numbers and **Production** CloudKit. Production export does not deploy the CloudKit schema. Check processing and the final Xcode-managed build number in App Store Connect: TestFlight distribution, App Review submission and release remain manual. No source-version commit or tag is made by this workflow.
+
+### CI-script regression checks
+
+```sh
+python3 -m unittest discover -s Scripts/Tests -p 'test_*.py'
+python3 -m unittest discover -s Scripts/Tests -p 'test_apple_build.py'
+```
+
+The focused Apple suite uses fake `security` calls and stub `xcodebuild` to test input rejection, service masking, profile safety, setup/restoration, partial import failure, cleanup retry, development/distribution separation, uncredentialed workflow boundaries, package-cache isolation, archive-before-upload ordering, version alignment and failure propagation. These tests exercise scripts on temporary fixtures, not real Apple signing or uploads. Use them when changing workflows, the signing helper, archive script or related configuration.
+
 ### Release configuration and version checks
 
 Both shared schemes use **Debug** for Test, Launch, and Analyze, and **Release** for Profile and Archive. Their test actions list both platform and shared test bundles with `skipped = "NO"`; individual Swift Testing gates still decide whether opt-in UI cases execute. A successful default test run therefore proves neither Release compilation nor execution of gated UI cases.
@@ -125,10 +188,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.17.2` | `71` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.17.2` | `108` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.17.2` | `97` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.2` | `97` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.17.4` | `75` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.17.4` | `112` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.17.4` | `101` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.4` | `101` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -256,7 +319,7 @@ python3 Scripts/check-localization.py
 
 **Use the current Python checker, not retired script names.** `AGENTS.md` names `Scripts/check-localization.py`, but its references to a Chinese-only check and a `jq` requirement lag the implementation: the current checker uses Python's standard library plus the sibling normalizer module and checks all six non-English locales. Do not recommend the unavailable `check-zh-localization.sh` or `check-cjk-localization.py`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when shared catalogs, the normalizer, localization checker, or the workflow change. Its sole validation command is `python3 Scripts/check-localization.py`; it does not run native Swift tests or Python regression discovery. Its path filters do not make it an every-commit check, so keep the catalog gate in the local commit pipeline even for code-only changes.
 
-At the fb6a61 baseline, `Scripts/Tests/` is absent. Historical discovery commands for `test_localization.py`, `test_normalize_string_catalogs.py`, `test_cjk_localization.py`, and `test_bump_version.py` are not available validation. Do not report an empty discovery run as regression coverage. When changing validation tools, explicitly provide focused regression evidence rather than assuming those deleted tests still run.
+`Scripts/Tests/` now contains `test_apple_build.py` and `test_firebase_configuration.py`, and Test CI discovers `test_*.py`. Historical `test_localization.py`, `test_normalize_string_catalogs.py`, `test_cjk_localization.py` and `test_bump_version.py` remain unavailable; do not mistake CI-script discovery for dedicated localization regression coverage. When changing validation tools, explicitly provide focused regression evidence.
 
 ### Focused language and presentation regression tests
 
@@ -314,6 +377,10 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026101502` at `42bacd1339f323a693ddbca779295f4f77e5a697`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
 
 Update the upstream requirement and `Package.resolved` together, then use resolved-only TFM and TFI builds and the affected adapter tests. Grouping, localization and upload policy remain Termind-owned around the package's separate touch/selection hooks. Package internals need their own source/test review; a host test or pin inspection is not a binary-release or live interaction result. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
+
+## Scheduled documentation operations
+
+[OpenWiki Update](../../.github/workflows/openwiki-update.yml) runs daily at `20:00 UTC` or on manual dispatch, using full Git history so updates can diff against the documented baseline. It runs `openwiki code --update --print` with Node 22 and pinned OpenWiki/Mermaid/jsdom tooling. Configuration is checked before generation. Generation may fail after completing some pages: the workflow still removes transient `.run.json` and opens an `openwiki/update` PR preserving completed work when not cancelled, then propagates the failure. Review that PR and its reported outcome; partial documentation progress is not a successful native verification or release.
 
 ## Release-oriented checklist
 

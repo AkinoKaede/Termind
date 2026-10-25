@@ -1,6 +1,6 @@
 ---
 type: assistant runtime concept
-title: Assistant Runtime and Tool Ownership
+title: Agent Runtime and Assistant
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
@@ -136,17 +136,17 @@ sources:
     resource: repo://TFMTests/ContextAttachmentImporterTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Assistant Runtime and Tool Ownership
+# Agent Runtime and Assistant
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, the persistence store outside its tools. With pane inspection injected, it can request a read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 4.0.0). `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **4.0.0** at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. AgentKit is not a Termind submodule; its upstream implementation and tests are a separate package boundary. Ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change spans the package boundary, test and release the package, then align the Xcode `minimumVersion` and resolved pin with the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, the persistence store outside its tools. With pane inspection injected, it can request a read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 4.0.0, `upToNextMinorVersion`) and declares both `AgentKit` and `AgentKitScrubber` products from that package; the desktop app links both. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **4.0.0** at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. AgentKit is not a Termind submodule; its upstream implementation and tests are a separate package boundary. Ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change spans the package boundary, test and release the package, then align the Xcode `minimumVersion` and resolved pin with the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 
@@ -170,7 +170,7 @@ flowchart TD
 
 Native assistant composition: app targets inject device services, while the shared controller creates an AgentKit runtime and the separate macOS MCP server exports a restricted tool surface.
 
-For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](../workflows/file-drag-and-drop.md).
+For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](../workflows/file-drag-and-drop.md). Mobile keeps the conversation mounted when approvals or other interactions disable attachment drops: the modifier changes drop acceptance and clears targeting instead of replacing its content. Message images wrap with each user row trailing-aligned and assistant row leading-aligned, including partially filled rows; `TFITests/MobileAssistantTranscriptTests.swift` checks this placement. These are app-owned presentation concerns, not changes to AgentKit execution or authorization. See [Mobile UI](../architecture/mobile-ui.md#assistant-stable-transcriptinput-independent-run-ownership) for transcript/input layout and scene ownership details.
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. When configured, `AssistantModelSelectionController.prepareForSend` first persists a valid per-conversation chat-model choice (or replaces an unavailable choice with the current default); a write error refuses capture without consuming the draft. Drafts are seeded with a model in memory, while restore backfills durable choices, and later Chat-role changes do not silently switch an existing valid choice. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 

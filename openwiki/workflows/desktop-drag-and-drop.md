@@ -1,8 +1,8 @@
 ---
 type: interaction workflow
-title: Desktop Workspace and Pane Drag-and-Drop
-description: Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
-tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
+title: Desktop Drag and Drop
+description: Desktop managed-card drag lifecycle, full-size previews, insertion placeholders, and the boundary between presentation and reorder persistence. Also covers native workspace and pane dragging, cancellation, and deferred window ownership transfer.
+tags: [macos, tfm, drag-and-drop, managed-cards, workspaces, panes, appkit, lifecycle, testing]
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -62,13 +62,96 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-17T17:19:40.811Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-17T17:19:40.811Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Desktop Workspace and Pane Drag-and-Drop
+# Desktop Drag and Drop
+
+## Managed-card dragging: presentation is not persistence
+
+Desktop manager pages share `ManagedCardPageRenderer`, which owns drag-session state, pointer-to-slot resolution and temporary omission of moving cards. Business pages supply actual card views, selection hooks and optional reorder capabilities. **The floating preview, the insertion gap and the saved order are three different things.** Changing preview rendering must not change model move semantics. Mobile reorder ownership is documented in [Mobile UI Architecture](../architecture/mobile-ui.md); this renderer is the desktop interaction path.
+
+### Lift, hover, commit and cleanup
+
+```mermaid
+sequenceDiagram
+    participant Card as Actual card
+    participant Renderer as ManagedCardPageRenderer
+    participant Session as Drag presentation state
+    participant Resolver as ManagedCardDropResolver
+    participant Model as Page move callback
+    Card->>Renderer: onDrag when reordering is enabled
+    Renderer->>Session: Capture ordered IDs and lift sizes
+    Renderer-->>Card: Explicit full-size actual-card preview
+    Renderer->>Session: After 100 ms omit moving IDs if session still matches
+    Renderer->>Resolver: Hover with eligible sections and remaining items
+    Resolver-->>Session: Section and insertion index
+    alt Valid drop
+        Renderer->>Model: Move IDs into section before next remaining ID
+        Renderer->>Session: Clear session, omissions and placeholder
+    else Invalid drop
+        Renderer->>Session: Clear drag state without a move
+    else Release outside destinations
+        Card->>Renderer: Next normal page tap
+        Renderer->>Session: Clear drag state
+    end
+```
+The managed-card lifecycle keeps hover geometry local and invokes the business move only on a resolved drop.
+
+- **Batch identity:** dragging a selected item uses selected visible items in page order; dragging an unselected item uses that item alone. With `.sameSection`, the batch is restricted to the source section. `ManagedCardDragSession` captures nonempty measured sizes at lift; unmeasured members use the source-card fallback (or minimum card width and height if its frame is unavailable).
+- **Temporary layout:** the initial slot counts preceding nonmoving cards. After the guarded 100 ms delay, moving IDs are omitted from displayed sections. The adaptive `CardGrid` can reflow, but each moving item's placeholder retains its captured height. `ManagedCardReorderPlaceholder` is clear, noninteractive and accessibility-hidden: it paints neither card content, surface nor border. It is not a faded copy of the floating card.
+- **Target resolution:** top content is excluded; sections must accept drops, satisfy the page policy and have measured frames. Moving IDs are removed before indexing. The resolver picks the nearest section vertically, uses card row bounds and horizontal midpoints for insertion, and places a drop on a collapsed section at its end. Leaving the receiver clears the insertion location, not the whole session.
+- **Commit and cancellation:** the text provider carries the source item's ID string, but the move uses the renderer's local session IDs, not decoded external text. The delegate's type gate alone is not a valid reorder: location resolution also requires a live session. A valid drop converts the index into the next remaining stable ID (`nil` at the end), calls `move`, then clears presentation state. An invalid drop clears without moving. This SwiftUI path has no AppKit drag-ended observer; a release outside all valid destinations is restored on the next normal page tap, not via the workspace tear-off mechanism below.
+
+Evidence: [session and resolver](../../TFM/UI/Managed/ManagedCardPage.swift#L179-L240), [renderer and drop lifecycle](../../TFM/UI/Managed/ManagedCardPage.swift#L293-L574), [adaptive grid](../../TFM/UI/Managed/CardGrid.swift#L528-L550).
+
+### Full-size preview and standalone surface
+
+`draggableCard` reuses the **actual business card** in the explicit `.onDrag` preview rather than a compact title surrogate or an insertion placeholder. `ManagedCardDragPreview` fixes width and height to the session size (falling back to the measured frame), disables hit testing, hides the preview from accessibility, and marks its subtree with `managedCardIsDragPreview`. The renderer explicitly forwards its captured `EnvironmentValues` into the preview, preserving the environment needed by business cards outside the normal page hierarchy. The source comment identifies macOS 27 default glass snapshots with an oversized prohibited-operation badge as the reason not to rely on the default snapshot.
+
+`CardTile` consumes the preview flag. Normal cards retain interactive glass; preview cards instead draw a rounded `TermindColor.windowSurface` with the selected accent tint when applicable. Native glass needs a live backdrop, so the drag image needs this self-contained fallback. Clipping and the existing selection border remain in place. Preview cards cannot become Return-key focus targets and receive a nil card-geometry store, preventing their detached geometry from contributing to the page's marquee hit map.
+
+The page's blank-area marquee is a native overlay that rejects card and control/header hits before interaction begins, rather than an ancestor SwiftUI `DragGesture` competing with `.onDrag`. Preserve that division when changing selection behavior. See [UI Design Principles](../concepts/ui-design-principles.md) for the wider presentation contract.
+
+Evidence: [explicit preview and environment](../../TFM/UI/Managed/ManagedCardPage.swift#L390-L417), [preview wrapper and clear slot](../../TFM/UI/Managed/ManagedCardDragPreview.swift), [CardTile preview surface and isolation](../../TFM/UI/Managed/CardGrid.swift#L558-L646), [marquee arbitration](../../TFM/UI/Managed/CardGrid.swift#L189-L221).
+
+### Which pages actually reorder?
+
+All six callers use the inherited renderer and `CardGrid`; sharing the surface does **not** automatically enable dragging.
+
+| Caller | Actual card and reorder boundary |
+| --- | --- |
+| [Hosts](../../TFM/Features/Hosts/HostsPageView.swift#L119-L220) | `HostCard`; unfiltered pages use `.anySection`, calling `app.hostLibrary.move(hostIDs:into:before:)` for group or ungrouped placement. Results cannot accept drops. |
+| [Keychain](../../TFM/Features/Keychain/KeychainPageView.swift#L88-L173) | `KeyCard` or `IdentityCard`; empty-query pages use `.sameSection`, dispatching independently to `app.credentials.move(keyIDs:before:)` or `move(identityIDs:before:)`. A mixed selection does not convert keys into identities. |
+| [Known Hosts](../../TFM/Features/KnownHosts/KnownHostsPageView.swift#L25-L66) | `KnownHostCard`; default capabilities contain no reordering and its section rejects drops. Shared CardTile changes do not create a drag source. |
+| [Snippets](../../TFM/Features/Snippets/SnippetsPageView.swift#L73-L178) | `SnippetCard`; unfiltered pages use `.anySection`, calling `app.snippets.move(snippetIDs:into:before:)` for package placement. Results reject drops. |
+| [Metrics](../../TFM/Features/Metrics/MetricsManagedCardPage.swift#L16-L54) | `ServerMetricsCard`; empty-query pages use `.sameSection` and `app.serverMetrics.move`. Its wider, potentially tall cards make captured per-item heights important. |
+| [Forwarding](../../TFM/Features/Ports/PortForwardingView.swift#L25-L53) | Page-specific card content uses `CardTile`; capabilities enable selection/marquee but no reordering, and the section rejects drops. |
+
+The renderer's callback returns `Void`: successful drop handling means dispatch, **not confirmation of durable storage**. Host and snippet moves update placement/sort indices and call `persistCore`; Keychain's independent manual-order operations also persist there. Metrics instead persists its reordered configuration before applying it. Keep those feature-model policies separate from preview fixes; do not infer a universal rollback policy from the shared renderer. In particular, the host model can reject a move containing a Tailscale-managed host or an invalid destination group even after the UI resolves a slot.
+
+Evidence: [host move](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2263-L2288), [snippet move](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2000-L2027), [Keychain order persistence](../../Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1792-L1813), [Metrics persistence-before-apply](../../Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift#L226-L235).
+
+### Focused managed-card regressions
+
+- [ManagedCardDragPresentationTests](../../TFMTests/ManagedCardDragPresentationTests.swift) checks immutable lift heights across reflow, zero/offscreen-frame fallbacks, and fully transparent batch placeholders. Its light/dark image tests check a 360 × 240 actual `CardTile` preview retains both header and footer, an opaque center and transparent rounded corner. These are offscreen rendering tests, not end-to-end native drag or persistence tests.
+- [KeychainOrderTests](../../TFMTests/KeychainOrderTests.swift) separately covers fixed/exchangeable drop policies, grid slots and collapsed-section ends, batch deduplication/order, and key/identity ordering after persistence reload.
+- [CardMarqueeSelectionTests](../../TFMTests/CardMarqueeSelectionTests.swift) covers neighboring selection geometry. Keep selection regressions distinct from drag-image rendering failures.
+
+A focused macOS test selection is:
+
+```sh
+xcodebuild -quiet -project Termind.xcodeproj -scheme TFM \
+  -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile \
+  -only-testing:TFMTests/ManagedCardDragPresentationTests \
+  -only-testing:TFMTests/KeychainOrderTests \
+  -only-testing:TFMTests/CardMarqueeSelectionTests test
+```
+
+## Native workspace and pane dragging
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 

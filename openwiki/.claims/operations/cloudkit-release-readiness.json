@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ec2424e8e9a109d6308dc8a22bc0faf758708bf1213432bb89765117e6476efe",
+  "pageVersion": "sha256:fe037c3694fef5e3ccada0ed507653bde03dd9c71cf375c96d2153278ff9c889",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -572,19 +572,15 @@
     },
     {
       "id": "claim_5e7841dbc3bc4c29968f6a7f2d9c5d29",
-      "statement": "Both app targets' entitlement templates declare CloudKit in iCloud.com.akinokaede.termind and substitute ICLOUD_CONTAINER_ENVIRONMENT and APS_ENVIRONMENT; TFI uses aps-environment and TFM uses com.apple.developer.aps-environment. Both targets select Development/development for Debug and Production/production for Release. These checked-in signing inputs do not establish effective signed capabilities, deployed Production schema, or successful live multi-device synchronization; those require separate release verification.",
+      "statement": "Both app entitlement templates declare CloudKit in iCloud.com.akinokaede.termind, substituting ICLOUD_CONTAINER_ENVIRONMENT and APS_ENVIRONMENT with platform-specific push keys. Both targets use Development/development in Debug and Production/production in Release. The signing helper separately requests Production in App Store Connect export; development preparation requires development profiles and rejects declared environments not permitting Development. These inputs do not establish effective capabilities, schema deployment or live synchronization.",
       "evidence": [
         {
-          "resource": "repo://TFI/TFI.entitlements",
-          "version": "repo-file-v1:sha256:471a5eaa9ef06a48a5e5cb64eabbea87cb025b5700acf6fc4d4f359462ebff7c"
+          "resource": "repo://Scripts/ci/apple-build.py#L138-L147",
+          "version": "repo-lines-v1:sha256:f9abcfcc105a22c640e28de6cebe0b689f67ad6f22f2ae1aa67247f925a03ad1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxNTc5NGE1ZTk0OTI3NTI5MzEyY2UyMWJlMzlmMWMxYThkZmI1YTI1ZGFlOGFmZTY1Zjg3OTgyNGEyZjE4NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkY2E5N2QyMjc0ZWY0NmI0OTg3ZmU0NDBiNDBiOWI2ODI3Y2YzMmE3ODU0M2ZmMmI4MGMxN2NhZmE4YTYwNTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYTE3YzNhNWQxNTI5MDc2OWMzZjM0NzRjMjRiNjE3MzAwOGI3MTQ1MTAyM2MzNzRhOTU0ZWZkMWY0NjE0MGEifQ"
         },
         {
-          "resource": "repo://TFM/TFM.entitlements",
-          "version": "repo-file-v1:sha256:164a7405fd59a24ea38bdc06270f1289c0f89c2dc4bd8809496cf59d67c71f47"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "resource": "repo://Scripts/ci/apple-build.py#L165-L247",
+          "version": "repo-lines-v1:sha256:67354dcdbe0f619771f920e14123215dcba589e8a5b1469ca81eac320fb37d79:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNjhlYWFkOWEzMzgxZjkzYzkzNmJkNjAxY2E4OGM0ZjRjZWY3ZTA2YTBiMGI5MWM2NDY1OGZmNjE4YjMxMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0OWJkMjU0OGZiNGIyYjc4ZjA3ZDQ4MDdlZTNiYTdhM2E1ZmFhZWRkY2Y4ZmFmNGM5YjQ0OTA5NzMzOTJmMTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1YWUyZTJjOWZkMDIyMmVhNjZkNzI4N2MxNjgzZmU5YWE3MzA0NTBhZTI1OWIxNDhiYjBhZmM5YTJlZjZhMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhYWE4MmY3N2Q3ZTMxZGRmM2RmZGM1YmU0M2YyZDliYzBlNGY1MjRhMDg4YzY5MWE3MmRkNDQ5ZGRjZDUyOGYifQ"
         }
       ]
     },
@@ -667,8 +663,8 @@
       "statement": "Current Settings sync retires terminal highlighting: capability/upload/presence handling excludes its kind, fetched/conflict/deletion records are ignored before reconciliation/validation and startup discards inactive uploads. The legacy cloud type/key remain compatibility identities rather than an active new-feature deployment requirement.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L15-L92",
-          "version": "repo-lines-v1:sha256:e6c3632fe342cb8c9c72956a650581c3101c724c420ca185c4c80991e9a3b279:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q1MTE5ZWUxMDczYzg3ZWM3MjFkYjI0ZjAxYTAwMDQ4NTc3NzJhNDNmZTRjN2EwNzg0Nzc2ZTM2NzA4ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2MmExZGZhZmU2YjM3MDRjZmViODI2NWUxNDMwOGVhY2E0OGRlM2YwY2YwOGIzYzg1ZGEwODI2NWIxMGIwZDUifQ"
+          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L15-L99",
+          "version": "repo-lines-v1:sha256:74e4c51c142d2eed9922645100eff5879eee55cbd1a3ee40a923013cbf8d1322:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q1MTE5ZWUxMDczYzg3ZWM3MjFkYjI0ZjAxYTAwMDQ4NTc3NzJhNDNmZTRjN2EwNzg0Nzc2ZTM2NzA4ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2MmExZGZhZmU2YjM3MDRjZmViODI2NWUxNDMwOGVhY2E0OGRlM2YwY2YwOGIzYzg1ZGEwODI2NWIxMGIwZDUifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L219-L241",
@@ -734,7 +730,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

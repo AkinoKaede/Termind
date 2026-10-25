@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:85b8b6d1148718be9a665b7bd19fb4c287bf6b96ac36bd422e8fc731275240b2",
+  "pageVersion": "sha256:826f07295a7193f17f1d1749ee592f6640bb8166322be943cdee36cf251b26ff",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
-      "statement": "Termind's native targets remain platform-specific in Debug and Release: TFM builds for macosx with macOS 15.0, and TFI builds for iphoneos/iphonesimulator with iOS 18.0 and iPhone/iPad families. TFI's macOS deployment metadata does not add a desktop build platform. Both select development cloud/push environments in Debug and production in Release; desktop enables Sandbox and Hardened Runtime.",
+      "statement": "Termind's native targets remain platform-specific in Debug and Release: TFM targets macOS 15.0 and TFI targets iOS 18.0 on iPhone/iPad, with TFI's macOS metadata not adding a desktop platform. Both select development cloud/push environments in Debug and production in Release; desktop enables Sandbox and Hardened Runtime. The six shared Termind frameworks are static libraries with SKIP_INSTALL and empty signing identities, not runtime hosts. TFI embeds TermindWidgets.appex and uses automatic signing without a target identity override; TFM selects Apple Development and embeds termind-mcp with CodeSignOnCopy. Signing and packaging settings do not redefine native runtime ownership.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -908,7 +908,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

@@ -122,10 +122,10 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # Platform Startup and Runtime Lifecycle
@@ -170,7 +170,9 @@ This page explains runtime composition and lifetime boundaries. For the componen
 
 The current Debug and Release configurations in the [Xcode project](../../Termind.xcodeproj/project.pbxproj) keep the apps platform-specific: `TFM` uses `SDKROOT = macosx`, `SUPPORTED_PLATFORMS = macosx` and a macOS 15.0 deployment target; `TFI` uses `SDKROOT = iphoneos`, `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"`, an iOS 18.0 deployment target and `TARGETED_DEVICE_FAMILY = "1,2"` (iPhone and iPad). The `MACOSX_DEPLOYMENT_TARGET` value also present in TFI's settings does not add a macOS build platform. Do not infer a Catalyst or desktop lifecycle from that metadata: the native entrypoints remain `TermindApp` with its AppKit delegate and `TermindIOSApp` with its UIKit delegate. See [Build, Test, and Release](../operations/build-test-and-release.md) for build operations.
 
-Capabilities authorize platform integrations; they do not own service lifetimes:
+Capabilities authorize platform integrations; they do not own service lifetimes.
+
+The six shared `TermindDomain`, `TermindApplication`, `TermindInfrastructure`, `TermindPersistence`, `TermindPresentation` and `TermindRemoteInfrastructure` framework targets use `MACH_O_TYPE = staticlib`, `SKIP_INSTALL = YES` and an empty `CODE_SIGN_IDENTITY` in both configurations. They support macOS and iOS builds but are not separately signed runtime hosts. Keep this distinct from app signing and embedded products: TFI embeds `TermindWidgets.appex`, while TFM embeds the `termind-mcp` executable with `CodeSignOnCopy`. TFM explicitly selects `Apple Development`; TFI uses automatic signing without a target-level identity override. These packaging settings do not transfer service ownership away from `TermindApp`/`AppModel` or `TermindIOSApp`/`MobileAppModel`. Inspect target settings and copy phases together rather than treating a signing-default change as a lifecycle change.
 
 - **Desktop:** both configurations enable App Sandbox and Hardened Runtime. [TFM's entitlements](../../TFM/TFM.entitlements) permit audio input, serial devices, outgoing network connections, incoming network listeners and user-selected read/write files. These permissions support native runtime services but do not replace their window ownership or accepted-Quit cleanup contracts.
 - **Shared cloud and secrets:** [TFI's entitlements](../../TFI/TFI.entitlements) and TFM's entitlements declare CloudKit container `iCloud.com.akinokaede.termind`, `webcredentials:termind.akinokaede.com`, a bundle-derived Keychain access group and platform-specific APNs entitlement keys. Both apps select development APNs/CloudKit environments in Debug and production environments in Release. CloudKit authorization is separate from the foreground, Pro and user-preference gates described below.

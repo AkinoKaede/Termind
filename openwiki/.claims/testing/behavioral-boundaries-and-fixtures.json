@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0ac04f034348ca551a5253a57dc2c74963572ddf75ed7b8bfe7f1f662409ee32",
+  "pageVersion": "sha256:9683d4cff22d90a41c1176c4c7c0944ce7c8cba82122470eb36a83a33ecf24d7",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -358,11 +358,11 @@
     },
     {
       "id": "claim_200f3513ad9e4572a43d268fb6a3f788",
-      "statement": "MobileCardTests protects offscreen tag limits, confirmation selection isolation, connection indicators, timestamps and draft-color persistence; it currently provides neither brand-contrast or measured-height checks nor an optional snippet screenshot export path.",
+      "statement": "MobileCardTests protects compact/scaled and regular column layout, single-column accessibility layout, bounded tags, confirmation selection isolation, indicators, timestamps and draft-color persistence; it has no brand-contrast, measured stable-height or optional snippet screenshot-export checks.",
       "evidence": [
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:ef7fae23fb62408716807b7a1765829fa8ffba9ad4fddee948e7cb675ba93b25"
+          "version": "repo-file-v1:sha256:844e967a521cfddd7c1178a7d764ca5214a33e5e3fcc78f7302ba6c294f1ea94"
         }
       ]
     },
@@ -956,11 +956,11 @@
     },
     {
       "id": "claim_e607a12e84f54eb28f011d6b944caa17",
-      "statement": "RetiredTerminalHighlightingTests verifies V46/V51 upgrade/reopen drops retired storage without losing other preferences, preparation removes inactive pending uploads, and malformed legacy conflicts/deletions do not quarantine or block active Settings records.",
+      "statement": "RetiredTerminalHighlightingTests constructs V46/V51 stores, upgrades and reopens while retaining copyOnSelect and removing retired tables and journal entries; read-only SQLite checks explicitly validate API results with a 5000 ms busy timeout, and separate in-memory tests retire pending uploads and ignore malformed legacy fetch/conflict/deletion records without quarantine.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L15-L92",
-          "version": "repo-lines-v1:sha256:e6c3632fe342cb8c9c72956a650581c3101c724c420ca185c4c80991e9a3b279:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q1MTE5ZWUxMDczYzg3ZWM3MjFkYjI0ZjAxYTAwMDQ4NTc3NzJhNDNmZTRjN2EwNzg0Nzc2ZTM2NzA4ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2MmExZGZhZmU2YjM3MDRjZmViODI2NWUxNDMwOGVhY2E0OGRlM2YwY2YwOGIzYzg1ZGEwODI2NWIxMGIwZDUifQ"
+          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift",
+          "version": "repo-file-v1:sha256:f466085c17b5a7bd6354e324461d7174ff48e7ddcba383d9b7af2f7671641c8c"
         }
       ]
     },
@@ -1084,7 +1084,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

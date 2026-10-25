@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f0cf772a79115eb1c417867d918b945e51a865027ce1858b2991779b755186f0",
+  "pageVersion": "sha256:69aa739b749ff52fae4b85724887624433499a4ec127ea9a759bf65fd0bfa4ef",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -15,7 +15,7 @@
           "version": "repo-lines-v1:sha256:ca2a0e7157f7709ecb1cc42ba23de22aeb89aad7fc2a99123d4fa48b31b31f24:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwMjhhOGMyYjdiZDBmNzk1ZWIxYmI0YWM2ODE1OGRiNjBhODcwNzBmZTQ0ODZmOTdjYjBhYTk5ZDI2ZTllMjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5NDlkZTJkZmQ1NWFkOTJlNjBmZDg1NTJkNWZkOGJlNDExN2RmOTFmNjU0NjQ3YjNiZmE5MjAwNDQ1NzlkNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5M2YyZTE2YTAwZDc0ZTQ3ZGNjNDUyZDMyY2VlNTk5NDUzN2MxYmQ4Y2IyNzBhZDc4NzZjMDFjYWUyMjdhMTYifQ"
         },
         {
-          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L594-L673",
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L605-L684",
           "version": "repo-lines-v1:sha256:498b983ae43c8cd861c5332f2815bd73add9f61e72a9f034a7c8e19e24145639:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5YzZkODZmYzlkN2Y1NjQ1ZmUzNjAwYTA4YmU3M2VjZTU3NjY0OTRhYzEzZWFkMzhmZWZhNWQ4Mjk3NTM2NTYifQ"
         },
         {
@@ -98,7 +98,7 @@
         },
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:db4f07b9b6557b15b4807f032a6dceb3388e6ebe2e13582b965a65252068befe"
+          "version": "repo-file-v1:sha256:b385513002a2766ac80fb63403f9ad722403fc880010f0de05924e6a5e76d8bb"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift",
@@ -154,7 +154,7 @@
         },
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:db4f07b9b6557b15b4807f032a6dceb3388e6ebe2e13582b965a65252068befe"
+          "version": "repo-file-v1:sha256:b385513002a2766ac80fb63403f9ad722403fc880010f0de05924e6a5e76d8bb"
         },
         {
           "resource": "repo://TFI/Features/Assistant/MobileAssistantView.swift",
@@ -192,15 +192,19 @@
     },
     {
       "id": "claim_19b54bd8848c4be3964fb5d9df46007c",
-      "statement": "Mobile card columns derive from measured width with 12-point spacing and a 320-point standard minimum. Compact mode uses a Dynamic-Type-scaled minimum of at least 76 points capped at four columns; accessibility sizes always force one column rather than a fixed phone/tablet count.",
+      "statement": "Mobile card columns use measured width and 12-point gaps, a 320-point standard minimum or Dynamic-Type-scaled compact minimum of at least 76 points with no fixed column cap; accessibility sizes force one column.",
       "evidence": [
         {
-          "resource": "repo://TFI/Design/MobileDesignTokens.swift#L6-L25",
-          "version": "repo-lines-v1:sha256:4355176570473b738094c981cbf2565189a820a25d7de7585e23c63d163f8730:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2M2E0MDYxMjcxNjkxZGY5ZTZlNzNhNDc2ZjY2MGZiNDAzZmE3OGYwNDBjNDVjZTBhMmUzM2ViZmFlYmNlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmODVkNWEwZjU0NTg4ZWEyNzdkOTIyZjAwMzZjOGFiYjMxNDg0YzQ4Y2UwNzY0MjZjMjdjMTA5NWVmZDE4OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://TFI/Design/MobileDesignTokens.swift",
+          "version": "repo-file-v1:sha256:0da0eb409b62985190e97292028e408f1c52f00ec365c8bbf8084d5f1b0667cc"
         },
         {
-          "resource": "repo://TFI/UI/Managed/MobileCards.swift#L20-L41",
-          "version": "repo-lines-v1:sha256:6d76e9757c3e79f33ba866c414536cf83d091322c367b89127f1e00082c9f468:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMTc4YjMyZGYyYWZhNjMxODU1ZThhZWViMDNhNTg1YzM0MWE1OGRjYWZkZWJkNWJmMDYxZmViNjhlMjgzYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2OWVmY2YxNWI3ZmJmNDFhYTRlNGJkNDYyYzkxMTc4Mzk4YWZmODI2NWMzNzdmZjExNGRkNjViYWIyNTZkZmEifQ"
+          "resource": "repo://TFI/UI/Managed/MobileCards.swift",
+          "version": "repo-file-v1:sha256:b66e3514fb0eaa56f9d19cb5768af24fcc9f9000e076c8bcc4d1479c10bd1292"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardTests.swift",
+          "version": "repo-file-v1:sha256:844e967a521cfddd7c1178a7d764ca5214a33e5e3fcc78f7302ba6c294f1ea94"
         }
       ]
     },
@@ -210,7 +214,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift",
@@ -324,7 +328,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         }
       ]
     },
@@ -338,7 +342,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         },
         {
           "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
@@ -348,15 +352,39 @@
     },
     {
       "id": "claim_7561c7d7c2ae434081a61bd80351e950",
-      "statement": "Vault Host activation searches the owning session's saved/live terminal items across transports, excluding SFTP; it prefers the scene's recent selection, then the last matching ordered item, and only creates the preferred transport when no match exists. The card indicator follows that exact item's live runtime. Menus expose enabled protocols and eligible Tailscale details and disable managed-Host duplication/deletion.",
+      "statement": "Vault Host activation reuses the owning session's recent or last matching terminal item excluding SFTP, otherwise opens preferred transport; its indicator follows that item. Menus expose enabled protocols, eligible Tailscale details and configured Wake, while managed Hosts disable duplication/deletion and reorder sources. Card reorder callbacks invoke Host, Snippet, credential or Metrics move models and forward storage errors to app.error's root alert; Host moves mutate then persist while Metrics persists before applying configuration.",
       "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift",
+          "version": "repo-file-v1:sha256:68169d9fea8c45a2684c2768070b03fee41307ce182139476d022c0d781ea02b"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift",
+          "version": "repo-file-v1:sha256:dda175244f7ad2b6d7627fdeb084826d2b1e11759b79f241224c1a58c988f177"
+        },
+        {
+          "resource": "repo://TFI/App/MobileRootView.swift",
+          "version": "repo-file-v1:sha256:1c8009a76f1f860288bc62c845a67a52a0ba22b6dd44a584a1e57e294efd8fda"
+        },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
           "version": "repo-file-v1:sha256:1f071532b8fa9f6d8ee4c03aace424a35be2d06871bfc8b9d0802e9ea48a7494"
         },
         {
+          "resource": "repo://TFI/Features/Keychain/MobileCredentialsView.swift",
+          "version": "repo-file-v1:sha256:a0be997f3bf7588e72f2404028a289ed3508a7e49278d74ce9bcffefe807f9d4"
+        },
+        {
+          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
+        },
+        {
+          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
+          "version": "repo-file-v1:sha256:a848f75241fad5f241191940a4a20bf8de27c83bf93bce5cf7cca1b3dacd665d"
+        },
+        {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         }
       ]
     },
@@ -374,11 +402,11 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         },
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:ef7fae23fb62408716807b7a1765829fa8ffba9ad4fddee948e7cb675ba93b25"
+          "version": "repo-file-v1:sha256:844e967a521cfddd7c1178a7d764ca5214a33e5e3fcc78f7302ba6c294f1ea94"
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
@@ -388,33 +416,49 @@
     },
     {
       "id": "claim_557f948137274e30b94ce749a4581d84",
-      "statement": "MobileActionCard makes its whole surface the primary action and places secondary actions in a context menu. Standard cards use a 106-point minimum height, while compact action cards use MobileCompactCardLayout; surfaces choose glass or solid styling according to iOS availability and accessibility transparency/contrast settings.",
+      "statement": "MobileActionCard retains whole-surface primary taps and context menus, standard 106-point minimum height and compact layout, with accessibility-aware glass/solid surfaces. MobileCardPage owns a page-scoped reorder session and installs native scroll-view drag/drop interactions; own-process payloads require a matching single local item, scope, collection and allowed source. Hover projects cross-group placeholders without writes or persisted expansion. Commit clears before invoking the destination callback once; original placement is a no-op. Cancellation, uninstall and external ordered-ID changes discard drafts, and idle clearing avoids observation invalidation.",
       "evidence": [
         {
-          "resource": "repo://TFI/Design/MobileDesignTokens.swift",
-          "version": "repo-file-v1:sha256:e205f825f121ad98736a0bc67ca910ea544449a53abcff8b495e9341a6481bdf"
+          "resource": "repo://TFI/UI/Managed/MobileCardDragInteraction.swift",
+          "version": "repo-file-v1:sha256:c13424df8dac241fa139dd13b10bcab2703bdbe64c161e77e481c80d7f0e1f8d"
         },
         {
           "resource": "repo://TFI/UI/Managed/MobileCards.swift",
-          "version": "repo-file-v1:sha256:8e4253323b031e966c66faa4968af9041e21f7c8fade1962c46d92acf2d61955"
+          "version": "repo-file-v1:sha256:b66e3514fb0eaa56f9d19cb5768af24fcc9f9000e076c8bcc4d1479c10bd1292"
+        },
+        {
+          "resource": "repo://TFI/UI/Managed/MobileReorderableCardGrid.swift",
+          "version": "repo-file-v1:sha256:ca60d86784d28ae3318785337b21dd5e7cbb2787ff23c76abcd18d295936d330"
         }
       ]
     },
     {
       "id": "claim_349600096eb247f68a37cca1e4894a89",
-      "statement": "Standard Host card content limits tags to two through MobileCardLayout.visibleTags; MobileCardTests checks that policy and forwarding title policy rather than measured card heights. Compact Host cards use an icon/title/status presentation instead.",
+      "statement": "Standard Host content limits tags to two while compact content uses icon/title/status. Card tests cover tag/forwarding-title policy and uncapped adaptive columns; reorder session tests cover no hover writes, exactly-once commit, cancellation, original-slot no-op and idle observation. Serialized key-window interaction tests check standard/compact menus, own-process payload rejection by upload loading, preview geometry/translucency and folded-group placement. Native hover uses a movement threshold and edge scrolling, haptics, and Reduce-Motion-aware animation.",
       "evidence": [
         {
           "resource": "repo://TFI/Design/MobileDesignTokens.swift",
-          "version": "repo-file-v1:sha256:e205f825f121ad98736a0bc67ca910ea544449a53abcff8b495e9341a6481bdf"
+          "version": "repo-file-v1:sha256:0da0eb409b62985190e97292028e408f1c52f00ec365c8bbf8084d5f1b0667cc"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileHostCardContent.swift",
           "version": "repo-file-v1:sha256:86c9372595567d6ee9b14336d3cf40c3ad89e065b0337d00859525e5e653f56f"
         },
         {
+          "resource": "repo://TFI/UI/Managed/MobileCardDragInteraction.swift",
+          "version": "repo-file-v1:sha256:c13424df8dac241fa139dd13b10bcab2703bdbe64c161e77e481c80d7f0e1f8d"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardInteractionTests.swift",
+          "version": "repo-file-v1:sha256:2f49b4b4a45ea1d4620d7170db1e5844e8de33795140317f8a07f7217679958b"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardReorderSessionTests.swift",
+          "version": "repo-file-v1:sha256:2f0adfa027b0a0836f0039e17120f9c01ede48028bc33a1d8a31252c8347a153"
+        },
+        {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:ef7fae23fb62408716807b7a1765829fa8ffba9ad4fddee948e7cb675ba93b25"
+          "version": "repo-file-v1:sha256:844e967a521cfddd7c1178a7d764ca5214a33e5e3fcc78f7302ba6c294f1ea94"
         }
       ]
     },
@@ -464,7 +508,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:22039d836d74f3ff1834b72e5962a70db580f5a82b6f0123145bfc4ce02e564e"
+          "version": "repo-file-v1:sha256:2bc4dc80a9998066088cb3980ef1523910b20b924d6247143c690f835be56abf"
         }
       ]
     },
@@ -884,7 +928,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         },
         {
           "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift",
@@ -910,7 +954,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         },
         {
           "resource": "repo://TFITests/MobileMetricsHostAccessTests.swift",
@@ -934,7 +978,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         }
       ]
     },
@@ -944,7 +988,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         }
       ]
     },
@@ -1018,7 +1062,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         }
       ]
     },
@@ -1074,7 +1118,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
-          "version": "repo-file-v1:sha256:4393fb1768199c2faa19c9d1a186416db9c7d6b10bae57fdf26a8795ea4f059f"
+          "version": "repo-file-v1:sha256:1385f84d6a1a3ddb5059dbcb61e48b25ab6c57c8660176f5d4fda6258bab90b1"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift",
@@ -1324,11 +1368,19 @@
     },
     {
       "id": "claim_c058b29e509a46f09bd95ca2cf63c97c",
-      "statement": "Assistant native transcript rows have independent hosting roots, so MobileAssistantTranscriptRowRoot injects assistantToolNavigation into each row; chat references select an existing conversation in the scene library, while missing and non-chat references are ignored.",
+      "statement": "Assistant native transcript roots inject assistantToolNavigation to select existing scene-library chat references and ignore missing/non-chat references. Image flow aligns each user row trailing and Assistant row leading, with eight-point spacing and 104/160-point compact/other tiles. Separate external attachment drops disable for archive/approval/user-input states without replacing the conversation and accumulate import errors; focused tests verify image row alignment and transcript identity/scroll retention during interaction round trips.",
       "evidence": [
         {
           "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift",
-          "version": "repo-file-v1:sha256:db4f07b9b6557b15b4807f032a6dceb3388e6ebe2e13582b965a65252068befe"
+          "version": "repo-file-v1:sha256:b385513002a2766ac80fb63403f9ad722403fc880010f0de05924e6a5e76d8bb"
+        },
+        {
+          "resource": "repo://TFITests/MobileAssistantLayoutTests.swift",
+          "version": "repo-file-v1:sha256:8a85f88f7364cdded3635bd13947de8e06293ba32f809a916b60d286e853f7e8"
+        },
+        {
+          "resource": "repo://TFITests/MobileAssistantTranscriptTests.swift",
+          "version": "repo-file-v1:sha256:a4d1e9f7f4f13b4a74cccfa05c0e187e31a4a3f638467ebe4b2e64dd1ffa4110"
         }
       ]
     },
@@ -1348,7 +1400,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

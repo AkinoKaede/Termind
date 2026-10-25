@@ -1,13 +1,15 @@
 ---
 type: storefront-release-operations
-title: Storefront and Commerce Release Checks
+title: Storefront and Commerce Release
 description: Release checklist for the local StoreKit product fixture, RevenueCat entitlement and paywall configuration, cross-platform access refresh, and Sandbox validation.
 tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, release]
 sources:
+  - id: openwiki-source-7a80b79a6fb3618cbfab08a2
+    resource: repo://.github/workflows/build.yml
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
   - id: openwiki-source-1ec9ab80a210ef2b285346a3
     resource: repo://Configuration/README.md
   - id: openwiki-source-5d141331a3c311047e5071f9
@@ -36,6 +38,14 @@ sources:
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
+  - id: openwiki-source-312068bbb0c002500116ba72
+    resource: repo://Scripts/bump-version.py
+  - id: openwiki-source-ba52e849ccbc71f7247c983a
+    resource: repo://Scripts/ci/apple-build.py
+  - id: openwiki-source-cc4c1f81aab18928b247e547
+    resource: repo://Scripts/ci/archive-apple.sh
+  - id: openwiki-source-af3f04baa8e4f13f98b7d6c7
+    resource: repo://Scripts/Tests/test_apple_build.py
   - id: openwiki-source-9fc915d39c61b81a60426eb3
     resource: repo://StoreKit/Termind.storekit
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -64,13 +74,13 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Storefront and Commerce Release Checks
+# Storefront and Commerce Release
 
 **Three separate authorities:** `StoreKit/Termind.storekit` is a local catalog fixture, App Store Connect defines the live Apple products and introductory offer, and RevenueCat supplies the configured `termind_pro` entitlement and remotely configured paywall. A fixture product or signed CloudKit capability does not grant Pro. Check the RevenueCat dashboard, Apple storefront and native app together before shipping; do not treat local test prices, screenshots or UI strings as production purchase evidence. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the broader gate and copy ownership map.
 
@@ -95,9 +105,9 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ### Inspect the release artifact, not just the project
 
-The current native Release settings use marketing version `1.17.2` for both apps, but separate build numbers: Mac `TFM` is `108` and mobile `TFI` is `97`. The project-level `CURRENT_PROJECT_VERSION` is `71`, so it is not the app artifact's build number: the app targets override it. The project configuration supplies the `Services.xcconfig` base, whereas version/build values are explicitly set in the app target configurations; the tracked xcconfig does not set versions. Match the resolved version and build number to the intended App Store Connect submission for each platform rather than copying the project-level value. Local includes and invocation overrides must be checked in the actual build. These are source settings, not evidence that either build has been uploaded. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2380), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2456-L2587), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2626-L2667).
+The checked-in native Release settings use marketing version `1.17.4` for both apps, but separate build numbers: Mac `TFM` is `112` and mobile `TFI` is `101`. The project-level `CURRENT_PROJECT_VERSION` is `75`, so it is not the app artifact's build number: the app targets override it. Project Debug/Release inherit `Services.xcconfig`, whose tracked contents do not set versions. These are source baselines, not uploaded build identifiers. The CI archive script runs `Scripts/bump-version.py "$BUILD_VERSION"` first: it sets the requested marketing version, increments the project and each app's build independently, and aligns Widgets with TFI. Local includes and invocation overrides still require artifact inspection, and export permits Xcode to manage the final build number. Match the processed build in App Store Connect to the intended platform and version rather than copying a project value. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2380), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2456-L2587), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2626-L2667).
 
-For each platform, retain the build-settings output for the actual archive invocation and inspect the app that will be delivered (again after export if signing changes). Check:
+For each platform, privately inspect the resolved configuration for the actual archive invocation and the app that will be delivered (again after export if signing changes). Do not dump build settings or publish raw logs containing service configuration; the CI archive script deliberately avoids both. Retain sanitized verification results rather than credential-bearing output. Check:
 
 - Bundled `TermindRevenueCatAPIKey` and `TermindRevenueCatEntitlementID`: no unresolved `$(...)` macros, the intended public Apple SDK key and `termind_pro`, and no DEBUG-only `test_` key. The `appl_` key is a client configuration identifier, **not a private RevenueCat management credential**; do not place private dashboard/API or Apple signing credentials in these substitutions.
 - Signed identity, team, bundle identifier, provisioning profile and effective entitlements: compare the actual signed values with the intended distribution channel rather than assuming automatic signing or source macros resolved as intended.
@@ -112,6 +122,29 @@ codesign -d --entitlements :- /path/to/Termind.app
 ```
 
 Use the Mac plist path for the first command when inspecting the Mac app. Record artifact inspection separately from dashboard review and Sandbox transaction results; none of these commands validates live offerings, eligibility or storefront acceptance.
+
+## Apple upload and release ownership
+
+The manual [Build workflow](../../.github/workflows/build.yml) accepts a three-component `version` and `platform` (`All`, `iOS`, or `macOS`) and uses the `app-store-connect` environment. It does not cancel an in-progress release run. Its checkout explicitly skips submodules, so a successful build does not validate website assets or final screenshots.
+
+Unlike an unconfigured local build, release preparation requires Firebase configuration, a public `appl_` RevenueCat key, the entitlement ID, signing certificates/profiles and App Store Connect authentication. [`apple-build.py`](../../Scripts/ci/apple-build.py) validates the Firebase bundle ID and required fields and rejects invalid RevenueCat settings before installing the temporary configuration. It writes the ignored service files and enables Crashlytics symbol upload. The workflow runs cleanup even after failure; do not publish the private build directory or configuration-bearing logs.
+
+[`archive-apple.sh`](../../Scripts/ci/archive-apple.sh) selects TFI for generic iOS or TFM for generic macOS, applies the version bump, archives Release and calls `xcodebuild -exportArchive`. Export uses `method = app-store-connect`, `destination = upload`, automatic signing, Production iCloud, symbol upload and `manageAppVersionAndBuildNumber = true`. **Upload is the automation boundary, not release approval.** Check Apple processing and the final Xcode-managed build number in App Store Connect. TestFlight distribution, App Review submission and release remain manual responsibilities. Complete the commerce, Sandbox, capability and storefront checks on this page before selecting the intended build for review and release.
+
+```mermaid
+flowchart TD
+    Dispatch["Manual Build dispatch: version and platform"] --> Prepare["Validate services and prepare signing"]
+    Prepare --> Archive["Bump versions and archive Release"]
+    Archive --> Upload["Export and upload with Xcode-managed build number"]
+    Upload --> Processing["Check Apple processing and final build number"]
+    Processing --> Testing["Manual TestFlight distribution and validation"]
+    Testing --> Review["Manual App Review submission"]
+    Review --> Release["Manual release after approval"]
+```
+
+The flow separates automated archive/upload from the operator's processing, testing, review and release decisions; upload success does not prove any downstream approval.
+
+For focused pipeline checks, run `python3 -m unittest discover -s Scripts/Tests -p 'test_apple_build.py'`. The suite checks platform/version validation, service configuration rejection and upload export options, including Xcode-managed build numbering and Production iCloud. These are local contract tests, not evidence of a successful Apple upload or Sandbox purchase.
 
 ## Access and refresh lifecycle
 
@@ -191,5 +224,5 @@ Normal invitation eligibility requires an enabled controller, no prior response,
 
 1. Reconcile product IDs, types, group, Family Sharing, introductory eligibility and grace settings in App Store Connect **and** entitlement-to-product mapping, offering/paywall rules and localized disclosure in RevenueCat. Test new versus used-offer accounts, trial-to-paid renewal, cancellation through expiry, billing retry with and without grace, refunds, Family Sharing and lifetime restoration across Mac, iPhone and iPad. Record Sandbox results separately from the fixture and production configuration review.
 2. Run the default shared/macOS tests as described in [Build, Test, and Release](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
-3. Check final localized **storefront imagery** separately from the paywall. The parent screenshot runner supports and defaults to all seven locale keys: `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr`; `locales` options or `TERMIND_MAC_SCREENSHOT_LOCALES` / `TERMIND_SCREENSHOT_LOCALES` can narrow the selection. It sets test language, region and Apple locale for each capture. This is capture-tool coverage, not proof of localized remote paywalls or final exported boards. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout is initialized in this workspace and its [asset delivery contract](../../com.akinokaede.termind/assets/README.md) distinguishes captures, device frames and final artwork. Documentation alone does not verify the delivered files or upload acceptance. Establish the release inventory from the actual exports; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
+3. Check final localized **storefront imagery** separately from the paywall. The parent screenshot runner supports and defaults to all seven locale keys: `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr`; `locales` options or `TERMIND_MAC_SCREENSHOT_LOCALES` / `TERMIND_SCREENSHOT_LOCALES` can narrow the selection. It sets test language, region and Apple locale for each capture. This is capture-tool coverage, not proof of localized remote paywalls or final exported boards. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The submodule is declared in [`.gitmodules`](../../.gitmodules), and the parent runner requires an initialized checkout with an `assets` directory. Its asset README and final exports were unavailable for this inspection, so no current delivery-contract contents or final inventory are established here. After initialization, read the checkout's current documentation and distinguish capture inputs, any framing intermediates and final artwork during review. Establish the release inventory from the actual exports; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.

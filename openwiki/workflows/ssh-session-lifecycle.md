@@ -1,11 +1,13 @@
 ---
 type: workflow
-title: Connection and SSH Session Lifecycle
+title: SSH Session Lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 sources:
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-1635d0be12e44ef9134ffabc
+    resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
   - id: openwiki-source-b7659044185b653107841c20
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
@@ -116,8 +118,6 @@ sources:
     resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-8d34d9ba6456e86e57933569
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
-  - id: openwiki-source-28243bbeecc381626d39eeb6
-    resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-72e61dbb0cab28991fe07481
     resource: repo://TFITests/MobileWorkspacePersistenceTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
@@ -158,13 +158,13 @@ sources:
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Connection and SSH Session Lifecycle
+# SSH Session Lifecycle
 
 Terminal lifetime has three independent dimensions: the local pane/workspace owner, the remote shell or multiplexer session, and the network transport. SSH reconnection authenticates a new transport; a managed backend can preserve the shell across that replacement. Mosh and Eternal Terminal (ET) instead recover their protocol session, optionally with a managed multiplexer running inside it. Neither a transport checkpoint nor a display name grants permission to terminate a remote session.
 
@@ -493,6 +493,14 @@ stateDiagram-v2
 
 An ET data-route snapshot is progress, not protocol readiness. A `.ready` route does not finish recovery, unblock terminal input, or start ordinary SSH reconnect scheduling; the engine's connected state completes recovery. Desktop tests retain the same terminal surface, block interactive and broadcast input while recovering, and reject route events after disconnect. Shared Journey tests also keep route/protocol updates from dismissing pending authentication. See [TransportRecoveryJourneyTests](../../FrameworkTests/TransportRecoveryJourneyTests.swift), [TerminalTransportJourneyTests](../../TFMTests/TerminalTransportJourneyTests.swift), and [MobileTerminalRestorationTests](../../TFITests/MobileTerminalRestorationTests.swift).
 
+### Recovery presentation invariants
+
+`ConnectionJourney.updateTransportRecovery` applies only to Mosh and ET, not ordinary SSH reconnect. Entering protocol recovery retains the selected purpose, endpoints, accumulated logs and log visibility, while clearing completed authentication checkpoints rather than replaying bootstrap. Repeated recovery states do not append duplicate logs; repeated failures are also ignored when the error is unchanged. Suspension, recovery and failure remain distinct presentation states.
+
+A pending authentication or host-key checkpoint, or local proxy, identity or passphrase requirement, remains waiting through recovering/suspended updates and ET route snapshots. These updates preserve the active endpoint and pending interaction until its continuation resumes it; a terminal failure is different and presents failure. ET snapshots are accepted only at increasing revisions, do not themselves reveal a hidden journey or declare protocol success, and are ignored by non-ET journeys. A new `begin` clears the prior route snapshot.
+
+Success schedules a cancellable 600-millisecond presentation hide task. Renewed recovery cancels that task so an earlier success cannot hide the new recovery. Initial engine `.connected` is not enough to finish bootstrap presentation: `receiveTransportState` calls `succeed()` only when a protocol recovery is active; initial completion remains owned by the connection attempt after startup finishes. See [ConnectionJourney](../../Frameworks/TermindApplication/Connections/ConnectionJourney.swift).
+
 ## Latest viewport at startup
 
 PTY size belongs to the current connection generation, not the configuration captured before a trust or authentication prompt. Desktop primes a new ordinary SSH channel with `latestViewport`, including pixel dimensions, before connect. `SSHPTYResizeState` preserves a valid pre-connect viewport for the first attempt, coalesces updates during authentication, ignores zero dimensions, and discards old requests when an attempt is replaced or disconnected. The initial PTY uses the latest requested size. Prepared startup uses `SSHPTYStartupSizing` to synchronize pending window changes before starting the remote process. The PTY request retains its original geometry across `EAGAIN`; newer geometry is flushed between PTY creation and the first process-start request, whose arguments also remain stable across retries. libssh2 retries remain queue-confined. See [SSHPTYResizeTests](../../TFMTests/SSHPTYResizeTests.swift) and the [PTY worker](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
@@ -510,6 +518,12 @@ Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it insta
 For a desktop SSH pane, an explicit launch command takes precedence over the Host's startup snippet. Each attempt resolves the current snippet when no explicit command is pending. On the plain-shell path it is submitted once readiness permits; managed creation instead passes it into backend startup, and attachment or reattachment clears local pending commands without typing or replaying them. Disconnect discards both pending commands. Mobile uses the same precedence and startup-plan distinction; reopened connection intent does not replay prior one-shot commands.
 
 A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues and Security Key signing, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey. Desktop explicit disconnect also invalidates the attempt, drops staged authentication and proxy submissions, cancels the connection task and disconnects its PTY. During transport opening, cancellation shuts down the route/authentication exchanges and socket and disposes of the opening state; the SSH worker's generation guard prevents stale events from reviving a closed connection.
+
+### Ordinary SSH retry timing
+
+[SessionReconnectController](../../Frameworks/TermindApplication/SessionReconnectController.swift) owns timing and stale-callback rejection, not transport construction. Its default policy delays successive attempts by 1, 2, 5, 10 and then 30 seconds, retaining the latest error and next retry date. A connection stable for at least 60 seconds resets the attempt counter on the next failure; initial success resets it immediately. `pauseForUserInteraction()` cancels timing and clears the pending action without discarding the attempt counter. `retryNow()` cancels the scheduled wait and invokes the retained action immediately; `stop()` clears recovery state and counters. Scheduled sleep runs detached, then returns to the MainActor and checks its generation before invoking the feature-owned retry. Policy, sleep and clock are injectable for deterministic verification.
+
+These delays govern ordinary reconnect attempts, not Mosh/ET protocol recovery. The latter is driven by transport state and must not arm the SSH retry controller merely because a data route is unavailable.
 
 On mobile, each native scene session has an **in-process** `MobileWorkspaceSessionModel`; `MobileAppModel` owns the collection and active history IDs. `addWorkspaces` records saved-Host history, publishes the live object and eligible descriptors, then connects. Descriptor changes persist eligible restoration intent in `mobile.restorableWorkspaces.v1`, not live transports or one-shot commands. Transient external-link workspaces have neither saved descriptors nor saved-Host history. Failure and suspension leave the history event open; local close ends it and removes the live object and descriptor without waiting for remote cleanup. Repeated selection of a live object returns that object, including after a failed first attempt; retry is explicit. Reopen constructs a fresh runtime from connection intent without replaying a one-shot snippet, initial directory or SFTP path. Normal plain-shell exit closes locally; managed exit follows the verified-end rules above.
 
@@ -600,6 +614,8 @@ stateDiagram-v2
 *The feature owns visible waiting, recovery, and retirement; transport resources are installed only after authentication succeeds.*
 
 ## Operational guidance and focused tests
+
+[TransportRecoveryJourneyTests](../../FrameworkTests/TransportRecoveryJourneyTests.swift) verifies route/log retention, repeated-state idempotence, waiting interaction preservation, revision filtering and renewed-recovery cancellation of the prior success timer for Mosh/ET. [SessionReconnectControllerTests](../../FrameworkTests/SessionReconnectControllerTests.swift) verifies capped backoff, stable reset, immediate retry, stop cancellation and return to the MainActor after detached sleep. The tests' 10-millisecond polling and five-second deadlines wait for asynchronous observations; they are verification mechanics, not new runtime retry intervals or recovery guarantees. The 750-millisecond wait in the renewed-recovery test deliberately outlasts the previous success hide delay. Platform recovery tests likewise poll for presentation completion before expecting input to reopen. See [Behavioral boundaries and fixtures](../testing/behavioral-boundaries-and-fixtures.md).
 
 [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift) verifies disabled defaults, no-probe plain policy, command-once creation, unowned manual attachment, lost/unsupported references, stale creation/selection rejection, verified-end exit semantics, passive teardown, nonblocking close deduplication, failure without retry, cancellation before cleanup starts and deadline cancellation. These are behavior assertions, not evidence inferred from test names. The opt-in [RemoteSessionWireTests](../../TFMTests/RemoteSessionWireTests.swift) exercises actual multi-client attachment, resize, detach/restore, owned-only termination, abrupt SSH loss without startup replay, and shell configuration loading. [ssh-tmux-session-fixture.py](../../Scripts/ssh-tmux-session-fixture.py) uses a disposable Lima/nerdctl Debian container, loopback SSH, ephemeral keys and pinned fingerprint without editing user SSH configuration. Run with `--max-sessions 1` for admission/degradation and `--max-sessions 8` for runtime acceptance; pass its metadata via `TEST_RUNNER_TERMIND_TMUX_FIXTURE` to `xcodebuild` as shown in the script. These wire tests are opt-in, not assumed to run in ordinary unit coverage.
 
