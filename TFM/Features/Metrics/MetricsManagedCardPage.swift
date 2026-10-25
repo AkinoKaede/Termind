@@ -57,15 +57,6 @@ struct MetricsManagedCardPage: ManagedCardPage {
     func managedHeader(for section: ManagedCardSection<String, ServerMetric>, isDropTarget: Bool) -> some View {
         EmptyView()
     }
-    func managedGhost(for item: ServerMetric) -> some View {
-        ServerMetricsCard(server: item, model: app.serverMetrics)
-            .opacity(0.45)
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
-            .allowsHitTesting(false)
-    }
     func managedEmptyState() -> some View {
         ContentUnavailableView(
             AppStrings.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",

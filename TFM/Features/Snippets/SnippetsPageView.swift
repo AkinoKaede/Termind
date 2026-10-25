@@ -177,10 +177,6 @@ struct SnippetsPageView: ManagedCardPage {
         )
     }
 
-    func managedGhost(for snippet: Snippet) -> some View {
-        SnippetGhostCard(content: cardContent(for: snippet))
-    }
-
     private func cardContent(for snippet: Snippet) -> SnippetCardContent {
         SnippetCardContent(
             snippet: snippet,
@@ -485,22 +481,6 @@ private struct SnippetCard: View {
             DestructiveMenuButton(AppStrings.Common.delete) { delete(actionSnippets) }
         }
         .help(Text(snippet.body))
-    }
-}
-
-private struct SnippetGhostCard: View {
-    let content: SnippetCardContent
-
-    var body: some View {
-        content
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Metrics.Space.l)
-            .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
-            .background(.quaternary.opacity(0.25), in: .rect(cornerRadius: Metrics.Radius.large))
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                    .strokeBorder(.quaternary, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
     }
 }
 

@@ -565,6 +565,8 @@ struct CardTile<Content: View>: View {
     var activatesOnSingleClick = false
     @ViewBuilder var content: Content
 
+    @Environment(\.managedCardIsDragPreview) private var isDragPreview
+    @Environment(\.cardGeometryStore) private var geometryStore
     @State private var isHovering = false
 
     var body: some View {
@@ -578,11 +580,7 @@ struct CardTile<Content: View>: View {
                 isHovering && !isSelected ? Color.primary.opacity(0.035) : .clear,
                 in: .rect(cornerRadius: Metrics.Radius.large)
             )
-            .termindGlassSurface(
-                cornerRadius: Metrics.Radius.large,
-                tint: isSelected ? Color.accentColor.opacity(0.16) : nil,
-                isInteractive: true
-            )
+            .modifier(CardTileSurface(isSelected: isSelected, isDragPreview: isDragPreview))
             // Nothing a card holds may paint outside the card. Clipped here
             // rather than trusted to each page, because the failure is silent
             // until it isn't: one subtitle that will not compress and the text
@@ -607,7 +605,7 @@ struct CardTile<Content: View>: View {
                     activate: activatesOnSingleClick ? nil : activate
                 )
             )
-            .focusable(activatesOnReturn && activate != nil)
+            .focusable(!isDragPreview && activatesOnReturn && activate != nil)
             .termindInputAwareFocusEffect()
             .onKeyPress(.return) {
                 guard activatesOnReturn, let activate else { return .ignored }
@@ -618,8 +616,34 @@ struct CardTile<Content: View>: View {
             .onHover { isHovering = $0 }
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isButton)
+            .environment(\.cardGeometryStore, isDragPreview ? nil : geometryStore)
     }
 
+}
+
+private struct CardTileSurface: ViewModifier {
+    let isSelected: Bool
+    let isDragPreview: Bool
+
+    func body(content: Content) -> some View {
+        if isDragPreview {
+            // Native glass needs a live backdrop; a drag preview needs a complete surface of its own.
+            content.background {
+                RoundedRectangle(cornerRadius: Metrics.Radius.large)
+                    .fill(TermindColor.windowSurface)
+                    .overlay {
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: Metrics.Radius.large).fill(Color.accentColor.opacity(0.16))
+                        }
+                    }
+            }
+        } else {
+            content.termindGlassSurface(
+                cornerRadius: Metrics.Radius.large,
+                tint: isSelected ? Color.accentColor.opacity(0.16) : nil,
+                isInteractive: true)
+        }
+    }
 }
 
 /// A selection-only card has no double-click recognizer at all. Besides making

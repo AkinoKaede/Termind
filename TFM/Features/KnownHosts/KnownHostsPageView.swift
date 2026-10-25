@@ -64,9 +64,6 @@ struct KnownHostsPageView: ManagedCardPage {
         }
         .onTapGesture(count: 2) { open(item, action: context.select) }
     }
-    func managedGhost(for item: KnownHostEntry) -> some View {
-        KnownHostCard(entry: item, selected: false, select: {}, extend: {})
-    }
     func managedBlankAreaMenu(for section: String?) -> [NativeMenuEntry] {
         window.creationMenu(for: .knownHosts, locale: .current)
     }

@@ -219,10 +219,6 @@ struct HostsPageView: ManagedCardPage {
         )
     }
 
-    func managedGhost(for host: Host) -> some View {
-        HostGhostCard(host: host, address: app.hostLibrary.preferredTerminalLoginAddress(for: host))
-    }
-
     /// The canvas beside the cards, which is where New Host, New Group and the
     /// tag filter live now that the dashed tiles and the page toolbar are gone.
     /// Right-clicking inside a group files the new host there without a second
@@ -578,46 +574,5 @@ struct HostCard: View {
             // Match CardChip's vertical padding even when there are no tags.
             .padding(.vertical, 2)
         }
-    }
-}
-
-/// The exact card-shaped slot the dragged batch will occupy. It lives in the
-/// adaptive grid, so neighbouring cards reflow around the preview instead of an
-/// overlay merely pointing at a position that has not opened yet.
-private struct HostGhostCard: View {
-    let host: Host
-    let address: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack(spacing: Metrics.Space.m) {
-                HostDistributionIcon(host: host, size: Metrics.Card.icon, artworkStyle: .desktopCard)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(host.name)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(address)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                Spacer(minLength: Metrics.Space.xs)
-            }
-            Spacer(minLength: 0)
-        }
-        .foregroundStyle(Color.accentColor)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Metrics.Space.l)
-        .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
-        .background(Color.accentColor.opacity(0.12), in: .rect(cornerRadius: Metrics.Radius.large))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.Radius.large)
-                .strokeBorder(
-                    Color.accentColor,
-                    style: StrokeStyle(lineWidth: 1, dash: [4, 3])
-                )
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity)
     }
 }

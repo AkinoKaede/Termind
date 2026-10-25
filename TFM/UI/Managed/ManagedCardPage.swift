@@ -111,7 +111,6 @@ protocol ManagedCardPage: View {
     associatedtype Item: Identifiable
     associatedtype CardContent: View
     associatedtype HeaderContent: View
-    associatedtype GhostContent: View
     associatedtype EmptyContent: View
     associatedtype NoResultsContent: View
     associatedtype TopContent: View = EmptyView
@@ -132,9 +131,6 @@ protocol ManagedCardPage: View {
     @ViewBuilder func managedHeader(
         for section: ManagedCardSection<SectionID, Item>, isDropTarget: Bool
     ) -> HeaderContent
-    /// The card-shaped drag preview, reused as the destination slot while the
-    /// surrounding grid reflows around the dragged items.
-    @ViewBuilder func managedGhost(for item: Item) -> GhostContent
     /// What right-clicking the canvas offers, given the section the pointer is
     /// over — nil when it is past the last one.
     ///
@@ -170,7 +166,6 @@ extension ManagedCardPage {
             hasTopContent: hasManagedTopContent,
             card: managedCard,
             header: managedHeader,
-            ghost: managedGhost,
             blankAreaMenu: managedBlankAreaMenu,
             blankAreaPrimaryAction: managedBlankAreaPrimaryAction,
             topContent: managedTopContent,
@@ -228,9 +223,20 @@ enum ManagedCardDropResolver {
     }
 }
 
-private struct ManagedCardDragSession<SectionID: Hashable, ID: Hashable> {
+struct ManagedCardDragSession<SectionID: Hashable, ID: Hashable> {
     let source: SectionID
     let ids: [ID]
+    private let sizes: [ID: CGSize]
+    private let fallbackSize: CGSize
+
+    init(source: SectionID, ids: [ID], itemFrames: [ID: CGRect], fallbackSize: CGSize) {
+        self.source = source
+        self.ids = ids
+        self.fallbackSize = fallbackSize
+        sizes = itemFrames.filter { ids.contains($0.key) && !$0.value.isEmpty }.mapValues(\.size)
+    }
+
+    func size(for id: ID) -> CGSize { sizes[id] ?? fallbackSize }
 }
 
 /// Generic implementation behind ManagedCardPage's inherited body.
@@ -244,16 +250,16 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     let hasTopContent: Bool
     let card: (Page.Item, ManagedCardItemContext<Page.Item>) -> Page.CardContent
     let header: (ManagedCardSection<Page.SectionID, Page.Item>, Bool) -> Page.HeaderContent
-    let ghost: (Page.Item) -> Page.GhostContent
     let blankAreaMenu: (Page.SectionID?) -> [NativeMenuEntry]
     let blankAreaPrimaryAction: () -> Void
     let topContent: () -> Page.TopContent
     let emptyState: () -> Page.EmptyContent
     let noResultsState: () -> Page.NoResultsContent
 
+    @Environment(\.self) private var environment
     @State private var dragSession: ManagedCardDragSession<Page.SectionID, Page.Item.ID>?
     @State private var omittedIDs: Set<Page.Item.ID> = []
-    @State private var ghostLocation: ManagedCardDropLocation<Page.SectionID>?
+    @State private var placeholderLocation: ManagedCardDropLocation<Page.SectionID>?
     @State private var itemFrames: [Page.Item.ID: CGRect] = [:]
     @State private var sectionFrames: [Page.SectionID: CGRect] = [:]
     @State private var topContentFrame: CGRect = .zero
@@ -317,7 +323,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
             delegate: ManagedCardDropDelegate(
                 isActive: activeReordering != nil,
                 location: dropLocation(at:),
-                ghostLocation: $ghostLocation,
+                placeholderLocation: $placeholderLocation,
                 perform: performDrop,
                 cancel: cancelDrag
             )
@@ -346,7 +352,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         // Geometry is reported for every section, not only while a drag is in
         // flight: the blank-area menu asks the same question with no drag.
         VStack(alignment: .leading, spacing: Metrics.Space.l) {
-            header(section, ghostLocation?.section == section.id)
+            header(section, placeholderLocation?.section == section.id)
 
             if section.isExpanded ?? true {
                 CardGrid(minimumWidth: minimumCardWidth, maximumWidth: maximumCardWidth) { cards(in: section) }
@@ -366,8 +372,8 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         let displayed = section.items.filter { !omittedIDs.contains($0.id) }
 
         ForEach(Array(displayed.enumerated()), id: \.element.id) { index, item in
-            if ghostLocation?.section == section.id, ghostLocation?.index == index {
-                ghosts
+            if placeholderLocation?.section == section.id, placeholderLocation?.index == index {
+                placeholders
             }
             draggableCard(item, in: section.id)
                 .onGeometryChange(for: CGRect.self) {
@@ -376,8 +382,8 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
                     itemFrames[item.id] = $0
                 }
         }
-        if ghostLocation?.section == section.id, ghostLocation?.index == displayed.count {
-            ghosts
+        if placeholderLocation?.section == section.id, placeholderLocation?.index == displayed.count {
+            placeholders
         }
     }
 
@@ -389,9 +395,12 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
                 beginDrag(from: item, in: section)
                 return NSItemProvider(object: String(describing: item.id) as NSString)
             } preview: {
-                // Supplying the preview avoids macOS 27's oversized prohibited
-                // operation badge in the default snapshot of the glass card.
-                ghost(item)
+                // Keep an explicit, full-size preview: macOS 27's default glass
+                // snapshot can include an oversized prohibited-operation badge.
+                ManagedCardDragPreview(size: dragSession?.size(for: item.id) ?? itemFrames[item.id]?.size) {
+                    card
+                }
+                .environment(\.self, environment)
             }
         } else {
             card
@@ -399,9 +408,11 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     }
 
     @ViewBuilder
-    private var ghosts: some View {
-        ForEach(draggedItems) { item in
-            ghost(item)
+    private var placeholders: some View {
+        if let dragSession, !omittedIDs.isEmpty {
+            ForEach(dragSession.ids, id: \.self) { id in
+                ManagedCardReorderPlaceholder(height: dragSession.size(for: id).height)
+            }
         }
     }
 
@@ -455,12 +466,6 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
 
     // MARK: Reordering
 
-    private var draggedItems: [Page.Item] {
-        guard let dragSession else { return [] }
-        let wanted = Set(dragSession.ids)
-        return visibleItems.filter { wanted.contains($0.id) }
-    }
-
     private func beginDrag(from item: Page.Item, in source: Page.SectionID) {
         guard let reordering = activeReordering else { return }
         let actionItems = itemContext(for: item).actionItems
@@ -475,8 +480,13 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         let ids = items.map(\.id)
         guard !ids.isEmpty else { return }
 
-        dragSession = ManagedCardDragSession(source: source, ids: ids)
-        ghostLocation = nil
+        dragSession = ManagedCardDragSession(
+            source: source, ids: ids, itemFrames: itemFrames,
+            fallbackSize: itemFrames[item.id]?.size ?? CGSize(width: minimumCardWidth, height: Metrics.Card.minHeight))
+        let moving = Set(ids)
+        let preceding = sections.first(where: { $0.id == source })?.items.prefix { $0.id != item.id } ?? []
+        placeholderLocation = ManagedCardDropLocation(
+            section: source, index: preceding.filter { !moving.contains($0.id) }.count)
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(100))
             guard dragSession?.ids == ids else { return }
@@ -529,14 +539,14 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     private func cancelDrag() {
         dragSession = nil
         omittedIDs.removeAll()
-        ghostLocation = nil
+        placeholderLocation = nil
     }
 }
 
 private struct ManagedCardDropDelegate<SectionID: Hashable>: DropDelegate {
     let isActive: Bool
     let location: (CGPoint) -> ManagedCardDropLocation<SectionID>?
-    @Binding var ghostLocation: ManagedCardDropLocation<SectionID>?
+    @Binding var placeholderLocation: ManagedCardDropLocation<SectionID>?
     let perform: (ManagedCardDropLocation<SectionID>) -> Void
     let cancel: () -> Void
 
@@ -544,14 +554,14 @@ private struct ManagedCardDropDelegate<SectionID: Hashable>: DropDelegate {
         isActive && info.hasItemsConforming(to: [.text])
     }
 
-    func dropEntered(info: DropInfo) { ghostLocation = location(info.location) }
+    func dropEntered(info: DropInfo) { placeholderLocation = location(info.location) }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        ghostLocation = location(info.location)
-        return DropProposal(operation: ghostLocation == nil ? .cancel : .move)
+        placeholderLocation = location(info.location)
+        return DropProposal(operation: placeholderLocation == nil ? .cancel : .move)
     }
 
-    func dropExited(info: DropInfo) { ghostLocation = nil }
+    func dropExited(info: DropInfo) { placeholderLocation = nil }
 
     func performDrop(info: DropInfo) -> Bool {
         guard let landed = location(info.location) else {

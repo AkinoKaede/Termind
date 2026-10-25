@@ -172,24 +172,6 @@ struct KeychainPageView: ManagedCardPage {
         }
     }
 
-    @ViewBuilder
-    func managedGhost(for item: Item) -> some View {
-        switch item {
-        case .key(let key):
-            KeyCard(
-                key: key, isSelected: false, select: {}, extendSelection: {},
-                actionKeys: [], actionIdentities: [], edit: {}, export: {}, delete: {}
-            )
-            .allowsHitTesting(false)
-        case .identity(let identity):
-            IdentityCard(
-                identity: identity, isSelected: false, select: {}, extendSelection: {},
-                actionKeys: [], actionIdentities: [], edit: {}, delete: {}
-            )
-            .allowsHitTesting(false)
-        }
-    }
-
     /// Both sections offer every verb: a key and an identity are made in the
     /// same visit often enough that hiding one behind the other section would
     /// just be a second right-click.

@@ -91,7 +91,6 @@ struct PortForwardingPageView: ManagedCardPage {
             }
         }
     }
-    func managedGhost(for item: Item) -> some View { card(item, selected: false, select: {}, extend: {}) }
     func managedBlankAreaMenu(for section: String?) -> [NativeMenuEntry] {
         window.creationMenu(for: .portForwarding, locale: .current)
     }
