@@ -68,7 +68,10 @@ struct TransportRecoveryJourneyTests {
         #expect(journey.phase == .connecting)
         #expect(journey.transportRecovery == .recovering)
         journey.succeed()
-        try await Task.sleep(for: .milliseconds(750))
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while journey.isPresented, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(!journey.isPresented)
     }
 

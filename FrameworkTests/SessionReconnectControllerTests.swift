@@ -68,11 +68,12 @@ struct SessionReconnectControllerTests {
     }
 
     @Test
-    func scheduledRetryReturnsToMainActorAfterDetachedSleep() async {
+    func scheduledRetryReturnsToMainActorAfterDetachedSleep() async throws {
         let controller = SessionReconnectController(
             policy: ReconnectPolicy(delays: [.zero]),
             sleep: { _ in await Task.detached(priority: .userInitiated) {}.value }
         )
+        defer { controller.stop() }
         var ran = false
         var ranOnMainThread = false
 
@@ -80,13 +81,13 @@ struct SessionReconnectControllerTests {
             ranOnMainThread = Thread.isMainThread
             ran = true
         }
-        for _ in 0..<100 where !ran {
-            await Task.yield()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while !ran, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
         }
 
         #expect(ran)
         #expect(ranOnMainThread)
-        controller.stop()
     }
 }
 

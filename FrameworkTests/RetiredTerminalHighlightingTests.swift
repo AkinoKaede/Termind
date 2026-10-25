@@ -24,15 +24,22 @@ struct RetiredTerminalHighlightingTests {
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let value = Data("unreadable retired preferences".utf8)
-        try writeHistoricalStore(url, value: value, version: version)
+        try autoreleasepool {
+            try writeHistoricalStore(url, value: value, version: version)
+        }
         #expect(try hasHighlightTable(url))
-        try prepareUpgradedStore(url, defaults: defaults)
-        let reopened = try TermindPersistence.makeContainer(url: url)
-        let store = SettingsSyncPersistence(context: reopened.mainContext, defaults: defaults)
-        #expect(try store.loadTerminal().copyOnSelect)
+        try autoreleasepool {
+            try prepareUpgradedStore(url, defaults: defaults)
+        }
+        try autoreleasepool {
+            let reopened = try TermindPersistence.makeContainer(url: url)
+            reopened.mainContext.autosaveEnabled = false
+            let store = SettingsSyncPersistence(context: reopened.mainContext, defaults: defaults)
+            #expect(try store.loadTerminal().copyOnSelect)
+            #expect(try store.journal.envelope(for: legacyKey) == nil)
+            #expect(try store.journal.outgoingEntry(for: legacyKey) == nil)
+        }
         #expect(try !hasHighlightTable(url))
-        #expect(try store.journal.envelope(for: legacyKey) == nil)
-        #expect(try store.journal.outgoingEntry(for: legacyKey) == nil)
     }
 
     @Test func preparationRetiresPendingHighlightUploadsWithoutReplacingOtherPreferences() throws {
@@ -100,6 +107,7 @@ struct RetiredTerminalHighlightingTests {
         let container = try ModelContainer(
             for: schema,
             configurations: [.init("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
+        container.mainContext.autosaveEnabled = false
         container.mainContext.insert(try PersistentTerminalPreferences(.init(copyOnSelect: true)))
         container.mainContext.insert(PersistentTerminalHighlightPreferences(data: value))
         try container.mainContext.save()
@@ -109,21 +117,32 @@ struct RetiredTerminalHighlightingTests {
         var database: OpaquePointer?
         let result = sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil)
         defer { sqlite3_close(database) }
-        try #require(result == SQLITE_OK)
+        try #require(
+            result == SQLITE_OK,
+            "SQLite open returned \(result): \(String(cString: sqlite3_errmsg(database)))")
+        let timeout = sqlite3_busy_timeout(database, 5_000)
+        try #require(
+            timeout == SQLITE_OK,
+            "SQLite busy timeout returned \(timeout): \(String(cString: sqlite3_errmsg(database)))")
         var statement: OpaquePointer?
         defer { sqlite3_finalize(statement) }
+        let prepare = sqlite3_prepare_v2(
+            database,
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND lower(name) LIKE '%terminalhighlight%'",
+            -1, &statement, nil)
         try #require(
-            sqlite3_prepare_v2(
-                database,
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND lower(name) LIKE '%terminalhighlight%'",
-                -1, &statement, nil) == SQLITE_OK)
+            prepare == SQLITE_OK,
+            "SQLite prepare returned \(prepare): \(String(cString: sqlite3_errmsg(database)))")
         let step = sqlite3_step(statement)
-        try #require(step == SQLITE_ROW || step == SQLITE_DONE)
+        try #require(
+            step == SQLITE_ROW || step == SQLITE_DONE,
+            "SQLite step returned \(step): \(String(cString: sqlite3_errmsg(database)))")
         return step == SQLITE_ROW
     }
 
     private func prepareUpgradedStore(_ url: URL, defaults: UserDefaults) throws {
         let container = try TermindPersistence.makeContainer(url: url)
+        container.mainContext.autosaveEnabled = false
         try SettingsSyncPersistence(context: container.mainContext, defaults: defaults).prepare()
         try container.mainContext.save()
     }
