@@ -450,8 +450,11 @@ private struct PaneView: View {
                             height: TerminalInputAreaModel.height(
                                 pane.terminalInputArea.preferredHeight, available: proxy.size.height)
                         )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .clipped()
+                .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTerminalInputArea)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

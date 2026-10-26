@@ -90,6 +90,7 @@ struct TerminalInputAreaView: View {
         TerminalInputEditor(
             text: $model.draft,
             hasMarkedText: $hasMarkedText,
+            inputArea: model,
             isActive: isActive,
             focusRequest: model.focusRequest,
             accessibilityLabel: AppLocalization.resolve(AppStrings.TerminalInput.title, locale: locale),

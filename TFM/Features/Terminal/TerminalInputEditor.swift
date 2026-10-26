@@ -8,6 +8,7 @@ import TermindApplication
 struct TerminalInputEditor: NSViewRepresentable {
     @Binding var text: String
     @Binding var hasMarkedText: Bool
+    let inputArea: TerminalInputAreaModel
     let isActive: Bool
     let focusRequest: UInt64
     let accessibilityLabel: String
@@ -40,6 +41,8 @@ struct TerminalInputEditor: NSViewRepresentable {
         editor.textContainer?.widthTracksTextView = true
         editor.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         editor.delegate = context.coordinator
+        editor.textStorage?.delegate = context.coordinator
+        context.coordinator.editor = editor
         scroll.documentView = editor
         updateNSView(scroll, context: context)
         return scroll
@@ -48,6 +51,7 @@ struct TerminalInputEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let editor = scroll.documentView as? TerminalInputTextView else { return }
         context.coordinator.parent = self
+        editor.inputArea = inputArea
         editor.acceptsSubmission = isActive
         editor.sendShortcut = sendShortcut
         editor.submit = submit
@@ -74,22 +78,41 @@ struct TerminalInputEditor: NSViewRepresentable {
 
     static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) {
         guard let editor = scroll.documentView as? TerminalInputTextView else { return }
+        editor.inputArea = nil
         editor.acceptsSubmission = false
         editor.submit = {}
         editor.generate = {}
         editor.focusChanged = { _ in }
         editor.markedTextChanged = { _ in }
         editor.delegate = nil
+        editor.textStorage?.delegate = nil
+        coordinator.editor = nil
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    final class Coordinator: NSObject, NSTextViewDelegate {
+    final class Coordinator: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         var parent: TerminalInputEditor
+        weak var editor: TerminalInputTextView?
         init(_ parent: TerminalInputEditor) { self.parent = parent }
+
+        func textStorage(
+            _ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
+            range editedRange: NSRange, changeInLength delta: Int
+        ) {
+            // Native undo/redo can edit text storage without calling textDidChange.
+            guard editedMask.contains(.editedCharacters), let editor,
+                let manager = editor.undoManager, manager.isUndoing || manager.isRedoing
+            else { return }
+            synchronizeText(from: editor)
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let editor = notification.object as? NSTextView else { return }
+            synchronizeText(from: editor)
+        }
+
+        private func synchronizeText(from editor: NSTextView) {
             parent.hasMarkedText = editor.hasMarkedText()
             parent.text = editor.string
         }
@@ -110,6 +133,7 @@ private final class TerminalInputScrollView: NSScrollView {
 }
 
 final class TerminalInputTextView: NSTextView {
+    weak var inputArea: TerminalInputAreaModel?
     var acceptsSubmission = false
     var focusRequest: UInt64 = 0
     var sendShortcut: InputSendShortcut = .returnKey
@@ -131,6 +155,24 @@ final class TerminalInputTextView: NSTextView {
         }
         if !editor.hasMarkedText() { editor.generate() }
         return true
+    }
+
+    static func insertInFocusedEditor(
+        _ text: String, for inputArea: TerminalInputAreaModel, in window: NSWindow?
+    ) -> Bool {
+        guard let window, let editor = window.firstResponder as? TerminalInputTextView, editor.window === window,
+            editor.inputArea === inputArea, inputArea.isEditorFocused, editor.ownsInputActions
+        else { return false }
+        editor.insertSidebarText(text)
+        return true
+    }
+
+    func insertSidebarText(_ text: String) {
+        // Use the native edit path so selection, composition, undo and the draft binding stay in sync.
+        breakUndoCoalescing()
+        insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+        breakUndoCoalescing()
+        scrollRangeToVisible(selectedRange())
     }
 
     private var ownsInputActions: Bool {

@@ -220,12 +220,14 @@ struct TermindCommands: Commands {
             ) {
                 showsStatusBar.toggle()
             }
+            .termindShortcut("s", modifiers: [.command, .shift])
 
             Button(
                 (showsTerminalInputArea ? AppStrings.TerminalInput.hide : AppStrings.TerminalInput.show).swiftUIKey
             ) {
                 showsTerminalInputArea.toggle()
             }
+            .termindShortcut("i", modifiers: [.command, .shift])
 
             Button(
                 (app.mainWindows.isTransfersWindowOpen

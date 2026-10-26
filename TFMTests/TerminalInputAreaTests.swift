@@ -99,6 +99,41 @@ struct TerminalInputAreaTests {
         #expect(first.count == 2)
     }
 
+    @Test(arguments: [false, true])
+    func sidebarInsertionWithoutAFocusedEditorPreservesTerminalBroadcast(broadcasts: Bool) {
+        let (workspace, source, other) = fixture()
+        defer { for pane in workspace.panes { pane.disconnectConnection() } }
+        workspace.focus(source.id)
+        workspace.broadcastsInput = broadcasts
+        source.terminalInputArea.draft = "local draft"
+        var first: [Data] = []
+        var second: [Data] = []
+        source.sshSession?.inputSink = { first.append($0) }
+        other.sshSession?.inputSink = { second.append($0) }
+
+        workspace.insertSidebarText("echo inserted", in: nil)
+
+        #expect(first == [Data("echo inserted".utf8)])
+        #expect(second == (broadcasts ? first : []))
+        #expect(source.terminalInputArea.draft == "local draft")
+        #expect(other.terminalInputArea.draft.isEmpty)
+    }
+
+    @Test
+    func sidebarInsertionStillRequiresALiveSupportedConnection() {
+        let (workspace, source, _) = fixture()
+        defer { for pane in workspace.panes { pane.disconnectConnection() } }
+        workspace.focus(source.id)
+        var writes: [Data] = []
+        source.sshSession?.inputSink = { writes.append($0) }
+        source.sshSession?.status = .disconnected
+
+        workspace.insertSidebarText("must not arrive", in: nil)
+
+        #expect(writes.isEmpty)
+        #expect(source.terminalInputArea.draft.isEmpty)
+    }
+
     @Test
     func broadcastPreflightsEveryTargetBeforeSendingAnyBytes() {
         let (workspace, source, other) = fixture()
@@ -363,6 +398,18 @@ struct TerminalInputAreaTests {
         #expect(input.isEditorFocused)
         input.setEditorFocused(false, editorID: new)
         #expect(!input.isEditorFocused)
+    }
+
+    @Test
+    func visibilityAndAssistantShortcutsDoNotTriggerCommandGeneration() throws {
+        for modifiers: NSEvent.ModifierFlags in [.command, [.command, .shift], [.command, .option]] {
+            let event = try #require(
+                NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
+                    windowNumber: 0, context: nil, characters: "i", charactersIgnoringModifiers: "i",
+                    isARepeat: false, keyCode: 34))
+            #expect(TerminalInputTextView.isGenerateKey(event) == (modifiers == .command))
+        }
     }
 
     @Test(arguments: InputSendShortcut.allCases)

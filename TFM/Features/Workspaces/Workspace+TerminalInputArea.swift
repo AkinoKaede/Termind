@@ -1,11 +1,23 @@
 // SPDX-FileCopyrightText: 2026 Kaede Akino
 // SPDX-License-Identifier: GPL-3.0-only
 
+import AppKit
 import Foundation
 import TermindApplication
 import TermindPresentation
 
 extension Workspace {
+    func insertSidebarText(_ text: String, in window: NSWindow?) {
+        let pane = focusedPane
+        guard pane.sshSession?.status.isLive == true || pane.telnetSession?.status.isLive == true else { return }
+        if pane.presentsTerminalCanvas,
+            TerminalInputTextView.insertInFocusedEditor(text, for: pane.terminalInputArea, in: window)
+        {
+            return
+        }
+        deliverToFocusedTerminal(text)
+    }
+
     func submitInputArea(_ text: String, from pane: Pane) throws {
         guard layout.pane(pane.id) === pane else { throw TerminalInputAreaError.unavailable }
         switch pane.content {

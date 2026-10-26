@@ -528,7 +528,7 @@ enum TerminalSidebarMenuBuilder {
 
 // MARK: - Session Snippets
 
-/// The global Snippet shelf inserts into the focused terminal. The full
+/// The global Snippet shelf inserts into the focused input area or terminal. The full
 /// Snippets page remains the place for executing a Snippet on its saved Targets.
 private struct SnippetsSidebarView: View {
     @Environment(AppModel.self) private var app
@@ -682,7 +682,7 @@ private struct SnippetsSidebarView: View {
 
     private func insert(_ snippet: Snippet) {
         guard let workspace = window.selectedWorkspace, canInsert else { return }
-        workspace.deliverToFocusedTerminal(snippet.body)
+        workspace.insertSidebarText(snippet.body, in: NSApp.keyWindow)
     }
 
     private func execute(_ snippet: Snippet) {
@@ -934,11 +934,8 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
-        guard let workspace = window.selectedWorkspace,
-            let sshSession = workspace.focusedPane.sshSession,
-            sshSession.status.isLive
-        else { return }
-        workspace.deliver(entry.command, from: sshSession)
+        guard let workspace = window.selectedWorkspace, canInsert else { return }
+        workspace.insertSidebarText(entry.command, in: NSApp.keyWindow)
     }
 
     private func execute(_ entry: CommandHistoryEntry) {

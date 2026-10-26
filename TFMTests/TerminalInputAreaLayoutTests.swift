@@ -126,6 +126,7 @@ struct TerminalInputAreaLayoutTests {
             rootView: WorkspaceContentView(workspace: workspace, isActive: true)
                 .environment(app)
                 .environment(navigation)
+                .transaction { $0.disablesAnimations = true }
                 .defaultAppStorage(defaults))
         controller.sizingOptions = []
         let window = NSWindow(
@@ -141,7 +142,7 @@ struct TerminalInputAreaLayoutTests {
         }
         func layout() async {
             controller.view.layoutSubtreeIfNeeded()
-            try? await Task.sleep(for: .milliseconds(100))
+            try? await Task.sleep(for: .milliseconds(350))
             controller.view.layoutSubtreeIfNeeded()
         }
         func descendants<T: NSView>(_ type: T.Type, in view: NSView) -> [T] {
@@ -149,20 +150,40 @@ struct TerminalInputAreaLayoutTests {
         }
         await layout()
         let terminals = descendants(AppTerminalView.self, in: controller.view).map(ObjectIdentifier.init)
+        let terminalHeights = descendants(AppTerminalView.self, in: controller.view).map(\.bounds.height)
         #expect(terminals.count == 2)
         #expect(descendants(TerminalInputTextView.self, in: controller.view).isEmpty)
         first.terminalInputArea.draft = "retained first draft"
         second.terminalInputArea.draft = "retained second draft"
+        first.terminalInputArea.mode = .commandGenerator
+        let preferredHeight = first.terminalInputArea.preferredHeight
         for visible in [true, false, true] {
             defaults.set(visible, forKey: DesktopSettingsKey.showTerminalInputArea)
             await layout()
             #expect(descendants(AppTerminalView.self, in: controller.view).map(ObjectIdentifier.init) == terminals)
             let editors = descendants(TerminalInputTextView.self, in: controller.view)
+            let resizedHeights = descendants(AppTerminalView.self, in: controller.view).map(\.bounds.height)
             #expect(editors.count == (visible ? 2 : 0))
             if visible {
                 #expect(Set(editors.map(\.string)) == ["retained first draft", "retained second draft"])
+                #expect(zip(resizedHeights, terminalHeights).allSatisfy { $0 < $1 })
+            } else {
+                #expect(resizedHeights == terminalHeights)
             }
+            #expect(first.terminalInputArea.mode == .commandGenerator)
+            #expect(first.terminalInputArea.preferredHeight == preferredHeight)
         }
+        for visible in [false, true, false, true, false] {
+            defaults.set(visible, forKey: DesktopSettingsKey.showTerminalInputArea)
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        await layout()
+        #expect(descendants(TerminalInputTextView.self, in: controller.view).isEmpty)
+        defaults.set(true, forKey: DesktopSettingsKey.showTerminalInputArea)
+        await layout()
+        #expect(
+            Set(descendants(TerminalInputTextView.self, in: controller.view).map(\.string))
+                == ["retained first draft", "retained second draft"])
         window.setContentSize(CGSize(width: 400, height: 320))
         await layout()
         #expect(descendants(AppTerminalView.self, in: controller.view).map(ObjectIdentifier.init) == terminals)
@@ -248,6 +269,72 @@ struct TerminalInputAreaLayoutTests {
         #expect(!editor.isAutomaticDashSubstitutionEnabled)
         #expect(!editor.isAutomaticTextReplacementEnabled)
         #expect(fixture.sent.isEmpty)
+    }
+
+    @Test(arguments: TerminalInputMode.allCases)
+    func sidebarEditsReplaceTheSelectionAndPreserveNativeUndoAndMode(mode: TerminalInputMode) async throws {
+        let fixture = InputAreaViewFixture()
+        defer { fixture.close() }
+        fixture.model.mode = mode
+        await fixture.layout()
+        let editor = try #require(fixture.editor)
+        #expect(fixture.window.makeFirstResponder(editor))
+        let undo = try #require(editor.undoManager)
+
+        let cases: [(draft: String, selection: NSRange, inserted: String, expected: String)] = [
+            ("", NSRange(location: 0, length: 0), "echo first\necho next", "echo first\necho next"),
+            ("echo  tail", NSRange(location: 5, length: 0), "你好👋", "echo 你好👋 tail"),
+            ("echo old tail", NSRange(location: 5, length: 3), "新值🌏\necho next", "echo 新值🌏\necho next tail"),
+        ]
+        for test in cases {
+            fixture.model.draft = test.draft
+            await fixture.layout()
+            editor.setSelectedRange(test.selection)
+            undo.removeAllActions()
+            editor.insertSidebarText(test.inserted)
+            await fixture.layout()
+
+            #expect(fixture.model.draft == test.expected)
+            #expect(editor.string == test.expected)
+            #expect(
+                editor.selectedRange()
+                    == NSRange(
+                        location: test.selection.location + (test.inserted as NSString).length, length: 0))
+            #expect(fixture.model.mode == mode)
+            #expect(fixture.window.firstResponder === editor)
+            #expect(fixture.sent.isEmpty && fixture.generationRequests.isEmpty)
+            #expect(undo.canUndo)
+            undo.undo()
+            await fixture.layout()
+            #expect(editor.string == test.draft)
+            #expect(fixture.model.draft == test.draft)
+            #expect(undo.canRedo)
+            undo.redo()
+            await fixture.layout()
+            #expect(fixture.model.draft == test.expected)
+        }
+        #expect(!fixture.window.isVisible)
+    }
+
+    @Test
+    func sidebarInsertionReplacesNativeMarkedTextWithoutSubmittingIt() async throws {
+        let fixture = InputAreaViewFixture()
+        defer { fixture.close() }
+        fixture.model.draft = "echo "
+        await fixture.layout()
+        let editor = try #require(fixture.editor)
+        #expect(fixture.window.makeFirstResponder(editor))
+        editor.setMarkedText(
+            "ni", selectedRange: NSRange(location: 2, length: 0),
+            replacementRange: NSRange(location: 5, length: 0))
+        #expect(editor.hasMarkedText())
+        editor.insertSidebarText("你好")
+        await fixture.layout()
+        #expect(!editor.hasMarkedText())
+        #expect(editor.string == "echo 你好")
+        #expect(fixture.model.draft == "echo 你好")
+        #expect(fixture.sent.isEmpty)
+        #expect(!fixture.window.isVisible)
     }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_INPUT_AREA_SCREENSHOTS"] != nil))
