@@ -406,12 +406,16 @@ extension Workspace: SSHSessionInputRouting {
 
         let targets = broadcastsInput && sessions.count > 1 ? sessions : [origin]
         for sshSession in targets {
+            panes.first { $0.sshSession === sshSession }?.terminalInputArea.cancelGeneration()
             sshSession.writeInputDirectly(data)
         }
     }
 
-    func sshSessionDidInvalidateCommandGeneration(_: SSHSessionModel) {
+    func sshSessionDidInvalidateCommandGeneration(_ session: SSHSessionModel) {
         cancelCommandGeneration()
+        for pane in panes where pane.sshSession === session {
+            pane.terminalInputArea.cancelGeneration()
+        }
     }
 
     /// A background pane may keep reporting OSC 7 while another split has

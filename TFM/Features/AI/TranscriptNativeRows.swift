@@ -2609,24 +2609,40 @@ private final class NativeVerticalRule: NSView {
 }
 
 @MainActor
-private final class NativeEditorTextView: NSTextView {
+final class NativeEditorTextView: NSTextView {
     var commit: (() -> Void)?
     var cancel: (() -> Void)?
+    var sendShortcut: () -> InputSendShortcut = { .stored() }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if window?.isKeyWindow == true, window?.firstResponder === self,
+            event.modifierFlags.contains(.command), handleReturn(event)
+        {
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {
+        if event.keyCode == 53, !hasMarkedText() {
             cancel?()
             return
         }
-        if event.keyCode == 36 || event.keyCode == 76 {
-            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            let disallowed: NSEvent.ModifierFlags = [.control, .option]
-            if !hasMarkedText(), !modifiers.contains(.shift), modifiers.intersection(disallowed).isEmpty {
-                commit?()
-                return
-            }
-        }
+        if handleReturn(event) { return }
         super.keyDown(with: event)
+    }
+
+    private func handleReturn(_ event: NSEvent) -> Bool {
+        switch sendShortcut().action(for: event, hasMarkedText: hasMarkedText()) {
+        case .submit:
+            if !event.isARepeat { commit?() }
+            return true
+        case .newline:
+            insertNewline(nil)
+            return true
+        case .system:
+            return false
+        }
     }
 }
 

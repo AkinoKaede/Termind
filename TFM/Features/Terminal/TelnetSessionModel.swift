@@ -200,6 +200,13 @@ final class TelnetSessionModel: Identifiable {
         advisoryPassword = nil
     }
 
+    func validateInputAreaSubmission() throws {
+        guard status == .connected, connection != nil else { throw TerminalInputAreaError.unavailable }
+        if let statusStore, let host = statusStore.host(hostID) {
+            try statusStore.requireHostAccess(host, protocol: .telnet)
+        }
+    }
+
     func insert(_ text: String, submit: Bool = false) {
         connection?.write(Data((text + (submit ? "\r" : "")).utf8))
     }

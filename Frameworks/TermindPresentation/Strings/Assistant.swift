@@ -408,6 +408,10 @@ extension AppStrings {
             "Send — ⌘⏎"
         }
 
+        public static var sendWithReturn: LocalizedStringResource {
+            "Send — ⏎"
+        }
+
         public static var showArchive: LocalizedStringResource {
             "Show Archive"
         }

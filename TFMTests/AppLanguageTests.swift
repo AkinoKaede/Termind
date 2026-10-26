@@ -10,6 +10,20 @@ import Testing
 @testable import Termind
 
 struct AppLanguageTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant", "ja", "ko", "de", "fr"])
+    func inputSettingsUseLocalizedShortLabels(language: String) {
+        let locale = Locale(identifier: language)
+        let title = AppLocalization.resolve(AppStrings.Settings.input, locale: locale)
+        let show = AppLocalization.resolve(AppStrings.TerminalInput.show, locale: locale)
+        let shortcut = AppLocalization.resolve(AppStrings.Settings.shortcuts, locale: locale)
+        #expect(!title.isEmpty && !show.isEmpty && !shortcut.isEmpty)
+        if language == "en" {
+            #expect(title == "Input" && show == "Show Input Area" && shortcut == "Shortcuts")
+        } else {
+            #expect(title != "Input" && show != "Show Input Area" && shortcut != "Shortcuts")
+        }
+    }
+
     @Test func hostQuotaUsesPaywallWithoutAnErrorMessage() {
         let error: any Error = HostAccessError.hostLimit
         #expect(HostAccessError.presentationDescription(of: error) == nil)

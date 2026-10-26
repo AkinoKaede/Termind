@@ -67,7 +67,6 @@ struct MobileShortcutTests {
         #expect(MobileShortcut.reopenWorkspace == KeyboardShortcut("t", modifiers: [.command, .shift]))
         #expect(MobileShortcut.nextWorkspace == KeyboardShortcut("]", modifiers: [.command, .shift]))
         #expect(MobileShortcut.previousWorkspace == KeyboardShortcut("[", modifiers: [.command, .shift]))
-        #expect(MobileShortcut.send == KeyboardShortcut(.return, modifiers: .command))
         #expect(MobileShortcut.stop == KeyboardShortcut(".", modifiers: .command))
         #expect(MobileShortcut.formDefault == KeyboardShortcut(.return, modifiers: []))
         #expect(MobileShortcut.formCancel == KeyboardShortcut(.escape, modifiers: []))
@@ -95,7 +94,6 @@ struct MobileShortcutTests {
                 close.closeAllWindows,
                 MobileShortcut.nextWorkspace,
                 MobileShortcut.previousWorkspace,
-                MobileShortcut.send,
                 MobileShortcut.stop,
                 MobileShortcut.formDefault,
                 MobileShortcut.formCancel,

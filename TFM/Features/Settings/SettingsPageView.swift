@@ -460,6 +460,10 @@ private struct AppSettings: View {
             }
         }
 
+        Section(AppStrings.Settings.shortcuts.swiftUIKey) {
+            InputSendShortcutPicker()
+        }
+
         Section {
             Toggle(
                 AppStrings.Settings.automaticallyRenameWorkspaces.swiftUIKey,
@@ -593,6 +597,7 @@ private struct TerminalSettings: View {
     @Environment(AppModel.self) private var app
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(DesktopSettingsKey.showTerminalInputArea) private var showsTerminalInputArea = false
 
     private func binding<Value>(_ keyPath: WritableKeyPath<TerminalPreferences, Value>) -> Binding<Value> {
         Binding(
@@ -642,6 +647,9 @@ private struct TerminalSettings: View {
             }
             Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
+            }
+            Section(AppStrings.Settings.input.swiftUIKey) {
+                Toggle(AppStrings.TerminalInput.show.swiftUIKey, isOn: $showsTerminalInputArea)
             }
             Section(AppStrings.Settings.mouse.swiftUIKey) {
                 Toggle(AppStrings.Settings.copyOnSelection.swiftUIKey, isOn: binding(\.copyOnSelect))

@@ -168,9 +168,6 @@ struct MobileAssistantComposer: View {
 
     private var keyboardShortcuts: some View {
         Group {
-            Button(AppStrings.Assistant.send.swiftUIKey, action: submitFromKeyboard)
-                .keyboardShortcut(MobileShortcut.send)
-                .disabled(!canSend)
             Button(AppStrings.Common.stop.swiftUIKey, action: conversation.stop)
                 .keyboardShortcut(MobileShortcut.stop)
                 .disabled(!conversation.isAgentRunActive)
@@ -186,18 +183,16 @@ struct MobileAssistantComposer: View {
                 attachmentRow
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            TextField(
-                AppStrings.Assistant.prompt.swiftUIKey,
+            MobileMessageTextEditor(
                 text: Bindable(composer).projectedValue.draft,
-                axis: .vertical
+                focus: Binding(get: { activeFocus.wrappedValue }, set: { activeFocus.wrappedValue = $0 }),
+                prompt: localized(AppStrings.Assistant.prompt),
+                maximumLines: 6,
+                submit: submitFromKeyboard
             )
-            .lineLimit(1...6)
-            .focused(activeFocus)
             .disabled(ownsTranscription)
             .padding(.horizontal, 4)
             .padding(.top, 4)
-            .submitLabel(.send)
-            .onSubmit(submitFromKeyboard)
             .onKeyPress(.escape, phases: .down) { _ in
                 guard !slashCompletion.isEmpty, !isSlashPanelDismissed else { return .ignored }
                 isSlashPanelDismissed = true
@@ -633,6 +628,7 @@ struct MobileAssistantComposer: View {
     }
 
     private func submitFromKeyboard() {
+        guard !ownsTranscription, canSend else { return }
         if !isSlashPanelDismissed, let first = slashCompletion.rows.first {
             acceptSlashRow(first)
         } else {

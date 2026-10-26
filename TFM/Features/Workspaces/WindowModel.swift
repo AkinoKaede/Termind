@@ -385,7 +385,9 @@ final class WindowModel {
         focusedSSHSession != nil || focusedTelnetSession != nil || focusedSerialSession != nil
     }
 
-    var canGenerateTerminalCommand: Bool { focusedSSHSession != nil }
+    var canGenerateTerminalCommand: Bool {
+        focusedSSHSession != nil || selectedWorkspace?.focusedPane.terminalInputArea.isEditorFocused == true
+    }
 
     func generateTerminalCommand(using controller: CommandGeneratorController) {
         selectedWorkspace?.generateFocusedCommand(using: controller)

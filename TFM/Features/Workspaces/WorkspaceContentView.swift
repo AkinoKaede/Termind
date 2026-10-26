@@ -20,6 +20,7 @@ struct WorkspaceContentView: View {
     let isActive: Bool
 
     @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
+    @AppStorage(DesktopSettingsKey.showTerminalInputArea) private var showsTerminalInputArea = false
     @Environment(WindowModel.self) private var window
 
     var body: some View {
@@ -32,7 +33,9 @@ struct WorkspaceContentView: View {
             )
             .id(workspace.id)
 
-            if workspace.commandGeneratorState != .idle {
+            if workspace.commandGeneratorState != .idle,
+                !(showsTerminalInputArea && workspace.focusedPane.presentsTerminalCanvas)
+            {
                 CommandGeneratorOverlay(state: workspace.commandGeneratorState)
                     .padding(Metrics.Space.l)
                     // Above the floating status capsule, not on top of it.
@@ -392,6 +395,7 @@ private struct PaneView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(DesktopSettingsKey.showTerminalInputArea) private var showsTerminalInputArea = false
 
     @State private var isHovering = false
     @State private var isRenaming = false
@@ -402,6 +406,7 @@ private struct PaneView: View {
     @FocusState private var titleFieldFocused: Bool
 
     private var isFocused: Bool { workspace.focusedPaneID == pane.id }
+    private var presentsInputArea: Bool { showsTerminalInputArea && pane.presentsTerminalCanvas }
     private var showsHoverControls: Bool {
         #if DEBUG
             if ScreenshotDemoConfiguration.active?.scene == .workspace, isFocused {
@@ -417,8 +422,37 @@ private struct PaneView: View {
                 header
                 if pane.kind == .empty { Divider() }
             }
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            GeometryReader { proxy in
+                VStack(spacing: 0) {
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay(alignment: .bottom) {
+                            if presentsInputArea, isActive, isFocused,
+                                workspace.commandGeneratorState != .idle
+                            {
+                                CommandGeneratorOverlay(state: workspace.commandGeneratorState)
+                                    .padding(Metrics.Space.l)
+                            }
+                        }
+                    if presentsInputArea {
+                        TerminalInputAreaView(
+                            model: pane.terminalInputArea,
+                            availableHeight: proxy.size.height,
+                            isActive: isActive,
+                            transcription: app.speechTranscription,
+                            ai: app.aiConfiguration,
+                            configureModels: { window.openSettings(route: .category(.ai)) },
+                            focusPane: { workspace.focus(pane.id) },
+                            send: submitInputArea,
+                            generate: generateInputAreaCommand
+                        )
+                        .frame(
+                            height: TerminalInputAreaModel.height(
+                                pane.terminalInputArea.preferredHeight, available: proxy.size.height)
+                        )
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay {
@@ -448,6 +482,35 @@ private struct PaneView: View {
             window.dragging = nil
             workspace.focus(pane.id)
         }
+        .onChange(of: presentsInputArea) { _, visible in
+            if !visible {
+                pane.terminalInputArea.cancelGeneration()
+                pane.terminalInputArea.cancelTranscription()
+                pane.terminalInputArea.dismissEditorFocus()
+            }
+        }
+    }
+
+    private var requestsTerminalFocus: Bool {
+        isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented
+            && !(presentsInputArea && pane.terminalInputArea.isEditorFocused)
+    }
+
+    private func submitInputArea() {
+        guard isActive, presentsInputArea else { return }
+        let input = pane.terminalInputArea
+        switch input.mode {
+        case .input:
+            input.submit { try workspace.submitInputArea($0, from: pane) }
+        case .commandGenerator:
+            generateInputAreaCommand()
+        }
+    }
+
+    private func generateInputAreaCommand() {
+        guard isActive, presentsInputArea else { return }
+        app.onboarding.recordUse(of: .commandGenerator)
+        workspace.generateInputAreaCommand(from: pane, using: app.commandGenerator)
     }
 
     private var layoutDropTarget: some View {
@@ -584,7 +647,7 @@ private struct PaneView: View {
                 sshSession: sshSession,
                 workspace: workspace,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
+                requestsFocus: requestsTerminalFocus,
                 externalFileDrop: localFileDropRequest,
                 externalRemoteDrop: sftpRemoteDropRequest,
                 closePane: { window.closePane(pane.id) }
@@ -593,7 +656,7 @@ private struct PaneView: View {
             TelnetTerminalView(
                 session: telnetSession,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
+                requestsFocus: requestsTerminalFocus,
                 closePane: { window.closePane(pane.id) }
             )
         case .sftpChannel(let sftpChannel):
@@ -609,7 +672,7 @@ private struct PaneView: View {
             SerialTerminalView(
                 session: serialSession,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
+                requestsFocus: requestsTerminalFocus,
                 closePane: { window.closePane(pane.id) }
             )
         case .empty:
@@ -632,7 +695,7 @@ private struct PaneView: View {
     /// trade something you do constantly for something you do rarely.
     @ViewBuilder
     private var header: some View {
-        if presentsConnectionJourney {
+        if pane.presentsConnectionJourney {
             headerContent.background {
                 ConnectionJourneyBackground()
             }
@@ -651,21 +714,6 @@ private struct PaneView: View {
         case .telnetSession(let session): session.terminalState
         case .serialSession(let session): session.terminalState
         case .sftpChannel, .empty: nil
-        }
-    }
-
-    private var presentsConnectionJourney: Bool {
-        switch pane.content {
-        case .sshSession(let session):
-            session.connectionJourney.isPresented
-        case .telnetSession(let session):
-            session.connectionJourney.isPresented
-        case .sftpChannel(let session):
-            session.connectionJourney.isPresented
-        case .serialSession(let session):
-            session.connectionJourney.isPresented
-        case .empty:
-            false
         }
     }
 

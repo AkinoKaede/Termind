@@ -5,6 +5,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Settings {
+        public static var shortcuts: LocalizedStringResource { "Shortcuts" }
+        public static var returnKey: LocalizedStringResource { "Return" }
+        public static var commandReturn: LocalizedStringResource { "⌘ Return" }
         public static var bell: LocalizedStringResource { "Bell" }
         public static var sound: LocalizedStringResource { "Sound" }
         public static var vibration: LocalizedStringResource { "Vibration" }

@@ -170,6 +170,11 @@ final class SerialSessionModel: Identifiable {
         terminalSurface.appendNotice(message)
     }
 
+    func submitInputArea(_ text: String) throws {
+        guard status == .connected, connection != nil else { throw TerminalInputAreaError.unavailable }
+        handleTerminalWrite(Data((text + "\r").utf8), interactive: true)
+    }
+
     func handleTerminalWrite(_ data: Data, interactive: Bool) {
         guard let connection else { return }
         let source = interactive ? configuration.transformInteractiveInput(data) : data

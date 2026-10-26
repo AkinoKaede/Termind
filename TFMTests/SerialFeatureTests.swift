@@ -192,6 +192,32 @@ struct SerialFeatureTests {
 
     @MainActor
     @Test
+    func inputAreaUsesSerialCharsetAndConfiguredReturnWithoutBroadcasting() async throws {
+        let connection = RecordingSerialConnection()
+        let configuration = SerialConnectionConfiguration(
+            devicePath: "/dev/ttyUSB0", enterKey: .carriageReturnLineFeed, charset: .isoLatin1)
+        let session = SerialSessionModel(
+            configuration: configuration, service: RecordingSerialService(connection: connection))
+        let pane = Pane(.serialSession(session))
+        let workspace = Workspace(pane: pane)
+        for index in 0..<2 {
+            let peer = Pane.sshSession(host: Host(name: "peer\(index)", host: "peer\(index).invalid"))
+            peer.sshSession?.status = .connected
+            peer.sshSession?.inputSink = { _ in Issue.record("Serial input must not broadcast to SSH") }
+            workspace.splitFocusedPane(axis: .horizontal, with: peer)
+        }
+        workspace.broadcastsInput = true
+        defer { for pane in workspace.panes { pane.disconnectConnection() } }
+        #expect(throws: TerminalInputAreaError.self) { try workspace.submitInputArea("before connect", from: pane) }
+        session.connect()
+        for _ in 0..<100 where session.status != .connected { try await Task.sleep(for: .milliseconds(5)) }
+        try workspace.submitInputArea("caf\u{e9}", from: pane)
+        for _ in 0..<100 where connection.writes.isEmpty { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(connection.writes == [Data([0x63, 0x61, 0x66, 0xE9, 0x0D, 0x0A])])
+    }
+
+    @MainActor
+    @Test
     func serialPaneParticipatesInSessionsAndFindButCannotBeDuplicated() {
         let configuration = SerialConnectionConfiguration(
             devicePath: "/dev/ttyUSB0", deviceName: "USB UART"

@@ -19,6 +19,8 @@ public nonisolated enum SettingsKey {
     public static let reviewInvitationResponse = "app.review.invitationResponse"
 
     public static let appLanguage = "app.language"
+    // Device-local keyboard preference shared by message editors and terminal input areas.
+    public static let inputSendShortcut = "input.sendShortcut"
     public static let defaultICloudSyncEnabled = true
     public static let defaultMetricsSyncEnabled = true
     public static let defaultSettingsSyncEnabled = true

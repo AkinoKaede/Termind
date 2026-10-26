@@ -30,6 +30,9 @@ struct WorkspaceWindowMoveTests {
         let remaining = workspace.focusedPane
         let moved = Pane.sshSession(host: host)
         moved.customTitle = "Build"
+        let input = moved.terminalInputArea
+        input.draft = "unsubmitted request"
+        input.mode = .commandGenerator
         workspace.splitFocusedPane(axis: .horizontal, with: moved)
         source.open(workspace)
         let ssh = try #require(moved.sshSession)
@@ -51,6 +54,8 @@ struct WorkspaceWindowMoveTests {
         let received = try #require(target.selectedWorkspace)
         #expect(received !== workspace)
         #expect(received.focusedPane === moved)
+        #expect(received.focusedPane.terminalInputArea === input)
+        #expect(input.draft == "unsubmitted request" && input.mode == .commandGenerator)
         #expect(received.lifecycleRouter === target)
         #expect(moved.customTitle == "Build")
         #expect(source.selectedWorkspace === workspace)

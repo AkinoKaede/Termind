@@ -32,7 +32,6 @@ nonisolated enum MobileShortcut {
     static let reopenWorkspace = KeyboardShortcut("t", modifiers: [.command, .shift])
     static let nextWorkspace = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let previousWorkspace = KeyboardShortcut("[", modifiers: [.command, .shift])
-    static let send = KeyboardShortcut(.return, modifiers: .command)
     static let stop = KeyboardShortcut(".", modifiers: .command)
     static let formDefault = KeyboardShortcut(.return, modifiers: [])
     static let formCancel = KeyboardShortcut(.escape, modifiers: [])

@@ -158,7 +158,7 @@ struct SimpleDesktopTerminalView: View {
         }
         .onChange(of: requestsFocus) { _, value in
             focused = value
-            if value, !journey.isPresented { requestFocus() }
+            if value, !journey.isPresented { owner.requestFocus(preservingTextEditor: true) }
         }
         .onChange(of: journey.isPresented) { _, presented in
             if !presented, requestsFocus { requestFocus() }

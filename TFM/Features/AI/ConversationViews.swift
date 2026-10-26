@@ -466,6 +466,7 @@ struct ComposerView: View {
     @State private var isSlashMenuDismissed = false
     @State private var draftHeight = Metrics.Chat.compactComposerMinHeight
     @State private var hasMarkedText = false
+    @AppStorage(SettingsKey.inputSendShortcut) private var sendShortcut = InputSendShortcut.returnKey
     @State private var isPermissionPickerPresented = false
     @State private var isModelPickerPresented = false
     @State private var expandedModelPickerSection: ModelPickerSection?
@@ -656,16 +657,27 @@ struct ComposerView: View {
                 return .handled
             }
             .onKeyPress(.return, phases: .down) { press in
-                let editorHasMarkedText =
-                    (NSApp.keyWindow?.firstResponder as? NSTextView)?.hasMarkedText() ?? false
-                guard !hasMarkedText, !editorHasMarkedText,
-                    !press.modifiers.contains(.shift)
-                else { return .ignored }
-                let disallowed: EventModifiers = [.control, .option]
-                guard press.modifiers.intersection(disallowed).isEmpty else { return .ignored }
-                if acceptHighlightedSlashRow() { return .handled }
-                sendDraft()
-                return .handled
+                guard isFocused, let editor = NSApp.keyWindow?.firstResponder as? NSTextView else { return .ignored }
+                switch sendShortcut.returnAction(
+                    command: press.modifiers.contains(.command), shift: press.modifiers.contains(.shift),
+                    control: press.modifiers.contains(.control), option: press.modifiers.contains(.option),
+                    hasMarkedText: hasMarkedText || editor.hasMarkedText()
+                ) {
+                case .submit:
+                    if !acceptHighlightedSlashRow() { sendDraft() }
+                    return .handled
+                case .newline:
+                    // TextEditor suppresses native text insertion while onKeyPress is running.
+                    DispatchQueue.main.async { [weak editor] in
+                        guard let editor, let window = editor.window,
+                            window.isKeyWindow, window.firstResponder === editor, !editor.hasMarkedText()
+                        else { return }
+                        editor.insertText("\n", replacementRange: editor.selectedRange())
+                    }
+                    return .handled
+                case .system:
+                    return .ignored
+                }
             }
             // Typing again after Escape re-opens the palette; the dismissal
             // was about one keystroke, not about the rest of the draft.
@@ -735,7 +747,9 @@ struct ComposerView: View {
                 sendButton(
                     enabled: conversation.canSendDraft && conversation.composer.pendingAttachments.isEmpty,
                     help: conversation.isStreaming
-                        ? AppStrings.Assistant.queueForTheRunningAgent : AppStrings.Assistant.sendLabel,
+                        ? AppStrings.Assistant.queueForTheRunningAgent
+                        : (sendShortcut == .returnKey
+                            ? AppStrings.Assistant.sendWithReturn : AppStrings.Assistant.sendLabel),
                     action: sendDraft
                 )
             }
@@ -846,7 +860,7 @@ struct ComposerView: View {
 
     private func sendButton(
         enabled: Bool,
-        help: LocalizedStringResource = AppStrings.Assistant.sendLabel,
+        help: LocalizedStringResource? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -858,7 +872,11 @@ struct ComposerView: View {
         .frame(width: 32, height: 32)
         .contentShape(.circle)
         .disabled(!enabled)
-        .help(Text(help))
+        .help(
+            Text(
+                help
+                    ?? (sendShortcut == .returnKey
+                        ? AppStrings.Assistant.sendWithReturn : AppStrings.Assistant.sendLabel)))
     }
 
     private func circularControl(

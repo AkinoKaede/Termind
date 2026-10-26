@@ -44,6 +44,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     private(set) var transportState: ResumableTerminalState?
     var status: ConnectionStatus = .disconnected {
         didSet {
+            if status != oldValue { invalidateCommandGeneration() }
             if !status.isLive, status != .connecting { commandMonitor.endConnection() }
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
             synchronizeResizeThrottle()
@@ -345,6 +346,15 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
 
     private func performFindBinding(_ action: String) {
         terminalSurface.performBindingAction(action)
+    }
+
+    func validateInputAreaSubmission() throws {
+        guard status == .connected, acceptsTerminalInput, ssh != nil || inputSink != nil else {
+            throw TerminalInputAreaError.unavailable
+        }
+        if let statusStore, let host = statusStore.host(hostID) {
+            try statusStore.requireHostAccess(host, protocol: transport)
+        }
     }
 
     /// Text arriving at this sshSession's prompt — the one way anything reaches a

@@ -271,10 +271,10 @@ struct MobileAssistantUserBubble: View {
 
 struct MobileAssistantEditMessageTextEditor: View {
     @Binding var text: String
+    var submit: () -> Void = {}
 
     var body: some View {
-        TextEditor(text: $text)
-            .scrollContentBackground(.hidden)
+        MobileMessageTextEditor(text: $text, submit: submit)
             .padding(12)
             .background(
                 Color(uiColor: .secondarySystemBackground),
@@ -453,7 +453,7 @@ struct MobileAssistantConversation: View {
         )
         .sheet(item: $editing) { message in
             NavigationStack {
-                MobileAssistantEditMessageTextEditor(text: $editedText)
+                MobileAssistantEditMessageTextEditor(text: $editedText, submit: { submitEdit(message) })
                     .padding()
                     .navigationTitle(AppStrings.Assistant.editMessage.swiftUIKey)
                     .toolbar {
@@ -463,8 +463,7 @@ struct MobileAssistantConversation: View {
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button(AppStrings.Assistant.send.swiftUIKey, systemImage: "arrow.up") {
-                                model.edit(conversation, messageID: message.id, text: editedText)
-                                editing = nil
+                                submitEdit(message)
                             }.labelStyle(.iconOnly).disabled(
                                 editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
@@ -478,6 +477,12 @@ struct MobileAssistantConversation: View {
         .onChange(of: validPresentationIDs) { _, valid in
             presentation.prune(validTimelineIDs: valid)
         }
+    }
+
+    private func submitEdit(_ message: ChatMessage) {
+        guard !editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        model.edit(conversation, messageID: message.id, text: editedText)
+        editing = nil
     }
 
     private var transcriptRefreshID: String {

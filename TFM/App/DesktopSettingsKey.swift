@@ -14,6 +14,8 @@ nonisolated enum DesktopSettingsKey {
     static let showMetricsInMenuBar = "metrics.showInMenuBar"
     /// Visibility is local to this Mac, independent of the capsule's expanded state.
     static let showStatusBar = "statusBar.visible"
+    static let showTerminalInputArea = "terminal.inputArea.visible"
+    static let terminalInputAreaDefaultHeight = "terminal.inputArea.defaultHeight"
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"
     /// Last ordinary main-window content size, local to this Mac.

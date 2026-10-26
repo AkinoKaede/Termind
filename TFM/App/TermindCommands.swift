@@ -21,6 +21,7 @@ import struct TermindDomain.Host
 struct TermindCommands: Commands {
     let app: AppModel
     @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
+    @AppStorage(DesktopSettingsKey.showTerminalInputArea) private var showsTerminalInputArea = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
@@ -122,6 +123,7 @@ struct TermindCommands: Commands {
 
         CommandGroup(after: .pasteboard) {
             Button(AppStrings.Workspace.generateCommand.swiftUIKey, systemImage: MenuSymbol.generateCommand) {
+                if TerminalInputTextView.generateInFocusedEditor(in: NSApp.keyWindow) { return }
                 app.onboarding.recordUse(of: .commandGenerator)
                 window?.generateTerminalCommand(using: app.commandGenerator)
             }
@@ -217,6 +219,12 @@ struct TermindCommands: Commands {
                 (showsStatusBar ? AppStrings.Settings.hideStatusBar : AppStrings.Settings.showStatusBar).swiftUIKey
             ) {
                 showsStatusBar.toggle()
+            }
+
+            Button(
+                (showsTerminalInputArea ? AppStrings.TerminalInput.hide : AppStrings.TerminalInput.show).swiftUIKey
+            ) {
+                showsTerminalInputArea.toggle()
             }
 
             Button(

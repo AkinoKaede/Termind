@@ -102,7 +102,10 @@ final class Pane: Identifiable {
     // Reopening can reuse Telnet/serial models. Old notifications must still
     // refer to the closed session, while moving a pane keeps this identity.
     private var commandNotificationID = UUID()
-    var content: PaneContent
+    var content: PaneContent {
+        didSet { terminalInputArea.cancelGeneration() }
+    }
+    let terminalInputArea = TerminalInputAreaModel()
     private var connectionHistoryEntryID: ConnectionHistoryEntry.ID?
     private var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
     private var bellObservation: TerminalBellObservation?
@@ -117,6 +120,28 @@ final class Pane: Identifiable {
 
     init(_ content: PaneContent) {
         self.content = content
+    }
+
+    var presentsConnectionJourney: Bool {
+        switch content {
+        case .sshSession(let session):
+            session.connectionJourney.isPresented || session.sessionPersistence.prompt != nil
+        case .telnetSession(let session):
+            session.connectionJourney.isPresented
+        case .serialSession(let session):
+            session.connectionJourney.isPresented
+        case .sftpChannel(let channel):
+            channel.connectionJourney.isPresented
+        case .empty:
+            false
+        }
+    }
+
+    var presentsTerminalCanvas: Bool {
+        switch content {
+        case .sshSession, .telnetSession, .serialSession: !presentsConnectionJourney
+        case .sftpChannel, .empty: false
+        }
     }
 
     func configureTerminalBell(_ ring: @escaping @MainActor () -> Void) {
@@ -208,6 +233,7 @@ final class Pane: Identifiable {
     /// disappearance is not ownership: dragging a pane reparents its view and
     /// must leave the same live session connected.
     func disconnectConnection() {
+        terminalInputArea.close()
         bellObservation = nil
         if let connectionHistoryEntryID {
             endConnectionHistory?(connectionHistoryEntryID)

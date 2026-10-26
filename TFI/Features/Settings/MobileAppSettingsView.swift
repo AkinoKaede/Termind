@@ -23,6 +23,9 @@ struct MobileAppSettingsView: View {
                 }
                 Toggle(AppStrings.Settings.compactCards.swiftUIKey, isOn: $compactCards)
             }
+            Section(AppStrings.Settings.shortcuts.swiftUIKey) {
+                InputSendShortcutPicker()
+            }
             Section {
                 Toggle(
                     AppStrings.Settings.automaticallyRenameWorkspaces.swiftUIKey,

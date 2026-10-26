@@ -578,7 +578,8 @@
         /// An explicit hand-back — Escape in the Find field, a pane becoming
         /// focused. This one is allowed to take the keyboard away from a text
         /// field, because taking it away is the whole point.
-        func requestFocus() {
+        func requestFocus(preservingTextEditor: Bool = false) {
+            if preservingTextEditor, let window = terminalView.window, isEditingText(in: window) { return }
             synchronizeFocus(requested: true, force: true)
         }
 
@@ -698,7 +699,7 @@
         /// control the user sees.
         private func isEditingText(in window: NSWindow) -> Bool {
             switch window.firstResponder {
-            case let textView as NSTextView: textView.isFieldEditor
+            case let textView as NSTextView: textView.isEditable
             case is NSTextField: true
             default: false
             }

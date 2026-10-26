@@ -87,7 +87,7 @@ struct TerminalPlaceholderView: View {
             }
             .onChange(of: requestsFocus) { _, focused in
                 terminalFocused = focused && !showsJourney
-                if focused { sshSession.requestTerminalFocus() }
+                if focused, !showsJourney { sshSession.terminalViewOwner.requestFocus(preservingTextEditor: true) }
             }
             .onChange(of: showsJourney) { _, presented in
                 terminalFocused = requestsFocus && isVisible && !presented
