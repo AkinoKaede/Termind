@@ -35,7 +35,7 @@ struct RetiredTerminalHighlightingTests {
             let reopened = try TermindPersistence.makeContainer(url: url)
             reopened.mainContext.autosaveEnabled = false
             let store = SettingsSyncPersistence(context: reopened.mainContext, defaults: defaults)
-            #expect(try store.loadTerminal().copyOnSelect)
+            #expect(try !store.loadTerminal().shellIntegration)
             #expect(try store.journal.envelope(for: legacyKey) == nil)
             #expect(try store.journal.outgoingEntry(for: legacyKey) == nil)
         }
@@ -48,7 +48,7 @@ struct RetiredTerminalHighlightingTests {
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
         let store = SettingsSyncPersistence(context: container.mainContext, defaults: defaults)
-        try store.saveTerminal(.init(copyOnSelect: true))
+        try store.saveTerminal(.init(shellIntegration: false))
         let envelope = SettingsEnvelope(
             key: legacyKey, version: .baseline(writerID: UUID()), isDeleted: true)
         let retired = try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: true)
@@ -58,7 +58,7 @@ struct RetiredTerminalHighlightingTests {
         try store.prepare()
         #expect(try store.journal.envelope(for: legacyKey) == nil)
         #expect(try store.journal.outgoingEntry(for: legacyKey) == nil)
-        #expect(try store.loadTerminal().copyOnSelect)
+        #expect(try !store.loadTerminal().shellIntegration)
         #expect(try store.load().recordPayloads[legacyKey] == nil)
         #expect(try !store.journal.cloudRecords().contains { $0.mutation.recordName == legacyKey.recordName })
     }
@@ -83,7 +83,7 @@ struct RetiredTerminalHighlightingTests {
             recordType: SettingsSyncCoordinator.terminalHighlightRecordType,
             recordID: .init(recordName: legacyKey.recordName, zoneID: zone))
         // Deliberately missing every required field: these must never reach validation.
-        let payload = SettingsRecordPayload.terminal(.init(copyOnSelect: true))
+        let payload = SettingsRecordPayload.terminal(.init(shellIntegration: false))
         let envelope = SettingsEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
         let active = try SettingsSyncCoordinator.makeRecord(
             .init(envelope: envelope), recordID: .init(recordName: payload.key.recordName, zoneID: zone))
@@ -91,7 +91,7 @@ struct RetiredTerminalHighlightingTests {
         // Conflict delivery bypasses normal type filtering, but retired records must still be ignored.
         try coordinator.receiveRemoteRecords([retired], isConflict: true)
         try coordinator.receiveRemoteRecords([], deletions: [retired.recordID])
-        #expect(try store.loadTerminal().copyOnSelect)
+        #expect(try !store.loadTerminal().shellIntegration)
         #expect(try store.journal.envelope(for: legacyKey) == nil)
         #expect(try store.journal.outgoingEntry(for: legacyKey) == nil)
         #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentCloudSyncQuarantine>()) == 0)
@@ -108,7 +108,7 @@ struct RetiredTerminalHighlightingTests {
             for: schema,
             configurations: [.init("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
         container.mainContext.autosaveEnabled = false
-        container.mainContext.insert(try PersistentTerminalPreferences(.init(copyOnSelect: true)))
+        container.mainContext.insert(try PersistentTerminalPreferences(.init(shellIntegration: false)))
         container.mainContext.insert(PersistentTerminalHighlightPreferences(data: value))
         try container.mainContext.save()
     }

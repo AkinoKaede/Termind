@@ -353,7 +353,7 @@ final class CloudSyncSafetyFixture {
         let persistence = SettingsSyncPersistence(context: context, defaults: defaults)
         let journal = persistence.journal
         let remoteWebSearch = AIWebSearchPreferences(isEnabled: false, prefersBuiltIn: true)
-        let remoteTerminal = TerminalPreferences(darkTheme: "Remote Dark", copyOnSelect: true)
+        let remoteTerminal = TerminalPreferences(darkTheme: "Remote Dark", shellIntegration: false)
         let payloads: [SettingsRecordPayload] = [.webSearch(remoteWebSearch), .terminal(remoteTerminal)]
         let envelopes = payloads.map { SettingsEnvelope(key: $0.key, version: version, payload: $0) }
         if seed {

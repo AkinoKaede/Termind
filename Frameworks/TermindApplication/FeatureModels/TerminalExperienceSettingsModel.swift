@@ -17,6 +17,9 @@ public final class TerminalExperienceSettingsModel {
             defaults?.object(forKey: SettingsKey.terminalBellVibration) as? Bool ?? value.bellVibration
         value.keepScreenAwake =
             defaults?.object(forKey: SettingsKey.terminalKeepScreenAwake) as? Bool ?? value.keepScreenAwake
+        value.copyOnSelect = defaults?.object(forKey: SettingsKey.terminalCopyOnSelect) as? Bool ?? value.copyOnSelect
+        value.pasteOnRightClick =
+            defaults?.object(forKey: SettingsKey.terminalPasteOnRightClick) as? Bool ?? value.pasteOnRightClick
         preferences = value
     }
 
@@ -26,5 +29,7 @@ public final class TerminalExperienceSettingsModel {
         defaults?.set(preferences.bellSound, forKey: SettingsKey.terminalBellSound)
         defaults?.set(preferences.bellVibration, forKey: SettingsKey.terminalBellVibration)
         defaults?.set(preferences.keepScreenAwake, forKey: SettingsKey.terminalKeepScreenAwake)
+        defaults?.set(preferences.copyOnSelect, forKey: SettingsKey.terminalCopyOnSelect)
+        defaults?.set(preferences.pasteOnRightClick, forKey: SettingsKey.terminalPasteOnRightClick)
     }
 }

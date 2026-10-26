@@ -251,10 +251,10 @@ final class MobileAppModel {
             ? defaults ?? UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")!
             : defaults ?? .standard
         self.settingsDefaults = settingsDefaults
-        terminalExperienceSettings = TerminalExperienceSettingsModel(defaults: settingsDefaults)
         SettingsKey.migrateSyncPreferences(in: settingsDefaults)
         let settingsPersistence = SettingsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try settingsPersistence.prepare()
+        terminalExperienceSettings = TerminalExperienceSettingsModel(defaults: settingsDefaults)
         let metricsPersistence = MetricsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(

@@ -11,13 +11,10 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
     public var darkCustomConfiguration = ""
     public var lightCustomConfiguration = ""
     public var shellIntegration = true
-    public var copyOnSelect = false
-    public var pasteOnRightClick = false
     public init(
         darkTheme: String = "Termind Dark",
         lightTheme: String = "Termind Light", darkCustomEnabled: Bool = false, lightCustomEnabled: Bool = false,
-        darkCustomConfiguration: String = "", lightCustomConfiguration: String = "", shellIntegration: Bool = true,
-        copyOnSelect: Bool = false, pasteOnRightClick: Bool = false
+        darkCustomConfiguration: String = "", lightCustomConfiguration: String = "", shellIntegration: Bool = true
     ) {
         self.darkTheme = darkTheme
         self.lightTheme = lightTheme
@@ -26,14 +23,11 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
         self.darkCustomConfiguration = darkCustomConfiguration
         self.lightCustomConfiguration = lightCustomConfiguration
         self.shellIntegration = shellIntegration
-        self.copyOnSelect = copyOnSelect
-        self.pasteOnRightClick = pasteOnRightClick
     }
 
     private enum CodingKeys: String, CodingKey {
         case darkTheme, lightTheme, darkCustomEnabled, lightCustomEnabled
         case darkCustomConfiguration, lightCustomConfiguration, shellIntegration
-        case copyOnSelect, pasteOnRightClick
     }
 
     public init(from decoder: any Decoder) throws {
@@ -45,9 +39,6 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
         darkCustomConfiguration = try values.decode(String.self, forKey: .darkCustomConfiguration)
         lightCustomConfiguration = try values.decode(String.self, forKey: .lightCustomConfiguration)
         shellIntegration = try values.decode(Bool.self, forKey: .shellIntegration)
-        // Existing local blobs and Settings sync records predate the mouse preferences.
-        copyOnSelect = try values.decodeIfPresent(Bool.self, forKey: .copyOnSelect) ?? false
-        pasteOnRightClick = try values.decodeIfPresent(Bool.self, forKey: .pasteOnRightClick) ?? false
     }
 
 }

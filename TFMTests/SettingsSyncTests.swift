@@ -162,8 +162,9 @@ struct SettingsSyncTests {
         preferences.darkCustomConfiguration = "background = #112233\nfont-family = Menlo"
         preferences.lightCustomConfiguration = "background = #ffffff"
         preferences.shellIntegration = false
-        preferences.copyOnSelect = true
-        preferences.pasteOnRightClick = true
+        let mouse = TerminalExperienceSettingsModel(defaults: sourceDefaults)
+        mouse.set(true, for: \.copyOnSelect)
+        mouse.set(true, for: \.pasteOnRightClick)
         try source.saveTerminal(preferences)
         #expect(sourceDefaults.double(forKey: SettingsKey.terminalFontSize) == 18)
         let records = try source.journal.pendingEnvelopes().filter { $0.key.kind == .terminal }
@@ -172,8 +173,8 @@ struct SettingsSyncTests {
         #expect(
             defaults.string(forKey: SettingsKey.terminalCustomConfigurationDark) == preferences.darkCustomConfiguration)
         #expect(!defaults.bool(forKey: SettingsKey.shellIntegration))
-        #expect(defaults.bool(forKey: SettingsKey.terminalCopyOnSelect))
-        #expect(defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick))
+        #expect(!defaults.bool(forKey: SettingsKey.terminalCopyOnSelect))
+        #expect(!defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick))
         #expect(try !destination.journal.pendingEnvelopes().contains { $0.key.kind == .terminal })
         let model = TerminalSettingsModel(persistence: destination)
         #expect(model.set(true, for: \.shellIntegration))

@@ -652,8 +652,16 @@ private struct TerminalSettings: View {
                 Toggle(AppStrings.TerminalInput.show.swiftUIKey, isOn: $showsTerminalInputArea)
             }
             Section(AppStrings.Settings.mouse.swiftUIKey) {
-                Toggle(AppStrings.Settings.copyOnSelection.swiftUIKey, isOn: binding(\.copyOnSelect))
-                Toggle(isOn: binding(\.pasteOnRightClick)) {
+                Toggle(
+                    AppStrings.Settings.copyOnSelection.swiftUIKey,
+                    isOn: Binding(
+                        get: { app.terminalExperienceSettings.preferences.copyOnSelect },
+                        set: { app.terminalExperienceSettings.set($0, for: \.copyOnSelect) }))
+                Toggle(
+                    isOn: Binding(
+                        get: { app.terminalExperienceSettings.preferences.pasteOnRightClick },
+                        set: { app.terminalExperienceSettings.set($0, for: \.pasteOnRightClick) })
+                ) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                         Text(AppStrings.Settings.pasteOnRightClick)
                         Text(

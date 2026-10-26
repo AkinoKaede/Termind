@@ -313,8 +313,9 @@ struct TerminalMouseInteractionTests {
         let surface = try #require(fixture.state.surface)
         #expect(!fixture.view.copyOnSelect)
         #expect(!fixture.view.pasteOnRightClick)
-        defaults.set(true, forKey: SettingsKey.terminalCopyOnSelect)
-        defaults.set(true, forKey: SettingsKey.terminalPasteOnRightClick)
+        let settings = TerminalExperienceSettingsModel(defaults: defaults)
+        settings.set(true, for: \.copyOnSelect)
+        settings.set(true, for: \.pasteOnRightClick)
         for _ in 0..<100 where !fixture.view.copyOnSelect || !fixture.view.pasteOnRightClick {
             try await Task.sleep(for: .milliseconds(10))
         }
