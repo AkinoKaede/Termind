@@ -2,13 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Termind discovers and wakes local servers, and connects to servers and model providers on your local network.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_ssh._tcp</string>
-		<string>_sftp-ssh._tcp</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -45,6 +38,11 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ssh._tcp</string>
+		<string>_sftp-ssh._tcp</string>
+	</array>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.akinokaede.termind.open-workspace</string>
