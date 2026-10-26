@@ -72,7 +72,7 @@ struct ResourceToolCardTests {
         #expect(!text.contains("FORBIDDEN-PLAINTEXT"))
         #expect(
             approval.detail.items.contains {
-                if case .field(let field) = $0 { return field.label == "Public Key" && field.value == "Provided" }
+                if case .field(let field) = $0 { return field.label == "Public key" && field.value == "Provided" }
                 return false
             })
     }
@@ -94,7 +94,7 @@ struct ResourceToolCardTests {
             ResourceToolCardPresentation.content(
                 for: makeCard(TermindToolName.getPortForwarding, result: fields), locale: english))
         #expect(dynamic.route.count == 1)
-        #expect(dynamic.route.first?.label == "SOCKS Listener")
+        #expect(dynamic.route.first?.label == "SOCKS listener")
         #expect(!AgentToolDetailPreview(dynamic.detail).fullText.contains("2001:db8::2"))
     }
 

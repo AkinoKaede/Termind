@@ -118,6 +118,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
         for card: AgentToolCard,
         locale: Locale
     ) -> String {
+        if let activity = profile(card.descriptor).activity(card, locale) { return activity }
         guard let presentation = card.descriptor.presentation else {
             return humanized(card.descriptor.qualifiedName)
         }
@@ -275,6 +276,10 @@ nonisolated public struct AgentToolPresentation: Sendable {
         let clauses = order.compactMap { key in
             grouped[key].map { batchClause($0, locale: locale) }
         }
+        return Self.joinedBatchClauses(clauses, locale: locale)
+    }
+
+    static func joinedBatchClauses(_ clauses: [String], locale: Locale) -> String {
         if locale.language.languageCode?.identifier == "ja" {
             // These clauses are sentences. The enumeration comma cannot join them.
             return clauses.joined(separator: "。")
@@ -289,7 +294,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
             return clauses.joined(separator: "\u{202F}; ")
         }
         return clauses.enumerated()
-            .map { index, clause in index == 0 ? clause : lowercaseFirst(clause) }
+            .map { index, clause in index == 0 ? clause : Self.lowercaseFirst(clause) }
             .joined(separator: ", ")
     }
 
@@ -444,6 +449,9 @@ nonisolated public struct AgentToolPresentation: Sendable {
     private func operation(
         for card: AgentToolCard, locale: Locale
     ) -> RenderedOperation {
+        if let activity = profile(card.descriptor).activity(card, locale) {
+            return RenderedOperation(text: activity, isArgumentValue: false)
+        }
         guard let presentation = card.descriptor.presentation else {
             return RenderedOperation(
                 text: humanized(card.descriptor.qualifiedName), isArgumentValue: false
@@ -540,6 +548,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
     ) -> String {
         guard let first = cards.first else { return "" }
         let policy = profile(first.descriptor)
+        if let summary = policy.batchSummary(cards, locale) { return summary }
         if let operation = policy.batchOperation(cards, locale) {
             return policy.title(
                 actionSummary(
@@ -794,7 +803,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
                     "Failed to \(actionName(kind, form: .infinitive, locale: locale))"
                 case .interrupted:
                     "Interrupted while "
-                        + lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
+                        + Self.lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
                 }
             guard let target, !target.isEmpty else { return rendered }
             return "\(rendered) on \(target)"
@@ -814,7 +823,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
         case .failed:
             rendered = "Failed to \(actionName(kind, form: .infinitive, locale: locale)) \(activity)"
         case .interrupted:
-            let action = lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
+            let action = Self.lowercaseFirst(actionName(kind, form: .progressive, locale: locale))
             rendered = "Interrupted while \(action) \(activity)"
         }
         guard let target, !target.isEmpty else { return rendered }
@@ -943,7 +952,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
         AppLocalization.resolve(key, locale: locale)
     }
 
-    private func lowercaseFirst(_ text: String) -> String {
+    private static func lowercaseFirst(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.lowercased() + String(text.dropFirst())
     }

@@ -34,6 +34,9 @@ nonisolated public struct AgentToolPresentationProfile: Sendable {
     }
 
     public var summary: @Sendable (AgentToolCard, Locale) -> String? = { _, _ in nil }
+    public var batchSummary: @Sendable ([AgentToolCard], Locale) -> String? = { _, _ in nil }
+    /// Override the noun phrase without bypassing lifecycle phases or the target.
+    public var activity: @Sendable (AgentToolCard, Locale) -> String? = { _, _ in nil }
     public var operation: @Sendable (AgentToolCard, Locale, Bool) -> Operation? = { _, _, _ in nil }
     public var batchOperation: @Sendable ([AgentToolCard], Locale) -> Operation? = { _, _ in nil }
     public var phaseSummary:

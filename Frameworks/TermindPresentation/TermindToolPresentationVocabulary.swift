@@ -19,16 +19,16 @@ nonisolated enum TermindToolPresentationVocabulary {
         _ kind: AgentToolDescriptor.Presentation.ActivityKind, locale: Locale
     ) -> String {
         switch kind {
-        case .identities: localized(AppStrings.Keychain.identities, locale: locale)
-        case .keys: localized(AppStrings.Keychain.keys, locale: locale)
-        case .snippets: localized(AppStrings.Navigation.snippets, locale: locale)
+        case .identities: localized(AppStrings.ResourceTools.identities, locale: locale)
+        case .keys: localized(AppStrings.ResourceTools.keys, locale: locale)
+        case .snippets: localized(AppStrings.ResourceTools.snippets, locale: locale)
         case .snippetPackages: localized(AppStrings.ResourceTools.snippetPackages, locale: locale)
-        case .portForwardings: localized(AppStrings.Navigation.portForwarding, locale: locale)
+        case .portForwardings: localized(AppStrings.ResourceTools.forwardingRules, locale: locale)
         case .command: localized("a command", locale: locale)
         case .commandOutput: localized(AppStrings.SSHExec.commandOutput, locale: locale)
-        case .hosts: localized("hosts", locale: locale)
+        case .hosts: localized(AppStrings.ResourceTools.hosts, locale: locale)
         case .hostGroups: localized(AppStrings.ResourceTools.hostGroups, locale: locale)
-        case .metrics: localized("host metrics", locale: locale)
+        case .metrics: localized(AppStrings.ResourceTools.hostMetrics, locale: locale)
         case .plan: localized("a plan", locale: locale)
         case .question: localized("a question", locale: locale)
         case .remoteCommand: localized("the remote command", locale: locale)

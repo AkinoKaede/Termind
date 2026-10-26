@@ -33,6 +33,22 @@ nonisolated public enum SSHExecToolPresentation {
     static let profiles: [String: AgentToolPresentationProfile] = Dictionary(
         uniqueKeysWithValues: names.map { name in
             var profile = AgentToolPresentationProfile()
+            if name == TermindToolName.runSnippet {
+                profile.activity = { _, locale in
+                    AppLocalization.resolve(AppStrings.ResourceTools.snippet, locale: locale)
+                }
+                profile.batchOperation = { cards, locale in
+                    let activity = AppLocalization.resolve(
+                        cards.count == 1 ? AppStrings.ResourceTools.snippet : AppStrings.ResourceTools.snippets,
+                        locale: locale)
+                    return .init(
+                        action: .run,
+                        activity: cards.count == 1
+                            ? activity
+                            : AppLocalization.resolve(
+                                AppStrings.ResourceTools.repeated(activity, count: cards.count), locale: locale))
+                }
+            }
             profile.phaseSummary = { phase, activity, target, locale in
                 phaseSummary(phase, activity: activity, target: target, locale: locale)
             }
