@@ -49,6 +49,10 @@ public final class CredentialLibraryModel {
     public func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {
         try library.upsert(key, credential: credential)
     }
+    public func saveIdentity(_ identity: Identity, passwordUpdate: IdentityPasswordUpdate) throws {
+        guard !identity.isHostCustom else { throw CocoaError(.coderInvalidValue) }
+        try library.upsert(identity, passwordUpdate: passwordUpdate)
+    }
     @discardableResult
     public func delete(identityID: Identity.ID) -> Bool { library.delete(identityID: identityID) }
     public func delete(keyID: SSHKeyRef.ID) throws { try library.delete(keyID: keyID) }

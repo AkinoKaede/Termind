@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -110,11 +111,12 @@ struct MCPServerSettings: View {
                 Toggle(
                     name,
                     isOn: Binding(
-                        get: { !server.disabledTools.contains(name) },
+                        get: { server.isToolEnabled(name) },
                         set: { server.setToolEnabled($0, name: name) }
                     )
                 )
                 .font(.system(.body, design: .monospaced))
+                .disabled(name == TermindToolName.runSnippet && !server.isToolEnabled(TermindToolName.sshExecRun))
             }
             Text(
                 AppStrings.Settings.mcpToolChangesExplanation

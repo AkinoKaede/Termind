@@ -32,6 +32,13 @@ public final class ForwardingLibraryModel {
 
     public func delete(_ id: UUID) throws { try delete([id]) }
 
+    public func requireStart(_ id: UUID) throws {
+        guard let rule = portForwarding(id), let host = library.host(rule.hostID) else {
+            throw TermindSSHError.library(String(localized: "The forwarding Host is unavailable."))
+        }
+        try library.require(host, for: .portForwarding)
+    }
+
     public func delete(_ ids: Set<UUID>) throws {
         guard library.deletePortForwardings(ids) else {
             throw TermindSSHError.library(library.storageError ?? String(localized: "Unable to Save"))

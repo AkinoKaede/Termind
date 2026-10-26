@@ -1508,6 +1508,9 @@ private enum NativeTranscriptFactory {
     private static func compactToolDetail(
         _ detail: AgentToolDetail, card: AgentToolCard, context: NativeTranscriptContext
     ) -> NSView {
+        if let content = ResourceToolCardPresentation.content(for: card, locale: context.configuration.locale) {
+            return resourceToolDetail(content, card: card, context: context)
+        }
         let preview = AgentToolDetailPreview(detail)
         let id = AssistantTranscriptDisclosureID.toolDetail(card.id)
         let expanded = context.presentation.disclosures.isExpanded(id)
@@ -1541,6 +1544,112 @@ private enum NativeTranscriptFactory {
         }
         stack.identifier = NSUserInterfaceItemIdentifier("AssistantTool.CompactDetails")
         return stack
+    }
+
+    private static func resourceToolDetail(
+        _ content: ResourceToolCardContent, card: AgentToolCard, context: NativeTranscriptContext
+    ) -> NSView {
+        let id = AssistantTranscriptDisclosureID.toolDetail(card.id)
+        let expanded = context.presentation.disclosures.isExpanded(id)
+        let stack = NativeStack.vertical(spacing: Metrics.Space.s)
+        stack.identifier = NSUserInterfaceItemIdentifier("AssistantTool.ResourceCard")
+        if !content.title.isEmpty {
+            let title = NativeLabel(
+                content.title, font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium))
+            title.maximumNumberOfLines = expanded ? 0 : 2
+            stack.addArrangedSubview(title)
+        }
+        for item in content.notices { stack.addArrangedSubview(toolDetail(item, isError: false, context: context)) }
+        for field in content.fields { stack.addArrangedSubview(resourceField(field)) }
+        for fields in [content.route, content.measurements] where !fields.isEmpty {
+            let row = NativeResourceAdaptiveStack()
+            for field in fields {
+                row.addResourceView(
+                    toolDetail(.field(field), isError: false, context: context),
+                    width: [field.label, field.value].map {
+                        $0.size(withAttributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]).width
+                    }.max()! + 24)
+            }
+            stack.addArrangedSubview(row)
+        }
+        if content.isList {
+            let list = NativeStack.vertical()
+            for row in content.visibleRows(expanded: expanded) {
+                let body = NativeStack.vertical(spacing: Metrics.Space.xxs)
+                let title = NativeLabel(
+                    row.title, font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium))
+                title.maximumNumberOfLines = 1
+                let subtitle = NativeLabel(
+                    row.subtitle, font: .systemFont(ofSize: NSFont.smallSystemFontSize), color: .secondaryLabelColor)
+                subtitle.maximumNumberOfLines = 1
+                body.addArrangedSubview(title)
+                body.addArrangedSubview(subtitle)
+                list.addArrangedSubview(body)
+            }
+            if expanded && content.rows.count > 5 {
+                let scroll = NSScrollView()
+                scroll.drawsBackground = false
+                scroll.hasVerticalScroller = true
+                scroll.autohidesScrollers = true
+                scroll.documentView = list
+                list.translatesAutoresizingMaskIntoConstraints = false
+                list.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor).isActive = true
+                list.topAnchor.constraint(equalTo: scroll.contentView.topAnchor).isActive = true
+                scroll.heightAnchor.constraint(equalToConstant: 300).isActive = true
+                stack.addArrangedSubview(scroll)
+            } else {
+                stack.addArrangedSubview(list)
+            }
+        }
+        if expanded {
+            for field in content.details { stack.addArrangedSubview(resourceField(field)) }
+        }
+        for block in content.blocks where expanded || !block.expandedOnly {
+            let body = NativeStack.vertical(spacing: Metrics.Space.xs)
+            body.addArrangedSubview(
+                NativeLabel(
+                    block.title, font: .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
+                    color: .secondaryLabelColor))
+            let font: NSFont =
+                block.monospaced
+                ? .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+                : .systemFont(ofSize: NSFont.smallSystemFontSize)
+            if expanded {
+                body.addArrangedSubview(NativeResourceText(text: block.text, font: font))
+            } else {
+                let label = NativeLabel(block.text, font: font, selectable: true)
+                label.maximumNumberOfLines = block.previewLines
+                label.lineBreakMode = .byTruncatingTail
+                body.addArrangedSubview(label)
+            }
+            stack.addArrangedSubview(body)
+        }
+        if content.canExpand {
+            let more = NativeButton(
+                title: AppLocalization.resolve(
+                    expanded ? AppStrings.Assistant.showLess : AppStrings.Assistant.showMore,
+                    locale: context.configuration.locale))
+            more.alignment = .left
+            more.identifier = NSUserInterfaceItemIdentifier("AssistantTool.More")
+            more.handler = {
+                context.presentation.disclosures.toggleDisclosure(id)
+                context.invalidate(context.entryID, false)
+            }
+            stack.addArrangedSubview(more)
+        }
+        return stack
+    }
+
+    private static func resourceField(_ field: AgentToolDetail.Field) -> NSView {
+        let row = NativeResourceAdaptiveStack(forceVertical: field.value.count > 48 || field.value.contains("\n"))
+        let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        row.addResourceView(
+            NativeLabel(field.label, font: font, color: .secondaryLabelColor),
+            width: field.label.size(withAttributes: [.font: font]).width)
+        row.addResourceView(
+            NativeLabel(field.value, font: font, selectable: true),
+            width: field.value.size(withAttributes: [.font: font]).width)
+        return row
     }
 
     private static func toolDetail(

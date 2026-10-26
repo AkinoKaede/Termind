@@ -156,6 +156,7 @@ final class AppModel {
     let vaultSync: VaultSyncCoordinator?
     let connectionHistorySync: ConnectionHistorySyncCoordinator?
     let deviceSync: DeviceSyncCoordinator?
+    let resourceManagement: AgentResourceManager
     let forwarding: PortForwardingController
     let sftpEdits: SFTPEditService
     let sftpTransfers: SFTPTransferCoordinator
@@ -375,11 +376,22 @@ final class AppModel {
                 service: AppleSpeechTranscriptionService(audioInput: MacOSSpeechAudioInput())
             )
         outboxRunner = dependencies.outboxRunner
+        let hostManagement = AgentHostLibrary(library: hosts)
+        resourceManagement = AgentResourceManager(
+            credentials: credentials, snippets: snippets, forwardings: forwardings,
+            forwardingRuntime: forwarding, metrics: serverMetrics, hosts: hostManagement,
+            defaultKeyStorage: { [defaults = settingsDefaults, access = proAccess] in
+                NewVaultCredentialStorage.keyStorage(defaults: defaults, canUseVaultSync: access.canUse(.vaultSync))
+            },
+            defaultPasswordStorage: { [defaults = settingsDefaults, access = proAccess] in
+                NewVaultCredentialStorage.passwordStorage(
+                    defaults: defaults, canUseVaultSync: access.canUse(.vaultSync))
+            })
         mcpServer = MCPServerController(
             secrets: dependencies.mcpServerSecrets, hosts: agentHosts, metrics: serverMetrics,
             connections: agentConnections,
             authentication: agentAuthentication, background: agentBackgroundCommands,
-            externalAuthentication: externalAuthentication, history: externalToolCalls
+            externalAuthentication: externalAuthentication, history: externalToolCalls, management: resourceManagement
         )
         agentHosts.configureTemporaryTargets(
             targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
@@ -418,6 +430,7 @@ final class AppModel {
                 : String(localized: AppStrings.Connections.telnetIsDisabledForThisHost)
             self.disconnectWorkspaces(for: hostID, protocol: .telnet, message: message)
         }
+        hostManagement.requestDeletion = { [weak self] in self?.requestHostDeletion($0) ?? false }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
             try? repository?.refresh()
         }
@@ -615,7 +628,7 @@ final class AppModel {
                 connections: agentConnections, authentication: agentAuthentication,
                 background: agentBackgroundCommands, panes: panes,
                 chatModels: assistantChatCoordinatorBox.value, chats: assistantChatCoordinatorBox.value,
-                chatSource: source)
+                chatSource: source, management: resourceManagement)
         },
         title: { [weak self] context in
             guard let self else { throw CancellationError() }

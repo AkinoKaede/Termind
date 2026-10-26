@@ -190,7 +190,7 @@ final class ToolAuditModel {
             row.exitCode = object["exit_code"]?.integerValue
             row.bytesRead = object["bytes"]?.integerValue
             if invocation.call.name == TermindToolName.sftpCopy { row.bytesWritten = object["bytes"]?.integerValue }
-            if ["ssh_exec", TermindToolName.sshExecRun].contains(invocation.call.name),
+            if ["ssh_exec", TermindToolName.sshExecRun, TermindToolName.runSnippet].contains(invocation.call.name),
                 let raw = object["handle"]?.stringValue, let handle = UUID(uuidString: raw),
                 let hostID = row.hostID
             {
@@ -252,7 +252,7 @@ final class ToolAuditModel {
                 + "[bytes=\(arguments["byte_count"]?.integerValue ?? 0), "
                 + "overwrite=\(arguments["overwrite"]?.boolValue ?? false)]"
         case TermindToolName.sftpUploadStatus: return "Upload \(arguments["upload_id"]?.stringValue ?? "")"
-        case "ssh_exec", TermindToolName.sshExecRun:
+        case "ssh_exec", TermindToolName.sshExecRun, TermindToolName.runSnippet:
             return oneLine(arguments["command"]?.stringValue ?? "")
         case "ssh_wait", TermindToolName.sshExecOutput, TermindToolName.sshExecCancel,
             TermindToolName.sshExecStdin:
@@ -272,6 +272,10 @@ final class ToolAuditModel {
         case let name where name.hasPrefix("sftp_"):
             return oneLine(arguments["path"]?.stringValue ?? "")
         case TermindToolName.listHosts: return String(localized: AppStrings.MCP.listSavedHosts)
+        case let name where TermindToolName.managementNames.contains(name):
+            return oneLine(
+                arguments["label"]?.stringValue ?? arguments["name"]?.stringValue
+                    ?? arguments["title"]?.stringValue ?? name)
         default: return ""
         }
     }
@@ -284,7 +288,7 @@ final class ToolAuditModel {
     }
 
     private static func risk(for call: AgentToolCall) -> ExternalToolCall.Risk {
-        if ["ssh_exec", TermindToolName.sshExecRun].contains(call.name),
+        if ["ssh_exec", TermindToolName.sshExecRun, TermindToolName.runSnippet].contains(call.name),
             let command = call.arguments.objectValue?["command"]?.stringValue
         {
             switch CommandRiskClassifier.assess(command).risk {
@@ -293,6 +297,8 @@ final class ToolAuditModel {
             case .destructive: return .destructive
             }
         }
+        if TermindToolName.managementReadOnlyNames.contains(call.name) { return .readOnly }
+        if TermindToolName.managementDestructiveNames.contains(call.name) { return .destructive }
         if [
             TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret", "ssh_wait",
             TermindToolName.sshExecOutput, TermindToolName.sshExecList, TermindToolName.sshExecCancel,

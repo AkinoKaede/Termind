@@ -259,12 +259,44 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         launch(server)
     }
 
+    public func requestRefresh(_ id: UUID) -> Bool {
+        guard !stopped, !sleeping, let server = servers.first(where: { $0.id == id }), server.selection.enabled else {
+            return false
+        }
+        retry(server)
+        return true
+    }
+
     public func selectDevices(_ server: ServerMetric, disks: Set<String>?, interfaces: Set<String>?) {
         guard let index = configuredSelections.firstIndex(where: { $0.id == server.id }) else { return }
         var next = configuredSelections
         next[index].disks = disks
         next[index].interfaces = interfaces
         guard next != configuredSelections, persist(next) else { return }
+        applyConfiguration(next)
+    }
+
+    /// Tools edit the whole selection in one transaction, rather than partially applying several setters.
+    public func saveSelection(_ selection: MetricsSelection) throws {
+        guard let host = hosts.host(selection.id), host.sshEnabled else {
+            throw HostProtocolUnavailableError(useCase: .metrics)
+        }
+        var next = configuredSelections
+        var updated = selection
+        updated.tailscaleGroupID = host.tailscale?.groupID
+        if host.isTailscaleManaged { updated.displayName = host.name }
+        if let index = next.firstIndex(where: { $0.id == updated.id }) {
+            next[index] = updated
+        } else {
+            next.append(updated)
+        }
+        guard persist(next) else { throw CocoaError(.fileWriteUnknown) }
+        applyConfiguration(next)
+    }
+
+    public func removeSelection(_ id: UUID) throws {
+        let next = configuredSelections.filter { $0.id != id }
+        guard persist(next) else { throw CocoaError(.fileWriteUnknown) }
         applyConfiguration(next)
     }
 

@@ -18,6 +18,12 @@ nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
     public static let command = Self("command")
     public static let commandOutput = Self("commandOutput")
     public static let hosts = Self("hosts")
+    public static let hostGroups = Self("hostGroups")
+    public static let identities = Self("identities")
+    public static let keys = Self("keys")
+    public static let snippets = Self("snippets")
+    public static let snippetPackages = Self("snippetPackages")
+    public static let portForwardings = Self("portForwardings")
     public static let metrics = Self("metrics")
     public static let remoteCommand = Self("remoteCommand")
     public static let remoteFile = Self("remoteFile")
@@ -29,6 +35,11 @@ nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
 nonisolated extension AgentToolDescriptor.Presentation.ActionKind {
     public static let provide = Self("provide")
     public static let cancel = Self("cancel")
+    public static let generate = Self("generate")
+    public static let add = Self("add")
+    public static let start = Self("start")
+    public static let stop = Self("stop")
+    public static let refresh = Self("refresh")
 }
 
 nonisolated extension AgentToolDescriptor.Presentation.PhaseKind {

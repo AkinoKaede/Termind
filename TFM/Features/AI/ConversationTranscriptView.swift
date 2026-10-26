@@ -376,6 +376,8 @@ private struct AgentApprovalCard: View {
             for: request,
             presenter: AppDependencies.toolPresenter(for: request.descriptor),
             hostName: request.invocation.targetHostID.map(hostName),
+            resourceNames: ResourceToolCardPresentation.supports(request.descriptor)
+                ? app.resourceManagement.presentationNames(in: request.invocation.call.arguments) : [:],
             locale: locale
         )
         return VStack(alignment: .leading, spacing: Metrics.Space.m) {
@@ -434,7 +436,8 @@ private struct AgentApprovalCard: View {
         AssistantApprovalDetails(
             detail: presentation.detail,
             reasons: request.localReasons,
-            showsSafetyDetails: $showsSafetyDetails
+            showsSafetyDetails: $showsSafetyDetails,
+            resourceStyle: ResourceToolCardPresentation.supports(request.descriptor)
         )
     }
 

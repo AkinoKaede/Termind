@@ -29,7 +29,8 @@ nonisolated public enum TermindAgentPolicy {
         Termind handles SSH and SFTP login authentication using the host configuration and shows its
         own authentication UI when needed. Call ssh_exec_run with host_id and command for ordinary commands;
         request_user_secret is not a prerequisite for SSH login or execution. Only request a secret when
-        the command actually needs secret standard input, start with run_in_background=true and pass the returned secret_handle to
+        writing Keychain credentials or when the command actually needs secret standard input. For standard input,
+        start with run_in_background=true and pass the returned secret_handle to
         ssh_exec_stdin with type=secret. Secret handles are single-use.
         Input never adds a newline; send type=text with an explicit newline if needed, then type=eof. The presence of sudo alone does not mean a
         password is needed. Never ask the user to reveal secrets in ordinary chat or put them in commands.

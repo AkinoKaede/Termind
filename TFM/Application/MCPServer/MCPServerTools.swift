@@ -9,7 +9,7 @@ import TermindRemoteInfrastructure
 
 @MainActor
 final class MCPServerTools {
-    static let exportedNames: Set<String> = [
+    static let exportedNames: Set<String> = TermindToolName.managementNames.union([
         TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret",
         TermindToolName.sshExecRun,
         TermindToolName.sshExecOutput, TermindToolName.sshExecStdin,
@@ -18,9 +18,10 @@ final class MCPServerTools {
         TermindToolName.sftpMkdir, TermindToolName.sftpMove, TermindToolName.sftpCopy, TermindToolName.sftpChmod,
         TermindToolName.sftpDelete, TermindToolName.sftpUpload, TermindToolName.sftpUploadStatus,
         TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
-    ]
+    ])
 
     private let channel: AgentEventChannel
+    private let management: AgentResourceManager?
     private let history: ToolAuditModel
     private let externalAuthentication: ExternalAuthCoordinator
     private let approval: AgentApprovalBroker
@@ -38,8 +39,10 @@ final class MCPServerTools {
         background: AgentBackgroundCommands,
         externalAuthentication: ExternalAuthCoordinator,
         history: ToolAuditModel,
-        disabledTools: Set<String> = []
+        disabledTools: Set<String> = [],
+        management: AgentResourceManager? = nil
     ) {
+        self.management = management
         channel = AgentEventChannel(repository: InMemoryAgentRunRepository())
         self.history = history
         self.externalAuthentication = externalAuthentication
@@ -99,13 +102,15 @@ final class MCPServerTools {
         )
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
+            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+            management: management
         )
         self.background = background
-        registryForScope = { [uploads, downloads] scope in
+        registryForScope = { [uploads, downloads, management] scope in
             Self.makeRegistry(
                 hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
                 background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+                management: management,
                 scope: scope)
         }
         history.consume(channel)
@@ -124,13 +129,15 @@ final class MCPServerTools {
         downloads.setEnabled(!disabledTools.contains(TermindToolName.sftpDownload))
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
+            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+            management: management
         )
         self.background = background
-        registryForScope = { [uploads, downloads] scope in
+        registryForScope = { [uploads, downloads, management] scope in
             Self.makeRegistry(
                 hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
                 background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads,
+                management: management,
                 scope: scope)
         }
     }
@@ -216,7 +223,7 @@ final class MCPServerTools {
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands, disabledTools: Set<String>, uploads: MCPUploadCoordinator,
-        downloads: MCPDownloadCoordinator, scope: UUID = UUID()
+        downloads: MCPDownloadCoordinator, management: AgentResourceManager?, scope: UUID = UUID()
     ) -> AgentToolRegistry {
         AgentToolCatalog.registry(
             // `request_user_secret` is the only exported tool the runtime owns;
@@ -231,7 +238,7 @@ final class MCPServerTools {
             additional: TermindAgentTools.tools(
                 in: TermindAgentToolEnvironment(
                     hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-                    background: background, scope: scope
+                    background: background, scope: scope, management: management
                 )) + [
                     AnyAgentTool(MCPUploadTool(uploads: uploads)), AnyAgentTool(MCPUploadStatusTool(uploads: uploads)),
                     AnyAgentTool(MCPDownloadTool(downloads: downloads)),
@@ -239,6 +246,7 @@ final class MCPServerTools {
                 ]
         ).available(in: .acting).filtering {
             exportedNames.contains($0.name) && !disabledTools.contains($0.name)
+                && !($0.name == TermindToolName.runSnippet && disabledTools.contains(TermindToolName.sshExecRun))
         }
     }
 }

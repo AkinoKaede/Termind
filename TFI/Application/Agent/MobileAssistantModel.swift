@@ -63,7 +63,8 @@ final class MobileAssistantModel {
         authorize: @escaping @MainActor () -> Bool,
         speech: SpeechTranscriptionCoordinator,
         attachmentLoader: ContextAttachmentLoading,
-        logger: Logger = ApplicationLogger.disabled("termind.agent")
+        logger: Logger = ApplicationLogger.disabled("termind.agent"),
+        management: AgentResourceManager? = nil
     ) {
         self.authorize = authorize
         self.configuration = configuration
@@ -96,7 +97,7 @@ final class MobileAssistantModel {
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
                     connections: connections, authentication: authentication, background: background,
                     panes: panes, chatModels: coordinatorBox.value,
-                    chats: coordinatorBox.value, chatSource: source)
+                    chats: coordinatorBox.value, chatSource: source, management: management)
             }, title: { try await titles.summarize($0) }, logger: logger)
         chatCoordinator = AssistantChatCoordinator(
             conversations: store, ai: configuration, modelSelections: modelSelections,

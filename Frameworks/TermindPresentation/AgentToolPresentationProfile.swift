@@ -41,6 +41,9 @@ nonisolated public struct AgentToolPresentationProfile: Sendable {
         }
     public var detail: @Sendable (AgentToolCard, AgentToolDetailPresenter?, Locale) -> Detail = { _, _, _ in .useDefault
     }
+    public var approvalItems: @Sendable (AgentToolCard, [String: AgentJSONValue], Locale) -> [AgentToolDetail.Item]? = {
+        _, _, _ in nil
+    }
     public var title: @Sendable (String) -> String = { $0 }
     public var requiresArgumentProjection = false
     public var hidesTruncationNotice = false

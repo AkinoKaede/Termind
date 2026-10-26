@@ -44,6 +44,7 @@ nonisolated public struct AgentToolPresentation: Sendable {
         for request: AgentApprovalRequest,
         presenter: AgentToolDetailPresenter? = nil,
         hostName: String? = nil,
+        resourceNames: [String: AgentJSONValue] = [:],
         locale: Locale = .current
     ) -> AgentApprovalPresentation {
         let card = AgentToolCard(
@@ -56,11 +57,12 @@ nonisolated public struct AgentToolPresentation: Sendable {
             symbol: symbol(for: card),
             title: approvalSummary(for: card, hostName: hostName, locale: locale),
             detail: AgentToolDetail(
-                items: approvalArgumentItems(
-                    request.invocation.call.arguments, presenter: presenter,
-                    hidesHostID: hostName != nil,
-                    requiresProjection: policy.requiresArgumentProjection,
-                    locale: locale),
+                items: policy.approvalItems(card, resourceNames, locale)
+                    ?? approvalArgumentItems(
+                        request.invocation.call.arguments, presenter: presenter,
+                        hidesHostID: hostName != nil,
+                        requiresProjection: policy.requiresArgumentProjection,
+                        locale: locale),
                 layout: presenter?.layout ?? .init()
             )
         )
@@ -832,6 +834,11 @@ nonisolated public struct AgentToolPresentation: Sendable {
             case .compare: .init(infinitive: "compare", progressive: "Comparing", past: "Compared")
             case .copy: .init(infinitive: "copy", progressive: "Copying", past: "Copied")
             case .create: .init(infinitive: "create", progressive: "Creating", past: "Created")
+            case .add: .init(infinitive: "add", progressive: "Adding", past: "Added")
+            case .generate: .init(infinitive: "generate", progressive: "Generating", past: "Generated")
+            case .start: .init(infinitive: "start", progressive: "Starting", past: "Started")
+            case .stop: .init(infinitive: "stop", progressive: "Stopping", past: "Stopped")
+            case .refresh: .init(infinitive: "refresh", progressive: "Refreshing", past: "Refreshed")
             case .delete: .init(infinitive: "delete", progressive: "Deleting", past: "Deleted")
             case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
             case .fetch: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
@@ -880,6 +887,11 @@ nonisolated public struct AgentToolPresentation: Sendable {
         case .compare: localized("compare", locale: locale)
         case .copy: localized("copy", locale: locale)
         case .create: localized("create", locale: locale)
+        case .add: localized(AppStrings.ResourceTools.addAction, locale: locale)
+        case .generate: localized(AppStrings.ResourceTools.generateAction, locale: locale)
+        case .start: localized(AppStrings.ResourceTools.startAction, locale: locale)
+        case .stop: localized(AppStrings.ResourceTools.stopAction, locale: locale)
+        case .refresh: localized(AppStrings.ResourceTools.refreshAction, locale: locale)
         case .delete: localized("delete", locale: locale)
         case .edit: localized("edit", locale: locale)
         case .fetch: localized("fetch", locale: locale)

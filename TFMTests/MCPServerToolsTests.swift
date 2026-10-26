@@ -233,7 +233,8 @@ func makeMCPServerTools(
     disabledTools: Set<String> = [],
     externalAuthentication: ExternalAuthCoordinator = ExternalAuthCoordinator(),
     hosts: [TermindDomain.Host] = [],
-    metrics: any MetricsSnapshotReading = TestMetricsReader()
+    metrics: any MetricsSnapshotReading = TestMetricsReader(),
+    management: AgentResourceManager? = nil
 ) -> MCPServerTools {
     let store = HostLibraryModel(hosts: hosts)
     let resolver = AgentHostResolver(store: store)
@@ -249,7 +250,7 @@ func makeMCPServerTools(
         authentication: AgentSSHAuthenticationRegistry(resolver: resolver),
         background: AgentBackgroundCommands(sweepInterval: nil),
         externalAuthentication: externalAuthentication,
-        history: ToolAuditModel(), disabledTools: disabledTools
+        history: ToolAuditModel(), disabledTools: disabledTools, management: management
     )
 }
 

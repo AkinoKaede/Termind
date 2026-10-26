@@ -11,6 +11,7 @@ struct MobileAssistantInteraction: View {
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     let speech: SpeechTranscriptionCoordinator
+    var resourceNames: (AgentJSONValue) -> [String: AgentJSONValue] = { _ in [:] }
     @State private var interaction = UserInputInteractionModel()
 
     private var speechSession: UserInputSpeechSession { interaction.speech }
@@ -73,6 +74,8 @@ struct MobileAssistantInteraction: View {
             for: approval,
             presenter: MobileAppDependencies.toolPresenter(for: approval.descriptor),
             hostName: approval.invocation.targetHostID.map(hostName),
+            resourceNames: ResourceToolCardPresentation.supports(approval.descriptor)
+                ? resourceNames(approval.invocation.call.arguments) : [:],
             locale: locale
         )
         return VStack(alignment: .leading, spacing: 12) {
@@ -132,7 +135,8 @@ struct MobileAssistantInteraction: View {
         AssistantApprovalDetails(
             detail: presentation.detail,
             reasons: approval.localReasons,
-            showsSafetyDetails: safetyDetailsBinding(for: approval.id)
+            showsSafetyDetails: safetyDetailsBinding(for: approval.id),
+            resourceStyle: ResourceToolCardPresentation.supports(approval.descriptor)
         )
     }
 
@@ -168,7 +172,10 @@ struct MobileAssistantInteraction: View {
             }
         }
         .onChange(of: conversation.id) { _, _ in speechSession.cancel() }
-        .onDisappear { speechSession.cancel() }
+        .onDisappear {
+            speechSession.cancel()
+            conversation.secretInputDraft = ""
+        }
         .alert(
             speechSession.error?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
             isPresented: Binding(
@@ -229,7 +236,7 @@ struct MobileAssistantInteraction: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
-            RevealableSecretField(AppStrings.Keychain.secret, text: $conversation.secretInputDraft)
+            AgentSecretInput(text: $conversation.secretInputDraft)
                 .textContentType(.password)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

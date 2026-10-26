@@ -1874,6 +1874,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// rather than at the end of the flat array — `sortIndex` is per-parent, so
     /// a child of Production has to be numbered against Production's children.
     public func upsert(_ group: HostGroup) {
+        _ = saveGroup(group)
+    }
+
+    @discardableResult
+    public func saveGroup(_ group: HostGroup) -> Bool {
         let invalidated: Set<UUID> =
             groups.contains {
                 $0.id == group.id && $0.tailscale != nil && $0.tailscale?.network != group.tailscale?.network
@@ -1890,12 +1895,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
         guard persistCore() else {
             groups = previous
-            return
+            return false
         }
         for id in invalidated { tailscalePeers[id] = nil }
         rebuildTailscaleHosts()
         if !invalidated.isEmpty { didDeleteTailscaleGroups?(invalidated, removedManaged) }
         didChangeTailscaleGroups?()
+        return true
     }
 
     /// Deletes a group and every group beneath it.
@@ -1903,6 +1909,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Removes a group subtree after callers have durably requested deletion
     /// for any hosts they do not intend to keep.
     public func deleteGroupProjection(_ groupID: HostGroup.ID) {
+        _ = removeGroup(groupID)
+    }
+
+    @discardableResult
+    public func removeGroup(_ groupID: HostGroup.ID) -> Bool {
         let doomed = Set([groupID] + descendantGroups(of: groupID).map(\.id))
         let tailnets = Set(groups.filter { doomed.contains($0.id) && $0.tailscale != nil }.map(\.id))
         let managed = Set(hosts.filter { $0.tailscale.map { doomed.contains($0.groupID) } == true }.map(\.id))
@@ -1916,15 +1927,22 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard persistCore() else {
             hosts = previousHosts
             groups = previousGroups
-            return
+            return false
         }
         for id in doomed { tailscalePeers[id] = nil }
         reconcileExpansionState()
         didDeleteTailscaleGroups?(tailnets, managed)
         didChangeTailscaleGroups?()
+        return true
     }
 
     public func upsert(_ snippet: Snippet) {
+        _ = saveSnippet(snippet)
+    }
+
+    @discardableResult
+    public func saveSnippet(_ snippet: Snippet) -> Bool {
+        let previous = snippets
         if let index = snippets.firstIndex(where: { $0.id == snippet.id }) {
             var updated = snippet
             if snippets[index].packageID == updated.packageID {
@@ -1938,38 +1956,75 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             new.sortIndex = nextSnippetSortIndex(in: snippet.packageID)
             snippets.append(new)
         }
-        persistCore()
+        guard persistCore() else {
+            snippets = previous
+            return false
+        }
+        return true
     }
 
     public func delete(snippetIDs: [Snippet.ID]) {
+        _ = removeSnippets(snippetIDs)
+    }
+
+    @discardableResult
+    public func removeSnippets(_ snippetIDs: [Snippet.ID]) -> Bool {
+        let previous = snippets
+        let previousHosts = hosts
+        let previousGroups = groups
         let doomed = Set(snippetIDs)
         clearStartupSnippetReferences(to: doomed)
         snippets.removeAll { doomed.contains($0.id) }
-        persistCore()
+        guard persistCore() else {
+            snippets = previous
+            hosts = previousHosts
+            groups = previousGroups
+            return false
+        }
+        return true
     }
 
     public func upsert(_ package: SnippetPackage) {
+        _ = saveSnippetPackage(package)
+    }
+
+    @discardableResult
+    public func saveSnippetPackage(_ package: SnippetPackage) -> Bool {
+        let previous = snippetPackages
         if let index = snippetPackages.firstIndex(where: { $0.id == package.id }) {
             let forbidden = Set(
                 [package.id] + descendantSnippetPackages(of: package.id).map(\.id)
             )
-            guard package.parentID.map(forbidden.contains) != true else { return }
+            guard package.parentID.map(forbidden.contains) != true else { return false }
             var updated = package
             if snippetPackages[index].parentID != updated.parentID {
                 updated.sortIndex = nextSnippetPackageSortIndex(under: updated.parentID)
             }
             snippetPackages[index] = updated
         } else {
-            guard package.parentID != package.id else { return }
+            guard package.parentID != package.id else { return false }
             var new = package
             new.sortIndex = nextSnippetPackageSortIndex(under: package.parentID)
             snippetPackages.append(new)
         }
+        guard persistCore() else {
+            snippetPackages = previous
+            return false
+        }
         expandSnippetPackageAncestors(package.id)
-        persistCore()
+        return true
     }
 
     public func delete(snippetPackageID: SnippetPackage.ID, keepSnippets: Bool) {
+        _ = removeSnippetPackage(snippetPackageID, keepSnippets: keepSnippets)
+    }
+
+    @discardableResult
+    public func removeSnippetPackage(_ snippetPackageID: SnippetPackage.ID, keepSnippets: Bool) -> Bool {
+        let previous = snippets
+        let previousPackages = snippetPackages
+        let previousHosts = hosts
+        let previousGroups = groups
         let doomed = Set(
             [snippetPackageID] + descendantSnippetPackages(of: snippetPackageID).map(\.id)
         )
@@ -1986,14 +2041,29 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             snippets.removeAll { doomedSnippetIDs.contains($0.id) }
         }
         snippetPackages.removeAll { doomed.contains($0.id) }
+        guard persistCore() else {
+            snippets = previous
+            snippetPackages = previousPackages
+            hosts = previousHosts
+            groups = previousGroups
+            return false
+        }
         reconcileExpansionState()
-        persistCore()
+        return true
     }
 
     private func clearStartupSnippetReferences(to snippetIDs: Set<Snippet.ID>) {
         guard !snippetIDs.isEmpty else { return }
         for index in hosts.indices where hosts[index].startupSnippetID.map(snippetIDs.contains) == true {
             hosts[index].startupSnippetID = nil
+        }
+        for index in groups.indices {
+            guard var configuration = groups[index].tailscale else { continue }
+            for id in configuration.hostPreferences.keys
+            where configuration.hostPreferences[id]?.startupSnippetID.map(snippetIDs.contains) == true {
+                configuration.hostPreferences[id]?.startupSnippetID = nil
+            }
+            groups[index].tailscale = configuration
         }
     }
 

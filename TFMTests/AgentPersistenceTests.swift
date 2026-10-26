@@ -17,6 +17,69 @@ import Testing
 struct AgentPersistenceTests {
 
     @Test
+    func resourceCardsRetainPublicNamesWithoutRequiringAPresenterAfterReload() async throws {
+        let configuration = localModelConfiguration(
+            "ResourceCardPersistenceTests", schema: HostPersistence.schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: HostPersistence.schema, configurations: [configuration])
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let id = UUID().uuidString
+        let call = AgentToolCall(
+            id: "deleted", name: TermindToolName.deleteKey, arguments: .object(["key_id": .string(id)]))
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed, permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .assistant, toolCalls: [call])])
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
+        let descriptor = AgentToolDescriptor(
+            name: call.name, summary: "Delete key", inputSchema: .object([:]), target: .local, approvalPolicy: .ask)
+        let result = AgentToolResult(
+            callID: call.id,
+            content: AgentJSONValue.object(["id": .string(id), "deleted": .bool(true)]).encodedString,
+            metadata: ["resource_display_names": .object([id: .string("Old deployment key")])])
+        try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
+        try await repository.record(.toolFinished(invocation, result), runID: snapshot.id)
+        let stored = try #require(try await repository.loadConversations().first?.toolCards.first)
+        let card = AgentToolCard(
+            invocation: stored.invocation, descriptor: stored.descriptor,
+            state: .completed, result: stored.result)
+        let content = try #require(ResourceToolCardPresentation.content(for: card, locale: Locale(identifier: "en")))
+        #expect(content.title == "Old deployment key")
+        #expect(AgentToolDetailPreview(content.detail).fullText.contains("Resource deleted"))
+    }
+
+    @Test
+    func credentialWriteHandlesAreRedactedFromReloadedMessagesAndToolCards() async throws {
+        let configuration = localModelConfiguration(
+            "ResourceSecretPersistenceTests", schema: HostPersistence.schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: HostPersistence.schema, configurations: [configuration])
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let handles = [UUID().uuidString, UUID().uuidString, UUID().uuidString]
+        let call = AgentToolCall(
+            id: "credentials", name: TermindToolName.editKey,
+            arguments: .object([
+                "key_id": .string(UUID().uuidString),
+                "password_secret_handle": .string(handles[0]),
+                "private_key_secret_handle": .string(handles[1]),
+                "passphrase_secret_handle": .string(handles[2]),
+            ]))
+        let snapshot = AgentRunSnapshot(
+            conversationID: UUID(), state: .completed, permissionMode: .askForApproval,
+            messages: [AgentTranscriptMessage(role: .assistant, toolCalls: [call])])
+        try await repository.save(snapshot)
+        let invocation = AgentToolInvocation(runID: snapshot.id, call: call)
+        let descriptor = AgentToolDescriptor(
+            name: call.name, summary: "Update credentials", inputSchema: .object([:]), target: .local,
+            approvalPolicy: .ask)
+        try await repository.record(.toolProposed(invocation, descriptor), runID: snapshot.id)
+        try await repository.record(
+            .toolFinished(invocation, .init(callID: call.id, content: "{\"saved\":true}")), runID: snapshot.id)
+        let reloaded = try #require(try await repository.loadConversations().first)
+        let stored = String(describing: reloaded.messages) + String(describing: reloaded.toolCards)
+        for handle in handles { #expect(!stored.contains(handle)) }
+        #expect(!reloaded.toolCards.isEmpty)
+    }
+
+    @Test
     func toolDetailPresenterSurvivesPersistenceAndRestoresTheSameDetail() async throws {
         let configuration = localModelConfiguration(
             "AgentDetailPresenterPersistenceTests", schema: HostPersistence.schema,

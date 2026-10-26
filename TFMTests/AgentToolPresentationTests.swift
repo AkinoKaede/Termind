@@ -190,7 +190,7 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func hostListingDetailPreservesGroupsAndHidesProtocolIdentifiers() throws {
+    func hostListingCardsRetainGroupNamesWithoutDumpingProtocolFields() throws {
         let productionID = "11111111-1111-1111-1111-111111111111"
         let childID = "22222222-2222-2222-2222-222222222222"
         let result = AgentJSONValue.object([
@@ -235,15 +235,10 @@ struct AgentToolPresentationTests {
         let detail = try #require(
             TermindToolPresentationProfiles.renderer.detail(
                 for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
-        guard case .groupedList(let listing) = try #require(detail.items.first) else {
-            Issue.record("Expected a grouped host listing")
-            return
-        }
-        #expect(
-            listing.sections.map { $0.rows.map(\.title) } == [
-                ["API Server"], [], ["Loose Box"], ["Current Terminal"],
-            ])
-        #expect(listing.sections[0].rows[0].badges == ["prod", "nginx"])
+        let listing = try #require(ResourceToolCardPresentation.content(for: card))
+        #expect(listing.rows.map(\.title) == ["API Server", "Loose Box", "Current Terminal"])
+        #expect(listing.rows[0].subtitle.contains("Production"))
+        #expect(listing.rows[0].subtitle.contains("deploy@api.example.com"))
         let rendered = String(describing: detail)
         #expect(!rendered.contains(productionID))
         #expect(!rendered.contains("aaaaaaaa-aaaa"))
@@ -252,7 +247,7 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func hostListingBecomesScrollablePastTwelveHosts() throws {
+    func hostListingShowsFiveRowsBeforeExpandingTheRemainingHosts() throws {
         let hosts = (0..<13).map { index in
             hostJSON(
                 id: UUID().uuidString, name: "Host \(index)",
@@ -271,15 +266,10 @@ struct AgentToolPresentationTests {
             ]).encodedString
         )
 
-        let detail = try #require(
-            TermindToolPresentationProfiles.renderer.detail(
-                for: card, presenter: AppDependencies.toolPresenter(for: card.descriptor)))
-        guard case .groupedList(let listing) = try #require(detail.items.first) else {
-            Issue.record("Expected a grouped host listing")
-            return
-        }
-        #expect(listing.isScrollable)
-        #expect(listing.sections[0].rows.count == 13)
+        let listing = try #require(ResourceToolCardPresentation.content(for: card))
+        #expect(listing.canExpand)
+        #expect(listing.visibleRows(expanded: false).map(\.title) == (0..<5).map { "Host \($0)" })
+        #expect(listing.visibleRows(expanded: true).count == 13)
     }
 
     @Test

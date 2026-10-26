@@ -17,12 +17,13 @@ nonisolated enum ActiveFormKeyDecision: Equatable, Sendable {
 
     static func resolve(
         keyCode: UInt16, hasModifiers: Bool, hasMarkedText: Bool,
-        isRepeat: Bool, isDefaultEnabled: Bool
+        isRepeat: Bool, isDefaultEnabled: Bool, isMultilineEditor: Bool = false
     ) -> Self {
         guard !hasModifiers, keyCode == 36 || keyCode == 76 || keyCode == 53 else {
             return .passThrough
         }
         guard !hasMarkedText else { return .passThrough }
+        if isMultilineEditor, keyCode != 53 { return .passThrough }
         guard !isRepeat else { return .consume }
         if keyCode == 53 { return .cancel }
         return isDefaultEnabled ? .submit : .consume
@@ -79,7 +80,8 @@ private struct ActiveFormKeyboardBridge: NSViewRepresentable {
                 hasModifiers: !commandModifiers.isEmpty,
                 hasMarkedText: (window.firstResponder as? NSTextView)?.hasMarkedText() ?? false,
                 isRepeat: event.isARepeat,
-                isDefaultEnabled: isDefaultEnabled
+                isDefaultEnabled: isDefaultEnabled,
+                isMultilineEditor: (window.firstResponder as? NSTextView).map { !$0.isFieldEditor } ?? false
             )
             switch decision {
             case .passThrough:

@@ -29,6 +29,9 @@ nonisolated public enum TermindToolPresentationProfiles {
         if descriptor.target == .mcp {
             return .init()
         }
+        if ResourceToolCardPresentation.supports(descriptor) {
+            return ResourceToolPresentation.profile
+        }
         // Privacy is independent of presenter availability; it is not semantic recovery.
         if descriptor.target == .local,
             let privacy = AgentPaneToolPresentation.profiles["builtin.\(descriptor.name)"]

@@ -19,9 +19,15 @@ nonisolated enum TermindToolPresentationVocabulary {
         _ kind: AgentToolDescriptor.Presentation.ActivityKind, locale: Locale
     ) -> String {
         switch kind {
+        case .identities: localized(AppStrings.Keychain.identities, locale: locale)
+        case .keys: localized(AppStrings.Keychain.keys, locale: locale)
+        case .snippets: localized(AppStrings.Navigation.snippets, locale: locale)
+        case .snippetPackages: localized(AppStrings.ResourceTools.snippetPackages, locale: locale)
+        case .portForwardings: localized(AppStrings.Navigation.portForwarding, locale: locale)
         case .command: localized("a command", locale: locale)
         case .commandOutput: localized(AppStrings.SSHExec.commandOutput, locale: locale)
         case .hosts: localized("hosts", locale: locale)
+        case .hostGroups: localized(AppStrings.ResourceTools.hostGroups, locale: locale)
         case .metrics: localized("host metrics", locale: locale)
         case .plan: localized("a plan", locale: locale)
         case .question: localized("a question", locale: locale)

@@ -125,7 +125,17 @@ struct MobileAssistantToolRow: View {
                     Text(AppStrings.Assistant.automaticReview(risk: review.risk.displayName, reason: review.reason))
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
-                if let detail = TermindToolPresentationProfiles.renderer.detail(
+                if let content = ResourceToolCardPresentation.content(for: card, locale: locale) {
+                    ResourceToolCardView(
+                        content: content,
+                        expanded: Binding(
+                            get: { presentation.isExpanded(.toolDetail(card.id)) },
+                            set: { value in
+                                if value != presentation.isExpanded(.toolDetail(card.id)) {
+                                    presentation.toggleDisclosure(.toolDetail(card.id))
+                                }
+                            }))
+                } else if let detail = TermindToolPresentationProfiles.renderer.detail(
                     for: card, presenter: presenter, locale: locale
                 ) {
                     AssistantCompactToolDetails(

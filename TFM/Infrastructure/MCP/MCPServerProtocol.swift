@@ -557,25 +557,35 @@ actor MCPServerProtocol {
     }
 
     private static func toolJSON(_ descriptor: AgentToolDescriptor) -> AgentJSONValue {
-        let readOnly = [
-            TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret",
-            TermindToolName.sshExecOutput, TermindToolName.sshExecList,
-            TermindToolName.sftpList, TermindToolName.sftpStat, TermindToolName.sftpRead,
-            TermindToolName.sftpUploadStatus, TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
-        ].contains(descriptor.name)
-        let destructive = [
-            TermindToolName.sshExecRun, TermindToolName.sshExecStdin,
-            TermindToolName.sftpWrite, TermindToolName.sftpMove, TermindToolName.sftpCopy,
-            TermindToolName.sftpChmod, TermindToolName.sftpDelete,
-            TermindToolName.sftpUpload,
-        ]
-        .contains(descriptor.name)
-        let openWorld = ![
-            TermindToolName.listHosts, TermindToolName.sshExecOutput, TermindToolName.sshExecList,
-            TermindToolName.sshExecCancel, "request_user_secret",
-            TermindToolName.sftpUploadStatus, TermindToolName.sftpDownloadStatus,
-        ]
-        .contains(descriptor.name)
+        let readOnly =
+            TermindToolName.managementReadOnlyNames.contains(descriptor.name)
+            || [
+                TermindToolName.listHosts, TermindToolName.getMetrics, "request_user_secret",
+                TermindToolName.sshExecOutput, TermindToolName.sshExecList,
+                TermindToolName.sftpList, TermindToolName.sftpStat, TermindToolName.sftpRead,
+                TermindToolName.sftpUploadStatus, TermindToolName.sftpDownload, TermindToolName.sftpDownloadStatus,
+            ].contains(descriptor.name)
+        let destructive =
+            TermindToolName.managementDestructiveNames.contains(descriptor.name)
+            || [
+                TermindToolName.sshExecRun, TermindToolName.sshExecStdin,
+                TermindToolName.sftpWrite, TermindToolName.sftpMove, TermindToolName.sftpCopy,
+                TermindToolName.sftpChmod, TermindToolName.sftpDelete,
+                TermindToolName.sftpUpload,
+            ]
+            .contains(descriptor.name)
+        let openWorld =
+            (!TermindToolName.managementNames.contains(descriptor.name)
+                || [
+                    TermindToolName.runSnippet, TermindToolName.startPortForwarding, TermindToolName.startMetrics,
+                    TermindToolName.refreshMetrics,
+                ].contains(descriptor.name))
+            && ![
+                TermindToolName.listHosts, TermindToolName.sshExecOutput, TermindToolName.sshExecList,
+                TermindToolName.sshExecCancel, "request_user_secret",
+                TermindToolName.sftpUploadStatus, TermindToolName.sftpDownloadStatus,
+            ]
+            .contains(descriptor.name)
         return .object([
             "name": .string(descriptor.name),
             "description": .string(descriptor.summary),

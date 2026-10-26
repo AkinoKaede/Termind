@@ -30,6 +30,7 @@ final class MobileAppModel {
     let keyExportServices: KeyExportServices
     let snippets: SnippetLibraryModel
     let knownHosts: KnownHostsLibraryModel
+    let resourceManagement: AgentResourceManager
     let forwardingLibrary: ForwardingLibraryModel
     let forwardings: PortForwardingController
     let sftpEdits: SFTPEditService
@@ -360,6 +361,22 @@ final class MobileAppModel {
             allowsMultipleConnections: pro.canUse(.sftpMultiConnection)
         ).sftpPreferences(sftpSettings.preferences)
         let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpPreferences)
+        credentials = CredentialLibraryModel(library: library)
+        snippets = SnippetLibraryModel(library: library)
+        knownHosts = KnownHostsLibraryModel(library: library)
+        forwardingLibrary = ForwardingLibraryModel(library: library)
+        forwardings = dependencies.makeForwardings(library)
+        let hostManagement = AgentHostLibrary(library: library)
+        resourceManagement = AgentResourceManager(
+            credentials: credentials, snippets: snippets, forwardings: forwardingLibrary,
+            forwardingRuntime: forwardings, metrics: metrics.core, hosts: hostManagement,
+            defaultKeyStorage: { [defaults = settingsDefaults, access = pro] in
+                NewVaultCredentialStorage.keyStorage(defaults: defaults, canUseVaultSync: access.canUse(.vaultSync))
+            },
+            defaultPasswordStorage: { [defaults = settingsDefaults, access = pro] in
+                NewVaultCredentialStorage.passwordStorage(
+                    defaults: defaults, canUseVaultSync: access.canUse(.vaultSync))
+            })
         assistant = MobileAssistantModel(
             configuration: ai,
             repository: MemoryIndexedAgentRepository(
@@ -376,13 +393,8 @@ final class MobileAppModel {
             authorize: { true },
             speech: speech,
             attachmentLoader: .live,
-            logger: logging.makeLogger(label: "termind.agent")
+            logger: logging.makeLogger(label: "termind.agent"), management: resourceManagement
         )
-        credentials = CredentialLibraryModel(library: library)
-        snippets = SnippetLibraryModel(library: library)
-        knownHosts = KnownHostsLibraryModel(library: library)
-        forwardingLibrary = ForwardingLibraryModel(library: library)
-        forwardings = dependencies.makeForwardings(library)
         transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { connectionCoordinator.makeSFTPClient() },
             globalLimit: sftpPreferences.globalLimit,
@@ -390,6 +402,7 @@ final class MobileAppModel {
             strategy: sftpPreferences.strategy,
             concurrencyScheduler: sftpConcurrencyScheduler)
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
+        hostManagement.requestDeletion = { [weak self] in self?.deleteHost($0) ?? false }
         library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in
             sftpEdits?.invalidate(hostID: hostID)
             forwardings?.hostConfigurationChanged(hostID)

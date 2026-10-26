@@ -18,7 +18,8 @@ public enum AssistantToolRegistry {
         panes: AgentPaneAccess? = nil,
         chatModels: (any AgentChatModelCatalog)? = nil,
         chats: (any AgentChatCoordinating)? = nil,
-        chatSource: AgentChatSourceContext? = nil
+        chatSource: AgentChatSourceContext? = nil,
+        management: AgentResourceManager? = nil
     ) -> AgentToolRegistry {
         let native =
             ai.webSearch.isEnabled && ai.webSearch.prefersBuiltIn && provider.supportsNativeWebSearch(model: model)
@@ -57,7 +58,7 @@ public enum AssistantToolRegistry {
                         hosts: hosts, metrics: metrics, connections: connections,
                         authentication: authentication,
                         background: background, scope: conversation.id,
-                        workspace: scratch, panes: panes
+                        workspace: scratch, panes: panes, management: management
                     ))
             )
         }

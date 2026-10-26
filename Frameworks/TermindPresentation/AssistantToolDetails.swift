@@ -22,15 +22,19 @@ public struct AssistantToolDetails: View {
     private let items: [AgentToolDetail.Item]
     private let isError: Bool
     private let textColor: Color
+    private let resourceStyle: Bool
     @Environment(\.assistantToolNavigation) private var navigate
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     public init(
         items: [AgentToolDetail.Item],
         isError: Bool = false,
-        textColor: Color = .secondary
+        textColor: Color = .secondary,
+        resourceStyle: Bool = false
     ) {
         self.items = items
         self.isError = isError
         self.textColor = textColor
+        self.resourceStyle = resourceStyle
     }
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -41,32 +45,50 @@ public struct AssistantToolDetails: View {
     @ViewBuilder private func item(_ value: AgentToolDetail.Item) -> some View {
         switch value {
         case .field(let field):
-            VStack(alignment: .leading, spacing: 4) {
-                Text(field.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                if !field.value.isEmpty {
-                    if let navigation = field.navigation, let navigate {
-                        Button(field.value) { navigate(navigation) }
-                            .font(field.isMonospaced ? .caption.monospaced() : .caption)
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.tint)
-                    } else if let url = linkURL(field.url) {
-                        Link(field.value, destination: url).font(.caption)
-                    } else {
-                        Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
-                            .foregroundStyle(isError ? Color.red : .primary)
+            if resourceStyle, field.navigation == nil, field.url == nil, !field.value.isEmpty,
+                field.value.count <= 48, !field.value.contains("\n"), !dynamicTypeSize.isAccessibilitySize
+            {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 16) {
+                        Text(field.label).foregroundStyle(.secondary).fixedSize()
+                        Spacer(minLength: 8)
+                        Text(field.value).fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(field.label).foregroundStyle(.secondary)
+                        Text(field.value)
                     }
                 }
+                .font(.caption)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(field.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                    if !field.value.isEmpty {
+                        if let navigation = field.navigation, let navigate {
+                            Button(field.value) { navigate(navigation) }
+                                .font(field.isMonospaced ? .caption.monospaced() : .caption)
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.tint)
+                        } else if let url = linkURL(field.url) {
+                            Link(field.value, destination: url).font(.caption)
+                        } else {
+                            Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
+                                .foregroundStyle(isError ? Color.red : .primary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .fixedSize(horizontal: false, vertical: true)
         case .message(let text, let tint): Text(text).foregroundStyle(color(tint))
         case .text(let block):
             if let title = block.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }
-            ScrollView(.horizontal) {
+            ScrollView(resourceStyle ? [.horizontal, .vertical] : .horizontal) {
                 Text(block.text)
                     .font(block.style == .monospaced ? .caption.monospaced() : .caption)
                     .foregroundStyle(isError ? Color.red : textColor)
             }
+            .frame(maxHeight: resourceStyle ? 200 : nil)
         case .list(let list):
             if let title = list.title { Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary) }
             if list.rows.isEmpty, let empty = list.emptyMessage { Text(empty).foregroundStyle(.secondary) }
@@ -120,21 +142,24 @@ public struct AssistantToolDetails: View {
 public struct AssistantApprovalDetails: View {
     private let detail: AgentToolDetail
     private let reasons: [String]
+    private let resourceStyle: Bool
     @Binding private var showsSafetyDetails: Bool
 
     public init(
         detail: AgentToolDetail,
         reasons: [String],
-        showsSafetyDetails: Binding<Bool>
+        showsSafetyDetails: Binding<Bool>,
+        resourceStyle: Bool = false
     ) {
         self.detail = detail
         self.reasons = reasons
+        self.resourceStyle = resourceStyle
         _showsSafetyDetails = showsSafetyDetails
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AssistantToolDetails(items: detail.items, textColor: .primary)
+            AssistantToolDetails(items: detail.items, textColor: .primary, resourceStyle: resourceStyle)
             if !reasons.isEmpty {
                 DisclosureGroup(isExpanded: $showsSafetyDetails) {
                     VStack(alignment: .leading, spacing: 4) {

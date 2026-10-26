@@ -58,7 +58,10 @@ struct AgentUserInputCard: View {
             onCancel: cancelRequest
         )
         .onChange(of: conversation.id) { _, _ in speechSession.cancel() }
-        .onDisappear { speechSession.cancel() }
+        .onDisappear {
+            speechSession.cancel()
+            conversation.secretInputDraft = ""
+        }
         .alert(
             speechSession.error?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
             isPresented: Binding(
@@ -145,8 +148,7 @@ struct AgentUserInputCard: View {
 
             switch question.kind {
             case .secret:
-                RevealableSecretField(
-                    AppStrings.Keychain.secret, text: $conversation.secretInputDraft, appearance: .roundedBorder)
+                AgentSecretInput(text: $conversation.secretInputDraft)
             case .choice(let choice):
                 choiceList(choice, in: question.id)
             case .text:

@@ -53,6 +53,7 @@ final class MCPServerController {
         background: AgentBackgroundCommands,
         externalAuthentication: ExternalAuthCoordinator,
         history: ToolAuditModel,
+        management: AgentResourceManager? = nil,
 
         defaults: UserDefaults = .standard
     ) {
@@ -76,7 +77,7 @@ final class MCPServerController {
         tools = MCPServerTools(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
             background: background, externalAuthentication: externalAuthentication,
-            history: history, disabledTools: initialDisabledTools
+            history: history, disabledTools: initialDisabledTools, management: management
         )
         protocolServer = MCPServerProtocol(tools: tools)
         reloadToken()
@@ -99,6 +100,11 @@ final class MCPServerController {
         port = clamped
         defaults.set(clamped, forKey: DesktopSettingsKey.mcpServerPort)
         if isEnabled { Task { [weak self] in await self?.restart() } }
+    }
+
+    func isToolEnabled(_ name: String) -> Bool {
+        !disabledTools.contains(name)
+            && !(name == TermindToolName.runSnippet && disabledTools.contains(TermindToolName.sshExecRun))
     }
 
     func setToolEnabled(_ enabled: Bool, name: String) {

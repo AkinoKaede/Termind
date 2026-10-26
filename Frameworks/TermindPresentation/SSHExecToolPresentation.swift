@@ -8,7 +8,7 @@ import TermindApplication
 /// Localized SSH projections composed into each app's trusted presenter registry.
 nonisolated public enum SSHExecToolPresentation {
     private static let names: Set<String> = [
-        TermindToolName.sshExecRun, TermindToolName.sshExecOutput,
+        TermindToolName.sshExecRun, TermindToolName.runSnippet, TermindToolName.sshExecOutput,
         TermindToolName.sshExecStdin, TermindToolName.sshExecCancel, TermindToolName.sshExecList,
     ]
 
@@ -90,7 +90,7 @@ nonisolated public enum SSHExecToolPresentation {
         if let command = args["command"]?.stringValue {
             items.append(block(S.command, command, isCollapsible: false))
         }
-        if name == TermindToolName.sshExecRun {
+        if name == TermindToolName.sshExecRun || name == TermindToolName.runSnippet {
             items.append(field(args["run_in_background"]?.boolValue == true ? S.background : S.foreground))
         }
         if let handle = object["handle"]?.stringValue ?? args["handle"]?.stringValue {

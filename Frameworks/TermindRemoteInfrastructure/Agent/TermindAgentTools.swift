@@ -25,6 +25,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
     /// directory `scratch_replace` reads.
     public var workspace: AgentScratchWorkspace?
     public var panes: AgentPaneAccess?
+    public var management: AgentResourceManager?
 
     public init(
         hosts: AgentHostResolver,
@@ -34,7 +35,8 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
         scope: UUID = UUID(),
         workspace: AgentScratchWorkspace? = nil,
-        panes: AgentPaneAccess? = nil
+        panes: AgentPaneAccess? = nil,
+        management: AgentResourceManager? = nil
     ) {
         self.metrics = metrics
         self.hosts = hosts
@@ -45,6 +47,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         self.scope = scope
         self.workspace = workspace
         self.panes = panes
+        self.management = management
     }
 }
 
@@ -58,6 +61,9 @@ nonisolated public enum TermindAgentTools {
 
     public static func tools(in environment: TermindAgentToolEnvironment) -> [AnyAgentTool] {
         definitions.compactMap { $0.tool(in: environment) }
+            + HostManagementTools.tools(in: environment)
+            + MetricsManagementTools.tools(in: environment)
+            + (environment.management.map(ResourceManagementTool.tools) ?? [])
     }
 
     /// Every presenter that can draw a card in this app, ours after the
@@ -65,6 +71,7 @@ nonisolated public enum TermindAgentTools {
     /// every historical card the transcript draws.
     public static let presenterRegistry = AgentToolPresenterRegistry(
         AgentToolCatalog.builtInPresenters + definitions.map(\.presenter)
+            + HostManagementTools.presenters + MetricsManagementTools.presenters + [ResourceManagementTool.presenter]
     )
 
     public static func presenter(id: String) -> AgentToolDetailPresenter? {
@@ -77,14 +84,28 @@ nonisolated public enum TermindAgentTools {
     }
 
     private static let definitions: [Registration] = [
-        .init(GetMetricsTool.self) {
-            GetMetricsTool(hosts: $0.hosts, metrics: $0.metrics)
-        },
-        .init(ListHostsTool.self) {
-            ListHostsTool(hosts: $0.hosts)
-        },
         .init(ListPanesTool.self) { $0.panes.map(ListPanesTool.init) },
         .init(ReadPaneTool.self) { $0.panes.map(ReadPaneTool.init) },
+        .init(RunSnippetTool.self, availableIn: [.acting]) { environment in
+            environment.management.map {
+                RunSnippetTool(
+                    manager: $0,
+                    base: SSHExecRunTool(
+                        authentication: environment.authentication, pool: environment.connections,
+                        background: environment.background, scope: environment.scope),
+                    planning: false)
+            }
+        },
+        .init(RunSnippetTool.self, availableIn: [.planning]) { environment in
+            environment.management.map {
+                RunSnippetTool(
+                    manager: $0,
+                    base: SSHExecRunTool(
+                        authentication: environment.authentication, pool: environment.connections,
+                        background: environment.background, scope: environment.scope),
+                    planning: true)
+            }
+        },
         .init(SSHExecRunTool.self, availableIn: [.acting]) {
             SSHExecRunTool(
                 authentication: $0.authentication, pool: $0.connections,

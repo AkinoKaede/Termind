@@ -20,6 +20,30 @@ public final class SnippetLibraryModel {
     public var snippetPackages: [SnippetPackage] { library.snippetPackages }
     public var rootSnippetPackages: [SnippetPackage] { library.rootSnippetPackages }
     public var isSnippetsUngroupedExpanded: Bool { library.isSnippetsUngroupedExpanded }
+    public var storageError: String? { library.storageError }
+
+    public func save(_ snippet: Snippet) throws {
+        guard library.saveSnippet(snippet) else { throw CocoaError(.fileWriteUnknown) }
+    }
+
+    public func requireExecutionHost(_ id: UUID) throws {
+        guard let host = library.host(id) else { throw CocoaError(.fileNoSuchFile) }
+        try library.require(host, for: .snippetExecution)
+    }
+
+    public func save(_ package: SnippetPackage) throws {
+        guard library.saveSnippetPackage(package) else { throw CocoaError(.fileWriteUnknown) }
+    }
+
+    public func removeSnippet(_ id: UUID) throws {
+        guard library.removeSnippets([id]) else { throw CocoaError(.fileWriteUnknown) }
+    }
+
+    public func removePackage(_ id: UUID, keepSnippets: Bool) throws {
+        guard library.removeSnippetPackage(id, keepSnippets: keepSnippets) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+    }
 
     public func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
         library.snippetPackage(id)
