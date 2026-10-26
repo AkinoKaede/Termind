@@ -363,7 +363,6 @@ private struct ConversationTranscriptSurface: View {
 /// transcript that is waiting on a person, and the de-emphasis the rest of this
 /// view got would make it read like history.
 private struct AgentApprovalCard: View {
-    @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     let request: AgentApprovalRequest
     let conversation: ConversationModel
 
@@ -397,16 +396,7 @@ private struct AgentApprovalCard: View {
                     .lineLimit(3)
             }
 
-            ViewThatFits(in: .vertical) {
-                approvalDetails(presentation)
-                    .fixedSize(horizontal: false, vertical: true)
-                ScrollView {
-                    approvalDetails(presentation)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-            }
-            .frame(maxHeight: presentation.detail.layout.boundsApprovalHeight ? approvalHeight : nil)
+            approvalDetails(presentation)
 
             HStack {
                 Button(AppStrings.Common.deny.swiftUIKey, role: .destructive) {

@@ -370,6 +370,25 @@ struct MobileAssistantTranscriptRowRoot<Content: View>: View {
     }
 }
 
+private struct MobileAssistantApprovalHeight: Layout {
+    let maximum: CGFloat?
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        var proposal = proposal
+        // The outer scroller measures unbounded content. Approvals need the real
+        // region height so their details yield space to the decision buttons.
+        if let maximum {
+            proposal.height = min(maximum, proposal.height ?? maximum)
+        }
+        return content.sizeThatFits(proposal)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(bounds.size))
+    }
+}
+
 struct MobileAssistantConversation: View {
     let app: MobileAppModel
     let model: MobileAssistantSceneModel
@@ -429,13 +448,17 @@ struct MobileAssistantConversation: View {
                 .accessibilityHidden(!MobileContentRegions.isUsable(panes.first))
                 .clipped()
                 ScrollView {
-                    bottomSurface
-                        .fixedSize(horizontal: false, vertical: true)
-                        .onGeometryChange(for: CGFloat.self) {
-                            $0.size.height
-                        } action: {
-                            interactionHeight = $0
-                        }
+                    MobileAssistantApprovalHeight(
+                        maximum: hasActiveApproval ? (regions.split?.second ?? regions.continuous).height : nil
+                    ) {
+                        bottomSurface
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: {
+                        interactionHeight = $0
+                    }
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .defaultScrollAnchor(.bottom, for: .alignment)
@@ -502,6 +525,11 @@ struct MobileAssistantConversation: View {
         !conversation.isArchived
             && conversation.pendingApproval == nil
             && conversation.pendingUserInteraction == nil
+    }
+
+    private var hasActiveApproval: Bool {
+        if case .approval? = conversation.pendingInteraction { return true }
+        return false
     }
 
     private var transcriptEntries: [AssistantTranscriptEntry] {

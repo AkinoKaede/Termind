@@ -7,7 +7,6 @@ import TermindApplication
 import TermindPresentation
 
 struct MobileAssistantInteraction: View {
-    @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     let speech: SpeechTranscriptionCoordinator
@@ -95,16 +94,7 @@ struct MobileAssistantInteraction: View {
                     .lineLimit(3)
             }
 
-            ViewThatFits(in: .vertical) {
-                approvalDetails(presentation, approval: approval)
-                    .fixedSize(horizontal: false, vertical: true)
-                ScrollView {
-                    approvalDetails(presentation, approval: approval)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-            }
-            .frame(maxHeight: presentation.detail.layout.boundsApprovalHeight ? approvalHeight : nil)
+            approvalDetails(presentation, approval: approval)
 
             HStack {
                 Button(AppStrings.Common.deny.swiftUIKey, systemImage: "xmark", role: .destructive) {

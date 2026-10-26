@@ -140,6 +140,7 @@ public struct AssistantToolDetails: View {
 /// The shared body of the macOS and mobile approval cards.
 /// Tool arguments remain fully visible; only the safety explanation is folded.
 public struct AssistantApprovalDetails: View {
+    @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     private let detail: AgentToolDetail
     private let reasons: [String]
     private let resourceStyle: Bool
@@ -158,6 +159,19 @@ public struct AssistantApprovalDetails: View {
     }
 
     public var body: some View {
+        AssistantApprovalDetailsLayout(maxHeight: detail.layout.boundsApprovalHeight ? approvalHeight : nil) {
+            ViewThatFits(in: .vertical) {
+                content.fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    content
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            }
+        }
+        .accessibilityIdentifier("AssistantApproval.Details")
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 10) {
             AssistantToolDetails(items: detail.items, textColor: .primary, resourceStyle: resourceStyle)
             if !reasons.isEmpty {
@@ -186,7 +200,29 @@ public struct AssistantApprovalDetails: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier("AssistantApproval.Details")
+    }
+}
+
+private struct AssistantApprovalDetailsLayout: Layout {
+    let maxHeight: CGFloat?
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        // A flexible max-height frame fills its proposal even for a single row.
+        // Measure the natural height first, then leave overflow to ViewThatFits.
+        let natural = content.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
+        return CGSize(
+            width: natural.width,
+            height: max(0, min(natural.height, maxHeight ?? .infinity, proposal.height ?? .infinity))
+        )
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(
+            at: bounds.origin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(bounds.size)
+        )
     }
 }
 

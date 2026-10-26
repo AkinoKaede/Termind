@@ -19,6 +19,49 @@ import UniformTypeIdentifiers
 
 @Suite @MainActor
 struct MobileAssistantTests {
+    @Test(arguments: [CGFloat(320), 700], ["en", "zh-Hans", "zh-Hant"])
+    func singleIdentityApprovalDoesNotFillTheInteractionSurface(width: CGFloat, language: String) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = assistant.conversation
+        let identity = Identity(name: "New Identity", username: "user")
+        #expect(app.library.upsert(identity))
+        let descriptor = AgentToolDescriptor(
+            name: TermindToolName.deleteIdentity, summary: "", inputSchema: .object([:]),
+            target: .local, approvalPolicy: .ask,
+            presentation: .init(
+                symbol: "person.crop.circle", activity: .semanticLabel(.identities),
+                presenterID: "builtin.resource_management", actionKind: .delete))
+        let request = AgentApprovalRequest(
+            invocation: .init(
+                runID: UUID(),
+                call: .init(
+                    id: "delete", name: descriptor.name,
+                    arguments: .object(["identity_id": .string(identity.id.uuidString)]))),
+            descriptor: descriptor, userIntent: "Delete the identity")
+        let answer = Task { await conversation.requestApproval(request) }
+        defer { conversation.respondToApproval(request.id, allow: false) }
+        for _ in 0..<100 where conversation.pendingApproval == nil { await Task.yield() }
+        #expect(conversation.pendingApproval?.id == request.id)
+
+        let host = UIHostingController(
+            rootView: MobileAssistantInteraction(
+                conversation: conversation, hosts: app.library, speech: assistant.speech,
+                resourceNames: { app.resourceManagement.presentationNames(in: $0) }
+            )
+            .environment(\.locale, Locale(identifier: language))
+            .environment(\.dynamicTypeSize, .large))
+        let compact = host.sizeThatFits(in: CGSize(width: width, height: 220))
+        let roomy = host.sizeThatFits(in: CGSize(width: width, height: 1_000))
+        #expect(compact.height > 0)
+        #expect(abs(compact.height - roomy.height) < 1)
+        #expect(roomy.height < 220)
+        #expect(roomy.width <= width)
+
+        conversation.respondToApproval(request.id, allow: false)
+        _ = await answer.value
+    }
+
     @Test func shortUserInputUsesItsNaturalHeightAndLongInputUsesAvailableHeight() throws {
         let availableHeight: CGFloat = 640
         let shortApp = try MobileAppModel(inMemory: true)

@@ -5,6 +5,8 @@ import AgentKit
 import ListViewKit
 import SwiftUI
 import TermindApplication
+import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -12,6 +14,89 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAssistantLayoutTests {
+    @Test(.requiresKeyWindow, arguments: [false, true], ["en", "zh-Hans", "zh-Hant"])
+    func boundedApprovalKeepsDecisionButtonsVisibleInShortViewports(
+        longContent: Bool, language: String
+    ) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let model = makeConversation(in: app)
+        let conversation = model.conversation
+        let identity = Identity(name: "New Identity", username: "user")
+        #expect(app.library.upsert(identity))
+        let descriptor = AgentToolDescriptor(
+            name: longContent ? "ssh_exec_run" : TermindToolName.deleteIdentity,
+            summary: "", inputSchema: .object([:]), target: longContent ? .host : .local, approvalPolicy: .ask,
+            presentation: longContent
+                ? .init(
+                    symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                    presenterID: "builtin.ssh_exec_run", actionKind: .run)
+                : .init(
+                    symbol: "person.crop.circle", activity: .semanticLabel(.identities),
+                    presenterID: "builtin.resource_management", actionKind: .delete))
+        let request = AgentApprovalRequest(
+            invocation: .init(
+                runID: UUID(),
+                call: .init(
+                    id: "approval", name: descriptor.name,
+                    arguments: .object(
+                        longContent
+                            ? ["command": .string(Array(repeating: "echo inspect", count: 80).joined(separator: "\n"))]
+                            : ["identity_id": .string(identity.id.uuidString)]))),
+            descriptor: descriptor, userIntent: "Review the operation")
+        let answer = Task { await conversation.requestApproval(request) }
+        defer { conversation.respondToApproval(request.id, allow: false) }
+        for _ in 0..<100 where conversation.pendingApproval == nil { await Task.yield() }
+        #expect(conversation.pendingApproval?.id == request.id)
+
+        let locale = Locale(identifier: language)
+        try await withConversation(app: app, model: model, language: language) { controller in
+            for category in [UIContentSizeCategory.large, .accessibilityExtraLarge] {
+                controller.traitOverrides.preferredContentSizeCategory = category
+                for size in [
+                    CGSize(width: 390, height: 640), CGSize(width: 844, height: 390),
+                    CGSize(width: 1_024, height: 768),
+                ] {
+                    controller.view.window?.frame = CGRect(origin: .zero, size: size)
+                    controller.view.frame = CGRect(origin: .zero, size: size)
+                    await settle(controller)
+                    if longContent {
+                        let scroller = try #require(
+                            scrollViews(in: controller.view).last {
+                                !($0 is ListScrollView) && $0.isScrollEnabled
+                                    && $0.bounds.height > 0 && $0.contentSize.height > $0.bounds.height + 1
+                            })
+                        scroller.setContentOffset(
+                            CGPoint(x: 0, y: scroller.contentSize.height - scroller.bounds.height), animated: false)
+                        await settle(controller)
+                        #expect(scroller.contentOffset.y > 0)
+                    }
+                    let viewport = controller.view.convert(controller.view.bounds, to: nil)
+                        .insetBy(dx: -1, dy: -1)
+                    for title in [
+                        AppLocalization.resolve(AppStrings.Common.deny, locale: locale),
+                        AppLocalization.resolve(AppStrings.Assistant.allowOnce, locale: locale),
+                    ] {
+                        let button = try #require(accessibilityButton(in: controller.view, label: title))
+                        #expect(button.accessibilityFrame.height > 0)
+                        #expect(viewport.contains(button.accessibilityFrame))
+                    }
+                    if ProcessInfo.processInfo.environment["TERMIND_APPROVAL_SCREENSHOTS"] == "1" {
+                        let data = UIGraphicsImageRenderer(bounds: controller.view.bounds).pngData { _ in
+                            controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
+                        }
+                        Attachment.record(
+                            data,
+                            named:
+                                "approval-ios-\(longContent ? "long" : "short")-\(language)-\(Int(size.width))-\(category.rawValue).png"
+                        )
+                    }
+                }
+            }
+        }
+        conversation.respondToApproval(request.id, allow: false)
+        _ = await answer.value
+    }
+
     @Test(.requiresKeyWindow, arguments: [true, false], [true, false])
     func approvalRoundTripRetainsTranscriptAndScrollPosition(allow: Bool, atBottom: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)
@@ -117,9 +202,12 @@ struct MobileAssistantLayoutTests {
 
     private func withConversation(
         app: MobileAppModel, model: MobileAssistantSceneModel,
+        language: String = "en",
         test: (UIViewController) async throws -> Void
     ) async throws {
-        let controller = UIHostingController(rootView: ConversationHost(app: app, model: model))
+        let controller = UIHostingController(
+            rootView: ConversationHost(app: app, model: model)
+                .environment(\.locale, Locale(identifier: language)))
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previousKeyWindow = scene.keyWindow
         let window = UIWindow(windowScene: scene)
@@ -142,6 +230,31 @@ struct MobileAssistantLayoutTests {
         }
     }
 
+    private func accessibilityButton(in root: NSObject, label: String) -> NSObject? {
+        var seen = Set<ObjectIdentifier>()
+        func visit(_ element: NSObject) -> NSObject? {
+            guard seen.insert(ObjectIdentifier(element)).inserted else { return nil }
+            if element.accessibilityTraits.contains(.button), element.accessibilityLabel == label {
+                return element
+            }
+            var children: [NSObject] = (element as? UIView)?.subviews ?? []
+            let count = element.accessibilityElementCount()
+            if count != NSNotFound, count > 0 {
+                children += (0..<count).compactMap { element.accessibilityElement(at: $0) as? NSObject }
+            }
+            for child in children {
+                if let button = visit(child) { return button }
+            }
+            return nil
+        }
+        return visit(root)
+    }
+
+    private func scrollViews(in root: UIView) -> [UIScrollView] {
+        let current = (root as? UIScrollView).map { [$0] } ?? []
+        return current + root.subviews.flatMap { scrollViews(in: $0) }
+    }
+
     private struct ConversationHost: View {
         let app: MobileAppModel
         let model: MobileAssistantSceneModel
@@ -152,7 +265,6 @@ struct MobileAssistantLayoutTests {
                 app: app, model: model, conversation: model.conversation,
                 composerFocus: $focused, composerFocusRequest: nil, composerFocusRequestHandled: { _ in }
             )
-            .environment(\.locale, Locale(identifier: "en"))
             .environment(\.mobileReservedRegions, [])
         }
     }
