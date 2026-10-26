@@ -1,7 +1,7 @@
 ---
 type: integration guide
-title: Ghostty Terminal Surfaces
-description: Explain the boundary between Ghostty rendering and input and Termind transport, retained native surfaces, Find lifecycle, menu customization, upload policy, and appearance on macOS and iOS.
+title: Ghostty Terminal Integration
+description: Explain Ghostty rendering and input integration with Termind-owned transports, retained native surfaces, Find, menus, and appearance, including the retired app-managed highlighting boundary.
 tags: [ghostty, terminal, menus, macos, ios, integration]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -18,6 +18,12 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
+  - id: openwiki-source-04ef2b2f02773f8833db9a8b
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-6df73854db20ee83905a634c
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-c9279b591baf8f41084268d6
@@ -72,13 +78,13 @@ sources:
     resource: repo://TFMTests/TerminalResizeThrottleTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Ghostty Terminal Surfaces
+# Ghostty Terminal Integration
 
 Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH-backed terminals (SSH, Mosh and Eternal Terminal), Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
 
@@ -261,6 +267,6 @@ The former app-owned keyword-highlighting feature and its shared modifier/rule m
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
 - `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All and absence of Copy without selection, right-click-paste menu suppression with Option bypass, live Upload File availability and stale pane-binding teardown. Selection-present Copy composition and remote mouse capture are supported by the implementation, not exercised by this suite.
 - `MobileTerminalUploadMenuTests.swift` is no longer present in `TFITests`. For mobile menu changes, verify both touch contexts, inherited-item ordering, absent upload handlers and live availability checks; these are regression targets, not claims of current test coverage. Package gesture mechanics require inspecting the pinned upstream source and testing the targeted interaction.
-- `FrameworkTests/RetiredTerminalHighlightingTests.swift` opens V46/V51 stores, checks cleanup after upgrading/reopening, retires pending uploads and verifies malformed legacy records do not disrupt other settings. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
+- [RetiredTerminalHighlightingTests](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates V46/V51 stores with unreadable historical highlighting data, upgrades and reopens them, and checks that the highlighting table and journal entries are gone while `copyOnSelect` survives. Separate cases check retirement of malformed pending uploads and ignoring malformed incoming records, conflict deliveries and deletions without quarantining them or blocking active terminal settings. These are migration and sync compatibility tests, not Ghostty rendering tests. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
 
 For upload destination and drop behavior, continue with [File Drag and Drop](../workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](ui-design-principles.md). For test scope, see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).

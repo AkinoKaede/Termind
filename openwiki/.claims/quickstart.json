@@ -1,18 +1,22 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a67f44781b0c25c1cfe2ffed5f617027c3b1a409e28fb5ab7f04948097e74d40",
+  "pageVersion": "sha256:b20865dc88172ec1868d2c5a9734bc14a19591866f86106c29ece3208facca9c",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
-      "statement": "Termind has native TFM macOS and TFI iPhone/iPad apps over shared frameworks, with separate test, widget and macOS MCP bridge products; native UI/lifecycle remain app-owned. Project settings use Swift 6, complete strict concurrency, warnings as errors, approachable concurrency and MainActor isolation; bridge and benchmark targets use nonisolated isolation.",
+      "statement": "Termind has native TFM macOS and TFI iPhone/iPad apps over shared frameworks, separate test, widget and macOS MCP bridge products; native UI/lifecycle remain app-owned. Project settings use Swift 6, complete strict concurrency, warnings as errors, approachable concurrency and MainActor isolation; bridge and benchmark targets use nonisolated isolation. Deployment minimums are macOS 15 and iOS/iPadOS 18; test CI selects Xcode 27.1 for iOS 27.1 SDK APIs.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "resource": "repo://.github/workflows/test.yml#L60-L75",
+          "version": "repo-lines-v1:sha256:77e8e4b17d48b986c6d96a6e9bbe0a1fd8616a54ffac7b72476dfc59da4485f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMDA1Nzc3NzZjNjY4YjcwMWQ3MTY1YTk3MmNiYWJiNmVkZWQxMjhiYjg1ZmE3MGMzMjYwYjU4ZTBlOWIwNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4NGU0ZGZkZmUwOGM3OGRjMDJmY2YzZGU4YTQ1YjVhMDVjMTZjODZjMTYzMTdkNmU1MGJjY2ZhYjIxYjFmYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4Mjg0MTUzZWUzZGI1YjU1ZjYzOGFkODhiNjQ1N2NiYWE5ZTlhMjY1MTNiNzQyNTYxODM0MWJiMjkxNzg1MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmOGNkMDY2YWQyMzVkM2VkZGM4MDBiMjg3NzhmZmEyMDlkNzc4YzkzNjI2MThmM2ZhMGIzYjFjNTIxMDkzMWEifQ"
+        },
+        {
+          "resource": "repo://README.md#L79-L79",
+          "version": "repo-lines-v1:sha256:781b654decffbd173dab5706ebaef7c9573e2dde4da08c1350da2cecb88b141c:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzgxYjY1NGRlY2ZmYmQxNzNkYWI1NzA2ZWJhZWY3Yzk1NzNlMmRkZTRkYTA4YzEzNTBkYTJjZWNiODhiMTQxYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzgxYjY1NGRlY2ZmYmQxNzNkYWI1NzA2ZWJhZWY3Yzk1NzNlMmRkZTRkYTA4YzEzNTBkYTJjZWNiODhiMTQxYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTM4ZjIxMDc3MzM5ZjhjZjdjZmFmZGRiZDRlNzEyNTU5ZWE4M2I2YTA0OGRjZDU1MDIwY2ExMmI1MTkwNDQ5YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjdmMzIwMTgyZWE5YjEwYTNhNTE0OTlkOWI1YzY3MzkxYTE1Y2ZiNWFmNDIxOTBmMWFjYjU2MjI2NTVhYWIwOSJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -72,23 +76,35 @@
     },
     {
       "id": "claim_49b7e46dc58948ad8a9cfb47be7bd41d",
-      "statement": "Routine Xcode validation uses -onlyUsePackageVersionsFromResolvedFile, TFM/TFI entrypoints, strict Swift formatting and Scripts/check-localization.py. AgentKit, libssh2-spm and libtailscale-spm are remote dependencies, not submodules; native builds require no maintenance-submodule initialization. The libssh2 requirement is upToNextMinorVersion from 2.0.3-termind-4.",
+      "statement": "Routine validation uses resolved-only TFM/TFI commands, strict formatting and localization validation. CI disables window, mobile UI and signed integration gates, runs nonparallel, and uses ad-hoc signing with cleared team/entitlements and sandbox disabled. Real Keychain/CloudKit requiresAppleSigning tests require a provisioned host and TERMIND_SIGNED_INTEGRATION_TESTS=1, including MCPAuthorizationKeychainTests, TailscaleKeychainTests and gated SettingsSyncTests cases. AgentKit, libssh2-spm and libtailscale-spm are remote dependencies, not submodules; libssh2 uses upToNextMinorVersion from 2.0.3-termind-4.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
+          "resource": "repo://.github/workflows/test.yml",
+          "version": "repo-file-v1:sha256:96eb08c42be1834da4fd3e11f0ab04fe4cb6e8abe45e7d5ff63d37a3b5cc6e28"
         },
         {
-          "resource": "repo://AGENTS.md#L103-L103",
-          "version": "repo-lines-v1:sha256:5a8a75d09cc103c7945bdf25c45d1b1ff8ac13fa8ed9609b423b3ef03122e3bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWE4YTc1ZDA5Y2MxMDNjNzk0NWJkZjI1YzQ1ZDFiMWZmOGFjMTNmYThlZDk2MDliNDIzYjNlZjAzMTIyZTNiZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWE4YTc1ZDA5Y2MxMDNjNzk0NWJkZjI1YzQ1ZDFiMWZmOGFjMTNmYThlZDk2MDliNDIzYjNlZjAzMTIyZTNiZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmZmZjc3ZGI0ODUzZDA3ZGJkZDY2YjQyMTk1NTU3NjEwYjZlZDY5ODUwYmM3MTg1ODYxOTgxYjEwODk4OTg4NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWIxYmM1YmM0YTIzN2Y1NzhlNmFmNGE0MTVkMDY0N2Y5OTEwYjAzYjM2NGUxZTI3YzFmMWRiYWE3NDNkMDNiYSJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
         },
         {
-          "resource": "repo://AGENTS.md#L23-L41",
-          "version": "repo-lines-v1:sha256:2510ec80888762719e8e38f4dac71e1c39829e9344ce8a434329c7ac3e4e3440:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5ZWFlOWZiYTllYjM4MmNkNmI2NDM4ZmQ3Yzc4MDljOGJhMmY2MWYzODk3YzQ5YjI4MjM5ODQwOGRiZDVlMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxMjE2ZTM5ZmM5ZjU5YjYyZmQ2MDZjMTk0ZTliYjQ0NjQzOTFlYzE0Nzk4MDVhMzE0YWQ4MWI0NGQ3MDg5OGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1NmIyNWM0ZTQyN2VkZWJiNGQzMTNmMDZlOGM0YzU2MTBjMmI2NWZkZmM0NjcxNTA5M2UwOTEwMWYwMjJjY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljMjY3YjgwMTIxMWE5MTBjODlkZTc5Mjk5MWU2NzVkNzE2MDVjNTdlMThlY2ZiZDJmNzMzMGYxYTc1MmNmNDYifQ"
+          "resource": "repo://TFMTests/AppleSigningTestTrait.swift",
+          "version": "repo-file-v1:sha256:aa1254a7d5d01cbed646669d31f0423fe17b2134bc4ff2ff4b0391d618f2c96f"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2961-L2967",
-          "version": "repo-lines-v1:sha256:894c59eeb1f1affbfdf7fff29848a441329be79618c26ffc7426424ffc7a8585:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBmZWRhZTgzZjU5MjJiMDM5ZmViMjEyNmZiZDIyODI4ODRlNjQ2NGU5YzY2ZTgzYzM5ZGViOWQ3ZTVmZDliZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTE0ZTM0ZGI5YTgxZTI5MDYyY2YyZDA3ZDIyMzRkY2IzZGRiNmJjYTQwNmUxZmIxYTE0MjYzMmY4OWY5NDhiZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjI5MTFkZWM1MGU2ZTc0MDJkMDZiNjM0NzAyOWMzYWI2MzljN2JiMTk5YzAzZDRiZmZlOThkNTZmM2U1M2ZlZiJ9"
+          "resource": "repo://TFMTests/MCPAuthorizationKeychainTests.swift",
+          "version": "repo-file-v1:sha256:72fca1389ab0805d3ddf86863883360e250005850ba92fdc0a214f8490d9b0e2"
+        },
+        {
+          "resource": "repo://TFMTests/SettingsSyncTests.swift",
+          "version": "repo-file-v1:sha256:b436dd3517ed9806ddb06248bc589edeb46b8381132a45a3af271752e0254937"
+        },
+        {
+          "resource": "repo://TFMTests/TailscaleKeychainTests.swift",
+          "version": "repo-file-v1:sha256:54a9151bf682efcb1e73fc5850e58e73b0eb42cd36678f8633b1bd517ef5263c"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -482,7 +498,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -550,7 +566,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

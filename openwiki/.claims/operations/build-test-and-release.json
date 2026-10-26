@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:38ed737ac642ef60240a83f894ade55e44f87572ae628be57ed881c14c2a52b6",
+  "pageVersion": "sha256:bc14527e8eb5b533d5316ebb064f192ee8ea3ae66d3e3d2575614d4f411ad5a1",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -18,21 +18,45 @@
     },
     {
       "id": "claim_65fcfe9af8eb41a3967800a39eb84530",
-      "statement": "The primary native build entrypoints are TFM on macOS and TFI on generic iOS Simulator; TFM builds the app, MCP bridge and AgentKit, while TFI builds the mobile app and shared frameworks.",
+      "statement": "TFM and TFI are native entrypoints. Manual Build validates numeric version and platform, uses Xcode 27.1 and app-store-connect environment without cancelling active uploads, checks scripts/localization, prepares private signing, archives Release with locked packages and uploads through automatic signing with Production CloudKit and managed build numbers; distribution, review and release remain manual. Helper masks service strings, suppresses security output, backs up profiles/configuration and keychain search list, restores on always-run cleanup and retains recovery data on keychain failure. Development setup uses separate credentials and rejects distribution/Production-only profiles; real signed tests require TERMIND_SIGNED_INTEGRATION_TESTS=1 and provisioned hosts. Only SourcePackages is cached with toolchain/lockfile keys. Mock-based Apple script tests cover these boundaries, not real uploads. SDK selection is separate from macOS 15/iOS 18 deployment minimums. Scheduled OpenWiki runs daily at 20:00 UTC with full history and preserves completed-page PR progress before propagating generation failure.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "resource": "repo://.github/workflows/build.yml",
+          "version": "repo-file-v1:sha256:3056c5e3ee2995a1e2ada06ddcff3048b112d4e0b4251dcb2bd4ae8560347fd1"
+        },
+        {
+          "resource": "repo://.github/workflows/openwiki-update.yml",
+          "version": "repo-file-v1:sha256:37adec812ba217265a0a1f44d0ce90c7f2ad682de0b17beef0b4c96c6d11ec79"
+        },
+        {
+          "resource": "repo://Scripts/Tests/test_apple_build.py",
+          "version": "repo-file-v1:sha256:d82922a5b5217f2e768903f7d4ae670b70698a56469d9edb78b9cdbba2d47d4c"
+        },
+        {
+          "resource": "repo://Scripts/ci/apple-build.py",
+          "version": "repo-file-v1:sha256:d265336a537e2d90573edcadea67deb402516d28a8ee5e160faae2493855d162"
+        },
+        {
+          "resource": "repo://Scripts/ci/archive-apple.sh",
+          "version": "repo-file-v1:sha256:b8061957ec0bcc7baca4b1c7fc27b9979fe9e972d52840372648b8e78983291b"
+        },
+        {
+          "resource": "repo://TFMTests/AppleSigningTestTrait.swift",
+          "version": "repo-file-v1:sha256:aa1254a7d5d01cbed646669d31f0423fe17b2134bc4ff2ff4b0391d618f2c96f"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
     {
       "id": "claim_1a9166d8adfa413f8574be310dec6512",
-      "statement": "The default resolved-package TFM test command runs macOS and shared Swift tests; TFI tests require an available iPhone or iPad simulator destination.",
+      "statement": "The default resolved-package TFM test command runs macOS and shared Swift tests; TFI tests require an available simulator. Test CI runs localization and Python discovery before serial Debug TFM/TFI tests using ad-hoc signing with empty team and entitlements, disabled sandbox and disabled window/mobile UI/signed integration gates, without signing secrets. Noncancelled runs retain test results seven days.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "resource": "repo://.github/workflows/test.yml",
+          "version": "repo-file-v1:sha256:96eb08c42be1834da4fd3e11f0ab04fe4cb6e8abe45e7d5ff63d37a3b5cc6e28"
         }
       ]
     },
@@ -280,7 +304,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -342,7 +366,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -462,7 +486,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -552,11 +576,11 @@
     },
     {
       "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
-      "statement": "Committed Debug and Release settings use marketing version 1.17.2 with project build 71, TFM build 108, and TFI and Widgets build 97; explicit target overrides mean project-only changes do not update app build numbers.",
+      "statement": "Committed Debug and Release settings use marketing version 1.17.4 with project build 75, TFM build 112, and TFI and Widgets build 101; explicit target overrides mean project-only changes do not update app build numbers.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         }
       ]
     },
@@ -602,7 +626,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

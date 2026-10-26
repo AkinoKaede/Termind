@@ -88,10 +88,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # System Boundaries and Composition
@@ -116,7 +116,9 @@ flowchart TD
     Shared -.-> Package["Resolved AgentKit package"]
 ```
 
-The diagram shows consumer-to-dependency arrows for explicit shared-framework Xcode target dependencies; the dotted package arrow groups external consumers rather than implying every framework links AgentKit. Both apps depend on all six frameworks; no framework depends on an app. Verify build edges in the [`PBXNativeTarget` and `PBXTargetDependency` sections](../../Termind.xcodeproj/project.pbxproj), and use the [Module and Directory Architecture Map](module-map.md) for the directory-oriented view.
+The diagram shows consumer-to-dependency arrows for explicit shared-framework Xcode target dependencies; the dotted package arrow groups external consumers rather than implying every framework links AgentKit. Both apps depend on all six frameworks; no framework depends on an app. Verify build edges in the [`PBXNativeTarget`](../../Termind.xcodeproj/project.pbxproj#L898-L1337) and [`PBXTargetDependency`](../../Termind.xcodeproj/project.pbxproj#L1678-L1909) sections, and use the [Module and Directory Architecture Map](module-map.md) for the directory-oriented view.
+
+Review compile-time module boundaries separately from signing and deployment configuration. Use target dependencies and package-product declarations to review dependency direction; review `CODE_SIGN_ENTITLEMENTS`, `CODE_SIGN_STYLE`, deployment targets, and supported platforms under `XCBuildConfiguration` for packaging and platform compatibility instead. A signing or deployment edit is not, by itself, a reason to redraw this ownership graph. See [Build, Test, and Release](../operations/build-test-and-release.md) for operational validation.
 
 ## Layer responsibilities
 

@@ -1,6 +1,6 @@
 ---
 type: release-readiness
-title: CloudKit Compatibility and Release Readiness
+title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 sources:
@@ -96,8 +96,8 @@ sources:
     resource: repo://FrameworkTests/TailscaleSyncSafetyTests.swift
   - id: openwiki-source-7a96834e0ec247f0a7610fde
     resource: repo://FrameworkTests/TerminalCustomThemeTests.swift
-  - id: openwiki-source-cd0be716a2446029f345525a
-    resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-ba52e849ccbc71f7247c983a
+    resource: repo://Scripts/ci/apple-build.py
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-25a2df896b93f410289e8512
@@ -114,13 +114,13 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# CloudKit Compatibility and Release Readiness
+# CloudKit Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
@@ -136,6 +136,8 @@ The checked-in target build configurations in the [project source settings](../.
 | TFM | [Release](../../Termind.xcodeproj/project.pbxproj#L2628-L2650) | `TFM/TFM.entitlements` | `Production` | `production` |
 
 These are configuration inputs, not proof of effective signed entitlements or deployed Production schema. For each platform's release artifact, inspect the **signed artifact's** effective CloudKit service, container identifier, container environment and platform-specific push entitlement separately from verifying the actual CloudKit schema deployment with authorized management credentials. Keep signed-capability evidence, schema-deployment evidence and the live multi-device results distinct in release sign-off.
+
+Development provisioning and distribution export are separate operations. In [apple-build.py](../../Scripts/ci/apple-build.py#L138-L147), App Store Connect export explicitly requests `iCloudContainerEnvironment = Production`. Its development preparation instead requires development profiles and rejects a declared CloudKit environment that does not permit `Development`; it does not produce the distribution export options. Neither preparing signing inputs nor requesting Production export deploys a schema or demonstrates runtime delivery. Keep certificate/profile setup and export commands in [Build and Release Operations](build-test-and-release.md); use this page for the evidence required from the resulting artifacts.
 
 The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
 
@@ -350,9 +352,19 @@ A default `VaultEnvelope` takes its writer version from the kind registry. Vault
 
 Older-format writes must not silently lose these fields: formats below V5 reject nonnil Host or group-peer icon overrides; formats below V4 reject nondefault session-persistence preferences. Host V3 is unsupported even though HostGroup V3 exists. Include protocol tombstones as well as live payloads in mixed-version tests.
 
+### Signing-dependent tests versus routine CI
+
+[requiresAppleSigning](../../TFMTests/AppleSigningTestTrait.swift) enables a test only when the **test process** receives `TERMIND_SIGNED_INTEGRATION_TESTS=1`. This is an opt-in condition, not a check that a certificate, provisioning profile, iCloud account or effective capability is valid. Use a provisioned test host with valid Apple signing, not the ad-hoc routine-CI overrides. When launching via `xcodebuild`, arrange test-runner environment forwarding (the workflow uses the `TEST_RUNNER_` prefix), and verify in the result bundle that the intended tests ran rather than skipped.
+
+In [SettingsSyncTests](../../TFMTests/SettingsSyncTests.swift#L587-L651), only `mainSwitchPausesBothCategoriesWithoutClearingSelections` and `independentSwitchesUseDefaultsAndHonorExplicitOptOut` carry this trait. They construct coordinators and assert enabled-state/preference behavior; they do not establish a live multi-device CloudKit round trip. The suite's unmarked migration, codec, local merge and fake-secret tests remain useful without opting into signed integration. Do not skip the entire suite merely because live signing is unavailable, or treat running these two tests as sufficient release validation.
+
+The [routine test workflow](../../.github/workflows/test.yml#L61-L167) explicitly sets `TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS: "0"`. It runs Debug tests with ad-hoc signing, an empty development team and entitlement path, and sandboxing disabled. Its success therefore establishes neither provisioned CloudKit capabilities nor live account access. Record routine test results, opted-in signed test results and actual signed-device delivery as separate evidence; see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test-boundary context.
+
 ### Focused repository checks
 
 These are inspected test contracts, **not a report that the tests were executed or that a release is ready**:
+
+[RetiredTerminalHighlightingTests](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates V46 and V51 disk stores containing unreadable retired highlighting bytes and an active terminal preference (`copyOnSelect = true`). It checks that the highlighting table exists before upgrade, opens through the current factory and prepares Settings, then reopens and checks retained `copyOnSelect`, absent legacy journal/outgoing entries and physical table removal using SQLite. This is observable retained-data and storage-removal coverage through the current migration chain, not a test that stops at V52. A separate in-memory test seeds a malformed pending legacy upload and verifies preparation removes it without replacing active preferences. The fake-transport test sends a malformed legacy fetch, conflict and deletion alongside a valid terminal record: active preferences apply, no legacy outgoing entry remains and no quarantine is created. These checks do not test historical server-type deletion or signed old-client coexistence.
 
 For destructive reset coverage, [CloudSyncPhysicalDeletionTests](../../FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L13-L54) explicitly checks both `.purged` and `.encryptedDataReset` across categories: the observer sees the cleared projection, another account's quarantine bytes survive, and restarting cannot schedule the old record IDs—even if supplied stale save/delete queue entries. Its [asset-cleanup failure check](../../FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L93-L170) reopens a disk store and requires cleanup to finish before sync can resume. Keep these automated assertions separate from a manual reset on signed devices.
 

@@ -1,7 +1,7 @@
 ---
 type: interaction workflow
-title: File Drops, Imports, and Terminal Uploads
-description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
+title: File Drag and Drop
+description: External file and image drop routing across desktop and mobile surfaces, including payload classification, attachment imports, staged uploads, cancellation, and failure handling.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
@@ -50,14 +50,16 @@ sources:
     resource: repo://TFI/UI/Components/MobileFileImportState.swift
   - id: openwiki-source-d4d621c97707c9d77357829d
     resource: repo://TFI/UI/Components/MobileWindowDropTarget.swift
+  - id: openwiki-source-cbe97194a165bb243ddb7eb4
+    resource: repo://TFI/UI/Managed/MobileReorderableCardGrid.swift
+  - id: openwiki-source-b182602ea80ded01d61ef1f2
+    resource: repo://TFITests/MobileAssistantLayoutTests.swift
   - id: openwiki-source-a58d5ef8fa89aff75e31553b
     resource: repo://TFITests/MobileCommandGeneratorAndUploadTests.swift
   - id: openwiki-source-2ccf9b5f9aa44bcc4462adbe
     resource: repo://TFITests/MobileDropTests.swift
   - id: openwiki-source-2e344ef3e7cfe79ec821941e
     resource: repo://TFITests/MobileWorkspacePresentationTests.swift
-  - id: openwiki-source-16db5d5459897d40fe080701
-    resource: repo://TFM/Features/AI/ConversationTranscriptView.swift
   - id: openwiki-source-16bb1a92866262b0d20f24e4
     resource: repo://TFM/Features/Keychain/KeychainPageView.swift
   - id: openwiki-source-a216cc6d87fb99d3311219e3
@@ -88,13 +90,13 @@ sources:
     resource: repo://TFMTests/SoftwareKeyFileImporterTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# File Drops, Imports, and Terminal Uploads
+# File Drag and Drop
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
@@ -170,7 +172,14 @@ File pickers have a separate callback lifetime from drop-provider loading. `Mobi
 
 ### Loading files before UIKit releases them
 
-`MobileDropPayloadLoader` distinguishes `.referenced` attachment loading from `.staged` upload loading. For upload, a file URL wins; otherwise it accepts directory/data file representations. A provider advertising a web URL is excluded. Text representations qualify as files only with a filename or an in-place representation, so dragged text selections keep their terminal-input behavior. When image attachments are requested, an image representation retains image semantics instead of becoming an upload file.
+`MobileDropPayloadLoader` uses the same ordered classifier for acceptance and loading, in both `.referenced` attachment mode and `.staged` upload mode:
+
+1. **Reject any provider advertising `UTType.mobileCardOrder` before inspecting file URLs, images, or generic data.** This own-process reorder type conforms to `.data`; without the early exclusion an internal card could be mistaken for an upload. The exclusion also prevents a provider with additional file/image representations from becoming an attachment. Other providers in a mixed batch remain eligible. Card ordering itself belongs to [Mobile UI and Scene Ownership](../architecture/mobile-ui.md).
+2. When files are requested, a file-URL representation wins, including for an image file. Referenced mode returns the original local URL; staged mode copies it.
+3. Otherwise, when images are requested, select the first registered image type and load its bytes. This precedes generic staged-file classification, preserving image semantics even in staged mode.
+4. Only staged mode with files requested falls back to directory/data file representations. Providers advertising a URL are excluded from this fallback. Text qualifies only with a nonblank suggested filename or an in-place representation, so ordinary text selections and web links keep their terminal-input behavior. Referenced mode does not load arbitrary file representations.
+
+The private-type boundary is defined by [the card payload](../../TFI/UI/Managed/MobileReorderableCardGrid.swift#L11-L24) and enforced by [the loader](../../TFI/UI/Components/MobileDropPayload.swift#L100-L124), not by upload destination checks.
 
 For staged files, copying occurs **inside** `loadFileRepresentation`'s callback, before UIKit can remove its temporary URL. Security-scoped access and `NSFileCoordinator` protect the read. Each item gets its own subdirectory, preserving same-named files independently; suggested names are reduced to a last path component, with a type-derived extension when needed. File URLs are copied through the same staging mechanism.
 
@@ -178,11 +187,22 @@ For staged files, copying occurs **inside** `loadFileRepresentation`'s callback,
 
 `cancelDropLoading()` only cancels and clears the view's provider-loading task. It does not call `cancelPendingUpload()` and does not cancel a transfer already admitted to the coordinator. A new accepted provider batch explicitly cancels pending Workspace preparation before loading; subsequent preparation and queue ownership are described below.
 
-A failed provider does not discard other successfully loaded files: the payload returns files and failures separately. The view can start the readable uploads and report the first provider failure. Assistant loading uses its own referenced file/image path and collects all provider failures into the composer error.
+A failed provider does not discard other successfully loaded files: the payload returns files and failures separately. The view can start the readable uploads and report the first provider failure. Assistant loading uses its own referenced file/image path and collects all provider failures into the composer error. The loader checks cancellation between providers; its continuation-based provider calls are not actively cancelled. Once a cancelled load returns, it clears both files and images and removes any now-empty staging root. A failed staging copy removes that item's directory without discarding successful siblings.
 
 ```mermaid
 flowchart TD
-    Native["Window or terminal file drop"] --> Visible{"Visible active receiver and pointer inside?"}
+    Providers["Providers at an enabled mobile receiver"] --> Classify{"Provider advertises mobileCardOrder?"}
+    Classify -->|Yes| Ignore["Ignore provider before file or image classification"]
+    Classify -->|No| URL{"Files requested and file URL available?"}
+    URL -->|Yes| Mode{"File mode?"}
+    Mode -->|Referenced| Attach["Original URL to conversation importer"]
+    Mode -->|Staged| Eligible["Eligible upload provider"]
+    URL -->|No| Image{"Images requested and image type available?"}
+    Image -->|Yes| Bytes["Image bytes to conversation importer"]
+    Image -->|No| Fallback{"Staged files and eligible non-URL directory or data?"}
+    Fallback -->|No| Ignore
+    Fallback -->|Yes| Eligible
+    Eligible --> Visible{"Visible active Workspace and pointer inside?"}
     Visible -->|No| Decline["Decline upload"]
     Visible -->|Yes| Capture["Cancel prior pending work and capture Workspace, generation, destination"]
     Capture --> Stage["Load providers and copy within callbacks"]
@@ -203,6 +223,8 @@ Evidence: [window delegate and deduplication](../../TFI/UI/Components/MobileWind
 ## Assistant: dropping creates composer attachments
 
 TFM's `ConversationAttachmentDropModifier` accepts file URLs and bitmap data; TFI's `MobileConversationAttachmentDropModifier` registers `.fileURL` and `.image` and resolves providers asynchronously. Both surfaces disable attachment drops for archived conversations and while approval or user-interaction cards block the composer. The compact desktop sidebar targets either its selected conversation or its draft and is enabled only when the Workspace surface is focused.
+
+The mobile modifier keeps `content` mounted in the same modifier structure when enablement changes: it supplies an empty supported-type list when disabled rather than conditionally replacing the conversation view. Its targeting binding gates both reads and writes with `isEnabled`, the overlay requires enabled targeting, and disabling explicitly clears `isTargeted`. `receive` also rechecks enablement and loader acceptance. This preserves transcript identity and scroll state across approval/user-input transitions. This is an intake gate, not cancellation of an already launched attachment-loading task: unlike the Workspace loader, the modifier does not store that task or recheck enablement after loading.
 
 Both adapters call the shared `ConversationModel.importAttachmentFiles` / `importAttachmentImages`. The model creates pending chips, enforces a total of 20 loaded/pending attachments, tracks import tasks, and replaces a pending chip only if its ID still exists. Removing/cancelling that chip prevents a late result from attaching it again. File/image import failures become composer errors; they do not start a transfer or an agent run.
 
@@ -366,6 +388,7 @@ Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTar
 | Shell-reported destination, folder preflight, partial provider failures, queue surviving closure | [MobileCommandGeneratorAndUploadTests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift), including `sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient` and `cancelledUploadDoesNotCreateRemoteDirectories`. `runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents` verifies that an unavailable runtime pane clears the directory and rejects later unscoped directory/prompt events. `runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother` in both this suite and [HostShellIntegrationSessionTests](../../TFMTests/HostShellIntegrationSessionTests.swift) protects retained display cwd without a usable capability ticket. `usernameOnlyTerminalUploadRejectsInteractionWithoutOpeningASheet` protects silent-open failure behavior. |
 | Desktop connection fallback and transfer ownership | [SFTPTransferContextTests](../../TFMTests/SFTPTransferContextTests.swift); cancellation cannot fall back, releasing a UI owner cannot invalidate retained transfers. |
 | Remote manifests, conflicts, streaming without a temporary file | [SFTPFeatureTests](../../TFMTests/SFTPFeatureTests.swift) and [SFTPRemoteConflictResolverTests](../../FrameworkTests/SFTPRemoteConflictResolverTests.swift). |
+| Mobile internal drag exclusion and stable Assistant mounting | [MobileCardInteractionTests](../../TFITests/MobileCardInteractionTests.swift#L79-L90) checks that an actual lifted card provider is rejected by upload classification; [MobileCardReorderingTests](../../TFITests/MobileCardReorderingTests.swift) covers the separate ordering policy. [MobileAssistantLayoutTests](../../TFITests/MobileAssistantLayoutTests.swift#L15-L95) checks transcript object identity, scroll position, and restored bounds through approval and user-input round trips; these are mounting regressions, not end-to-end attachment-drop tests. |
 | Attachment formats and pending-import/send lifetimes | [ContextAttachmentImporterTests](../../TFMTests/ContextAttachmentImporterTests.swift), [AssistantConversationOperationsTests](../../FrameworkTests/AssistantConversationOperationsTests.swift), [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift). |
 | Key classification, name inference and material validation | [SoftwareKeyFileImporterTests](../../TFMTests/SoftwareKeyFileImporterTests.swift) covers filename inference, last-private-key precedence and unrecognized text. [DeferredKeyMaterialTests](../../TFMTests/DeferredKeyMaterialTests.swift#L52-L72) checks that import analysis retains encryption metadata when public material is invalid and rejects a mismatched public algorithm. These are importer/material tests, not end-to-end editor-drop tests. |
 | Upload availability and focus-preserving feedback | [WorkspaceUploadNoticeTests](../../FrameworkTests/WorkspaceUploadNoticeTests.swift), mobile upload tests, and [TerminalUploadNoticeTests](../../TFMTests/TerminalUploadNoticeTests.swift). The last suite requires visible-window opt-in and `TERMIND_SSH_FIXTURE`. |

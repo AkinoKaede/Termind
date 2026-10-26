@@ -1,6 +1,6 @@
 ---
 type: asset-production-operations
-title: Marketing Assets, Screenshots, and Icons
+title: Marketing Assets and App Icons
 description: Ownership and safe updates for localized marketing captures, layered app icons, and runtime host artwork. Covers asset gitlinks, reproducible generation, licensing boundaries, and focused validation.
 tags: [marketing, screenshots, fastlane, frameit, figma, app-store, app-icons, localization, submodules]
 sources:
@@ -8,8 +8,6 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-aec5c30e7c4ab1864f968273
@@ -42,6 +40,8 @@ sources:
     resource: repo://FrameworkTests/HostIconTests.swift
   - id: openwiki-source-eefd85c14b9b6cec85a25f0e
     resource: repo://FrameworkTests/RemoteSystemInfoTests.swift
+  - id: openwiki-source-23775c3de52f3ab95a13cb8b
+    resource: repo://README.md
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-8cf5084412ee85381e0ef517
@@ -70,23 +70,23 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Marketing Assets, Screenshots, and Icons
+# Marketing Assets and App Icons
 
 This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; `AGENTS.md` assigns the public website and marketing/brand assets to the independent `com.akinokaede.termind` submodule. Native builds do not require that checkout.
 
-**Verification boundary:** the website/assets checkout is available, and its [README](../../com.akinokaede.termind/README.md) points to asset and design documentation. Dimensions below remain parent tooling contracts, not a visual audit of external images or design masters. Initialize the optional submodule when absent, then inspect its current inventory and publication instructions. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
+**Verification boundary:** the optional `com.akinokaede.termind/` directory is empty in this checkout, so its README, asset guides, images and website internals were not available for inspection. The main-repository [README](../../README.md#website-and-assets), [AGENTS.md](../../AGENTS.md) and [.gitmodules](../../.gitmodules) establish the ownership and optional checkout boundary. Dimensions below remain parent tooling contracts, not a visual audit of external images or design masters. Initialize the submodule only for website or asset work, then inspect its current inventory and publication instructions. No focus-taking captures, generator downloads or visual artwork approval were performed for this documentation repair.
 
 The former MockUPhone pipeline, feature-first `Marketing/` layout, `LandingPage/` project and Pro Max captures are obsolete. The current pipeline uses **fastlane `run_tests` (scan)** with hosted Swift Testing fixtures, **frameit** plus local Apple templates, locale/device-first asset paths, iPhone 18 Pro and optional Duo displays, and native 14-inch Mac Workspace captures. This is not XCUITest `snapshot` automation.
 
 ## Ownership and publication
 
-Run capture, framing and icon-rendering commands from the application repository root:
+For website or asset work only, initialize the optional checkout from the application repository root. Run capture, framing and icon-rendering commands from that root as well:
 
 ```sh
 git submodule update --init com.akinokaede.termind
@@ -306,7 +306,7 @@ The mask algorithm expects transparency both outside the device and inside its d
 
 ## External composition, website and store delivery
 
-[AGENTS.md](../../AGENTS.md) identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. The available [website README](../../com.akinokaede.termind/README.md) links its asset and design guides. Read those current instructions before composition or publication; do not infer final artwork directories or delivery contracts from the parent runner's capture and frame paths.
+[AGENTS.md](../../AGENTS.md) identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. The main-repository [README](../../README.md#website-and-assets) identifies website and assets as an optional submodule, and [.gitmodules](../../.gitmodules) records its public HTTPS repository URL. Its own README and guides are unavailable in this empty checkout. After initialization, read the external repository's current instructions before composition or publication; do not infer final artwork directories or delivery contracts from the parent runner's capture and frame paths.
 
 Before publishing, initialize and inspect the external repository separately:
 

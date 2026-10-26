@@ -90,20 +90,16 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
     resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
-  - id: openwiki-source-03d75be930175f0fdc3c2cec
-    resource: repo://TFI/Features/Vault/MobileHostCardContent.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
+  - id: openwiki-source-c99ab42abad536ed4396933c
+    resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-69c78ae0f81d65da7d64d801
     resource: repo://TFITests/MobileAppReviewTests.swift
-  - id: openwiki-source-c32ed562101f11a0c3c89663
-    resource: repo://TFITests/MobileCardTests.swift
-  - id: openwiki-source-3c3024b6fd97b1c4edfd5131
-    resource: repo://TFITests/MobileCompactCardTests.swift
   - id: openwiki-source-8d34d9ba6456e86e57933569
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
@@ -128,10 +124,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 ## Commerce ownership and configuration
@@ -285,6 +281,23 @@ Resolve resources at display time, rather than caching translated strings across
 Ordinary product labels illustrate the split: iOS Vault search opens Snippets and Known Hosts, whose pages distinguish an empty collection from empty search results. Known Hosts offers add/edit/copy-fingerprint/delete and an editor title that changes with the entry; the macOS empty state additionally offers import or manual add and deletion warns that trust will need verifying on the next connection, with count-sensitive confirmation. Snippets has new snippet/package/subpackage actions and a keep-or-remove-snippets package deletion choice. Shared `SnippetCardContent` supplies colored icons, valid SSH-target counts, risk chips and relative timestamps to both apps, while each owns the surrounding surface and actions. `SnippetTimestamp` supplies a stable local fallback for legacy baseline dates. Card timestamps use the view locale; hostnames, fingerprints, paths and scripts remain user content. `MobileCardTests` checks add/edit titles, tag bounds and connection timestamps; `MobileCompactCardTests` checks compact-card warnings, snippet risk labels and the Compact setting's translations. These behavioral tests do not establish multilingual visual approval. Inspect actual views as well as catalogs after UI changes.
 
 On mobile, the persisted `mobile.compactCards` preference selects reduced card content for Hosts, Known Hosts and Snippets; it does not change the underlying records or per-card actions. Standard host cards show the supplied login address, at most two tags and a locale-formatted last-connection timestamp (or “Never”); compact host cards use the title, icon and status instead. Standard Known Hosts cards show the algorithm and localized added-at time, while compact cards retain the title/icon. Tests cover the two-tag bound, recording SSH/SFTP opens for host timestamps, and add/edit Known Host titles. Review both density modes rather than assuming shared Snippet content is rendered in compact mode. See [Mobile UI](../architecture/mobile-ui.md).
+
+### Activation, context actions, and ordering
+
+`MobileActionCard` makes the whole card a primary-action button and exposes secondary actions through its context menu; compact mode changes its content/layout, not that interaction contract. Keep activation separate from connection commands and drag ordering:
+
+| Mobile surface | Primary activation | Context actions and ordering |
+| --- | --- | --- |
+| Hosts | A locked Host presents Pro. Otherwise the scene reuses its most recently selected terminal workspace for that Host (falling back to the last matching workspace), or opens the preferred terminal when none exists. | Explicit protocol actions call `open` rather than the reuse path. Edit and other management actions remain distinct. Unfiltered sections support moving ordinary Hosts within/between groups; Tailscale-managed IDs are excluded from reordering, and search uses a non-reorderable grid. |
+| Snippets | Opens snippet detail; it does not immediately run the script. | Run, edit, duplicate and delete are separate actions. Reordering moves snippets within/between packages only with an empty query. Package headers also accept moves. |
+| Known Hosts | Opens the entry editor. | Edit, copy fingerprint and delete remain available; this page uses a plain card grid, not a reorderable grid. |
+| Metrics | Opens detail unless the Host is locked, in which case it presents Pro. | Pause/resume, retry and remove are separate context actions. Reordering delegates to `ServerMetricsModel.move`; storage errors are surfaced through the app. |
+
+These are presentation entrypoints, not new entitlement rules. In particular, keeping a locked Host's management menu accessible does not bypass the operation-admission checks described above. See the [mobile card wrapper](../../TFI/UI/Managed/MobileCards.swift), [Vault callers](../../TFI/Features/Vault/MobileVaultView.swift), and [scene activation policy](../../TFI/App/MobileSceneModel.swift).
+
+On macOS, Known Hosts instead participates in managed selection: double-click opens the editor, single-item context actions expose edit/copy, and deletion acts on the action selection. Switching entries while a Known Host editor is open routes through `VaultWorkEditingSession.requestTransition`, preserving the editing-session transition boundary rather than treating every click as an unconditional editor replacement. The empty import/manual-add and localized deletion-warning behavior remains unchanged. See [KnownHostsPageView](../../TFM/Features/KnownHosts/KnownHostsPageView.swift).
+
+`MobileCardTests` also checks width-dependent regular/compact column counts, scaled compact width, one-column accessibility layouts, and that dismissing an old row's confirmation does not clear a newer row's selection. It checks nested Host group folding, empty-group retention and search availability while collapsed. These are focused policy/state tests, not rendered gesture, paywall or multilingual screenshot approval; primary actions, context menus, reordering and locked-card activation should be reviewed separately in both density modes.
 
 ## Other product surfaces and public disclosures
 

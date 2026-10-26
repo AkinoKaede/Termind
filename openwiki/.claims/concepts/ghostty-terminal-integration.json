@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cc0cef2696f0998fcd25ba0f47d04e7a19b15cb1d80b225124b2ef12ef0d7d19",
+  "pageVersion": "sha256:c861272bff1561f0c1f73480d752bb23557bb6faad60cb4eb9231eed78a9a051",
   "claims": [
     {
       "id": "claim_5374ba64d60a4b61b1474770c4d3b1a1",
@@ -236,11 +236,23 @@
     },
     {
       "id": "claim_36957f15f376450c88750822689746fb",
-      "statement": "Theme previews use isolated noninteractive in-memory surfaces with sample ANSI output and no-op I/O, not remote shells; preview updates do not apply settings, and the mobile editor saves its draft through a separate action. This is implementation-backed rather than coverage from the removed MobileTerminalThemeTests suite. RetiredTerminalHighlightingTests separately covers historical highlighting migration cleanup without disrupting other preferences.",
+      "statement": "Theme previews use isolated noninteractive in-memory surfaces with sample ANSI output and no-op I/O, not remote shells; preview updates do not apply settings, and the mobile editor saves its draft through a separate action. This is implementation-backed rather than coverage from the removed MobileTerminalThemeTests suite. RetiredTerminalHighlightingTests separately upgrades and reopens V46/V51 stores containing unreadable historical highlighting data, checking removal of the highlighting table and journal entries while copyOnSelect survives; it also checks retirement of malformed pending uploads and ignoring malformed incoming records, conflict deliveries and deletions without quarantine or blocking active terminal settings. These tests cover app-owned migration and sync compatibility, not Ghostty rendering capabilities.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L17-L59",
-          "version": "repo-lines-v1:sha256:d4c49050475db6a21a703b42301825ece16b972c15f5bcb2e94aafc4c7987664:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5MzA1Mjc3ZTZiM2ZiNWQxMzVlZDA2YTEwYzlmYmZjM2E4MjI1NzYwMmIwMjgwZmE4M2ZmMTBjNzFmZGE5MWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNzEwZjBiMzE5NmFhNjdjNjVjOTFjMDZlYmNmZGM5Zjg1MThmN2U2ZDI5YjY4NTNjNTY2OTAwMDA3YjQ5OWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYjkyZDlmMzY1NDg1M2IyZDA4YzdkNTA4N2FmNmYzMWU2ZDdjZDQzMzgxYzAwYTYyMWJlYWRkZjgyMWNiZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZGIwNjcyMGU3ZTBlNjJmYzk5YzYzNTUwYWYzNTQyMzQ3YTFmY2MzZjg1NmNhNDRjYTFkMzU1ZTIzOGEyZTAifQ"
+          "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift#L17-L148",
+          "version": "repo-lines-v1:sha256:e878c4ab48e73ff3bb709d70badbb31cd2fbc4fada948ee4f0315f00574d15c1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3OTMwNTI3N2U2YjNmYjVkMTM1ZWQwNmExMGM5ZmJmYzNhODIyNTc2MDJiMDI4MGZhODNmZjEwYzcxZmRhOTFjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwY2I5MmQ5ZjM2NTQ4NTNiMmQwOGM3ZDUwODdhZjZmMzFlNmQ3Y2Q0MzM4MWMwMGE2MjFiZWFkZGY4MjFjYmQ2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L219-L263",
+          "version": "repo-lines-v1:sha256:fef0d6e09f54685e14204b6b9ee3c8cdb1525e8cef43464c961d38cc544d4f1b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MWExNTBlNWQ3ZmNhZWFhMDU4MjViNDhjYzZlMGU2MTY2ZjMyZjFjY2M0ZWJkY2JjODZkYTA1ZmZjZTllYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyYWM1ZGUwYmMxNzMwZjE0ZDAzYmNmMjE5ZTE1MjNiNWZiYWYyMTQzZDhjNmIzY2EwYzFkOThhNWMxOWIwZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwODYzZjhhMDBmZjZjZmZjMTc3NDBlMDc4YjE4MTg5Zjc0OWZlNjNjMTAxMWJjODM2NmY1NzQ5N2JjMjk3MzkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L895-L900",
+          "version": "repo-lines-v1:sha256:c5b5237e60bde36228deb4581892c2519c0972a0c0e49c0a53120ff8a4a5143b:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzE5MDRlZmNhYTk2Njc0YzQwNjI1ZmNiOGQ3M2VlZDI1ZTE3Nzk0ODE4NzBiMmVkZmYyZWY5NjZkMjQ0ZGM0OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGI2MzRkOTliNDJiNzUwOGVhNDQ4MjIyMjA1N2ZmMzNkZTg4ZjE0OWJmMWMxYjdmYWRjNjdkYWFlMDUxZDNjMyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift#L75-L93",
+          "version": "repo-lines-v1:sha256:393245d6c2416ff24b1f59bb39781aca31228a4ae92a38babe5eb23c638b4ec3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNWE5Yzk2Y2U2NzI3ZWZhZGVmY2YwNmRkMzkwZjhmMTBiM2RjMjIyMGNlZWZjNzVkZDkyY2Y0NjdiYWQyY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkYTI5NWZjYzI1YjU5NjYyYjNjNzUyZmU2YjRhZGVkNmI0OTE0NTExYTVjYzMwMGFmYWYxNzc3YjBiZjEwM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllMWVkMDcxMDZmNjcxYjJhZWUzZTZiZDgyNzUxNmU5NTgzNjBlYmFiNTgyMWJkOGViNDBiNjg3MmQ0MTcwNjgifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift#L9-L115",
@@ -504,7 +516,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

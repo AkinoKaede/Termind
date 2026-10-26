@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:55930923702eb764f8ab05527281816ca417f2499b3c782767806e710679a034",
+  "pageVersion": "sha256:3e780e1cc6bd0d385058b17309929beb9e18aa79c21a41e040b6f14da31bc379",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -504,15 +504,23 @@
     },
     {
       "id": "claim_659fcbb470b942f780ac6c0e6e675398",
-      "statement": "The website repository README links separate assets and design guides; parent capture and frame paths do not establish final artwork delivery contracts.",
+      "statement": "The main repository identifies website and marketing/brand assets as an optional independent submodule; its README and asset/design guides are unavailable in the current empty checkout. Parent capture and frame paths establish tooling destinations, not final artwork delivery contracts, which require inspecting the initialized external repository.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:fd291f44a8af8e9409e8c3b87a0262cd7152fbca5b075cc751bd16b859cd3253"
+          "resource": "repo://.gitmodules#L1-L3",
+          "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb",
-          "version": "repo-file-v1:sha256:0dbe921bcde6dd3399423a0c52c6e02feb0f61149cb3bc39c5ca0e392daaadaf"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzI1MGE3ODNiYTRmYzRkOTViNmQ3MDgwMjA5NDYyZWQ4NTRlMTJhZjAwZDhkMjI1Mjk1ZDc1NzY2ZmZhODZhNyJ9"
+        },
+        {
+          "resource": "repo://README.md#L95-L98",
+          "version": "repo-lines-v1:sha256:7e743b7660060c745f99de4354ec8b28f65132af8c9369493a9b6fe770248275:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjRlODgzYzAxZTg5NWY4MTUyYjRmMjNjYmVjMGJlZmIxYmMwODFhNzE2ZjRlMzYyOWY0NTgzOTdhMDE1OTExNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGI4NTYwYzBmMTI2ZDExNzVkNTBjNTMzNWIzNTUyYjcyMjIzNmQzOTRiZDlmZjgyYWIwODc2YTBlZjE2N2IyMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTFkMmNhMmEwYmZlZjhhODU1Y2U4MDFkN2ExOTA2Njc0N2ZmOTFhMjhkZDc2ZjM2NTBiZmMxNzBkYTM1M2M4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2RiZjUzODI3NTQ0NDIwNTI4ZmE5YTIyYWY2MTNjNWZkN2NmODljZmNkMjIwZjAzOGQ3NWI4ZTk4NTgxZmQxMyJ9"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L11-L44",
+          "version": "repo-lines-v1:sha256:e288a269d054a7a0e48e532bf5070c513e81804d5876cd2acbcc2e8b05b36f30:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5MDI0ZTgwNTdhYzg4ZGViNThlZjQxZWE1MGEyZjVjYTVjODdmNTI4MzY0YjIzOTEzZTEzZGM2MGFlOTQ0MGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkODZjYjRmZDNjNzRhYWU3M2U3NDg2YmM3ZTE5ZmU3ZmNhYmIzZWVkOTJkYzE0OTM1MDE0OGFhN2UwNGQ0YmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyODI2NTk2NjdmNzBjYTA3YjI2NTUyM2U5NzhmOGZlZDg0YjM0MmFkNzYxMWU0YmUxNjdlY2M5MWQ0ZjE3OWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1YTU4Zjk2OTkzZDRlMzQ1MmI3OTYxNmRjMTEyYzIwODAxZjk4M2E0MjdhMmI5YzBhMjVkZTU3YzlkMTQ4NGMifQ"
         }
       ]
     },
@@ -660,7 +668,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

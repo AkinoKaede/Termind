@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0e2bf96da74bd8f7a66ac1bea633966d638418f458ea881b84522d51fb54e0fc",
+  "pageVersion": "sha256:615bd46bbb4ffa4455bcc5da49576798d9c992b39ba6fd2dacc0983b4ff4a1f0",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -96,11 +96,31 @@
     },
     {
       "id": "claim_cc630e7ab5c3431095f27b3a7bf6e683",
-      "statement": "ManagedCardPage supplies typed sections, stable item IDs, externally owned selection, capabilities and business views to a reusable renderer; drop geometry yields stable-ID mutation intent while resource-specific actions and presentation remain with the page. Selection updates intersect section item IDs, single-selection mode uses section order, and selected-card actions receive ordered selected items. CardPage uses native blank-canvas hit testing and reference-held geometry; blank clicks clear selection before feature primary actions. Reordering filters section capabilities and policy and excludes moving IDs before sibling resolution; collapsed sections append. Hosts disables reordering during query/tag filtering; Known Hosts supplies no reorder capability. Deletion presentation delegates mutation and pruning to features; Hosts owns group delete versus keep-host choices. Hosts also owns inline review top content and captures eligibility on entry using AppReviewInvitationVisit, rather than a global RootView presenter. Shared device-local AppReviewController requires seven days, a host, enabled operation and no response; filtering or losing hosts hides without consumption, responses hide across windows, and rejected URL opens do not consume the invitation. Managed top content remains available with empty/no-results states and is excluded from blank-canvas and reorder targeting.",
+      "statement": "ManagedCardPage supplies typed sections, stable item IDs, externally owned selection, capabilities and business views to a reusable renderer; drop geometry yields stable-ID mutation intent while resource-specific actions and presentation remain with the page. Selection updates intersect section item IDs, single-selection mode uses section order, and selected-card actions receive ordered selected items. CardPage uses native blank-canvas hit testing and reference-held geometry; blank clicks clear selection before feature primary actions. Reordering filters section capabilities and policy and excludes moving IDs before sibling resolution; collapsed sections append. Hosts disables reordering during query/tag filtering; Known Hosts supplies no reorder capability. Deletion presentation delegates mutation and pruning to features; Hosts owns group delete versus keep-host choices. Hosts also owns inline review top content and captures eligibility on entry using AppReviewInvitationVisit, rather than a global RootView presenter. Shared device-local AppReviewController requires seven days, a host, enabled operation and no response; filtering or losing hosts hides without consumption, responses hide across windows, and rejected URL opens do not consume the invitation. Managed top content remains available with empty/no-results states and is excluded from blank-canvas and reorder targeting. Features supply real business cards rather than separate ghosts; the renderer reuses the card in an explicit full-source-size preview with forwarded environment to avoid default glass snapshot badge problems. CardPage uses non-lazy sections to avoid stale collapse offsets, with adaptive top-aligned lazy CardGrid columns; Metrics configures a 310-point minimum and unlimited maximum. Drag sessions capture nonempty per-item source sizes, falling back to initiating-card size or minimum card dimensions, independently of later reflow. Each moving ID gets a transparent insertion placeholder preserving captured height while destination grid controls width. Preview and placeholders disable hit testing and accessibility. The preview environment makes CardTile replace live glass with a standalone rounded windowSurface fill and selected tint, retaining clipping and border while disabling Return focus and page geometry registration. Normal cards retain interactive glass. ManagedCardDragPresentationTests verifies mixed-height and fallback transparent slots after reflow and full-size preview header/footer retention, opaque interior and transparent corners in light and dark appearances using offscreen rendering.",
       "evidence": [
         {
-          "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift#L408-L454",
-          "version": "repo-lines-v1:sha256:8ff68717af9cfecdd242eb4fd10134903bf69db5d11f41b2552ed86dcd8d82e7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNjVlYjI0MWQ5NGViZDFjMDliMGQxMmExNmQ0MDI5ODQ0YjE3MmE5ZWZmOGMxNTMwYjBmNjA2ZjNhY2NjN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkNzhmZDVlODcxYWE5ZWQ3OGNiZDU4ZDVkZTJhNDMzYjg0NzcyMWE3OTk0MmU4NDliY2JiNDZjYTFjY2Y1ZmUifQ"
+          "resource": "repo://TFM/Features/Hosts/HostsPageView.swift",
+          "version": "repo-file-v1:sha256:06edbb119facf9d5e4afa0b98a4a087936b02a97c50e4a0ef01356d0cf53f5ad"
+        },
+        {
+          "resource": "repo://TFM/Features/Metrics/MetricsManagedCardPage.swift",
+          "version": "repo-file-v1:sha256:305634049df63fa067b56b3a6cd0b08b4dc90f1305818b97e27ec479f9787d20"
+        },
+        {
+          "resource": "repo://TFM/UI/Managed/CardGrid.swift",
+          "version": "repo-file-v1:sha256:69cef8ef0d331ee73e972f19c7e45305e5e83ad2c297d22efc84e07926035391"
+        },
+        {
+          "resource": "repo://TFM/UI/Managed/ManagedCardDragPreview.swift",
+          "version": "repo-file-v1:sha256:a5971a25a1853d20012ed900a5e6fa8cea55213888ef0967c37c8e8dea4b9b22"
+        },
+        {
+          "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift",
+          "version": "repo-file-v1:sha256:d7a29cf10af3871ec896d9687505b65ef352f08c994e64f59ab28e0d641bcab2"
+        },
+        {
+          "resource": "repo://TFMTests/ManagedCardDragPresentationTests.swift",
+          "version": "repo-file-v1:sha256:580e32ddffa285e2bfecdad803c4dfbb41b71458537d04fff1d1f10082eceeca"
         }
       ]
     },
@@ -1042,7 +1062,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

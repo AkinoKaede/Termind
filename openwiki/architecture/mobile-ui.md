@@ -64,6 +64,8 @@ sources:
     resource: repo://TFI/Features/Assistant/MobileAssistantView.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
     resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
+  - id: openwiki-source-7d5572889c2e7cafc2ed8e66
+    resource: repo://TFI/Features/Keychain/MobileCredentialsView.swift
   - id: openwiki-source-ad662f2a7016a994d8522bf2
     resource: repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift
   - id: openwiki-source-a053f8c3524e81f98b0b0938
@@ -74,6 +76,8 @@ sources:
     resource: repo://TFI/Features/SFTP/MobileSFTPBrowser.swift
   - id: openwiki-source-ce7d4a756cab9f8f7915dc0a
     resource: repo://TFI/Features/SFTP/MobileSFTPPreviewState.swift
+  - id: openwiki-source-db402cad9d68dd8e66bdd7ee
+    resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
   - id: openwiki-source-a88ccceb978a169c1cce67ac
     resource: repo://TFI/Features/Terminal/MobileTerminalInitialFocus.swift
   - id: openwiki-source-03d75be930175f0fdc3c2cec
@@ -110,16 +114,28 @@ sources:
     resource: repo://TFI/UI/Components/MobileOperationConfirmationPresenter.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-34e2c3a252e8dc423cf4fcda
+    resource: repo://TFI/UI/Managed/MobileCardDragInteraction.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
+  - id: openwiki-source-cbe97194a165bb243ddb7eb4
+    resource: repo://TFI/UI/Managed/MobileReorderableCardGrid.swift
   - id: openwiki-source-5147eea728b12cb304c33011
     resource: repo://TFITests/KeyWindowTestTrait.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-b182602ea80ded01d61ef1f2
+    resource: repo://TFITests/MobileAssistantLayoutTests.swift
+  - id: openwiki-source-7b4fb63b477bd12a15ae65d6
+    resource: repo://TFITests/MobileAssistantTranscriptTests.swift
   - id: openwiki-source-151d28832bae0f609eb2d76c
     resource: repo://TFITests/MobileBatchStartupTests.swift
+  - id: openwiki-source-e4c56567ef45709852bd236f
+    resource: repo://TFITests/MobileCardInteractionTests.swift
+  - id: openwiki-source-eecfc99966f8c35d1b34acb8
+    resource: repo://TFITests/MobileCardReorderSessionTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
@@ -160,10 +176,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # Mobile Scenes and Workspace UI
@@ -346,9 +362,9 @@ appearing beside saved-but-dormant Workspaces. TFI exposes no Serial workspace o
 
 `MobileVaultView` is the Vault landing page, not the owner of every Vault operation. It composes Keychain, Port Forwarding, Snippets, Known Hosts and History as links in its own feature stack. Searching replaces the normal Host/group presentation with matching Host cards and deep links to matching items or page titles; linked subpages receive the query when the match was an item. Metrics search is a cross-tab selection, not an empty Vault detail. Vault's Host sections use the library's group projection: nested groups have path titles, empty groups remain visible, collapse is persisted as device-local library presentation state (not a synchronized Vault group edit), and search still finds Hosts inside collapsed groups. New Host and New Group are in the add menu; per-group menus create Hosts/subgroups and edit or delete a group. Group deletion offers keeping Hosts (ungrouping them) or deleting the tree's Hosts through the app's Host deletion path.
 
-`MobileCardPage` is a grouped-background scrolling page; `MobileCardGrid` measures its actual width and computes flexible columns with 12-point gaps, forcing a single column at accessibility text sizes. Standard columns use a 320-point minimum; compact cards use a scaled minimum of at least 76 points and at most four columns. Vault and Known Hosts read the device preference `mobile.compactCards`. Standard `MobileCard` and `MobileActionCard` surfaces have a 106-point minimum height; compact action cards use `MobileCompactCardLayout` instead, not that standard minimum. On iOS 26 the surface uses a concentric shape and glass only when transparency/contrast settings permit; older or higher-contrast/reduced-transparency presentation uses a solid grouped surface. The action card makes the *whole card* the primary button, leaving secondary actions in a context menu. Standard Host content displays at most two tags and reserves the chip's line height even with no tags, keeping the footer aligned; compact Host content uses the compact icon/title/status presentation instead.
+`MobileCardPage` is a grouped-background scrolling page; `MobileCardGrid` measures its actual width and computes flexible columns with 12-point gaps, forcing a single column at accessibility text sizes. Standard columns use a 320-point minimum; compact cards use a scaled minimum of at least 76 points with no fixed column cap (428 points fits five unscaled compact columns). Vault and Known Hosts read the device preference `mobile.compactCards`. Standard `MobileCard` and `MobileActionCard` surfaces have a 106-point minimum height; compact action cards use `MobileCompactCardLayout` instead, not that standard minimum. On iOS 26 the surface uses a concentric shape and glass only when transparency/contrast settings permit; older or higher-contrast/reduced-transparency presentation uses a solid grouped surface. The action card makes the *whole card* the primary button, leaving secondary actions in a context menu. Standard Host content displays at most two tags and reserves the chip's line height even with no tags, keeping the footer aligned; compact Host content uses the compact icon/title/status presentation instead.
 
-A Vault Host card opens/reuses a terminal workspace through `scene.activateHost`; its connection indicator follows the exact saved/live item that activation would select, regardless of terminal transport, not SFTP or another window's connection. A selected dormant item has no connection indicator. Its context menu offers enabled SSH/Mosh/Eternal Terminal/Telnet/SFTP explicit connections separately from Edit, Duplicate and Delete. Eligible Hosts also offer Tailscale peer details; managed Hosts disable Duplicate and Delete, with matching application guards. The card's relative timestamp comes from app connection history. `MobileAppModel.duplicateHost` gives the copy a new ID/name and strips references to Host-custom SSH, Telnet and proxy identities (and clears affected proxy usernames) rather than sharing Host-specific secrets; ordinary non-custom identity references remain on the copy. The edit sheet binds `scene.editingHost` so a New Host command can select Vault and present the same editor; Vault keeps only temporary delete/group confirmation state. Known Hosts is a *separate* Vault-linked card page: its primary card tap edits a known SSH host key, context actions copy the fingerprint or request deletion, and its add/edit sheet saves through `app.knownHosts`, not through the Host connection editor.
+A Vault Host card opens/reuses a terminal workspace through `scene.activateHost`; its connection indicator follows the exact saved/live item that activation would select, regardless of terminal transport, not SFTP or another window's connection. A selected dormant item has no connection indicator. Its context menu offers enabled SSH/Mosh/Eternal Terminal/Telnet/SFTP explicit connections separately from Edit, Duplicate and Delete. Eligible Hosts also offer Tailscale peer details; configured Wake-on-LAN Hosts offer Wake through `app.requestWake`, with a local notice and an editor callback. Managed Hosts disable Duplicate and Delete, with matching application guards. The card's relative timestamp comes from app connection history. `MobileAppModel.duplicateHost` gives the copy a new ID/name and strips references to Host-custom SSH, Telnet and proxy identities (and clears affected proxy usernames) rather than sharing Host-specific secrets; ordinary non-custom identity references remain on the copy. The edit sheet binds `scene.editingHost` so a New Host command can select Vault and present the same editor; Vault keeps only temporary delete/group confirmation state. Known Hosts is a *separate* Vault-linked card page: its primary card tap edits a known SSH host key, context actions copy the fingerprint or request deletion, and its add/edit sheet saves through `app.knownHosts`, not through the Host connection editor.
 
 ```mermaid
 flowchart TD
@@ -362,6 +378,46 @@ flowchart TD
 ```
 
 Vault gestures route to scene selection or application services; a Vault page does not own a running connection or the history repository.
+
+### Managed-card reorder transaction
+
+[`MobileCardPage`](../../TFI/UI/Managed/MobileCards.swift) owns one `@State MobileCardReorderSession` and injects it into all its sections. It reinstalls native interactions on appearance and uninstalls them on disappearance. This is page-local presentation state, not scene navigation or a library transaction held open during a gesture.
+
+The internal `MobileCardDragItem` contains an item UUID, a session scope UUID and a collection (`hosts`, `snippets`, `keys`, `identities` or `metrics`). Its `com.akinokaede.termind.mobile-card-order` representation is **own-process only**; UIKit also restricts the drag to the application. Drop acceptance requires one local item matching the active payload's ID, scope and collection, and placement checks the destination's allowed IDs. Another page's payload is not accepted merely because it belongs to the same app. These payloads are not external file attachments or terminal uploads: the interaction tests explicitly verify that the upload loader rejects them. See [File Drag and Drop](../workflows/file-drag-and-drop.md) for external providers and [Desktop Drag and Drop](../workflows/desktop-drag-and-drop.md) for the separate desktop workflow.
+
+Noninteractive `MobileCardDragRegion` markers register with [`MobileCardDragInteraction`](../../TFI/UI/Managed/MobileCardDragInteraction.swift), which attaches `UIDragInteraction` and `UIDropInteraction` to the ancestor scroll view. The original card keeps its button and native context menu. Lift snapshots the full measured card with a solid preview surface and baked translucency; `sessionWillBegin` records its size and original section/before-neighbor placement. Hover projects IDs rather than mutating feature data: the source disappears from its old section and a same-height, accessibility-hidden placeholder occupies exactly one destination slot. Header targets append to a group, including empty or collapsed groups; a collapsed destination reserves a slot without persisting expansion.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Draft: Native drag begins
+    Draft --> Draft: Hover stages section and before neighbor
+    Draft --> Idle: Cancel or session end or page disappears
+    Draft --> Idle: Observed item IDs change externally
+    Draft --> Idle: Drop at original placement without write
+    Draft --> Commit: Valid changed placement drops
+    Commit --> Callback: Clear draft before invoking saved move
+    Callback --> Idle: Feature persists or reports storage error
+```
+
+Reordering stages only presentation changes until a valid drop commits the destination callback.
+
+[`MobileCardReorderSession`](../../TFI/UI/Managed/MobileReorderableCardGrid.swift) stores the last staged destination closure. `commit()` clears the draft **before** invoking it, so repeated drop/commit callbacks cannot write twice. Returning to the original section and before-neighbor is a no-op even after hovering elsewhere. Cancellation restores both groups simply by discarding the projection; there are no hover writes to undo. Grid and header `onChange` handlers cancel when their underlying ordered IDs change, rather than overwriting a newer external delete/reorder. Native cancellation previews, drag end and uninstall clear the draft; leaving a drop region only stops edge scrolling, so it is not itself a commit. An idle `clear()` returns without assigning observable properties: registration can uninstall during layout, and must not create a layout-invalidation loop when no drag exists.
+
+Hover placement uses projected order and an eight-point movement threshold to avoid repeatedly moving neighbors beneath a stationary finger. A display link scrolls near the scroll-view edges and re-evaluates placement. Haptics mark lift, changed placement and drop; spring movement is disabled for Reduce Motion.
+
+The destination closure is the persistence boundary:
+
+| Feature caller | Commit and error route |
+| --- | --- |
+| Vault | `app.library.move(hostIDs:into:before:)`, then copies `storageError` to `app.error`. Managed Tailscale Hosts are excluded from allowed sources; search uses a non-reorderable grid. |
+| Snippets | `app.snippets.move` into the destination group, with library storage errors forwarded to `app.error`. |
+| Keychain | Separate key and identity collections call `app.credentials.move`; filtering disables reordering and errors go to `app.error`. |
+| Metrics | `app.metrics.core.move` changes selection order and forwards core storage errors to `app.error`. |
+
+The root presents `app.error` in its Operation Failed alert. The session does not promise persistence rollback: Host movement updates group/order values then calls `persistCore`, whereas Metrics persists the proposed configuration before applying it. Neither should be replaced with writes in hover callbacks. To add a reorderable surface, supply the collection's allowed IDs, section identity and feature-owned move/error callback under a card page; do not reuse file-drop handling.
+
+Focused verification: `MobileCardReorderSessionTests` checks zero hover writes, exactly-once commit, cross-group cancellation, original-placement no-op, invalid/second sources and idle observation safety. `MobileCardInteractionTests` is serialized and key-window-gated (`TERMIND_MOBILE_UI_TESTS=1`, parallel testing disabled); it checks standard/compact widths, native menus and payloads, preview bounds/translucency, neighbor movement, folded-group slots and cancellation/commit through delegate-driven sessions. These tests do not claim physical-device gesture coverage. `MobileCardTests` checks uncapped compact column counts, scaled minimum widths and one-column accessibility sizing.
 
 `MobileHostEditor` holds an in-memory Host draft plus `HostCustomIdentityDraft` (password fields live only for the editor's lifetime). Shared `TermindPresentation` Host organization, protocol-profile and connection sections provide the form. Stateless `HostEditorBindings` projects identity/group/startup-snippet/proxy choices over the existing drafts; creation callbacks remain platform-owned. Mobile-specific sheets create a group, identity or environment variable and apply that result to the draft. Selecting the SSH or Telnet profile changes which authentication, proxy and session controls appear; save requires an address, an enabled terminal protocol, valid enabled ports, identity/proxy validation and valid SSH environment variables. Save first resolves Host-saving access, then validates/persists applicable custom identities and the ordinary Host; managed Tailscale Hosts use their dedicated save path. Existing configured passwords that are unavailable are not exposed as editable empty replacements. Do not treat a profile switch or sheet dismissal as a save.
 
@@ -530,6 +586,8 @@ Initial terminal focus is separate: `MobileTerminalInitialFocus` requests it on 
 `MobileAssistantView` owns conversation navigation controls, library/archive routes and focus restoration requests. Replacing a conversation preserves composer focus only when it was already focused and the new state can accept focus. The asynchronous request rechecks the conversation ID after yielding, preventing an old request from focusing the wrong chat.
 
 `MobileAssistantConversation` renders an incremental `MobileNativeList` plus a separately measured, scrollable interaction region. Stable entry IDs and per-row presentation revisions let disclosure changes target the relevant rows; viewport callbacks collapse offscreen work presentations. Transcript and interaction children remain stable through region changes, preserving native list identity and text-input composition. Native rows have independent hosting roots, so `MobileAssistantTranscriptRowRoot` explicitly injects `assistantToolNavigation` into each row: a chat reference selects an existing conversation in this scene's library, while an unavailable or non-chat reference is ignored.
+
+Message images use `MobileAssistantImageFlowLayout`, not the managed-card grid: each wrapped user row is trailing-aligned, including a partially filled final row, while Assistant rows are leading-aligned. Tiles are 104 points in compact horizontal size class and 160 otherwise, with eight-point flow spacing. `MobileAssistantTranscriptTests` verifies role-edge placement for five images at 320-point width. External file/image drops use a separate attachment modifier, disabled for archived chats, pending approvals and pending user interactions without replacing the conversation tree; loading imports into the composer and accumulates attachment-import errors. `MobileAssistantLayoutTests` uses serialized, opt-in key-window cases to verify approval and user-input round trips retain native transcript identity and history scroll position (and bottom anchoring for approval cases).
 
 The interaction region can contain more than the composer, so its height is measured rather than assumed from a fixed input-bar constant. It bottom-aligns and scrolls based on content size. Tapping the transcript can dismiss composer focus without changing the conversation or ending the run.
 

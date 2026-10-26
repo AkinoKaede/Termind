@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistence, Migrations, and Secrets
+title: Persistence and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -24,8 +24,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-cd830b9886c3f5d3d7181662
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
-  - id: openwiki-source-7ca30f0e781e8c2df826b47a
-    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-d5d0b5c98f2f54ae5e0beba1
     resource: repo://Frameworks/TermindApplication/MemoryDateAnnotations.swift
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
@@ -48,6 +46,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-04ef2b2f02773f8833db9a8b
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
   - id: openwiki-source-8a2e7d4db4b334995f8eaf61
     resource: repo://Frameworks/TermindPersistence/AgentPersistence.swift
   - id: openwiki-source-85b30c7ff8f6f034b2bc980f
@@ -64,8 +64,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-b6bc660c90f2801c69ff0df3
     resource: repo://Frameworks/TermindPersistence/HistorySyncPersistence.swift
-  - id: openwiki-source-6bdc502f2e27478a98f042fa
-    resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-cea80bf19da5e3f99d178655
@@ -76,6 +74,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
     resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
+  - id: openwiki-source-6df73854db20ee83905a634c
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -86,22 +86,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
   - id: openwiki-source-99652f47d49074a45ef09dd7
     resource: repo://Frameworks/TermindPersistence/SwiftDataAssistantModelSelectionStore.swift
-  - id: openwiki-source-4217f56e034013cb8704d525
-    resource: repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift
-  - id: openwiki-source-0b6ab59ec6a684de8101ff8e
-    resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-63e25c47c9c7d38b354f4123
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
-  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
-    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
-  - id: openwiki-source-a0d614d618b11f103ec246ae
-    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
-  - id: openwiki-source-15e5026028d13d2202844f68
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-33f99816db979bf169f1eab5
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
   - id: openwiki-source-4e96d6bf2e7ae21ae9f5a5d8
@@ -152,12 +142,12 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-9c78befae6b387426c603305
     resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
-  - id: openwiki-source-3f37062f55fb57a9f2e97f35
-    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-cbe97194a165bb243ddb7eb4
+    resource: repo://TFI/UI/Managed/MobileReorderableCardGrid.swift
   - id: openwiki-source-28243bbeecc381626d39eeb6
     resource: repo://TFITests/MobileTerminalRestorationTests.swift
   - id: openwiki-source-72e61dbb0cab28991fe07481
@@ -168,19 +158,17 @@ sources:
     resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-  - id: openwiki-source-0854be84b166268626a3cb08
-    resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Persistence, Migrations, and Secrets
+# Persistence and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -235,6 +223,24 @@ Deletion is a durable saga, not an immediate blind removal: `requestHostDeletion
 The platform projections differ around durable deletion. Desktop commits deletion before projecting removal and clearing connection history; mobile closes workspace/runtime dependencies before requesting deletion, with its outbox also clearing connection history. Command and SFTP browse history are memory-only per-session data, cleared by close rather than durable per-Host cleanup. Direct deletion of Tailscale-managed Hosts is rejected. Failure after runtime cleanup does not roll back those earlier effects.
 
 Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It deduplicates replayed earlier turns by message ID, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot. V42 adds *sidecars*, rather than modifying historical message rows: a message origin records the source conversation/run/tool call and optional redacted title; a conversation-origin row records chat creation provenance; and a delivery receipt reserves the source run/tool-call pair. `SwiftDataAssistantChatCollaborationStore` reads and writes receipts and creation relations using fresh contexts from the shared container. When a new originated message is saved, its origin insertion marks matching queued receipts delivered in the **same snapshot save**; stale receipt saves or callbacks cannot downgrade a delivered receipt. Origin rows are removed along with message backing during edit/delete; the origin on a user message also prevents editing it as an ordinary user turn.
+
+### Mobile card ordering is not a second store
+
+[`MobileCardReorderSession`](../../TFI/UI/Managed/MobileReorderableCardGrid.swift) owns only transient drag payload, placement and projected IDs. Hover stages a presentation change without writing the library or sync store. Cancel clears the draft; a changed underlying ID sequence also cancels it. Commit clears the session before invoking the pending move callback, and invokes no move when the placement returns to its original position.
+
+For Vault hosts, [`MobileVaultView`](../../TFI/Features/Vault/MobileVaultView.swift) routes that callback to `HostLibraryModel.move(hostIDs:into:before:)` and surfaces `storageError`. The library validates placement, rejects Tailscale-managed host moves, updates `groupID` and `sortIndex`, and calls `persistCore()`. The drag projection is therefore neither a durable order nor an independent replica. See [Mobile UI](../architecture/mobile-ui.md) for presentation ownership.
+
+```mermaid
+flowchart TD
+    Drag["Begin card drag"] --> Draft["Stage transient placement and projected IDs"]
+    Draft --> Cancel["Cancel or underlying IDs change"]
+    Cancel --> Clear["Clear draft without library write"]
+    Draft --> Commit["Commit changed placement and clear draft"]
+    Commit --> Move["HostLibraryModel validates move"]
+    Move --> Persist["Update group and sort order through persistCore"]
+```
+
+Hover changes only presentation; a committed move delegates durable ordering to the Host library.
 
 ### Assistant history edits: one message boundary, one transaction
 
@@ -516,4 +522,4 @@ Memory history indexing follows committed agent data; suspension invalidates con
 4. **Adding a credential:** persist only a stable reference and non-secret provenance. Use `SecretStoring`/Keychain for material; exclude it from logs, CloudKit/sync records, `UserDefaults`, SwiftData/GRDB ordinary records, and reusable session snapshots.
 5. **Passing a secret to transport:** use the runtime secret owner, clear it at every success, error, cancellation, and teardown boundary, and retain only non-secret identifiers when a reconnectable configuration is needed.
 
-V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. Historical V46/V51 shapes remain immutable; `RetiredTerminalHighlightingTests` verifies upgrade/reopen cleanup and pending-upload retirement. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host writes use V8 and read V1/V2/V4–V8 (not V3); HostGroup writes V7 and reads V1–V7. SSHKey writes V3 and reads V1–V3; Snippet writes V2 and reads V1/V2. Native History writes V2 and reads V1/V2, while Device remains V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.
+V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. `discardInactiveEntries()` identifies retired rows by stored kind or parsed record name, so invalid envelope bytes and old tombstones are removed without decoding them; when rows are removed it clears serialized engine state rather than scheduling a CloudKit deletion. The receiver filters retired record types/names and deletion IDs before reconciliation and validation, including the conflict path. Historical V46/V51 shapes remain immutable; [`RetiredTerminalHighlightingTests`](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates both historical disk versions with unreadable retired data, upgrades through the production factory, and reopens to assert `copyOnSelect` survives and the highlighting table is absent from SQLite. Separate fixtures assert pending malformed uploads disappear from journal/outgoing/cloud records, and malformed, conflict and deletion deliveries leave active terminal settings intact with zero quarantine rows. These are source-defined regressions, not a report of tests executed here. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host writes use V8 and read V1/V2/V4–V8 (not V3); HostGroup writes V7 and reads V1–V7. SSHKey writes V3 and reads V1–V3; Snippet writes V2 and reads V1/V2. Native History writes V2 and reads V1/V2, while Device remains V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.

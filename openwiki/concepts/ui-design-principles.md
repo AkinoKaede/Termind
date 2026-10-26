@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: Shared UI Design and Presentation Contracts
+title: UI Design Principles
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -106,10 +106,14 @@ sources:
     resource: repo://TFI/UI/Components/MobileNativeList.swift
   - id: openwiki-source-69a5f03670569fd29fe8983d
     resource: repo://TFI/UI/Components/MobileOperationConfirmationPresenter.swift
+  - id: openwiki-source-34e2c3a252e8dc423cf4fcda
+    resource: repo://TFI/UI/Managed/MobileCardDragInteraction.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-264c62e0c85939673d0cc644
     resource: repo://TFI/UI/Managed/MobileCompactCardContent.swift
+  - id: openwiki-source-cbe97194a165bb243ddb7eb4
+    resource: repo://TFI/UI/Managed/MobileReorderableCardGrid.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-69c78ae0f81d65da7d64d801
@@ -168,6 +172,10 @@ sources:
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-f941c4bd7cfa47476dcdb53f
     resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
+  - id: openwiki-source-2301357abfcb0d22fb7a1dfc
+    resource: repo://TFM/UI/Managed/ManagedCardDragPreview.swift
+  - id: openwiki-source-f6a967b4f14bf50d1af51b8b
+    resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-6b422a5b70cf5532c58c730e
     resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
   - id: openwiki-source-7c65a9e84644dfdb436d849d
@@ -194,13 +202,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
-# Shared UI Design and Presentation Contracts
+# UI Design Principles
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -257,7 +265,15 @@ Explicit TFM glass controls use system glass on macOS 26 and native material fal
 
 The compact Snippets and History shelves use `SidebarListItem` with stable record IDs and AppKit `ListView` hosting, not a shared mobile list. History card heights are uniform except while naming a command; presentation changes such as a renamed address do not change its row ID. Snippets shelf expansion is stored separately from the full Snippets page and collapsing a section removes rows without replacing its header identity. Native blank-area menus have their own container target, distinct from row menus; the shelf's local search footer filters the sidebar, whereas titlebar Find targets foreground content.
 
-Standard mobile card columns use a 320-point minimum width and 12-point gaps; accessibility text sizes force one column. Cards use a 106-point minimum height and Host cards show at most two tags. Opting-in collections read device-local `mobile.compactCards`: compact columns scale from a 76-point minimum, cap at four, and use square-or-taller cards without changing primary taps or secondary menus. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
+Standard mobile card columns use a 320-point minimum width and 12-point gaps; accessibility text sizes force one column. Cards use a 106-point minimum height and Host cards show at most two tags. Opting-in collections read device-local `mobile.compactCards`: compact columns scale from a 76-point minimum and fit as many columns as the available width permits—there is no four-column cap—and use square-or-taller cards without changing primary taps or secondary menus. With 12-point gaps, column count is `max(1, floor((max(0, width) + 12) / (minimumWidth + 12)))`; scaled compact width never falls below 76 points. Accessibility sizes force one column in either mode, and compact titles can wrap rather than remaining single-line. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
+
+### Drag artwork is not insertion geometry
+
+A dragged managed card should look like the **actual card at its measured source size**, not a generic icon or the destination slot. Desktop `ManagedCardPage` passes its existing card renderer into `ManagedCardDragPreview`; mobile renders the card content into an image before beginning the reorder session. Both reserve separate clear, source-height insertion slots. This separates the floating representation from reflow, so a changing destination does not resize or replace the dragged artwork.
+
+Previews must be self-contained: live glass needs a backdrop that a snapshot cannot rely on. Desktop preview mode uses `TermindColor.windowSurface` plus the selected tint instead of glass, disables focus and removes geometry reporting from preview descendants; the preview wrapper is noninteractive and accessibility-hidden. Mobile preview mode uses opaque grouped backing and a deterministic rounded shape, then bakes translucency into the rendered image. Ordinary mobile cards still use conditional glass and accessibility fallbacks. Do not fix snapshot artifacts by weakening the normal card's contrast policy.
+
+Mechanics, payload validation and commit ownership belong to [Desktop Drag and Drop](../workflows/desktop-drag-and-drop.md) and [File Drag and Drop](../workflows/file-drag-and-drop.md). Relevant implementation boundaries are [desktop preview construction](../../TFM/UI/Managed/ManagedCardPage.swift), [desktop preview surface](../../TFM/UI/Managed/CardGrid.swift), [mobile reorder projection](../../TFI/UI/Managed/MobileReorderableCardGrid.swift) and [mobile native preview rendering](../../TFI/UI/Managed/MobileCardDragInteraction.swift).
 
 ### Host artwork is a presentation contract
 
@@ -412,6 +428,10 @@ Distinguish **interaction changes from geometry changes**. `MobileNativeList.row
 
 Sources: [native update reconciliation](../../TFI/UI/Components/MobileNativeList.swift), [Assistant caller](../../TFI/Features/AI/MobileAssistantConversation.swift), [native transcript regressions](../../TFITests/MobileAssistantTranscriptTests.swift).
 
+Attachment-drop enablement must not replace the mounted conversation subtree. `MobileConversationAttachmentDropModifier` always wraps the same content; archived conversations and pending approval/user-input interactions disable accepted types, mask/reset targeting and reject receipt. The overlay appears only while enabled and targeted, with Reduce Motion respected. `MobileAssistantLayoutTests` exercises approval allow/deny and user-input submit/cancel round trips: the native transcript remains identical, preserves history offset or bottom anchoring, and recovers its height after the interaction. See [File Drag and Drop](../workflows/file-drag-and-drop.md) for payload loading and attachment-import mechanics.
+
+Image attachments align by **message role on every wrapped row**, including the final partial row: user images trail, assistant images lead. `MobileAssistantImageFlowLayout` measures only the items actually in a row rather than reserving unused adaptive-grid columns. It preserves item order, wraps at available width and uses each row's tallest item for vertical advance. `MobileAssistantTranscriptTests.imageFlowKeepsEveryUserRowTrailingAndAssistantRowsLeading` checks five 104-point tiles in a 320-point region, including the lone trailing tile. See [mobile conversation layout](../../TFI/Features/AI/MobileAssistantConversation.swift) and [layout continuity tests](../../TFITests/MobileAssistantLayoutTests.swift).
+
 Hidden content must stop receiving input and accessibility focus: parked desktop panes and covered mobile panels gate hit testing and accessibility with visibility. Mobile layout subtracts active divisions/occlusions, chooses the largest continuous usable region and splits only if both regions fit. `MobilePaneLayout` retains native children and their cached usable sizes under occlusion; Assistant allocates transcript and composer regions and Metrics presents two panels when feasible or its selected panel otherwise. Adaptive tests assert *the same* native transcript scroll view, marked input/composer focus, Metrics list and offset, Vault search controller, editor draft and in-flight save/alert across folds and width changes, not just final strings.
 
 `MobileRootView` binds tab selection to `MobileSceneModel` and constructs one `NavigationStack` per `MobileFeatureRegistry` registration under `.sidebarAdaptable`; the standard registry has Vault, Metrics, Workspaces, Assistant and Settings. Adaptive tests check the same native tab controller, five available tabs, scene/native selection and visible selected title across compact/regular widths, Dynamic Type and all three languages. Regular-width tab bars can scroll; compact tests require all five titles simultaneously visible. Reduce Motion and selected accessibility traits exist, but new animation or clipped controls still require call-site checks.
@@ -424,7 +444,7 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; Sidebar row IDs, editing height and independent shelf expansion remain source-level contracts; the former `ListViewMigrationTests.swift` is absent from this checkout. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` checks independent Host duplication and editor/persistence behavior; Host menu section ordering is a source-level contract in `MobileHostMenuPolicy`; `MobileCardTests` checks the two-tag limit. Current `MobileCompactCardTests` checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording; it no longer contains the earlier geometry/persistence assertions. `MobileCardLayoutTests.swift` is absent from the current checkout, so balanced padding and multilingual header stability require fresh rendering verification rather than reliance on that former suite. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; Sidebar row IDs, editing height and independent shelf expansion remain source-level contracts; the former `ListViewMigrationTests.swift` is absent from this checkout. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins custom-manager Back routing, autosave-before-navigation, failed/invalid/deleted draft protection and discard safety. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` checks independent Host duplication and editor/persistence behavior; Host menu section ordering is a source-level contract in `MobileHostMenuPolicy`; `MobileCardTests` checks the two-tag limit, width-driven compact columns beyond four, scaled-width clamping, standard minimum widths and one-column accessibility fallback. Current `MobileCompactCardTests` checks missing-credential warnings, forwarding state badges, snippet risk and localized Compact wording; it no longer contains the earlier geometry/persistence assertions. `MobileCardLayoutTests.swift` is absent from the current checkout, so balanced padding and multilingual header stability require fresh rendering verification rather than reliance on that former suite. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; it also checks that More actions remain beside Save and become disabled during saving; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
 
 For review changes, current `MobileAppReviewTests` checks that in-memory app models disable invitations and share an injected controller; it does not contain the former `invitationFitsPhoneAndTabletWidths` rendering matrix. Do not treat that former matrix or its preview flag as current mobile rendering coverage. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 

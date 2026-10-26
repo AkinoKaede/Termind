@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:366e4a7c3d6e5aa609d1e4bec5c02637e6cfa76e4cafaabab45a6bfdeb70a6cd",
+  "pageVersion": "sha256:aee1d2e48ae222030e20a0a1f891c2ba2a5fb3191186808586b0be50a65ee391",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -317,7 +317,7 @@
           "version": "repo-lines-v1:sha256:eaec0bb520a2a663b7b74bb1b1add7fe8512d5487f85c6bca20cdb50cc2959bf:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZiM2NjNjljMGU0ZTYzZjk1YzVjZTAzZjE3N2Q3OTgxYzlhMTk1ZTUzZTFiNjAyOWQ1ZGNhMjZlYmZiZDhkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQyM2M4MTMwOTJmNDE4OTFhNTAyZGI1NDViM2IzOGJiNjE5ODdkMTkzNGRjYWNmNzg5ZDZkOGVjZjZlY2MzNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTA5YzZiNDZkZWVlZDRmNTM5YTlmYzc5ODYxYjUxYmJkYTU2OTY5ZDE3NWNjYWM4NzdlZDE1YzBhODMzNmNhMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjhhYjZiN2E3NTcxY2U5YzA5MTc2ZjEyYmJkMTY0ZDE2N2M1NTE1ZWY2ZThhMWNhYWFhY2M4YWViMTBmY2Q1YiJ9"
         },
         {
-          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L792-L798",
+          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L795-L801",
           "version": "repo-lines-v1:sha256:739e5b14cdabde2bbb902eb2e552deee998cb9e341befb1876723ece77da8053:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjA1YThjODAwOWFmYzFkMjI4YTFhYmZkMDRmMmU5M2FkZDFiMzExMmY5ODQ5ZTM4YjE4ZGFmMzY0N2YyMWFhZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEwMzQ4MWM1N2QwZjBkYzBmNzZjZDJjYzhiMzYwNGM0ZTgyOTZkYTQxMjJhZGQxOWU4MTc0NWRjN2UzMzFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzFkNjczNmQxYzMwMzRjYWRmNDY2MGEwZmZkNDRkYmJjNWY5YThkNjFiMDMxYTdlMzk0NDUyZTUyYmJmM2E1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDBlMmE3NTZkMzA5NTI5OWJjOGRkNmM2MzFjNzdmMzhmMmMwZDA5MTdjYzZjNGJhM2NmNmIxZThjOTYwYjFlYiJ9"
         },
         {
@@ -1094,7 +1094,7 @@
     },
     {
       "id": "claim_5336a71e71e14960955a9c7ced816e4c",
-      "statement": "Termind declares AgentKit remote minimum 4.0.0 and resolves 4.0.0 at 3481866cd47e83f6bf56b80c432c7824f61130b9. AgentKit is not a Termind submodule; dependency updates must align the project requirement and resolved pin.",
+      "statement": "Termind declares AgentKit remote minimum 4.0.0 with upToNextMinorVersion and resolves 4.0.0 at 3481866cd47e83f6bf56b80c432c7824f61130b9. AgentKit and AgentKitScrubber products are declared from that package and TFM links both. AgentKit is not a Termind submodule; dependency updates must align the project requirement and resolved pin.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
@@ -1102,7 +1102,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:ca7a9ab092d191ae9ed8b4e3858b8fc2bb11e4f153d670ecbcf3d0fdf2147aec"
+          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -1286,7 +1286,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-25T22:25:01.745Z"
   }
 }

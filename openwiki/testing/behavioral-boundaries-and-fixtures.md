@@ -164,10 +164,10 @@ sources:
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # Behavioral Boundaries and Test Fixtures
@@ -387,6 +387,12 @@ For controlled wire acceptance, [ssh-tmux-session-fixture.py](../../Scripts/ssh-
 
 [ssh-authentication-fixture.py](../../Scripts/ssh-authentication-fixture.py) instead uses `paramiko==4.0.0`, loopback sockets, in-memory keys and per-connection in-memory SFTP files; it never executes submitted client commands and removes metadata on exit. Supply its metadata through `TEST_RUNNER_TERMIND_SSH_FIXTURE` for the gated SSH authentication/forwarding suites. Do not substitute it for the tmux fixture: simulated authentication and real remote shell execution establish different contracts. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
 
+### Reconnect and recovery: assertions versus scheduler allowances
+
+`SessionReconnectControllerTests` injects a clock to assert delays of 1, 2, 5, 10, 30 and 30 seconds, latest-error retention, and attempt reset after advancing a connected clock by 61 seconds. It checks immediate retry and stop cancellation separately. The detached-sleep regression asserts that the callback returns to the main thread; its five-second deadline with 10 ms polling is a scheduler allowance, not a five-second reconnect policy.
+
+`TransportRecoveryJourneyTests` checks Mosh/Eternal recovery retains route and prior logs without replaying authentication, deduplicates repeated recovery messages, distinguishes suspended/recovering/failed presentation, and prevents route updates from dismissing pending interaction or declaring protocol readiness. Renewed recovery must cancel the previous success-hide timer: the test waits 750 ms to check the new recovery remains connecting, then polls up to five seconds for a later success to hide. Those waits accommodate asynchronous presentation; they do not establish transport recovery latency. These are controller/model fixtures, not live transport tests. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
+
 ### Evidence tiers: do not exchange one proof for another
 
 | Tier | What a passing test establishes | What it does not establish |
@@ -446,7 +452,17 @@ Retired disk snapshots do not restore native scenes; the new descriptor/checkpoi
 
 `MobileWorkspaceSessionTests` isolates scene-session routing with an injected app fixture: assistant notification targets prefer a matching active scene and otherwise keep a hidden owning scene rather than hijacking another scene's selection; transfer clicks wait for scene activation and are consumed once. Additional router cases check that newer assistant clicks win and that stale activation-failure callbacks cannot reset a newer request. A matching owner can be activated without displaying its conversation prematurely; these are routing/model checks, not UIKit presentation assertions. Use these model/router tests for navigation ownership before reaching for a key-window test. `MobileBackgroundControllerTests` replaces UIKit's background-task platform to drive expiration synchronously. The tests check stale/repeated callbacks end each lease at most once, reentrant expiration during `begin` retires the returned old identifier without overwriting a newly begun lease, and an invalid identifier expires once without an `end` call. Use these for lease mechanics; `MobileAppTests` covers foreground recovery and retired workspace callbacks at the app boundary.
 
-`MobileCardTests` exercises offscreen card/model policy: bounded tag display, row-confirmation selection isolation, disconnected/busy connection indicators, saved-host timestamps, and host/identity/key draft-color persistence through an in-memory app. It does not currently assert brand contrast, adaptive column thresholds or measured stable card heights, and has no optional snippet export path. `MobileCardRenderingTests` is absent from the current tree; `TERMIND_CARD_SCREENSHOTS` is not a runnable route to that removed fixture. Use the current marketing capture workflow for marketing assets, and add a focused presentation regression when card visuals change rather than treating model tests as visual validation.
+`MobileCardTests` exercises offscreen card/model policy: compact column thresholds and scaled card widths, regular minimum widths, one-column accessibility layout, bounded tags, row-confirmation selection isolation, connection indicators, saved-host timestamps, and draft-color persistence through an in-memory app. It still does not assert brand contrast or measured stable card heights and has no optional snippet export path. `MobileCardRenderingTests` is absent; `TERMIND_CARD_SCREENSHOTS` is not a route to that removed fixture. Use marketing capture for assets, but use the focused behavioral suites below for regressions.
+
+| Changed boundary | Focused test and evidence limit |
+| --- | --- |
+| Reorder payload and durable order | `MobileCardReorderingTests` rejects wrong scope/collection, missing or protected IDs, multiple items and no-op targets; permits cross-group and empty/folded-header destinations. Fresh contexts over the in-memory container verify Host group/order, Snippet package/content and independent key/identity ordering. Metrics retains live server identity and reloads order; an injected save failure preserves the original order. These are not disk-relaunch tests. |
+| Staged reorder transaction | `MobileCardReorderSessionTests` proves hover only changes projected neighbors, commit writes once, cancellation restores both groups without writing, and returning to the original slot writes nothing. Invalid/second sources cannot replace an active drag; idle interaction registration does not invalidate observed layout. |
+| Native card interaction | Serialized `.requiresKeyWindow` `MobileCardInteractionTests` mounts standard and compact grids, checks measured widths, native menus, scoped transferable payloads excluded from uploads, full-size lift preview dimensions/alpha, and cancellation without writes. Native delegate-driven hover tests cover neighbor movement and folded-group slots before saving; these are not physical finger-gesture automation. |
+| Assistant prompt layout | Serialized, key-window-gated `MobileAssistantLayoutTests` checks approval allow/deny at bottom and while reading history, plus user-input submit/cancel. The same native transcript list survives, approval changes available height without changing content height, and scroll/bounds recover after dismissal. Its repeated layout/sleep loop is UIKit settling, not a latency guarantee. |
+| Desktop drag preview | Always-on `ManagedCardDragPresentationTests` uses offscreen `ImageRenderer`: batch placeholders retain lift-time heights, including fallback sizes, and paint no pixels; light/dark full-size previews retain header/footer and an opaque fallback surface with transparent corners. It does not validate native glass or window focus. |
+
+Keep presentation ownership in [Mobile UI](../architecture/mobile-ui.md) and desktop drag semantics in [Desktop Drag and Drop](../workflows/desktop-drag-and-drop.md); these tests are the regression entrypoints, not substitutes for those subsystem contracts.
 
 ### Terminal Find and mobile search: cancellation is a lifecycle contract
 
@@ -549,7 +565,7 @@ Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: 
 ## Focused additions: drafts, confirmations and resource retirement
 
 - `SnippetColorTests` checks tolerant legacy JSON, unsaved draft isolation, duplicate color, V1/V2 wire/tombstone behavior and a real V50 upgrade through V51 to the current V59 schema followed by saved-color reopen.
-- `RetiredTerminalHighlightingTests` opens V46/V51 disk stores, upgrades/reopens to verify other preferences survive while retired tables and uploads disappear, and ignores malformed legacy conflict/deletion records without blocking active Settings.
+- `RetiredTerminalHighlightingTests` constructs V46/V51 disk stores with unreadable retired preferences, releases containers around upgrade/preparation and reopen, and verifies `copyOnSelect` survives while retired journal envelopes/outgoing entries disappear. A read-only SQLite query checks the retired table exists before migration and is absent afterward; open, busy-timeout, prepare and step results are checked explicitly, so a SQLite error cannot masquerade as absence. The 5,000 ms busy timeout accommodates locking, not a migration-time guarantee. Separate in-memory cases retire pending uploads and ignore malformed fetched/conflict/deletion records without quarantine or blocking active Settings. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 - `HostEditorBindingsTests` exercises creation callbacks without changing existing selections, independent SSH/Telnet custom/none choices, proxy default-port transitions and no recreation of a removed proxy.
 - `MobileWorkspacePresentationTests` parameterizes importer result consumption before and after dismissal, consumes the target once, and replaces cancelled requests on reopening. Preview export waits for `previewDidDismiss()` whether staged before or during dismissal; a new preview discards an older pending export. These are state-machine tests without UIKit windows.
 - `MobileOperationConfirmationTests` is serialized and mobile-UI gated; English and both Chinese fixtures compare row anchoring against window-centered arrowless popovers, action order, animated transitions and post-dismissal action timing. It uses temporary windows and restores their predecessor; these are not a real destructive business-operation run.
@@ -562,6 +578,30 @@ Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: 
 3. **Make adverse timing controllable.** Actor-backed harnesses should count opens, prompts, disconnects, active work, and release signals. This lets a test assert cancellation, coalescing, or teardown deterministically instead of sleeping against a real network.
 4. **Assert both state and prohibited side effects.** For security and persistence, verify not only a successful configuration or migration but also that the Vault, original bytes, secret store, prompt queue, or connection count did not change when policy forbids it.
 5. **Test boundaries, not file names.** A regression belongs beside the narrowest suite with authority over its observable contract. Add a higher-level target test when framework correctness alone cannot prove platform assembly, lifecycle, or UI behavior.
+
+## Test environment gates: signing is not presentation
+
+[Routine CI](../../.github/workflows/test.yml) explicitly sets `TEST_RUNNER_TERMIND_WINDOW_TESTS`, `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS`, and `TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS` to `0`. It runs TFM and TFI nonparallel with ad-hoc signing, no development team or entitlements, and sandbox disabled. A green routine run therefore does not establish any opted-in native interaction or provisioned-service integration.
+
+| Gate in test host | Trait and intended environment |
+| --- | --- |
+| `TERMIND_SIGNED_INTEGRATION_TESTS=1` | `.requiresAppleSigning`: provisioned host for real Keychain/CloudKit integration, independent of showing windows. Examples are `MCPAuthorizationKeychainTests`, `TailscaleKeychainTests`, and the individually gated coordinator-switch cases in `SettingsSyncTests`. Enabling the flag does not provision the host or prove cross-device CloudKit delivery. |
+| `TERMIND_WINDOW_TESTS=1` | `.requiresVisibleWindow`: macOS window/focus interaction; not authorization to access signed services. |
+| `TERMIND_MOBILE_UI_TESTS=1` | `.requiresKeyWindow`: deliberate mobile native presentation; keep narrow filters and parallel testing disabled. |
+
+With valid signing configured locally, opt in only to the signed suite needed; do **not** copy CI's signing/entitlement stripping overrides:
+
+```sh
+TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFMTests/MCPAuthorizationKeychainTests
+```
+
+For the new native mobile regressions, use an installed simulator and leave signing/window gates off:
+
+```sh
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,id=<SIMULATOR-UDID>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileCardInteractionTests -only-testing:TFITests/MobileAssistantLayoutTests
+```
+
+Run `MobileCardTests`, `MobileCardReorderingTests`, `MobileCardReorderSessionTests` and desktop `ManagedCardDragPresentationTests` without presentation opt-ins first. The visible-window example below is a third, separate verification path. Check the host received the intended flag rather than counting skipped cases as verification; see [Build, Test, and Release](../operations/build-test-and-release.md) for environment setup.
 
 ## UI and visible-window policy
 

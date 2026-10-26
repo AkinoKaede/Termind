@@ -4,6 +4,8 @@ title: Termind Engineering Quickstart
 description: Route Termind changes to architecture owners, connection and data workflows, focused regressions, and safe build and release checks. Source and tests remain authoritative.
 tags: [engineering, architecture, routing, testing, macos, ios]
 sources:
+  - id: openwiki-source-4f2678f93d3fd3835f9f2909
+    resource: repo://.github/workflows/test.yml
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
@@ -26,6 +28,8 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
+  - id: openwiki-source-23775c3de52f3ab95a13cb8b
+    resource: repo://README.md
   - id: openwiki-source-d125bef219ce9eee56abf917
     resource: repo://Scripts/check-localization.py
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -70,24 +74,32 @@ sources:
     resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-dc041600497a72c229d5eef4
     resource: repo://TFM/UI/Components/ConnectionJourneyView.swift
+  - id: openwiki-source-c760fd3440c4d99945238ba5
+    resource: repo://TFMTests/AppleSigningTestTrait.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-6f8497046bd15dee0e92df2d
+    resource: repo://TFMTests/MCPAuthorizationKeychainTests.swift
   - id: openwiki-source-c7d015a20982da4e8b0599d1
     resource: repo://TFMTests/MetricsJourneyRenderingTests.swift
+  - id: openwiki-source-1d1efb20e239b1f2142f6cb7
+    resource: repo://TFMTests/SettingsSyncTests.swift
+  - id: openwiki-source-16e5817504836f60fa6fb9bf
+    resource: repo://TFMTests/TailscaleKeychainTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-10-25T22:25:01.745Z
 ---
 
 # Termind Engineering Quickstart
@@ -104,9 +116,11 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | Startup, shared services, backgrounding, termination | [Platform Runtime and Lifetimes](architecture/platform-runtime.md) | `AppTerminationTests`, `WorkspaceCloseConfirmationTests`, `MobileAppTests`, `MobileForwardingLifecycleTests` |
 | Desktop navigation, window commands, workspace ownership | [Desktop UI and Window Ownership](architecture/desktop-ui.md) | Window/navigation and layout regressions |
 | Mobile tabs, scene routes, editors, workspace continuity | [Mobile UI and Scene Ownership](architecture/mobile-ui.md) | `MobileWorkspaceSessionTests`, `MobileAdaptiveLayoutTests`, `MobileNavigationParityTests` |
+| Mobile managed-card reordering, cross-group moves and cancellation | [Mobile Scenes and Workspace UI](architecture/mobile-ui.md) | `MobileCardReorderingTests` for scope/persistence; `MobileCardReorderSessionTests` for hover drafts, cancellation and once-only commit |
 | Shared fields, tokens, accessibility, native presentation contracts | [UI Design and Presentation Contracts](concepts/ui-design-principles.md) | Affected platform rendering and `ArchitectureBoundaryTests` |
-| Workspace/pane sorting, merging, drag-out windows, Assistant reordering | [Desktop Windows and Workspace UI](architecture/desktop-ui.md) | `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests`, `AssistantConversationListDropTests` |
-| File drops, Assistant attachments, terminal uploads, remote-file dragging, key import | [File Drops and Terminal Uploads](workflows/file-drag-and-drop.md) | `FileURLDropTargetTests`, `MobileDropTests`, then the guide's upload/import suites |
+| Workspace/pane sorting, merging, drag-out windows, Assistant reordering | [Desktop Drag and Drop](workflows/desktop-drag-and-drop.md) | `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests`, `AssistantConversationListDropTests` |
+| Desktop managed-card previews and insertion placeholders | [Desktop Drag and Drop](workflows/desktop-drag-and-drop.md) | `ManagedCardDragPresentationTests` for full-size preview content and transparent, lift-height placeholders |
+| File-drop discrimination, Assistant attachments, terminal uploads, remote-file dragging, key import | [File Drag and Drop](workflows/file-drag-and-drop.md) | `FileURLDropTargetTests` for isolated pasteboard/pointer participation and payload routing; `MobileDropTests`, then the guide's upload/import suites |
 
 ### Connections and remote services
 
@@ -158,6 +172,8 @@ These are routing reminders, not substitute specifications.
 
 Use [AGENTS.md](../AGENTS.md) and [Build, Test and Release](operations/build-test-and-release.md) for full setup and release procedures. Project settings use Swift 6, complete strict concurrency, warnings as errors, approachable concurrency and default `MainActor` isolation; bridge/benchmark targets use `nonisolated` isolation. Read the selected target's effective settings rather than treating project defaults as product metadata.
 
+Deployment minimums are **macOS 15 and iOS/iPadOS 18**, not SDK requirements. Current [test CI](../.github/workflows/test.yml) selects **Xcode 27.1** because the mobile app uses iOS 27.1 SDK APIs; an older deployment minimum does not imply that an older Xcode can compile the app.
+
 For optional Firebase/RevenueCat setup, follow [Local service configuration](../Configuration/README.md). Missing local configuration leaves those services unconfigured and Crashlytics symbol upload disabled by default; it does **not** bypass Pro access checks. Keep local service files out of Git.
 
 Keep `-onlyUsePackageVersionsFromResolvedFile` so routine validation cannot silently move the dependency graph:
@@ -175,6 +191,16 @@ Run mobile tests on an installed simulator. For a focus-changing search regressi
 ```sh
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO -only-testing:TFITests/MobileTerminalSearchIntegrationTests test
 ```
+
+### Routine versus signed integration testing
+
+Routine CI runs both schemes with window, mobile UI and signed-integration gates set to `0`, disables parallel testing, and uses ad-hoc signing without signing secrets. To reproduce that signing mode locally, append these overrides to the resolved-only test command above:
+
+```sh
+CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= CODE_SIGN_ENTITLEMENTS= ENABLE_APP_SANDBOX=NO
+```
+
+This is not Keychain/CloudKit integration validation. Tests marked `.requiresAppleSigning` require a provisioned test host and `TEST_RUNNER_TERMIND_SIGNED_INTEGRATION_TESTS=1` (or `TERMIND_SIGNED_INTEGRATION_TESTS=1` in the test environment). Use valid signing/entitlements rather than the routine CI overrides, and narrow the run to the affected tests, such as `MCPAuthorizationKeychainTests`, `TailscaleKeychainTests` or the gated `SettingsSyncTests` cases. See [Build, Test, and Release](operations/build-test-and-release.md) and [Behavioral Boundaries and Test Fixtures](testing/behavioral-boundaries-and-fixtures.md).
 
 ### Keep native presentation opt-ins explicit
 
