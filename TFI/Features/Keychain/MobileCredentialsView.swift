@@ -145,14 +145,14 @@ struct MobileCredentialsView: View {
         .navigationTitle(AppStrings.Navigation.keychain.swiftUIKey)
         .toolbar {
             Menu {
-                Button(AppStrings.Keychain.generateKey.swiftUIKey, systemImage: "key") {
-                    keyEditor = MobileKeyEditorModel(
-                        mode: .generate, credentials: app.credentials,
-                        defaultStorage: app.newVaultKeyStorage)
-                }
                 Button(AppStrings.Keychain.importKey.swiftUIKey, systemImage: "square.and.arrow.down") {
                     keyEditor = MobileKeyEditorModel(
                         mode: .importKey, credentials: app.credentials,
+                        defaultStorage: app.newVaultKeyStorage)
+                }
+                Button(AppStrings.Keychain.generateKey.swiftUIKey, systemImage: "key") {
+                    keyEditor = MobileKeyEditorModel(
+                        mode: .generate, credentials: app.credentials,
                         defaultStorage: app.newVaultKeyStorage)
                 }
                 Divider()
