@@ -31,7 +31,8 @@ struct MobileAssistantView: View {
     @State private var renaming: ConversationModel?
     @State private var title = ""
     @State private var deleting: ConversationModel?
-    @FocusState private var composerFocused: Bool
+    // The UIKit editor owns first-responder focus; no SwiftUI focus target is registered.
+    @State private var composerFocused = false
 
     init(
         app: MobileAppModel,

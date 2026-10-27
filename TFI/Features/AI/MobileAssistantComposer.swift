@@ -58,7 +58,7 @@ private struct MobileDismissibleComposerBadge: View {
 struct MobileAssistantComposer: View {
     let model: MobileAssistantSceneModel
     @Bindable var conversation: ConversationModel
-    let focus: FocusState<Bool>.Binding?
+    let focus: Binding<Bool>?
     let focusRequest: Int?
     let focusRequestHandled: (Int) -> Void
     @State private var files = false
@@ -70,7 +70,7 @@ struct MobileAssistantComposer: View {
     @State private var isSlashPanelDismissed = false
     @State private var slashPanelHeight: CGFloat = 0
     private let slashRegistry = ChatSlashCommandRegistry.standard()
-    @FocusState private var localFocus: Bool
+    @State private var localFocus = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
     private var composer: ConversationComposerState { conversation.composer }
@@ -78,12 +78,12 @@ struct MobileAssistantComposer: View {
     private var showsTranscriptionControls: Bool {
         ownsTranscription && model.speech.phase != .idle
     }
-    private var activeFocus: FocusState<Bool>.Binding { focus ?? $localFocus }
+    private var activeFocus: Binding<Bool> { focus ?? $localFocus }
 
     init(
         model: MobileAssistantSceneModel,
         conversation: ConversationModel,
-        focus: FocusState<Bool>.Binding? = nil,
+        focus: Binding<Bool>? = nil,
         focusRequest: Int? = nil,
         focusRequestHandled: @escaping (Int) -> Void = { _ in }
     ) {
@@ -185,7 +185,7 @@ struct MobileAssistantComposer: View {
             }
             MobileMessageTextEditor(
                 text: Bindable(composer).projectedValue.draft,
-                focus: Binding(get: { activeFocus.wrappedValue }, set: { activeFocus.wrappedValue = $0 }),
+                focus: activeFocus,
                 prompt: localized(AppStrings.Assistant.prompt),
                 maximumLines: 6,
                 submit: submitFromKeyboard

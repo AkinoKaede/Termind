@@ -393,7 +393,7 @@ struct MobileAssistantConversation: View {
     let app: MobileAppModel
     let model: MobileAssistantSceneModel
     let conversation: ConversationModel
-    let composerFocus: FocusState<Bool>.Binding
+    let composerFocus: Binding<Bool>
     let composerFocusRequest: Int?
     let composerFocusRequestHandled: (Int) -> Void
     @State private var editing: ChatMessage?

@@ -14,6 +14,61 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAssistantLayoutTests {
+    @Test(.requiresKeyWindow)
+    func composerKeepsNativeFocusAcrossDraftUpdates() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let model = app.assistant.makeSceneModel()
+        let input = ComposerInputState()
+        try await withConversation(app: app, model: model, input: input) { controller in
+            let editor = try #require(descendant(of: MobileMessageTextView.self, in: controller.view))
+            #expect(editor.bounds.height > 0)
+            #expect(editor.isEditable)
+            let window = try #require(editor.window)
+            let point = editor.convert(CGPoint(x: editor.bounds.midX, y: editor.bounds.midY), to: window)
+            let hit = try #require(window.hitTest(point, with: nil))
+            #expect(hit.isDescendant(of: editor))
+            try #require(editor.becomeFirstResponder())
+            await settle(controller)
+            #expect(editor.isFirstResponder)
+            #expect(input.focused)
+
+            editor.insertText("Draft")
+            await settle(controller)
+            #expect(model.conversation.composer.draft == "Draft")
+            #expect(editor.isFirstResponder)
+            #expect(descendant(of: MobileMessageTextView.self, in: controller.view) === editor)
+        }
+    }
+
+    @Test(.requiresKeyWindow)
+    func composerCanDismissAndRestoreNativeFocus() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let model = app.assistant.makeSceneModel()
+        let input = ComposerInputState()
+        try await withConversation(app: app, model: model, input: input) { controller in
+            let editor = try #require(descendant(of: MobileMessageTextView.self, in: controller.view))
+            #expect(!editor.isFirstResponder)
+            input.focused = true
+            await settle(controller)
+            #expect(editor.isFirstResponder)
+
+            input.focused = false
+            await settle(controller)
+            #expect(!editor.isFirstResponder)
+
+            input.request = 1
+            await settle(controller)
+            #expect(input.request == nil)
+            #expect(input.focused)
+            #expect(editor.isFirstResponder)
+
+            editor.resignFirstResponder()
+            await settle(controller)
+            #expect(!input.focused)
+            #expect(!editor.isFirstResponder)
+        }
+    }
+
     @Test(.requiresKeyWindow, arguments: [false, true], ["en", "zh-Hans", "zh-Hant"])
     func boundedApprovalKeepsDecisionButtonsVisibleInShortViewports(
         longContent: Bool, language: String
@@ -203,10 +258,11 @@ struct MobileAssistantLayoutTests {
     private func withConversation(
         app: MobileAppModel, model: MobileAssistantSceneModel,
         language: String = "en",
+        input: ComposerInputState = ComposerInputState(),
         test: (UIViewController) async throws -> Void
     ) async throws {
         let controller = UIHostingController(
-            rootView: ConversationHost(app: app, model: model)
+            rootView: ConversationHost(app: app, model: model, input: input)
                 .environment(\.locale, Locale(identifier: language)))
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previousKeyWindow = scene.keyWindow
@@ -255,15 +311,21 @@ struct MobileAssistantLayoutTests {
         return current + root.subviews.flatMap { scrollViews(in: $0) }
     }
 
+    @Observable fileprivate final class ComposerInputState {
+        var focused = false
+        var request: Int?
+    }
+
     private struct ConversationHost: View {
         let app: MobileAppModel
         let model: MobileAssistantSceneModel
-        @FocusState private var focused: Bool
+        @Bindable var input: ComposerInputState
 
         var body: some View {
             MobileAssistantConversation(
                 app: app, model: model, conversation: model.conversation,
-                composerFocus: $focused, composerFocusRequest: nil, composerFocusRequestHandled: { _ in }
+                composerFocus: $input.focused, composerFocusRequest: input.request,
+                composerFocusRequestHandled: { if input.request == $0 { input.request = nil } }
             )
             .environment(\.mobileReservedRegions, [])
         }
