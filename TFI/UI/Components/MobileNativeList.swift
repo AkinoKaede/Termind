@@ -290,10 +290,14 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             }
             // A disclosure can change geometry without changing the item value.
             for item in changed where previous[item.id] != nil {
-                if !listView.update(item), let row = listView.rowView(for: item.id) as? MobileHostingListRow {
-                    configure(row, item: item, surface: surface)
+                // update already invalidates and measures changed content synchronously.
+                // Only presentation-only changes need an explicit invalidation.
+                if !listView.update(item) {
+                    if let row = listView.rowView(for: item.id) as? MobileHostingListRow {
+                        configure(row, item: item, surface: surface)
+                    }
+                    listView.invalidateLayout(forRowWith: item.id)
                 }
-                listView.invalidateLayout(forRowWith: item.id)
             }
             if environmentChanged { listView.reloadData() }
             // Interaction-only updates retain the host and its measured geometry. Reconciliation
@@ -312,12 +316,14 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
             revisions = newRevisions
             interactionRevisions = newInteractionRevisions
             scheduleViewportCheck()
-            if followsBottom, wasAtBottom, identitiesChanged || !changed.isEmpty {
-                DispatchQueue.main.async { [weak listView] in
-                    guard let listView, !listView.isUserInteractingWithScroll else { return }
-                    listView.layoutIfNeeded()
-                    listView.scrollToBottom(animated: !wasEmpty && !reduceMotion)
-                }
+            if followsBottom, wasAtBottom, identitiesChanged || !changed.isEmpty,
+                !listView.isUserInteractingWithScroll
+            {
+                // Match the desktop transcript: settle this delta before the next one.
+                // Deferred animated follows chase changing heights and can lose the bottom anchor.
+                listView.layoutIfNeeded()
+                guard !listView.isUserInteractingWithScroll else { return }
+                listView.scrollToBottom(animated: false)
             }
         }
 

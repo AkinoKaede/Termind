@@ -369,6 +369,89 @@ struct MobileAssistantTranscriptTests {
         #expect(abs(harness.list.contentOffset.y - offset) < 1)
     }
 
+    @Test func streamingGrowthFollowsBottomSynchronouslyWithoutScrollAnimations() async throws {
+        let harness = Harness(rowHeight: { CGFloat($0.text.count) * 20 })
+        var items = (0..<8).map { _ in message("Line") }
+        harness.update(items)
+        for _ in 0..<100 where Set(harness.measuredIDs).count < items.count {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(Set(harness.measuredIDs).count == items.count)
+        harness.list.scrollToBottom(animated: false)
+        harness.list.layoutIfNeeded()
+        harness.list.bottomScrollAnimations.removeAll()
+        let tailID = try #require(items.last?.id)
+        let row = try #require(harness.list.rowView(for: tailID))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+
+        // Grow by more than the follow tolerance, including consecutive updates
+        // before the next run-loop turn, as a burst of streaming deltas can do.
+        for _ in 0..<6 {
+            items[items.count - 1].text += "more"
+            let previousHeight = harness.list.contentSize.height
+            harness.update(items, followsBottom: true)
+            #expect(harness.list.contentSize.height > previousHeight)
+            #expect(harness.list.isScrolledToBottom(tolerance: 1))
+            #expect(harness.list.rowView(for: tailID) === row)
+            #expect(row.subviews.first?.subviews.first === hosted)
+        }
+
+        let settledOffset = harness.list.contentOffset.y
+        try await Task.sleep(for: .milliseconds(60))
+        #expect(harness.list.isScrolledToBottom(tolerance: 1))
+        #expect(abs(harness.list.contentOffset.y - settledOffset) < 1)
+        #expect(!harness.list.bottomScrollAnimations.isEmpty)
+        #expect(harness.list.bottomScrollAnimations.allSatisfy { !$0 })
+    }
+
+    @Test func streamingGrowthDoesNotFollowWhileReadingHistory() async throws {
+        let harness = Harness(rowHeight: { CGFloat($0.text.count) * 20 })
+        var items = (0..<30).map { _ in message("Line") }
+        harness.update(items)
+        for _ in 0..<100 where Set(harness.measuredIDs).count < items.count {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(Set(harness.measuredIDs).count == items.count)
+        harness.list.setContentOffset(CGPoint(x: 0, y: 120), animated: false)
+        harness.list.layoutIfNeeded()
+        let offset = harness.list.contentOffset.y
+        let index = try #require(harness.list.indicesForVisibleRows.first)
+        let id = items[index].id
+        let row = try #require(harness.list.rowView(for: id))
+        harness.list.bottomScrollAnimations.removeAll()
+
+        for _ in 0..<6 {
+            items[items.count - 1].text += "more"
+            harness.update(items, followsBottom: true)
+        }
+        try await Task.sleep(for: .milliseconds(60))
+        #expect(abs(harness.list.contentOffset.y - offset) < 1)
+        #expect(harness.list.rowView(for: id) === row)
+        #expect(harness.list.bottomScrollAnimations.isEmpty)
+    }
+
+    @Test func contentUpdatesMeasureOnceAndDisclosureRevisionsStillRemeasure() async throws {
+        var height: CGFloat = 80
+        let harness = Harness(rowHeight: { _ in height })
+        var item = message("Answer")
+        harness.update([item])
+        try await Task.sleep(for: .milliseconds(30))
+        harness.measuredIDs.removeAll()
+
+        height = 120
+        item.text += " delta"
+        harness.update([item])
+        #expect(harness.list.rectForRow(with: item.id).height == height)
+        #expect(harness.measuredIDs == [item.id])
+
+        harness.measuredIDs.removeAll()
+        height = 180
+        harness.revisions[item.id] = 1
+        harness.update([item])
+        #expect(harness.list.rectForRow(with: item.id).height == height)
+        #expect(harness.measuredIDs == [item.id])
+    }
+
     @Test func visibleWorkCollapsesOnlyAfterItFullyLeavesTheMobileViewport() async throws {
         typealias Adapter = MobileNativeList<AssistantTranscriptEntry, Text>
         let presentation = AssistantTranscriptPresentationState()
@@ -669,22 +752,31 @@ struct MobileAssistantTranscriptTests {
         }
     }
 
+    private final class RecordingListView: ListView<ChatMessage> {
+        var bottomScrollAnimations: [Bool] = []
+
+        override func scrollToBottom(animated: Bool = true) {
+            bottomScrollAnimations.append(animated)
+            super.scrollToBottom(animated: animated)
+        }
+    }
+
     private final class Harness {
         let coordinator = MobileNativeList<ChatMessage, Text>.Coordinator()
-        let list = ListView<ChatMessage>()
+        let list = RecordingListView()
         var revisions: [UUID: UInt64] = [:]
         var interactionRevisions: [UUID: UInt64] = [:]
         var renderedIDs: [UUID] = []
         var measuredIDs: [UUID] = []
         var renderedInteractionRevisions: [UUID: UInt64] = [:]
 
-        init() {
+        init(rowHeight: @escaping (ChatMessage) -> CGFloat = { _ in 80 }) {
             list.frame = CGRect(x: 0, y: 0, width: 390, height: 280)
             list.estimatedRowHeight = 80
             list.rows {
                 ListRow(MobileHostingListRow.self).height { [weak self] item, _ in
                     self?.measuredIDs.append(item.id)
-                    return 80
+                    return rowHeight(item)
                 }.configure { [weak self] row, item, _ in
                     self?.coordinator.configure(row, item: item, surface: .plain)
                 }
