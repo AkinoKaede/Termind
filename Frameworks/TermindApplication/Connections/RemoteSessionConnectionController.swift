@@ -166,12 +166,13 @@ public final class RemoteSessionConnectionController {
 
     @discardableResult
     public func scheduleRecovery(
-        after error: String, retry: @escaping SessionReconnectController.RetryAction
+        after error: String, waitingForCredentials: Bool = false,
+        retry: @escaping SessionReconnectController.RetryAction
     ) -> Bool {
         guard hasConnectedOnce else { return false }
         let announcesLoss = !isRecovering
         isRecovering = true
-        reconnect.schedule(after: error, retry: retry)
+        reconnect.schedule(after: error, waitingForCredentials: waitingForCredentials, retry: retry)
         return announcesLoss
     }
 
@@ -184,6 +185,7 @@ public final class RemoteSessionConnectionController {
     public func scheduleReconnect(
         after message: String, hostID: Host.ID, using store: any RemoteSessionHostStore,
         purpose: ConnectionPurpose, route: SSHConnectionRoute? = nil, usernameHint: String? = nil,
+        waitingForCredentials: Bool = false,
         teardown: () -> Void,
         retry: @escaping @MainActor (any RemoteSessionHostStore) -> Void
     ) {
@@ -200,7 +202,8 @@ public final class RemoteSessionConnectionController {
                 username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
             )
         }
-        scheduleRecovery(after: message) { [weak store] in
+        reconnect.useAvailability(store.recoveryAvailability)
+        scheduleRecovery(after: message, waitingForCredentials: waitingForCredentials) { [weak store] in
             guard let store else { return }
             retry(store)
         }

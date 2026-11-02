@@ -485,14 +485,17 @@ public nonisolated struct SSHCredentialResolution: Sendable {
     public var failures: [String]
     public var hasConfiguredCredential: Bool
     public var requiredPassphraseKeyID: SSHKeyRef.ID?
+    public var accessUnavailable: SSHCredentialAccessUnavailable?
     public init(
         credentials: [SSHCredentials], failures: [String], hasConfiguredCredential: Bool,
-        requiredPassphraseKeyID: SSHKeyRef.ID? = nil
+        requiredPassphraseKeyID: SSHKeyRef.ID? = nil,
+        accessUnavailable: SSHCredentialAccessUnavailable? = nil
     ) {
         self.credentials = credentials
         self.failures = failures
         self.hasConfiguredCredential = hasConfiguredCredential
         self.requiredPassphraseKeyID = requiredPassphraseKeyID
+        self.accessUnavailable = accessUnavailable
     }
 
 }

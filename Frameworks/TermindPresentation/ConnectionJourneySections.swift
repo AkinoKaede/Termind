@@ -250,12 +250,14 @@ public struct ConnectionJourneyReconnectStatus: View {
                     Text(statusText(at: context.date)).font(.headline)
                 }
             }
-            Text(state.lastError)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .textSelection(.enabled)
+            if state.phase == .retrying, !state.lastError.isEmpty {
+                Text(state.lastError)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .textSelection(.enabled)
+            }
             ConnectionJourneyActions {
                 retryButton
                 stopButton
@@ -266,6 +268,7 @@ public struct ConnectionJourneyReconnectStatus: View {
 
     private var retryButton: some View {
         Button("Retry Now", action: retryNow)
+            .disabled(state.phase == .waitingForSystem)
             .buttonStyle(.borderedProminent)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
@@ -279,9 +282,21 @@ public struct ConnectionJourneyReconnectStatus: View {
     }
 
     private func statusText(at date: Date) -> String {
+        if let waiting = state.waitingStatus { return String(localized: waiting) }
         let seconds = max(0, Int(ceil(state.nextRetry.timeIntervalSince(date))))
-        if seconds == 0 { return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt)) }
-        return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt, retryingIn: seconds))
+        let attempt = max(1, state.attempt)
+        if seconds == 0 { return String(localized: AppStrings.Connections.reconnectAttempt(attempt)) }
+        return String(localized: AppStrings.Connections.reconnectAttempt(attempt, retryingIn: seconds))
+    }
+}
+
+extension ReconnectState {
+    public var waitingStatus: LocalizedStringResource? {
+        switch phase {
+        case .retrying: nil
+        case .waitingForSystem: AppStrings.Connections.waitingForSystemRecovery
+        case .waitingForCredentials: AppStrings.Connections.waitingForCredentials
+        }
     }
 }
 

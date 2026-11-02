@@ -326,6 +326,11 @@ struct TermindApp: App {
                     guard !TermindApp.isRunningTests else { return }
                 #endif
                 app.serverMetrics.start()
+                recoveryActivity?.stop()
+                if let availability = app.hostLibrary.recoveryAvailability {
+                    recoveryActivity = ConnectionRecoveryActivityObserver(availability: availability)
+                    recoveryActivity?.start()
+                }
                 metricsActivity.start(app.serverMetrics)
                 metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
                 metricsMenu.openDetails = { [weak app] hostID in
@@ -339,6 +344,7 @@ struct TermindApp: App {
             }
         }
         private let metricsActivity = MetricsActivityObserver()
+        private var recoveryActivity: ConnectionRecoveryActivityObserver?
         private let metricsMenu = MetricsMenuBarController()
         private var awaitingTermination = false
         private let terminationReply = AppTerminationReplyCoordinator()
@@ -514,6 +520,7 @@ struct TermindApp: App {
         }
 
         func applicationWillTerminate(_ notification: Notification) {
+            recoveryActivity?.stop()
             metricsActivity.stop()
             metricsMenu.stop()
             appearanceController.stop()

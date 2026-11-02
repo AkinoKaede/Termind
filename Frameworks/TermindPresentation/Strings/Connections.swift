@@ -26,6 +26,18 @@ extension AppStrings {
             "Connection lost; reconnecting…"
         }
 
+        public static var waitingForSystemRecovery: LocalizedStringResource {
+            "Waiting for system recovery"
+        }
+
+        public static var waitingForCredentials: LocalizedStringResource {
+            "Waiting for credentials to become available"
+        }
+
+        public static var credentialsTemporarilyUnavailable: LocalizedStringResource {
+            "Saved credentials are temporarily unavailable."
+        }
+
         public static var establishingConnection: LocalizedStringResource {
             "Establishing Connection…"
         }

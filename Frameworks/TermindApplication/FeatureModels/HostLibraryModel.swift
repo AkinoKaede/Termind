@@ -83,6 +83,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         agentForwardingRevisions[hostID, default: 0]
     }
     public var agentForwardingSecrets: any SSHRuntimeSecretResolving { keychain }
+    public var recoveryAvailability: ConnectionRecoveryAvailability?
 
     public private(set) var groups: [HostGroup] = []
     public private(set) var keys: [SSHKeyRef] = [] {
@@ -658,7 +659,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         if let submission = submissions[host.id] {
             username = submission.username.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !username.isEmpty else { throw TermindSSHError.missingUsername }
-            credentials = try sshCredentials(for: submission)
+            do {
+                credentials = try sshCredentials(for: submission)
+            } catch let unavailable as SSHCredentialAccessUnavailable {
+                throw unavailable.at(host.id)
+            }
         } else {
             guard let identity = identity(for: host) else {
                 throw TermindSSHError.missingCredential
@@ -666,10 +671,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !username.isEmpty else { throw TermindSSHError.missingUsername }
             let resolution = sshCredentials(for: identity)
+            credentials = resolution.credentials
+            if credentials.isEmpty, let unavailable = resolution.accessUnavailable {
+                throw unavailable.at(host.id)
+            }
             guard resolution.requiredPassphraseKeyID == nil else {
                 throw TermindSSHError.keyPassphraseRequired
             }
-            credentials = resolution.credentials
         }
         let expectsCredential =
             submissions[host.id].map { $0.keyID != nil || $0.hasPassword }
@@ -757,6 +765,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     trustPolicy: trustPolicy
                 )
             } catch {
+                if let unavailable = error as? SSHCredentialAccessUnavailable { throw unavailable.at(jump.id) }
                 if (error as? TermindSSHError)?.isProxyAuthentication == true { throw error }
                 let authentication =
                     switch error as? TermindSSHError {
@@ -790,6 +799,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             trustPolicy: trustPolicy
         )
         let resolution = sshCredentials(for: identity)
+        if resolution.credentials.isEmpty, let unavailable = resolution.accessUnavailable {
+            throw unavailable.at(host.id)
+        }
         guard resolution.requiredPassphraseKeyID == nil else {
             throw TermindSSHError.keyPassphraseRequired
         }
@@ -896,6 +908,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             do {
                 password = try passwordSecret(for: identity)
             } catch {
+                if let unavailable = error as? SSHCredentialAccessUnavailable { throw unavailable.at(host.id) }
                 throw TermindSSHError.proxyAuthentication(
                     hostID: host.id, serverChallenge: false, message: error.localizedDescription)
             }
@@ -919,6 +932,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         var credentials: [SSHCredentials] = []
         var failures: [String] = []
         var requiredPassphraseKeyID: SSHKeyRef.ID?
+        var accessUnavailable: SSHCredentialAccessUnavailable?
 
         if let keyID = identity.keyID {
             if let key = key(keyID) {
@@ -937,6 +951,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                                 String(localized: "The selected key has no saved private key.")
                             )
                         }
+                    } catch let unavailable as SSHCredentialAccessUnavailable {
+                        accessUnavailable = unavailable
                     } catch {
                         storageError = error.localizedDescription
                         failures.append(error.localizedDescription)
@@ -958,6 +974,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         String(localized: "The saved password is no longer available.")
                     )
                 }
+            } catch let unavailable as SSHCredentialAccessUnavailable {
+                accessUnavailable = unavailable
             } catch {
                 storageError = error.localizedDescription
                 failures.append(error.localizedDescription)
@@ -967,7 +985,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return SSHCredentialResolution(
             credentials: credentials, failures: failures,
             hasConfiguredCredential: identity.hasSecret,
-            requiredPassphraseKeyID: requiredPassphraseKeyID
+            requiredPassphraseKeyID: requiredPassphraseKeyID,
+            accessUnavailable: accessUnavailable
         )
     }
 

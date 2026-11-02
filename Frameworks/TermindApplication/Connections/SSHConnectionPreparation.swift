@@ -99,6 +99,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     ))
             } catch {
                 if error is CancellationError { throw error }
+                if let unavailable = error as? SSHCredentialAccessUnavailable { throw unavailable.at(node.host.id) }
                 let ssh = error as? TermindSSHError
                 if ssh?.isProxyAuthentication == true { throw error }
                 throw TermindSSHError.routeHost(
@@ -173,6 +174,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         var completed = false
         defer { if !completed { for credential in result { credential.clearSecrets() } } }
         var retrievalFailure: (any Error)?
+        var requiresPassphrase = false
         if let key = node.key {
             let stored: SSHResolvedKeyCredential?
             do {
@@ -184,12 +186,13 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             if let stored {
                 if key.hasPassphrase, !stored.hasSavedPassphrase, node.submission?.hasPassphrase != true {
                     stored.clearSecrets()
-                    throw TermindSSHError.keyPassphraseRequired
+                    requiresPassphrase = true
+                } else {
+                    result.append(
+                        stored.sshCredential(
+                            for: key, passphraseOverride: node.submission?.passphraseForConnection()
+                        ))
                 }
-                result.append(
-                    stored.sshCredential(
-                        for: key, passphraseOverride: node.submission?.passphraseForConnection()
-                    ))
             }
         }
         try Task.checkCancellation()
@@ -205,9 +208,13 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     result.append(.password(password))
                 }
             } catch {
-                if retrievalFailure == nil { retrievalFailure = error }
+                if retrievalFailure == nil || error is SSHCredentialAccessUnavailable { retrievalFailure = error }
             }
         }
+        if result.isEmpty, let unavailable = retrievalFailure as? SSHCredentialAccessUnavailable {
+            throw unavailable.at(node.host.id)
+        }
+        if requiresPassphrase { throw TermindSSHError.keyPassphraseRequired }
         if result.isEmpty, let retrievalFailure { throw retrievalFailure }
         let usesIdentity = node.submission == nil || node.submission?.identityID != nil
         if result.isEmpty, node.key != nil || (usesIdentity && node.identity?.hasSecret == true) {
@@ -236,6 +243,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             do {
                 password = try secrets.sshSecret(for: identity.credentialRef, storage: identity.passwordStorage)
             } catch {
+                if let unavailable = error as? SSHCredentialAccessUnavailable { throw unavailable.at(node.host.id) }
                 throw TermindSSHError.proxyAuthentication(
                     hostID: node.host.id, serverChallenge: false, message: error.localizedDescription)
             }

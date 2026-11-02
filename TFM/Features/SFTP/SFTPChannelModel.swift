@@ -336,6 +336,11 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
     }
 
     private func startConnection(using store: any RemoteSessionHostStore) {
+        reconnectController.useAvailability(store.recoveryAvailability)
+        if connection.isRecovering, !reconnectController.isSystemAvailable {
+            scheduleReconnect(after: "", using: store)
+            return
+        }
         let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         homeResolution = .pending
         didResolveHomeForConnection = false
@@ -406,6 +411,11 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
             guard let self, let store else { return }
             do {
                 try await store.resolveHostAccess(host, route: connectionRoute)
+                if reconnecting, !reconnectController.isSystemAvailable {
+                    guard self.connectionAttemptID == attemptID else { return }
+                    self.scheduleReconnect(after: "", using: store)
+                    return
+                }
                 let configuration: SSHConnectionConfiguration
                 if let suppliedAuthentication, !host.isTailscaleManaged {
                     let expectedHostKeys = try store.expectedHostKeys(
@@ -602,7 +612,9 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
             } catch {
                 guard self.connectionAttemptID == attemptID else { return }
                 if self.connection.hasConnectedOnce || reconnecting {
-                    self.scheduleReconnect(after: error.localizedDescription, using: store)
+                    self.scheduleReconnect(
+                        after: error.localizedDescription, using: store,
+                        waitingForCredentials: error is SSHCredentialAccessUnavailable)
                 } else {
                     self.status = .failed(error.localizedDescription)
                     self.homeResolution = .unavailable
@@ -668,10 +680,13 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
         self.transferContext = nil
         self.client = nil
         additionalSnapshot = nil
-        status = .failed(reconnectState.lastError)
+        let message =
+            reconnectState.phase == .retrying
+            ? reconnectState.lastError : String(localized: AppStrings.Connections.connectionCancelled)
+        status = .failed(message)
         homeResolution = .unavailable
-        hint = reconnectState.lastError
-        connectionJourney.fail(reconnectState.lastError)
+        hint = message
+        connectionJourney.fail(message)
         Task {
             if let transferContext { await transferContext.retire() } else { await client?.disconnect() }
         }
@@ -1226,10 +1241,12 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
         scheduleReconnect(after: message, using: store)
     }
 
-    private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
+    private func scheduleReconnect(
+        after message: String, using store: any RemoteSessionHostStore, waitingForCredentials: Bool = false
+    ) {
         connection.scheduleReconnect(
             after: message, hostID: hostID, using: store,
-            purpose: .sftpChannel
+            purpose: .sftpChannel, waitingForCredentials: waitingForCredentials
         ) {
             connectionAttemptID = nil
             connectionTask?.cancel()

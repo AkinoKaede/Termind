@@ -11,6 +11,38 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct PortForwardingReconnectTests {
+    @Test func protectedCredentialsWaitSilentlyThenRestoreForwardingWithoutUserInteraction() async throws {
+        let secrets = CredentialRecoverySecrets()
+        let fixture = ReconnectFixture(secrets: secrets)
+        defer { fixture.stop() }
+        var identity = fixture.identity
+        identity.credentialRef = "password"
+        try secrets.setString("saved", for: identity.credentialRef, storage: identity.passwordStorage)
+        fixture.library.upsert(identity)
+        let availability = ConnectionRecoveryAvailability()
+        fixture.library.recoveryAvailability = availability
+        try await fixture.start([0, 1])
+        secrets.unavailable = true
+        availability.setBlocked(true, by: .systemSleep)
+        await fixture.sessions[0].fail()
+        try await eventually { fixture.context?.connection.reconnectState?.phase == .waitingForSystem }
+        let reads = secrets.reads
+        fixture.context?.connection.reconnect.retryNow()
+        #expect(secrets.reads == reads)
+        availability.setBlocked(false, by: .systemSleep)
+        try await eventually { fixture.context?.connection.reconnectState?.phase == .waitingForCredentials }
+        #expect(fixture.context?.authenticationPrompt == nil)
+        #expect(fixture.context?.journey.isPresented == false)
+        #expect(fixture.library.storageError == nil)
+        secrets.unavailable = false
+        availability.requestRecheck()
+        availability.requestRecheck()
+        try await fixture.waitForRunning([0, 1])
+        #expect(fixture.context?.connection.reconnectState == nil)
+        #expect(await fixture.sessions.last?.requests.first?.interactionPolicy == .forbidden)
+        #expect(fixture.sessions.count == 3)
+    }
+
     @Test func numericLimitsUpdateLiveConnectionsAndSurviveRecoveryWithoutChangingHosts() async throws {
         let fixture = ReconnectFixture(poolPolicy: .hostConfigured, connectionLimit: 1, hostConnections: 8)
         defer { fixture.stop() }
@@ -419,7 +451,7 @@ private final class ReconnectFixture {
     init(
         modes: [ReconnectSession.Mode] = [], usesJump: Bool = false, trusted: Bool = true,
         poolPolicy: PortForwardingController.PoolPolicy = .singleConnection, connectionLimit: Int = 64,
-        hostConnections: Int = 1
+        hostConnections: Int = 1, secrets: any SecretStoring = InMemorySecretStore()
     ) {
         self.modes = modes
         self.poolPolicy = poolPolicy
@@ -440,7 +472,7 @@ private final class ReconnectFixture {
             knownHosts: trusted
                 ? [jump, host].map {
                     KnownHostEntry(hostname: $0.host, port: 22, algorithm: .ed25519, fingerprint: "trusted")
-                } : [])
+                } : [], secrets: secrets)
         library.willDeletePortForwardings = { [weak self] in self?.controller.stop($0) }
     }
 

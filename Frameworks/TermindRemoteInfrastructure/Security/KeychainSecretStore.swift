@@ -416,9 +416,14 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess else { throw KeychainSecretError.status(status) }
+        guard status == errSecSuccess else { throw Self.readFailure(for: status) }
         guard let data = result as? Data else { throw KeychainSecretError.unexpectedValue }
         return data
+    }
+
+    static func readFailure(for status: OSStatus) -> any Error {
+        if status == errSecInteractionNotAllowed { return SSHCredentialAccessUnavailable() }
+        return KeychainSecretError.status(status)
     }
 
     private func contains(_ account: String, service: String, synchronizable: Bool) throws -> Bool {

@@ -24,13 +24,21 @@ public nonisolated struct ReconnectPolicy: Sendable, Equatable {
 }
 
 public nonisolated struct ReconnectState: Equatable, Sendable {
+    public enum Phase: Sendable {
+        case retrying
+        case waitingForSystem
+        case waitingForCredentials
+    }
+
     public var attempt: Int
     public var nextRetry: Date
     public var lastError: String
-    public init(attempt: Int, nextRetry: Date, lastError: String) {
+    public var phase: Phase
+    public init(attempt: Int, nextRetry: Date, lastError: String, phase: Phase = .retrying) {
         self.attempt = attempt
         self.nextRetry = nextRetry
         self.lastError = lastError
+        self.phase = phase
     }
 
 }
@@ -54,6 +62,22 @@ public final class SessionReconnectController {
     private var attempts = 0
     private var connectedAt: Date?
     private var generation: UInt64 = 0
+    private var availability: ConnectionRecoveryAvailability?
+    private var availabilityObservation: UUID?
+    private var credentialAttempts = 0
+    private var waitingForCredentials = false
+
+    public func useAvailability(_ availability: ConnectionRecoveryAvailability?) {
+        guard self.availability !== availability else { return }
+        removeAvailabilityObservation()
+        self.availability = availability
+        if retryAction != nil {
+            observeAvailability()
+            availabilityChanged()
+        }
+    }
+
+    public var isSystemAvailable: Bool { availability?.isAvailable != false }
 
     public init(
         policy: ReconnectPolicy = .sessionDefault,
@@ -65,15 +89,26 @@ public final class SessionReconnectController {
         self.now = now
     }
 
+    isolated deinit {
+        retryTask?.cancel()
+        if let availabilityObservation { availability?.removeObserver(availabilityObservation) }
+    }
+
     public func markConnected(initial: Bool) {
         cancelScheduledRetry()
+        generation &+= 1
+        removeAvailabilityObservation()
+        credentialAttempts = 0
+        waitingForCredentials = false
         state = nil
         retryAction = nil
         connectedAt = now()
         if initial { attempts = 0 }
     }
 
-    public func schedule(after error: String, retry: @escaping RetryAction) {
+    public func schedule(
+        after error: String, waitingForCredentials: Bool = false, retry: @escaping RetryAction
+    ) {
         cancelScheduledRetry()
         if let connectedAt,
             now().timeIntervalSince(connectedAt) >= policy.stableResetInterval
@@ -81,22 +116,30 @@ public final class SessionReconnectController {
             attempts = 0
         }
         connectedAt = nil
-        attempts += 1
+        self.waitingForCredentials = waitingForCredentials
+        if waitingForCredentials {
+            credentialAttempts += 1
+        } else if isSystemAvailable {
+            attempts += 1
+            credentialAttempts = 0
+        }
         retryAction = retry
-        let delay = policy.delay(forAttempt: attempts)
+        let delay = policy.delay(forAttempt: waitingForCredentials ? credentialAttempts : attempts)
         state = ReconnectState(
             attempt: attempts,
             nextRetry: now().addingTimeInterval(delay.timeInterval),
-            lastError: error
+            lastError: waitingForCredentials ? "" : error,
+            phase: isSystemAvailable ? (waitingForCredentials ? .waitingForCredentials : .retrying) : .waitingForSystem
         )
-        schedule(delay: delay)
+        observeAvailability()
+        if isSystemAvailable { schedule(delay: delay) } else { generation &+= 1 }
     }
 
     public func retryNow() {
-        guard let retryAction else { return }
+        guard retryAction != nil else { return }
         cancelScheduledRetry()
         generation &+= 1
-        retryAction()
+        runScheduledRetry(expectedGeneration: generation)
     }
 
     public func stop() {
@@ -104,7 +147,10 @@ public final class SessionReconnectController {
         generation &+= 1
         state = nil
         retryAction = nil
+        removeAvailabilityObservation()
         attempts = 0
+        credentialAttempts = 0
+        waitingForCredentials = false
         connectedAt = nil
     }
 
@@ -115,6 +161,7 @@ public final class SessionReconnectController {
         generation &+= 1
         state = nil
         retryAction = nil
+        removeAvailabilityObservation()
     }
 
     private func schedule(delay: Duration) {
@@ -129,7 +176,45 @@ public final class SessionReconnectController {
 
     private func runScheduledRetry(expectedGeneration: UInt64) {
         guard generation == expectedGeneration, let retryAction else { return }
+        guard isSystemAvailable else {
+            state?.phase = .waitingForSystem
+            return
+        }
+        // Consume before invoking: lifecycle hints and Retry Now cannot duplicate an in-flight attempt.
+        self.retryAction = nil
+        removeAvailabilityObservation()
+        cancelScheduledRetry()
+        generation &+= 1
+        state?.phase = waitingForCredentials ? .waitingForCredentials : .retrying
         retryAction()
+    }
+
+    private func observeAvailability() {
+        guard availabilityObservation == nil else { return }
+        availabilityObservation = availability?.observe { [weak self] in self?.availabilityChanged() }
+    }
+
+    private func removeAvailabilityObservation() {
+        if let availabilityObservation { availability?.removeObserver(availabilityObservation) }
+        availabilityObservation = nil
+    }
+
+    private func availabilityChanged() {
+        guard retryAction != nil else { return }
+        cancelScheduledRetry()
+        generation &+= 1
+        if !isSystemAvailable {
+            state?.phase = .waitingForSystem
+            return
+        }
+        state?.phase = waitingForCredentials ? .waitingForCredentials : .retrying
+        state?.nextRetry = now()
+        // Hop once to coalesce wake/session/application notifications from the same turn.
+        let expectedGeneration = generation
+        retryTask = Task { [weak self] in
+            await Task.yield()
+            self?.runScheduledRetry(expectedGeneration: expectedGeneration)
+        }
     }
 
     private func cancelScheduledRetry() {

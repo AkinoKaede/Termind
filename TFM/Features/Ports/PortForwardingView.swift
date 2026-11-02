@@ -165,7 +165,9 @@ struct PortForwardingPageView: ManagedCardPage {
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 0)
                     CardChip(
-                        text: runtime.compactLabel, symbol: runtime.isActive ? "circle.fill" : "circle",
+                        text: app.forwarding.connection(for: rule.id)?.connection.reconnectState?.waitingStatus
+                            .map { String(localized: $0) } ?? runtime.compactLabel,
+                        symbol: runtime.isActive ? "circle.fill" : "circle",
                         tint: runtime.isActive ? .green : nil)
                 }
             }
@@ -249,7 +251,10 @@ struct PortForwardingDetailView: View {
                     Form {
                         if ruleID != nil {
                             Section {
-                                LabeledContent(AppStrings.Common.status.swiftUIKey, value: runtime.label)
+                                LabeledContent(
+                                    AppStrings.Common.status.swiftUIKey,
+                                    value: context?.connection.reconnectState?.waitingStatus
+                                        .map { String(localized: $0) } ?? runtime.label)
                                 if runtime.isActive {
                                     Button(AppStrings.Common.stop.swiftUIKey) { app.forwarding.stop(draft.id) }
                                 } else {

@@ -261,6 +261,7 @@ final class AppModel {
         serverMetrics suppliedMetrics: ServerMetricsModel? = nil,
         windowSizeStore: MainWindowSizeStore = MainWindowSizeStore()
     ) {
+        hosts.recoveryAvailability = hosts.recoveryAvailability ?? ConnectionRecoveryAvailability()
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         settingsDefaults = dependencies.settingsDefaults

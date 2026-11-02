@@ -521,6 +521,11 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     private func startConnection(using store: any RemoteSessionHostStore) {
+        reconnectController.useAvailability(store.recoveryAvailability)
+        if connection.isRecovering, !reconnectController.isSystemAvailable {
+            scheduleReconnect(after: "", using: store)
+            return
+        }
         commandMonitor.endConnection()
         resetCommandGeneratorShellState()
         homeResolution = .unavailable
@@ -607,6 +612,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         let suppliedAuthentication = attemptAuthentications[host.id]
         var credentials: [SSHCredentials] = []
         var credentialFailures: [String] = []
+        var accessUnavailable: SSHCredentialAccessUnavailable?
         var hasConfiguredCredential = false
         let selectedKeyID: SSHKeyRef.ID?
         if let suppliedAuthentication {
@@ -633,6 +639,8 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                                 String(localized: AppStrings.Terminal.theSelectedKeyHasNoSavedPrivateKey)
                             )
                         }
+                    } catch let unavailable as SSHCredentialAccessUnavailable {
+                        accessUnavailable = unavailable.at(host.id)
                     } catch {
                         credentialFailures.append(error.localizedDescription)
                     }
@@ -655,12 +663,18 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                             String(localized: AppStrings.Terminal.theSavedPasswordIsNoLongerAvailable)
                         )
                     }
+                } catch let unavailable as SSHCredentialAccessUnavailable {
+                    accessUnavailable = unavailable.at(host.id)
                 } catch {
                     credentialFailures.append(error.localizedDescription)
                 }
             }
         } else if let identity {
             let resolution = store.sshCredentials(for: identity)
+            if resolution.credentials.isEmpty, let unavailable = resolution.accessUnavailable {
+                handleConnectionAttemptFailure(unavailable.at(host.id), store: store, reconnecting: reconnecting)
+                return
+            }
             if let keyID = resolution.requiredPassphraseKeyID {
                 requestAuthentication(
                     for: host, username: username, selectedKeyID: keyID,
@@ -670,7 +684,12 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             }
             credentials = resolution.credentials
             credentialFailures = resolution.failures
+            accessUnavailable = resolution.accessUnavailable?.at(host.id)
             hasConfiguredCredential = resolution.hasConfiguredCredential
+        }
+        if credentials.isEmpty, let accessUnavailable {
+            handleConnectionAttemptFailure(accessUnavailable, store: store, reconnecting: reconnecting)
+            return
         }
         if credentials.isEmpty, suppliedAuthentication == nil, hasConfiguredCredential {
             requestAuthentication(
@@ -927,8 +946,11 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         connectionTask = nil
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
-        status = .failed(reconnectState.lastError)
-        connectionJourney.fail(reconnectState.lastError)
+        let message =
+            reconnectState.phase == .retrying
+            ? reconnectState.lastError : String(localized: AppStrings.Connections.connectionCancelled)
+        status = .failed(message)
+        connectionJourney.fail(message)
     }
 
     private func openSSH(
@@ -1253,7 +1275,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             return
         }
         if connection.hasConnectedOnce || reconnecting {
-            scheduleReconnect(after: error.localizedDescription, using: store)
+            scheduleReconnect(
+                after: error.localizedDescription, using: store,
+                waitingForCredentials: error is SSHCredentialAccessUnavailable)
         } else {
             status = .failed(error.localizedDescription)
             connectionJourney.fail(
@@ -1271,10 +1295,13 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         scheduleReconnect(after: message, using: store)
     }
 
-    private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
+    private func scheduleReconnect(
+        after message: String, using store: any RemoteSessionHostStore, waitingForCredentials: Bool = false
+    ) {
         connection.scheduleReconnect(
             after: message, hostID: hostID, using: store,
-            purpose: .terminal(transport), route: connectionRoute, usernameHint: usernameHint
+            purpose: .terminal(transport), route: connectionRoute, usernameHint: usernameHint,
+            waitingForCredentials: waitingForCredentials
         ) {
             resetCommandGeneratorShellState()
             connectionAttemptID = nil

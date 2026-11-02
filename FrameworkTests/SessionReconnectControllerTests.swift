@@ -8,6 +8,93 @@ import Testing
 @Suite
 @MainActor
 struct SessionReconnectControllerTests {
+    @Test func systemBlockersPreserveIntentAndCannotBeBypassedByRetryNow() async throws {
+        let availability = ConnectionRecoveryAvailability()
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        controller.useAvailability(availability)
+        defer { controller.stop() }
+        availability.setBlocked(true, by: .inactiveSession)
+        availability.setBlocked(true, by: .systemSleep)
+        var retries = 0
+        controller.schedule(after: "offline") { retries += 1 }
+        controller.retryNow()
+        #expect(retries == 0)
+        #expect(controller.state?.phase == .waitingForSystem)
+
+        availability.setBlocked(false, by: .systemSleep)
+        availability.requestRecheck()
+        #expect(controller.state?.phase == .waitingForSystem)
+        #expect(retries == 0)
+        availability.setBlocked(false, by: .inactiveSession)
+        availability.requestRecheck()
+        availability.requestRecheck()
+        try await waitForRetry { retries == 1 }
+        controller.retryNow()
+        availability.requestRecheck()
+        #expect(retries == 1)
+    }
+
+    @Test func credentialBackoffDoesNotConsumeNetworkAttemptsOrExposeRawErrors() {
+        let clock = ReconnectTestClock()
+        let controller = SessionReconnectController(
+            sleep: { _ in try await Task.sleep(for: .seconds(3_600)) }, now: { clock.value })
+        defer { controller.stop() }
+        controller.schedule(after: "offline") {}
+        for delay in [1.0, 2, 5, 10, 30, 30] {
+            controller.schedule(after: "raw security error", waitingForCredentials: true) {}
+            #expect(controller.state?.attempt == 1)
+            #expect(controller.state?.phase == .waitingForCredentials)
+            #expect(controller.state?.lastError.isEmpty == true)
+            #expect(controller.state?.nextRetry.timeIntervalSince(clock.value) == delay)
+        }
+        controller.schedule(after: "offline again") {}
+        #expect(controller.state?.attempt == 2)
+    }
+
+    @Test func credentialsRetryWithoutAnyLifecycleNotification() async throws {
+        let controller = SessionReconnectController(policy: ReconnectPolicy(delays: [.zero]))
+        defer { controller.stop() }
+        var retries = 0
+        controller.schedule(after: "", waitingForCredentials: true) { retries += 1 }
+        try await waitForRetry { retries == 1 }
+    }
+
+    @Test(arguments: [false, true])
+    func stopAndSuccessfulConnectionRejectQueuedRecoveryHints(_ connected: Bool) async throws {
+        let availability = ConnectionRecoveryAvailability()
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        controller.useAvailability(availability)
+        var retries = 0
+        controller.schedule(after: "", waitingForCredentials: true) { retries += 1 }
+        availability.requestRecheck()
+        if connected { controller.markConnected(initial: false) } else { controller.stop() }
+        availability.requestRecheck()
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(retries == 0)
+        #expect(controller.state == nil)
+    }
+
+    @Test func blockingDuringCountdownDoesNotLoseRetryAndSuccessRemovesWaitState() async throws {
+        let availability = ConnectionRecoveryAvailability()
+        let controller = SessionReconnectController(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
+        controller.useAvailability(availability)
+        defer { controller.stop() }
+        var retries = 0
+        controller.schedule(after: "", waitingForCredentials: true) { retries += 1 }
+        availability.setBlocked(true, by: .systemSleep)
+        #expect(controller.state?.phase == .waitingForSystem)
+        availability.setBlocked(false, by: .systemSleep)
+        try await waitForRetry { retries == 1 }
+        controller.markConnected(initial: false)
+        #expect(controller.state == nil)
+    }
+
+    private func waitForRetry(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while !condition(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(condition())
+    }
+
     @Test
     func retriesUseCappedBackoffAndRetainLatestFailure() {
         let clock = ReconnectTestClock()

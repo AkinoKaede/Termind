@@ -11,6 +11,7 @@ import struct TermindDomain.Host
 /// the complete Vault mutation surface from `HostLibraryModel`.
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
+    var recoveryAvailability: ConnectionRecoveryAvailability? { get }
     func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck?
     func requireHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) throws
     func resolveHostAccess(_ host: Host, protocol connectionProtocol: HostTerminalProtocol) async throws
@@ -77,6 +78,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public var recoveryAvailability: ConnectionRecoveryAvailability? { nil }
     public func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck? { nil }
     // Explicit overloads preserve witness dispatch; default arguments on a fallback can bypass it.
     public func requireHostAccess(_ host: Host) throws { try requireHostAccess(host, protocol: .ssh) }
@@ -132,6 +134,9 @@ extension RemoteSessionHostStore {
             guard let credential = try keySecretCredential(for: key) else { return true }
             defer { credential.clearSecrets() }
             return !credential.hasSavedPassphrase
+        } catch is SSHCredentialAccessUnavailable {
+            // Let the actual credential resolution report temporary inaccessibility.
+            return false
         } catch { return true }
     }
 
@@ -361,7 +366,12 @@ extension RemoteSessionHostStore {
             guard let identity = identity(identityID) else {
                 throw TermindSSHError.missingCredential
             }
-            let password = try connectionPasswordSecret(for: identity)
+            let password: SSHSecret?
+            do {
+                password = try connectionPasswordSecret(for: identity)
+            } catch let unavailable as SSHCredentialAccessUnavailable {
+                throw unavailable.at(ownerHostID)
+            }
             guard let password else { throw TermindSSHError.missingCredential }
             resolvedProxies.append(password)
             return SSHTransportProxy(
@@ -423,6 +433,15 @@ extension RemoteSessionHostStore {
                 }
             }
 
+            let hasUsableCredential = credentials.contains {
+                if case .interactionRequired = $0 { return false }
+                return true
+            }
+            if !hasUsableCredential,
+                let unavailable = failures.compactMap({ $0 as? SSHCredentialAccessUnavailable }).first
+            {
+                throw unavailable.at(node.id)
+            }
             if credentials.isEmpty {
                 if reference.hasEphemeralSecret { throw SSHInteractionRequired() }
                 if !reference.permitsNone { throw failures.first ?? TermindSSHError.missingCredential }

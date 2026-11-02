@@ -373,6 +373,11 @@ public final class PortForwardingController {
             !activeIDs(context).isEmpty, context.task == nil, !context.connected
         else { return }
         let silently = context.connection.isRecovering
+        context.connection.reconnect.useAvailability(hosts.recoveryAvailability)
+        if silently, !context.connection.reconnect.isSystemAvailable {
+            recover(context, message: "")
+            return
+        }
         let attempt = UUID()
         context.attemptID = attempt
         context.silentAttempt = silently
@@ -452,6 +457,9 @@ public final class PortForwardingController {
                 await cleanup?.value
                 try Task.checkCancellation()
                 try await hosts.resolveHostAccess(host)
+                if silently, !context.connection.reconnect.isSystemAvailable {
+                    throw SSHCredentialAccessUnavailable()
+                }
                 let configuration: SSHConnectionConfiguration
                 if silently {
                     guard let snapshot = context.additionalSnapshot else { throw TermindSSHError.missingCredential }
@@ -523,7 +531,9 @@ public final class PortForwardingController {
                     if Self.requiresManualRetry(error) {
                         fail(context, message: error.localizedDescription, presentJourney: false)
                     } else {
-                        recover(context, message: error.localizedDescription)
+                        recover(
+                            context, message: error.localizedDescription,
+                            waitingForCredentials: error is SSHCredentialAccessUnavailable)
                     }
                 } else if let ssh = error as? TermindSSHError,
                     ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication
@@ -677,7 +687,9 @@ public final class PortForwardingController {
         }
     }
 
-    private func recover(_ context: PortForwardingConnection, message: String) {
+    private func recover(
+        _ context: PortForwardingConnection, message: String, waitingForCredentials: Bool = false
+    ) {
         guard context.connection.hasConnectedOnce, context.additionalSnapshot != nil else {
             fail(context, message: message)
             return
@@ -685,7 +697,9 @@ public final class PortForwardingController {
         closeTransport(context)
         context.journey.hide()
         update(context, state: .reconnecting)
-        context.connection.scheduleRecovery(after: message) { [weak self, weak context] in
+        context.connection.reconnect.useAvailability(hosts.recoveryAvailability)
+        context.connection.scheduleRecovery(after: message, waitingForCredentials: waitingForCredentials) {
+            [weak self, weak context] in
             guard let self, let context, self.connections[context.hostID] === context,
                 context.connection.isRecovering
             else { return }
