@@ -1,6 +1,6 @@
 ---
 type: workflow
-title: SFTP Transfers and External Editing
+title: SFTP Transfer and External Edit
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
@@ -20,6 +20,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-f2860ea1e34da1a6d9ec1510
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift
+  - id: openwiki-source-d2d4c06f734241db3badc1f5
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-de03b453e9349cc11ea90e3c
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
@@ -74,10 +76,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 ## Scope and operating model
@@ -113,13 +115,40 @@ When a terminal supplies a `directoryContextTicket`, companion dispatch first aw
 
 `SFTPChannelModel` owns the browser's live channel, navigation, and pending batches. It connects through `RemoteConnectionCoordinator.connectSFTP` and the shared `RemoteSessionConnectionController` for authentication, host-key prompts, connection journey, and recovery. Before installing a channel it checks cancellation and the connection-attempt ID, resolves the home directory, and checks the attempt again. A successful attempt creates a fresh control-role `SFTPTransferContext` with an additional-connection snapshot and host store; the model exposes only `.context` for queued transfer work, not its raw control channel. Reconnection retires and clears the old context before retrying, so browser recovery does not silently resume paused queue jobs. [^browser-integration]
 
+UI connection preparation is interactive: it resolves host access, stages route authentication, and supplies host-key, keyboard-interactive, and security-key callbacks to the coordinator. Reconnection waits for system availability and requests authentication again when the model used ephemeral credentials. Credential-access failures can enter recovery waiting for credentials; missing credentials and server authentication challenges return to the prompt flow. These are browser connection retries, not retries of a queued file operation. [^browser-integration]
+
+```mermaid
+sequenceDiagram
+    participant Browser as SFTPChannelModel
+    participant Store as Host store
+    participant Connector as RemoteConnectionCoordinator
+    participant Context as Transfer context
+    Browser->>Store: resolve access and prepare route credentials
+    Browser->>Connector: connectSFTP with interactive callbacks
+    Connector-->>Browser: authenticated channel
+    Browser->>Browser: check attempt and resolve remote home
+    alt cancelled or superseded attempt
+        Browser->>Connector: disconnect returned channel
+    else current attempt
+        Browser->>Context: create control context with snapshot
+        Note over Browser,Context: Queued jobs retain context independently
+    end
+    opt later connection failure
+        Browser->>Context: retire old primary
+        Browser->>Browser: clear attempt and schedule recovery
+        Note over Browser,Context: Paused jobs still need explicit resume
+    end
+```
+
+*Interactive browser recovery replaces the control generation, not the coordinator's queued transfer state.*
+
 An empty configured initial path means **resolve the server's home**, not browse `/`: `/` is only the model's provisional value. Home resolution uses SFTP `REALPATH` on `.` and requires an absolute result. With an explicit initial path, home-resolution failure leaves that path usable but home display unavailable; without one, it fails connection setup. External-resource paths `/~` and `/~/…` are resolved against that authenticated home, never the local user's home; the resource is inspected before deciding to browse it or open a file from its parent. [^browser-path-context]
 
 Listing refresh captures the path, connection attempt, and history object and applies its result only if all still match a connected browser. Upload and copy planners use the browser path as their destination; queued downloads, uploads, copies, promised files, and edit operations also receive `homeResolution.resolvedDirectory` as path context. Actual targets remain the planned remote paths. For basic metadata mutations, the shared `RemoteFileSystem` helpers validate a new leaf name, join it to the remote parent, refuse overwrite on rename, and mask permissions to `0o7777`. [^browser-listing-context]
 
 [^companion-source]: `TFM/Features/Workspaces/WindowModel.swift#L939-L999`.
 [^companion-placement]: `TFM/Features/Workspaces/WindowModel.swift#L947-L975`; `TFM/Features/Workspaces/WindowModel.swift#L1129-L1149`; `TFMTests/SFTPChannelTests.swift#L74-L122`.
-[^browser-integration]: `TFM/Features/SFTP/SFTPChannelModel.swift#L316-L318`; `TFM/Features/SFTP/SFTPChannelModel.swift#L474-L537`; `TFM/Features/SFTP/SFTPChannelModel.swift#L1212-L1243`.
+[^browser-integration]: [browser preparation and installation](../../TFM/Features/SFTP/SFTPChannelModel.swift#L338-L628); [recovery retirement](../../TFM/Features/SFTP/SFTPChannelModel.swift#L1237-L1270).
 [^browser-path-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L202-L233`; `TFM/Features/SFTP/SFTPChannelModel.swift#L670-L729`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L167-L185`.
 [^browser-listing-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L807-L825`; `TFM/Features/SFTP/SFTPChannelModel.swift#L940-L1146`; `Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift#L16-L47`.
 
@@ -132,7 +161,7 @@ Additional connections do not replay a retained credential-bearing configuration
 Both saved leases and context silent opens bridge the transfer cancellation token and task cancellation to the connection-opening task. They remove the token observer after opening, recheck cancellation before accepting the result, and disconnect the client on failure. Context primary waiters also observe both cancellation paths. A cancelled silent capability probe must propagate cancellation rather than caching channel-only degradation. [^opening-cancellation]
 
 [^operation-access]: [AccessControlledSFTPChannel](../../Frameworks/TermindRemoteInfrastructure/SSH/AccessControlledSFTPChannel.swift#L6-L162); [subsystem opening](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift#L49-L74); [admission regression test](../../FrameworkTests/HostOperationAdmissionTests.swift#L10-L39).
-[^fresh-request]: [snapshot and request construction](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L275-L455).
+[^fresh-request]: [snapshot and request construction](../../Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L293-L487).
 [^opening-cancellation]: [context opening and waiters](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L208-L259); [saved lease opening](../../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L669-L699).
 
 ## Admission, fairness, and SSH topology
@@ -147,6 +176,7 @@ sequenceDiagram
     participant Coordinator
     participant Scheduler
     participant Context
+    participant Store as Host store
     participant Channel
     Browser->>Coordinator: enqueue validated file job
     Coordinator->>Scheduler: acquire global host source permit
@@ -155,14 +185,21 @@ sequenceDiagram
     alt channels only
         Context->>Channel: open sibling or serialize primary
     else connections preferred
+        Context->>Store: resolve fresh interaction-forbidden request
+        Store-->>Context: current access credentials and network
         Context->>Channel: silently open additional connection
-        alt silent open fails
+        alt non-cancellation failure
             Context->>Channel: open sibling or serialize primary
+        else cancellation
+            Context->>Channel: cancel opening and disconnect client
+            Context-->>Coordinator: propagate cancellation
         end
     end
-    Coordinator->>Channel: upload download or copy
-    Channel-->>Coordinator: completion or error
-    Coordinator->>Context: release slot and transfer ownership
+    opt lease acquired and not cancelled
+        Coordinator->>Channel: upload download or copy with access check
+        Channel-->>Coordinator: completion or error
+    end
+    Coordinator->>Context: release lease slot and transfer ownership
     Coordinator->>Scheduler: release permit
 ```
 
@@ -289,6 +326,10 @@ Do not copy browser-context assumptions wholesale into the Agent pool: browser a
 
 The consumed AgentKit pin is **4.0.0**, fetched as a remote Swift package rather than maintained under a local `AgentKit/` source directory. Application composition requests `AgentScratchWorkspace.shared(applicationName:)`; repository tests establish that conversations share staged files and `removeScope` does not remove them. Relative paths are contained in the workspace and symlinks are refused, including aliases within it. Do not confuse this shared staging with process-local transfer checkpoints. [^scratch-storage]
 
+The tool registry creates this workspace only for a model with `.toolCall` ability and passes the same workspace to AgentKit's built-in scratch group and `TermindAgentTools`. The latter injects the Agent authentication registry and connection pool into SFTP and scratch transfer tools, not a browser context. `scratch_pull` is registered when a workspace exists; `scratch_push` additionally belongs to acting mode. This is the extension boundary for host-backed staging alongside runtime-local scratch editing. [^scratch-registry]
+
+[^scratch-registry]: [registry composition](../../Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L27-L63); [host tool injection](../../Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L133-L175).
+
 `scratch_pull` validates the remote and scratch paths in preflight, reads the whole remote file with `maximumBytes: .max`, releases its authenticated SFTP operation, and then passes the bytes to `workspace.write` for local staging. It returns paths, size, SHA-256, UTF-8 status and line count, **not file contents**. It has no former 8-MiB file ceiling and is not a streaming download into the workspace; whole-file memory and local write failures still matter. [^scratch-roundtrip]
 
 `scratch_push` declares `.ask`. Preflight reads the staged bytes and supplies size/hash plus a redacted text preview (or binary summary) to approval, binding the SHA-256 in execution metadata. Execution rereads the file and rejects a mismatch with that approved digest before remote I/O. It sends the captured bytes through `writeFile`, defaults `overwrite` to false, and returns metadata rather than contents. It neither consumes nor deletes the staged file; remote temporary-file cleanup is the inline channel's best-effort failure cleanup, not resumable queue cleanup. [^scratch-push]
@@ -401,11 +442,15 @@ sequenceDiagram
     participant User
     participant EditService
     participant Coordinator
+    participant Access as Access-controlled channel
     participant Remote
     User->>EditService: open regular remote file
+    EditService->>Access: inspect attributes
+    Access->>Remote: stat if admitted
     EditService->>Coordinator: queue download with version receipt
     Coordinator->>Remote: download managed copy
-    Remote-->>EditService: committed remote version
+    Remote-->>Coordinator: downloaded version
+    Coordinator-->>EditService: completion and version receipt
     EditService-->>User: local editable URL
     User->>EditService: explicit upload
     EditService->>Remote: inspect current remote version

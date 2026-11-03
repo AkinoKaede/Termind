@@ -1,6 +1,6 @@
 ---
 type: architecture map
-title: Module Map
+title: Module Map and Dependency Direction
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
@@ -30,6 +30,14 @@ sources:
     resource: repo://Frameworks/TermindPresentation/HostIconBrandColor.swift
   - id: openwiki-source-6c30416f939593ee31f56380
     resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
+  - id: openwiki-source-309f606116ce5e48c90706a8
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentResourceManager.swift
+  - id: openwiki-source-a5d7e0dceed6f03d335cc324
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/HostManagementTools.swift
+  - id: openwiki-source-bc712869742a856000684c8c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/MetricsManagementTools.swift
+  - id: openwiki-source-459d5310dcba40b0aa1e3b65
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-739f64e0e0f22dee6b791bc4
@@ -100,13 +108,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# Module Map
+# Module Map and Dependency Direction
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -177,7 +185,7 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** AgentKit is a remote package, not a repository-root maintenance submodule or local Xcode package path. The project declares a remote `upToNextMinorVersion` requirement starting at `4.0.0`, and `Package.resolved` pins version `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. Change the package requirement/resolution to change the build input; do not look for a local AgentKit maintenance tree. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable. Presenter lookup requires a presentation ID and rejects MCP descriptors; there is no legacy tool-name fallback in `TermindAgentTools`. Both native dependency assemblies layer `SSHExecToolPresentation` onto the shared presenter registry, keeping native SSH card presentation separate from host-tool registration. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** AgentKit is a remote package, not a repository-root maintenance submodule or local Xcode package path. The project declares a remote `upToNextMinorVersion` requirement starting at `4.0.0`, and `Package.resolved` pins version `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. Change the package requirement/resolution to change the build input; do not look for a local AgentKit maintenance tree. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable. The catalog also adds host discovery and cached metrics reading, plus resource-management tools when an `AgentResourceManager` is injected. Resource list/get operations are available in planning and acting; mutations are acting-only. Saved-snippet execution has separate acting and planning registrations and also requires the manager. Presenter lookup requires a presentation ID and rejects MCP descriptors; there is no legacy tool-name fallback in `TermindAgentTools`. Both native dependency assemblies layer `SSHExecToolPresentation` onto the shared presenter registry, keeping native SSH card presentation separate from host-tool registration. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
 **Remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate checks:
 
@@ -217,7 +225,7 @@ These are feature-facing contracts and policies, not a promise that every public
 
 Resumable terminal protocols extend Remote Infrastructure, not native feature switches over engine classes. The coordinator injects an immutable `ResumableTerminalEngineRegistry` into PTY channels; its live registrations select Mosh and Eternal Terminal engines. Engines own protocol resources while `ResumableTerminalClient` owns the shared lifecycle and serialization boundary; it rejects an unregistered transport before wake, route or bootstrap side effects. Persistent remote-session backends use a separate seam: `RemoteSessionBackendRegistry.live` obtains backend factories from registered multiplexer dialects. Each dialect supplies its backend: tmux uses `RemoteTmuxBackend`, while socket dialects use `RemoteMultiplexerBackend`. Application policy consumes backend contracts rather than tmux/Zellij command dialects. Architecture tests explicitly keep engine and dialect implementation names out of Domain, Application, Presentation and both native feature trees, and guard PTY/client code against bypassing registration. `FrameworkTests/ResumableTerminalEngineTests.swift` exercises injected engines, missing-registration failure before side effects, restore without startup replay, and recovery retry on the existing engine.
 
-The Assistant is a useful change-placement example: `AssistantExecutionController` accepts an injected registry factory, authorization callback, run repository, and title generator; app-specific host services provide tools without making the Application framework construct SSH machinery. On mobile the app model wires `AgentHostServices.live` with its connection coordinator and SFTP scheduler. For speech it supplies `IOSSpeechAudioInput` to the shared transcription service and cancels speech on interruption. The remote-filesystem port similarly separates file policy from the SFTP transfer coordinator; Vault sync reads Persistence-owned journals rather than moving CloudKit policy into the app.
+The Assistant is a useful change-placement example: `AssistantExecutionController` accepts an injected registry factory, authorization callback, run repository, and title generator; app-specific host services provide tools without making the Application framework construct SSH machinery. Both app models now assemble Remote Infrastructure's `AgentResourceManager` from their existing credential, snippet, forwarding, metrics, and host owners, with credential-storage defaults derived from settings and Pro access. This is an adapter over existing feature owners, not a second persistence or connection stack. Desktop supplies the same manager to Assistant registry assembly and its MCP server; mobile supplies it to `MobileAssistantModel`. On mobile the app model also wires `AgentHostServices.live` with its connection coordinator and SFTP scheduler. For speech it supplies `IOSSpeechAudioInput` to the shared transcription service and cancels speech on interruption. The remote-filesystem port similarly separates file policy from the SFTP transfer coordinator; Vault sync reads Persistence-owned journals rather than moving CloudKit policy into the app.
 
 The device directory illustrates why target edges alone are insufficient: native composition supplies the installation ID from `VaultSyncJournal` and acquires the display name outside the shared model. Desktop `TermindApp` delegates to the app-owned `MacDeviceName`, which prefers a trimmed, nonempty `kern.hostname` and falls back to `Device.current.safeDescription` when that hostname is unavailable or blank; mobile supplies `Device.current.safeDescription` directly. `MacDeviceNameTests` pins hostname priority and nil, empty, and whitespace fallback behavior. `DeviceDirectoryModel` registers the current installation on initialization, caches lookup results, and reports storage errors. The SwiftData repository refuses to resurrect a remotely deleted device during launch registration, but an explicit rename can upsert it; successful writes notify `DeviceSyncCoordinator` through History mutations. Remote application of device records invalidates the model's cache on both platforms. The device and connection-history coordinators share a CloudKit zone but keep separate kind-filtered engines and sync state; the device coordinator is independent of the Vault **record format and journal**, not exempt from the app's Pro/iCloud start/pause policy. See [System Boundaries](system-boundaries.md) for the sync contract.
 

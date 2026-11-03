@@ -90,10 +90,12 @@ sources:
     resource: repo://TFMTests/SoftwareKeyFileImporterTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+  - id: openwiki-source-1d87844fd1fb42edbca2065d
+    resource: repo://TFMTests/TerminalTransportJourneyTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # File Drag and Drop
@@ -148,10 +150,20 @@ flowchart TD
     Gate -->|Yes| Private{"Private SFTP items accepted?"}
     Private -->|Yes| Remote["Remote-copy request to SSH or SFTP"]
     Private -->|No| Path{"Valid private terminal path?"}
-    Path -->|Yes| Insert["Focus terminal and paste escaped path"]
+    Path -->|Yes| Mounted{"Terminal surface visible and mounted?"}
+    Mounted -->|Yes| Insert["Focus terminal and paste escaped path"]
+    Mounted -->|No| Decline
     Path -->|No| File{"Local file URL accepted?"}
     File -->|Yes| Upload["Local upload request to SSH or SFTP"]
     File -->|No| Other["Image attachment or decline"]
+    Upload --> Ready{"Connected destination available?"}
+    Remote --> Ready
+    Ready -->|No| Reject["Rejected notice, no queue admission"]
+    Ready -->|Yes| Context["Resolve destination and confirm runtime ticket for SSH"]
+    Context --> Prepare["Transfer service preflight and conflict policy"]
+    Prepare --> Current{"Target and context still current?"}
+    Current -->|No| Release["Cancel preparation and release owner"]
+    Current -->|Yes| Queue["Admit transfer jobs, no path insertion for drops"]
 ```
 
 Desktop representation priority and pane dispatch; accepting a gesture precedes upload availability and transfer preflight.
@@ -237,6 +249,16 @@ Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L
 ## SSH uploads: shell directory → SFTP preparation → queue
 
 Shell Integration supplies the working directory, but it is not an always-known property of the SSH connection. Desktop `SSHSessionModel` and mobile `MobileWorkspace` use the active `TerminalContextCoordinator` directory once runtime context has been received. Legacy Ghostty OSC 7 observation is accepted only with integration enabled and before runtime context takes over. An unavailable runtime context clears the directory; later unscoped OSC 7 or prompt events cannot restore a stale pane's path. `TerminalUploadAvailability.problem` requires a connected session, transfer configuration and a nonempty directory with directory resolution no longer pending. It asks the user to wait for the shell prompt rather than guessing `/` or home. Desktop passes `homeResolution.isPending` to that gate; mobile passes `workingDirectory == nil`. SFTP browser upload instead uses its explicit browser path. See [Shell Integration](../concepts/shell-integration.md).
+
+### Disconnected and recovering panes
+
+The desktop pane receiver is gated by Workspace visibility and layout-drag state, **not connection readiness**. Consequently a file drop can be accepted over a disconnected or recovering SSH pane and then produce a rejected upload notice rather than a queued transfer. `TerminalUploadAvailability` requires exactly `.connected`; resumable transport `.recovering` and `.suspended` events set the session status to `.reconnecting`. A retained cwd or terminal surface does not override this gate.
+
+`TerminalPlaceholderView` keeps the persistent terminal mounted but hides it and disables its hit testing while the connection journey or persistence prompt is presented. It also passes `isVisible: false` to the native surface in that state. Private path insertion therefore fails the native surface's visibility check rather than pasting into the hidden terminal; file/remote-copy requests still reach the session upload model through the outer pane receiver. This distinguishes a path paste from transfer acceptance during recovery.
+
+Disconnect clears the working directory and transfer snapshot and cancels pending preparation. A changed connection-attempt ID also cancels preparation, and remote exit clears the cwd and pending upload. These are not instructions to cancel already-admitted coordinator transfers. Reconnection needs a usable current destination again; there is no automatic replay of a rejected drop. Moving or rehosting a pane, by contrast, only unbinds its view callbacks and preserves session-owned preparation.
+
+Evidence: [pane acceptance and feedback](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L529-L642), [journey visibility and request consumption](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L36-L113), [surface visibility](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L201-L209), [native paste guard](../../TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L120-L169), [disconnect](../../TFM/Features/Terminal/SSHSessionModel.swift#L901-L921), [recovery status](../../TFM/Features/Terminal/SSHSessionModel.swift#L1146-L1171).
 
 ### Context validity is stronger than path equality
 
@@ -386,6 +408,7 @@ Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTar
 | Native precedence, hidden targets, stale pasteboards, filename preservation | [FileURLDropTargetTests](../../TFMTests/FileURLDropTargetTests.swift), especially private SFTP payload versus promised local file, path-only copy proposal without transfer, and disabled registration/callback cases. [TerminalPathDragTests](../../TFMTests/TerminalPathDragTests.swift) checks shell escaping, absence of file-URL advertising, rejection of plain text/malformed private data, and refusal by an unmounted terminal. |
 | Provider staging, text/link exclusion, cancellation, duplicate delivery, interaction restoration | [MobileDropTests](../../TFITests/MobileDropTests.swift): `MobileDropPayloadTests` and `MobileWorkspaceDropTests`. Includes late exits, presentation/hiding/detachment and window changes. |
 | Shell-reported destination, folder preflight, partial provider failures, queue surviving closure | [MobileCommandGeneratorAndUploadTests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift), including `sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient` and `cancelledUploadDoesNotCreateRemoteDirectories`. `runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents` verifies that an unavailable runtime pane clears the directory and rejects later unscoped directory/prompt events. `runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother` in both this suite and [HostShellIntegrationSessionTests](../../TFMTests/HostShellIntegrationSessionTests.swift) protects retained display cwd without a usable capability ticket. `usernameOnlyTerminalUploadRejectsInteractionWithoutOpeningASheet` protects silent-open failure behavior. |
+| Recovery visibility and retained terminal | [TerminalTransportJourneyTests](../../TFMTests/TerminalTransportJourneyTests.swift) verifies recovering/suspended transport states preserve the terminal and block interactive/broadcast input until the journey completes. These are recovery lifecycle tests, not end-to-end file-drop tests. |
 | Desktop connection fallback and transfer ownership | [SFTPTransferContextTests](../../TFMTests/SFTPTransferContextTests.swift); cancellation cannot fall back, releasing a UI owner cannot invalidate retained transfers. |
 | Remote manifests, conflicts, streaming without a temporary file | [SFTPFeatureTests](../../TFMTests/SFTPFeatureTests.swift) and [SFTPRemoteConflictResolverTests](../../FrameworkTests/SFTPRemoteConflictResolverTests.swift). |
 | Mobile internal drag exclusion and stable Assistant mounting | [MobileCardInteractionTests](../../TFITests/MobileCardInteractionTests.swift#L79-L90) checks that an actual lifted card provider is rejected by upload classification; [MobileCardReorderingTests](../../TFITests/MobileCardReorderingTests.swift) covers the separate ordering policy. [MobileAssistantLayoutTests](../../TFITests/MobileAssistantLayoutTests.swift#L15-L95) checks transcript object identity, scroll position, and restored bounds through approval and user-input round trips; these are mounting regressions, not end-to-end attachment-drop tests. |

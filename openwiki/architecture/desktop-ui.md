@@ -1,11 +1,11 @@
 ---
 type: architecture guide
-title: Desktop UI
+title: Desktop UI and Workspace Ownership
 description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -51,6 +51,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-2af30f142ffe927708256738
+    resource: repo://TFM/Features/Workspaces/Workspace%2BTerminalInputArea.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
@@ -107,10 +109,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 ---
 
-# Desktop UI
+# Desktop UI and Workspace Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -170,18 +172,32 @@ sequenceDiagram
     participant Scene as Main WindowGroup
     participant Source as Source WindowModel
     participant Target as Target WindowModel
-    Navigator->>Coordinator: moveWorkspace with workspace ID
-    Coordinator->>Scene: createScene with request UUID
+    Navigator->>Coordinator: move workspace or pane by ID
+    Coordinator->>Scene: createScene with deduplicated request UUID
+    Note over Source,Target: Source retains live ownership while scene opens
     Scene->>Target: create fresh window model
     Target->>Coordinator: register native window and request UUID
-    Coordinator->>Source: take workspace or pane for move
-    Source-->>Coordinator: existing live workspace or pane wrapper
-    Coordinator->>Target: open live workspace
+    Coordinator->>Source: re-resolve and take live workspace or pane
+    alt Source is open and item still exists
+        Source-->>Coordinator: original workspace or wrapper around same pane
+        Coordinator->>Target: open and rebind lifecycle routing
+        Note over Source,Target: Pane, input draft and history event survive
+    else Source or pane closed before registration
+        Note over Coordinator,Target: No transfer and no resurrection
+    end
 ```
 
 Scene-request handoff: the source keeps the session until the target's native window registers.
 
 A workspace move waits for native destination registration before changing ownership. Repeated requests to move the same workspace or pane from the same source reuse the pending scene request. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+
+### Pane handoff invariants
+
+The pending request stores a weak source plus an item ID, not a detached pane snapshot. At native registration, `takePaneForMove` resolves its **current** workspace: a split yields a new wrapper around the same `Pane`; a now-lone pane transfers its original workspace, including its automatic name and template identity. Destination `open` installs its lifecycle router, while the surviving source workspace retains its source router. Both windows refresh focused-session context. No close record is created and existing history tracking is not restarted.
+
+`WorkspaceWindowMoveTests.splitPaneWaitsForDestinationAndPreservesConnectionsAndHistory` checks reference identity for both the pane and its `terminalInputArea`, including an unsubmitted draft and command-generator mode. It also checks retained custom title, connected SSH/SFTP states, unchanged event IDs with no end timestamps, and idempotent repeated registration. Closing the source afterward disconnects only its remaining SFTP pane; closing the target finally ends the moved SSH event.
+
+The late-registration test covers **both** closing the requested pane and closing its entire native window before arrival. Neither transfers a disconnected session; reopening the closed pane explicitly retains its pane ID but creates a different SSH model. Missing scene factories, unknown pane IDs and empty slots leave the source unchanged. Concurrent requests may register in reverse order: extraction uses the layout at arrival, so the final lone pane carries the original workspace. These are model/native-window fixture tests, not a claim that an interactive drag was run here. [Sources: `MainWindowCoordinator.swift`, `WindowModel.swift`, `WorkspaceWindowMoveTests.swift`.]
 
 ### Background close cleanup and recoverable history
 
@@ -274,7 +290,7 @@ The sidebar is one column whose mode rail switches between Navigator, Assistant,
 
 The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback that blends within the window and follows its active state. `DesignTokens.swift` centralizes fixed spacing, sidebar/card/toolbar geometry and minimum window dimensions as `Metrics`; semantic `TermindColor` roles adapt to appearance, while `Motion` and glass modifiers use system glass on macOS 26+ and native material on older systems. The split view constrains the sidebar to 260–520 points and protects a 360-point detail minimum; row selection is drawn explicitly, with key/inactive styling rather than relying on native `List(selection:)` colors. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](../concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
 
-The tool modes are projections of the **current window and focused pane**, not new destinations. Snippets searches the shared host-library snippets in its own footer, inserts into a live focused SSH/Telnet terminal on a single click, and double-click execution of a risky command asks for a second confirmation. History chooses a focused SSH terminal’s memory-only command history, a focused SFTP browser’s memory-only browse history, or the shared connection timeline; it uses the native `ListViewKit`-backed `SidebarNativeList` for stable card geometry and blank-area context menus. Snippet package folding is a persisted sidebar-only preference, separate from expansion on the main Snippets page. The snippet and history footer fields are not the titlebar Find field.
+The tool modes are projections of the **current window and focused pane**, not new destinations. Snippets searches the shared host-library snippets in its own footer. Single-click insertion requires a live focused SSH/Telnet session and first targets that pane's focused input editor, falling back to terminal delivery; double-click execution still submits to the terminal and asks for a second confirmation for risky commands. History chooses a focused SSH terminal’s memory-only command history, a focused SFTP browser’s memory-only browse history, or the shared connection timeline; it uses the native `ListViewKit`-backed `SidebarNativeList` for stable card geometry and blank-area context menus. Snippet package folding is a persisted sidebar-only preference, separate from expansion on the main Snippets page. The snippet and history footer fields are not the titlebar Find field.
 
 Keep the following coordinates distinct:
 
@@ -318,6 +334,12 @@ Custom terminal themes have a separate window-owned draft lifecycle. Leaving a c
 Inline rename seeds the editor with `workspace.title(in: app.hostLibrary, locale: locale)` **before** activating the rename field; commit sends the text to `WindowModel.rename`, cancel discards it. The model refuses non-renameable workspaces and trims whitespace: split names belong to the workspace, single-pane overrides to its pane; clearing restores an automatically allocated/derived name. This ordering matters because the native text field selects its initial text when focused. The visible-window `WorkspaceNavigatorRenameTests` exercise both the context-menu and double-click entrypoints and require the full existing title in the editable field.
 
 Navigator layout interaction is window-scoped: `WindowModel.dragging` carries the live workspace or pane identity for the native `List` receiver, while workspace ordering and pane ownership change only on an accepted drop. The selected workspace remains the command owner during preview. The Navigator overlays the native rows with its receiver because an ancestor receiver would compete with pane targets. For drag-source behavior, geometry, cancellation and cross-window release cases, see [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md).
+
+### Command and selection path
+
+`TermindCommands` reads `@FocusedValue(\.window)`, supplied by `RootView`, rather than selecting a process-global active session. Navigator rows call `select`, `openPage` or `openSettings`; mode-rail buttons call `activateSidebarMode`. These converge on `WindowModel.selectedDestination`, whose selected workspace supplies the focused pane. `RootView` projects `displayedWorkspace` into the persistent deck's active flags, and `WorkspaceContentView` renders that workspace's split tree. A pane click calls `workspace.focus(pane.id)`; lifecycle context callbacks then refresh the window's Assistant context and reconcile History availability. Rendering a pane is not a new connection request.
+
+Each `Pane` also owns a persistent `TerminalInputAreaModel`, not the transient `PaneView`. The app-wide Show Terminal Input Area preference defaults off; when enabled, the editor appears only with a terminal canvas. Native terminal focus requires an active, focused pane and stands down for toolbar Find, Quick Open, or its visible focused input editor. Hiding the editor cancels generation/transcription and dismisses editor focus; actual pane close calls `terminalInputArea.close()`. Moving the live pane instead preserves the model and draft. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the native terminal boundary.
 
 ### Toolbar commands follow the detail, not the mode rail
 

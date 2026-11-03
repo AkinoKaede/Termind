@@ -38,10 +38,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
-  - id: openwiki-source-a575d2eb3628c3d9d4bd93bc
-    resource: repo://Frameworks/TermindPresentation/AgentChatToolPresentation.swift
-  - id: openwiki-source-743e6dcf5fbbd1fcc58c991e
-    resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-3476c075c0a89fef4b1cecf4
     resource: repo://Frameworks/TermindPresentation/AgentToolDetailPreview.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -62,12 +58,20 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
   - id: openwiki-source-59a6dc91233502e57398e06a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentPaneTools.swift
+  - id: openwiki-source-309f606116ce5e48c90706a8
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentResourceManager.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-7b0bd5b2df4c45dd572abbac
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/PlanningSSHExecRunTool.swift
+  - id: openwiki-source-c8cd42b78c097e3a6b66812a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceCredentialTools.swift
+  - id: openwiki-source-459d5310dcba40b0aa1e3b65
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift
+  - id: openwiki-source-463a189be9b08a6cfa491714
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/RunSnippetTool.swift
   - id: openwiki-source-f976589f19e3ab05e6ea5a44
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
   - id: openwiki-source-cd4e1048d6e972f3f86d27e3
@@ -96,6 +100,8 @@ sources:
     resource: repo://FrameworkTests/AssistantTranscriptPresentationTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
+  - id: openwiki-source-e3cd41518bdd14077e7725e6
+    resource: repo://FrameworkTests/ResourceLibraryTransactionTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -104,16 +110,12 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
-  - id: openwiki-source-3dfad0e95bb7d66f292c20c9
-    resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
-  - id: openwiki-source-0c46eadbd7a2db45099d59aa
-    resource: repo://TFM/Features/AI/TranscriptNativeRows.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-49c5ca81284394384f3c3913
@@ -134,12 +136,16 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-32734a5d0c7e053627a24d40
     resource: repo://TFMTests/ContextAttachmentImporterTests.swift
+  - id: openwiki-source-a0939deb764eaca503038262
+    resource: repo://TFMTests/ResourceManagementToolsTests.swift
+  - id: openwiki-source-073614892cd80e99e8aed9ac
+    resource: repo://TFMTests/ResourceToolCardTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Agent Runtime and Assistant
@@ -218,7 +224,7 @@ AgentKit selects the executable registry for the run's mode. Planning retains di
 | TFM standalone Assistant | `false` | Shared Assistant catalog. |
 | TFM Workspace Assistant sidebar | `true` | Shared Assistant catalog. |
 | TFI standalone Assistant | `false` | Shared Assistant catalog. |
-| macOS external MCP server | Not exported | Acting host subset, `request_user_secret`, and four HTTP transfer tools; no pane tools. |
+| macOS external MCP server | Not exported | Acting host and resource-management subset, `request_user_secret`, and four HTTP transfer tools; no pane tools. |
 
 This snapshot dictionary is a partial override: disabling terminal suggestions does not disable independent SSH/SFTP work. The MCP server explicitly selects acting definitions, then filters by its exported-name allowlist and disabled-tool settings. It excludes terminal suggestions, pane reading/listing, scratch, web, skill, plan and task tools; its four extra tools are `sftp_upload`, `sftp_upload_status`, `sftp_download` and `sftp_download_status`. The stdio bridge forwards requests to this server and registers no second tool set; TFI has no local MCP server. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external authorization and byte-transfer boundaries.
 
@@ -369,7 +375,7 @@ Termind supplies schemas, tool preflights and an `AgentApprovalBroker`; AgentKit
 
 SSH authentication and host-key prompts are Termind interactions, not model-visible tool data. `AgentHostResolver` exposes public host metadata to `list_hosts`, but resolves Keychain-backed credentials into connection configuration without serializing them into tool results. Authentication context is normally shared only across overlapping attempts for the same destination (forwarding-enabled operations use isolated contexts); after successful authentication it clears staged submissions and cached secret-bearing configuration. Stale generations reject late callbacks and host-key decisions.
 
-`request_user_secret` is for command standard input, not SSH login. Start a command with `run_in_background=true`, then pass its opaque one-shot handle to `ssh_exec_stdin` with `type=secret`. The current host tool consumes `SecretHandle(id:)` through the execution context's broker; it does not pass run/tool/host/purpose bindings to `consume`. Authorization must therefore cover the receiving command, host and intended use rather than assuming the handle itself enforces those bindings. Preflight resolves the scoped command and its host, asks for approval, and in planning denies input to a destructive command. Execution checks command scope before consuming the secret and clears the secret afterward. Plaintext is absent from tool arguments, review and results by design, but the remote command can echo, store or forward its input; the handle is not protection against those effects.
+`request_user_secret` supplies one-shot input for credential writes or command standard input, not a prerequisite for SSH login. For command input, start a command with `run_in_background=true`, then pass its opaque one-shot handle to `ssh_exec_stdin` with `type=secret`. The current host tool consumes `SecretHandle(id:)` through the execution context's broker; it does not pass run/tool/host/purpose bindings to `consume`. Authorization must therefore cover the receiving command, host and intended use rather than assuming the handle itself enforces those bindings. Preflight resolves the scoped command and its host, asks for approval, and in planning denies input to a destructive command. Execution checks command scope before consuming the secret and clears the secret afterward. Plaintext is absent from tool arguments, review and results by design, but the remote command can echo, store or forward its input; the handle is not protection against those effects.
 
 Replay is a separate boundary: `AgentPersistenceRedactor.toolResultText` expires secret-handle results **before** structural redaction. The current persistence regression verifies an `expired` lifecycle result without `secret_handle`. Sanitation before the next provider request is an upstream runtime responsibility, not established by that storage test. Queued cancellation also sanitizes prior messages before repairing tool-call grammar. Do not serialize plaintext secret input into model requests, events, logs, SwiftData or Hermes memory.
 
@@ -406,6 +412,54 @@ Termind tools operate through noninteractive per-command SSH channels and exclus
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 
 Implementing a pending plan is a new captured submission. The controller clears the captured `planContract` before capturing the run so implementation is acting work, then appends the composed implementation prompt and resolves the plan as implemented. Refusal leaves the pending plan, planning state, attachments and armed skill untouched.
+
+## Resource management and saved snippet execution
+
+`AgentResourceManager` lends the Assistant the app's existing credential, host, snippet, forwarding and metrics owners; it is not a second database or connection stack. Both native app adapters inject it into `AssistantToolRegistry`. Its presence enables resource management and `run_snippet`; workspace and pane injection remain independent capability gates. The desktop MCP allowlist also includes the management families. Disabling `ssh_exec_run` there disables `run_snippet`, preventing the wrapper from bypassing the execution setting.
+
+Resource tools manage hosts and host groups, identities, keys, snippets and packages, port-forwarding rules, and metrics monitor configuration. Lists/gets are parallel Approve operations available in planning and acting; mutations are sequential Ask operations available only in acting. `list_hosts` retains discovery of temporary targets, while host edits operate on saved hosts and Tailscale-discovered hosts are read-only here. IDs are stable UUIDs. Omitted or null edit fields preserve existing values; supported `clear_fields` explicitly remove values and cannot conflict with replacements. Group/package parent cycles and unavailable references are rejected. Deleting a group or package keeps its contents ungrouped by default; deleting the contents requires an explicit false keep flag.
+
+Resource mutations use the feature owners' persistence boundaries. `ResourceLibraryTransactionTests` verifies that failed snippet/package deletion restores snippets, grouping and host startup references, and that offline Tailscale startup preferences are restored on failure and cleared on success. Failed host-group changes restore both hosts and groups. These are rollback guarantees for library state, not an undo of external commands. Forwarding start uses the application-owned runtime and may return an authentication-required state rather than an established tunnel; editing an active rule stops it. Metrics start/stop persist enabled state, while refresh only requests a retry when enabled and awake—it does not promise a new sample. Failed metrics preference saves retain the old selection.
+
+### Credential secret input
+
+Credential schemas accept `password_secret_handle`, `private_key_secret_handle` and `passphrase_secret_handle`, never inline plaintext secrets. Preflight validates handle UUIDs and rejects duplicates without consuming them. Execution consumes handles through the run's broker after approval, clears consumed `AgentSecret` values on success or partial-consumption failure, and checks cancellation and unchanged resource state before saving. A consumed handle cannot be reused after a later failure: request new input rather than retrying the old capability. Read/list responses expose public metadata without resolving stored secrets; parser and Keychain errors are mapped to safe tool errors.
+
+Software key import/generation and Secure Enclave P-256 generation are supported, not external hardware registration. Existing hardware-backed keys permit only label/color edits. Changing saved unlock material does not re-encrypt an existing private key. Secret file input preserves multiline text while rejecting empty, invalid UTF-8, NUL-containing or oversized input; desktop Return in a multiline secret editor does not submit the form. See [Persistence and Secrets](persistence-and-secrets.md) for storage ownership.
+
+### Execution versus generation
+
+`run_snippet` requires one explicit `snippet_id` and `host_id`; it never broadcasts to the snippet's saved targets or opens a terminal. Preflight reads and freezes the script into review arguments and `snippet_command` execution metadata, then applies the normal SSH risk policy (including destructive-command refusal in planning). Execution uses that frozen script rather than re-reading an edited snippet, and delegates output, background behavior and scoped handles to `SSHExecRunTool`.
+
+```mermaid
+flowchart TD
+    Call["Model proposes resource or snippet call"] --> Preflight["Validate edits and handles or freeze snippet script"]
+    Preflight --> Policy{"Preflight policy"}
+    Policy -->|Deny| Refuse["Return refusal"]
+    Policy -->|Approve| Execute["Execute approved invocation"]
+    Policy -->|Ask| Mode{"Captured permission mode"}
+    Mode -->|askForApproval| User["Manual approval queue"]
+    Mode -->|approveForMe| Guardian["Guardian review"]
+    Mode -->|fullAccess| Execute
+    User --> Decision{"Allowed"}
+    Guardian --> Decision
+    Decision -->|No| Refuse
+    Decision -->|Yes| Execute
+    Execute --> Resource["Consume secret handles and call feature owner"]
+    Execute --> Snippet["Run frozen script through SSH service"]
+    Resource --> Result["Ordered result events and durable card projection"]
+    Snippet --> Result
+```
+
+Tool invocation branches by operation after the shared approval gate; approval does not bypass feature validation or SSH trust/authentication.
+
+By contrast, `CommandGeneratorService` is a tool-free `AgentModelCompleting` path, not an `AgentRuntime` run. It uses the configured Command Generator role and returns exactly one validated JSON `command` string: nonempty, one physical line, without control characters or extra fields. The visible viewport is untrusted context capped at 64 KiB, excluding scrollback; base context and response each have an independent 8 KiB budget. **Generation does not execute the command.** Likewise, `terminal_suggest` produces a user-operated card, whereas `ssh_exec_run` and `run_snippet` actually execute through SSH.
+
+### Durable resource cards
+
+The immutable registry includes resource and snippet presenters even when a particular run lacks management capability. Resource presentation is an allowlisted projection, not a raw JSON dump: approvals show changes and credential-presence summaries without secret handles; result cards omit private material and credential references. Public keys and certificates are opt-in expanded content, lists use compact metadata rows, and snippet bodies retain their full text behind a six-line preview. Display names captured in result metadata support historical cards. Malformed or failed resource history uses a safe unavailable/failure detail instead of falling back to raw secret-bearing output. MCP descriptors do not acquire this local resource identity by name. These projections leave execution and replay payloads unchanged.
+
+The focused regressions are [ResourceManagementToolsTests](../../TFMTests/ResourceManagementToolsTests.swift), [ResourceLibraryTransactionTests](../../FrameworkTests/ResourceLibraryTransactionTests.swift), [ResourceToolCardTests](../../TFMTests/ResourceToolCardTests.swift), and [ResourceToolPresentationTests](../../TFMTests/ResourceToolPresentationTests.swift). They cover handle consumption and privacy, planning restrictions and frozen snippets, rollback, restored card projection, and wording that distinguishes a start/refresh request from completed work. These are inspected test contracts, not a claim that the suites were executed for this documentation update.
 
 ## Scratch workspace containment
 

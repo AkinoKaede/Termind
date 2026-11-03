@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Startup and Runtime Lifecycle
+title: Platform Runtime and Composition
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -38,8 +38,6 @@ sources:
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-6a65215e662373c54c92a888
-    resource: repo://TFI/App/MobileCommands.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -102,6 +100,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-402ac6130bdf99999b39579e
+    resource: repo://TFM/Platform/ConnectionRecoveryActivityObserver.swift
   - id: openwiki-source-68b5f4529ef349aac826b1d9
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
@@ -122,13 +122,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# Platform Startup and Runtime Lifecycle
+# Platform Runtime and Composition
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -260,9 +260,36 @@ A host-opening action is centralized in `AppModel`, which chooses the requested 
 
 ### Focused commands and native registration
 
-Both platforms route commands to the focused owner, not a global selection. Desktop `TermindCommands` receives the shared app explicitly and reads `@FocusedValue(\.window)` for window-local actions; actions such as Settings and Quick Open disable without a focused window. Mobile `MobileCommands` reads `@FocusedValue(\.mobileScene)` supplied by its root, while new-window creation uses the named `main` scene. Sharing app services must not redirect a command to another window's workspace.
+Both platforms route commands to the focused owner, not a global selection. Desktop `TermindCommands` receives the shared app explicitly and reads `@FocusedValue(\.window)` for window-local actions; actions such as Settings and Quick Open disable without a focused window. Mobile `MobileCommands` reads `@FocusedValue(\.mobileScene)` supplied by its root, while new-window creation uses the named `main` scene. Sharing app services must not redirect a command to another window's workspace. Not every menu action is window-local: New Window goes through `MainWindowCoordinator`, Transfers toggles its app-owned window, and status-bar/input-area preferences use `@AppStorage`. Close routing explicitly checks `isTransfersWindowKey` so Close Window closes Transfers rather than a workspace, and Close Workspace is disabled while Transfers is key.
 
 The current desktop registration sites are [`RootView`](../../TFM/App/RootView.swift) (`@State`, `.focusedSceneValue`, `.onAppear`) and [`MainWindowCoordinator.register`](../../TFM/Platform/MainWindowCoordinator.swift). Either appearance or native registration can call `AppModel.registerWindow`; registration is idempotent and rejects closed models. Native close—not a SwiftUI destination change—unregisters and closes the owner. The mobile root similarly reports initial and subsequent phases and removes its scene registration on disappearance; that removes phase/focus bookkeeping, not the persistent workspace session.
+
+### Recovery activity observation
+
+Desktop recovery has an app-wide **availability signal**, not an app-wide transport owner. `AppModel` installs a `ConnectionRecoveryAvailability` on the host library if none was supplied. When the delegate receives the app model outside XCTest, it stops its previous `ConnectionRecoveryActivityObserver`, creates one for that signal and starts it. `start()` is idempotent; `stop()` and deinitialization remove native notification tokens. `applicationWillTerminate` stops this observer separately from the model's service drain.
+
+The observer translates `NSWorkspace` sleep/wake and session activation notifications into independent `.systemSleep` and `.inactiveSession` blockers. Wake clears only sleep; session activation clears only the session blocker. Application activation clears neither: it merely requests a recheck. Rechecks notify retry controllers only when **all** blockers are absent. These are hints to retry credential access, not proof that Keychain credentials are readable, and app deactivation alone is not a blocker.
+
+Desktop SSH, SFTP and forwarding recovery consume the host library's signal. `SessionReconnectController` retains retry timing and stale-callback fencing; session models still construct transports and own authentication UI. A blocked pending retry waits for the system. Eligible wake/session/application hints coalesce through a task yield; the controller consumes the retry action before invoking it, preventing duplicate attempts. Stop/disconnect removes pending recovery so a late wake cannot revive it. Mobile composition does not install this AppKit observer; its scene aggregation and background lease remain a separate mechanism.
+
+```mermaid
+flowchart TD
+    Model["AppModel installs shared availability"] --> Delegate["Delegate starts native observer outside tests"]
+    Delegate --> Sleep["Sleep or inactive session adds independent blocker"]
+    Sleep --> Wait["Pending retries wait for system"]
+    Wait --> Hint["Wake clears sleep or session activation clears session blocker"]
+    Hint --> Gate{"All blockers absent"}
+    Gate -->|No| Wait
+    Gate -->|Yes| Retry["Coalesced recheck of pending retry"]
+    Active["Application activation requests recheck only"] --> Gate
+    Retry --> Access["Session retries credential access and connection"]
+    Access --> Credentials["Credentials may still be unavailable"]
+    Quit["Accepted Quit"] --> Drain["AppModel closes workspaces and drains services"]
+    Drain --> Native["Native termination reply after drain or timeout"]
+    Native --> Stop["applicationWillTerminate stops native observer"]
+```
+
+Recovery observation supplies availability hints to retained session controllers; shutdown of those controllers and teardown of the native observer have different owners. See [observer](../../TFM/Platform/ConnectionRecoveryActivityObserver.swift), [availability](../../Frameworks/TermindApplication/ConnectionRecoveryAvailability.swift) and [retry controller](../../Frameworks/TermindApplication/SessionReconnectController.swift).
 
 ### Desktop lifecycle and termination
 
@@ -489,6 +516,7 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 
 Tests exercise the lifetime contracts rather than merely constructing views. For startup changes, check both the production consent gate and the test-only in-memory path: these are separate from error handling and from native scene launch suppression.
 
+- `CredentialRecoveryTests` verifies independent sleep/session blockers, lifecycle-hint coalescing, no credential reads while blocked, and rejection of late wake after stop/disconnect; first-connection credential failure does not start automatic recovery.
 - `MobileAppTests` verifies publish-before-connect reuse, explicit retry after a failed first open, Host cleanup and scene-phase aggregation.
 - `MobileWorkspaceSessionTests` verifies separate windows, retirement of legacy defaults without restoration, process-local recently closed records, native session reclaim versus explicit discard, and live ownership handoff without reconnecting, with descriptor ownership persisted. Window-close tests verify that cleanup waits for native discard and rejected requests preserve state.
 - `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection.

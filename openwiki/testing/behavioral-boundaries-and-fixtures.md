@@ -62,6 +62,8 @@ sources:
     resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
+  - id: openwiki-source-b069c3f5fc95db0a8cc26f0d
+    resource: repo://FrameworkTests/SSHCredentialRecoveryTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
@@ -164,10 +166,10 @@ sources:
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Behavioral Boundaries and Test Fixtures
@@ -565,11 +567,27 @@ Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: 
 ## Focused additions: drafts, confirmations and resource retirement
 
 - `SnippetColorTests` checks tolerant legacy JSON, unsaved draft isolation, duplicate color, V1/V2 wire/tombstone behavior and a real V50 upgrade through V51 to the current V59 schema followed by saved-color reopen.
-- `RetiredTerminalHighlightingTests` constructs V46/V51 disk stores with unreadable retired preferences, releases containers around upgrade/preparation and reopen, and verifies `copyOnSelect` survives while retired journal envelopes/outgoing entries disappear. A read-only SQLite query checks the retired table exists before migration and is absent afterward; open, busy-timeout, prepare and step results are checked explicitly, so a SQLite error cannot masquerade as absence. The 5,000 ms busy timeout accommodates locking, not a migration-time guarantee. Separate in-memory cases retire pending uploads and ignore malformed fetched/conflict/deletion records without quarantine or blocking active Settings. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
+- `RetiredTerminalHighlightingTests` constructs V46/V51 disk stores with unreadable retired preferences, releases containers around upgrade/preparation and reopen, and verifies `shellIntegration: false` survives while retired journal envelopes/outgoing entries disappear. A read-only SQLite query checks the retired table exists before migration and is absent afterward; open, busy-timeout, prepare and step results are checked explicitly, so a SQLite error cannot masquerade as absence. The 5,000 ms busy timeout accommodates locking, not a migration-time guarantee. Separate in-memory cases retire pending uploads and ignore malformed fetched/conflict/deletion records without quarantine or blocking active Settings. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 - `HostEditorBindingsTests` exercises creation callbacks without changing existing selections, independent SSH/Telnet custom/none choices, proxy default-port transitions and no recreation of a removed proxy.
 - `MobileWorkspacePresentationTests` parameterizes importer result consumption before and after dismissal, consumes the target once, and replaces cancelled requests on reopening. Preview export waits for `previewDidDismiss()` whether staged before or during dismissal; a new preview discards an older pending export. These are state-machine tests without UIKit windows.
 - `MobileOperationConfirmationTests` is serialized and mobile-UI gated; English and both Chinese fixtures compare row anchoring against window-centered arrowless popovers, action order, animated transitions and post-dismissal action timing. It uses temporary windows and restores their predecessor; these are not a real destructive business-operation run.
 - `SSHPTYChannelLifecycleWireTests` requires `TERMIND_PTY_LIFECYCLE_FIXTURE` with the Python SSH peer. The peer deliberately leaves exec CLOSE unacknowledged. Tests observe transport closure after explicit disconnect and owner release, and prove a retained SFTP sibling survives PTY release until the final subsystem closes. These are opt-in local wire fixtures, not arbitrary-server coverage.
+
+## Focused routes for recovery, transactions, input and pane moves
+
+These routes complement the broader matrix; run them without UI or signing opt-ins unless a specific native case says otherwise.
+
+| Change | Focused regression | Observable boundary and fixture limit |
+| --- | --- | --- |
+| Credential access after protected storage becomes unavailable | [SSHCredentialRecoveryTests](../../FrameworkTests/SSHCredentialRecoveryTests.swift) | An unavailable password or encrypted key is not a missing credential and does not set `HostLibraryModel.storageError`. Unblocking the memory secret store restores reads; a usable password survives a key-read failure. Route, proxy and silent additional-connection cases retain `SSHCredentialAccessUnavailable` and the responsible host ID. An unreadable saved fallback must not become an unsaved-passphrase prompt. These are injected secret-access failures, not real Keychain unlock or SSH authentication. |
+| Library deletion and reference cleanup | [ResourceLibraryTransactionTests](../../FrameworkTests/ResourceLibraryTransactionTests.swift) | A throwing `VaultPersisting` port rolls back snippet/package deletion and host startup/group references together, including offline Tailscale host preferences. Successful deletion clears those references; reconstruction reads the fake snapshot, not a reopened disk store. |
+| Return versus Command-Return | [InputSendShortcutTests](../../FrameworkTests/InputSendShortcutTests.swift) | A unique defaults domain verifies Return by default, retained selection and unknown-value fallback. Submit and newline are inverses; Shift inserts a newline, while Control, Option and marked-text composition defer to the system. This is shared input policy, not native IME event delivery. |
+| Transcript invalidation | [MobileAssistantTranscriptTests](../../TFITests/MobileAssistantTranscriptTests.swift) | `conversationRunBoundariesKeepUnchangedRowsAndHostingRoots` and `conversationRunBoundariesKeepHistoryAnchorAndHostedIdentity` retain row/hosting identity and history position across running/completed transitions. `interactionOnlyUpdatesKeepHostsMeasurementsAndHistoryAnchor` reconfigures only the changed row without measurement or content-size changes; mixed interaction/content/disclosure updates configure each affected row once. These offscreen cases remain ordinary serialized tests, separate from the scanning screenshot opt-in. |
+| Move a desktop split pane to another window | [WorkspaceWindowMoveTests](../../TFMTests/WorkspaceWindowMoveTests.swift) | A pending move leaves the source intact until destination registration and coalesces duplicate requests. Split moves retain the pane, input draft/mode, connection state and history identities; a lone pane carries its original workspace. Late registration cannot resurrect a closed pane/window, invalid requests leave the source unchanged, and concurrent moves can arrive in reverse order. The serialized fixture creates offscreen `NSWindow` objects and simulated sessions: it does not establish native drag delivery or real connection continuity. |
+
+### Mobile composition is not a universal I/O stub
+
+[MobileAppDependencies.testing](../../TFI/App/MobileAppDependencies.swift) selects in-memory composition and testing Metrics services, but its `workspaceConnections` default remains `.live`; native scene-routing closures and the live persistent-session terminator also have defaults. For a test that opens, closes or moves sessions, explicitly inject the relevant connection and routing seams. In-memory persistence is not by itself permission to exercise network or native-window side effects. The notification ownership fixtures above use injected routing rather than making a key window.
 
 ## Fixture design rules
 

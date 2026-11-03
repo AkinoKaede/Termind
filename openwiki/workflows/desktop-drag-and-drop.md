@@ -22,12 +22,12 @@ sources:
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
+  - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
+    resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-564c1a0cc523e70840b9fc66
     resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
-  - id: openwiki-source-6551e1821f08f37b10dfe7fa
-    resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
@@ -62,10 +62,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Desktop Drag and Drop
@@ -241,7 +241,7 @@ The recognizer retains the actual `mouseDragged` event because AppKit may schedu
 
 Pane content drops use a separate **outermost** `NativeDropTarget` above the terminal/table native content, outside the `WorkspaceLayoutDropTarget` overlay. It is enabled only for an active supported pane while `window.dragging == nil`: SSH accepts files, SFTP items and terminal paths; SFTP accepts files and SFTP items; Telnet and Serial accept terminal paths only; an empty pane has no such receiver. File/SFTP payloads dispatch to the pane's upload/copy requests, whereas terminal paths are pasted into a terminal. None of these content drops merges or transfers a workspace; do not replace the distinction with a generic `.string` drop target on the root.
 
-Evidence: [title handle](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L724-L761), [gesture lifetime](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L79-L214), [retained event](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L290-L305), [overlay ordering and payload types](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L483), [content dispatch](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L546-L610).
+Evidence: [title handle](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L724-L761), [gesture lifetime](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L79-L214), [retained event](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L290-L305), [overlay ordering](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L468-L477), [payload types and gating](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L529-L555), [content dispatch](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L619-L672). See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for terminal surface ownership.
 
 ## Outside release, cancellation and responsiveness
 
@@ -311,7 +311,9 @@ Live layout ownership changes only when the requested destination window registe
 
 The request stores a weak source, the move identity, a layout snapshot (ordinary content size, sidebar width and presentation, fullscreen state and source-screen center), and an optional release point. Repeated requests for the same source and move reuse the pending request ID; different pane requests may register in reverse order. A closed source, missing scene factory, nonexistent workspace, nonexistent or noncombinable pane cannot initiate a move. If the source or pane disappears before registration, the pending request cannot recreate it. `register` rejects a closed destination and duplicate native/model pair, then removes the pending request when a new destination consumes its ID, **even if extraction finds no live layout**. A late scene may therefore register empty; registering the same destination again cannot transfer a second copy.
 
-Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
+Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity. Because the input model belongs to the Pane, the transfer also preserves the exact `terminalInputArea` object, its unsubmitted draft and its input mode—not just the terminal connection. `splitPaneWaitsForDestinationAndPreservesConnectionsAndHistory` checks that identity alongside the custom pane title, unchanged history IDs and still-active history events.
+
+Evidence for draft identity: [Pane-owned input model](../../TFM/Features/Workspaces/Pane.swift#L98-L108), [delayed transfer and preserved draft regression](../../TFMTests/WorkspaceWindowMoveTests.swift#L15-L81).
 
 The extraction paths deliberately bypass `WindowModel.close` and `closePane` teardown. `takeWorkspaceForMove` uses `removeWorkspaceForMove` and clears the transferred workspace's `lifecycleRouter`; destination `open` assigns the target window as router. For a split-pane extraction, `Workspace.closePane` only rewrites the source layout: the source workspace keeps its router, and the new wrapper receives the destination router on `open`. The wrapper uses `automaticallyNamedWorkspace`, so its workspace name is allocated from the saved host name or SSH/Telnet session title when available, subject to workspace naming preferences and occupied source-window names. It does not inherit the split group's name or template identity; the moved pane's own custom title survives.
 

@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: UI Design Principles
+title: UI Design and Presentation Principles
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -12,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
+  - id: openwiki-source-ee37afc31d37a2484edb9e5e
+    resource: repo://Frameworks/TermindApplication/InputSendShortcut.swift
   - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
@@ -42,6 +44,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/NotificationSettingsFields.swift
   - id: openwiki-source-4706711c42fe2431044b1e84
     resource: repo://Frameworks/TermindPresentation/OperationConfirmation.swift
+  - id: openwiki-source-ec38c02ae298b470ccc6d414
+    resource: repo://Frameworks/TermindPresentation/ResourceToolCardPresentation.swift
   - id: openwiki-source-db3eac4d3fbf63570c0e0d56
     resource: repo://Frameworks/TermindPresentation/SingleLineTextInput.swift
   - id: openwiki-source-9eb0eec8ab67d2032ec11b01
@@ -126,6 +130,8 @@ sources:
     resource: repo://TFITests/MobileCompactCardTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f626c208c1a7ba1420ae9956
+    resource: repo://TFITests/MobileMessageTextEditorTests.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
@@ -178,12 +184,10 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-6b422a5b70cf5532c58c730e
     resource: repo://TFMTests/AgentKnowledgeToolPresentationTests.swift
-  - id: openwiki-source-7c65a9e84644dfdb436d849d
-    resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
-  - id: openwiki-source-23ab3fe73660b171f78763a4
-    resource: repo://TFMTests/AgentToolPresentationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-22c3b8975126f9e8f38ded81
+    resource: repo://TFMTests/MessageEditorShortcutTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
@@ -192,6 +196,8 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-2891f940e682279163740c83
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
+  - id: openwiki-source-c5a7610c8a07a188d3955b0d
+    resource: repo://TFMTests/TerminalInputAreaLayoutTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
@@ -202,13 +208,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# UI Design Principles
+# UI Design and Presentation Principles
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -333,6 +339,20 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 `SingleLineTextInput` replaces newline-scalar runs with one space only on binding edits, preserves attributed paste and leaves reads unchanged. App-injected native input/paste adapters preserve selection and input-method behavior (`singleLineInputAdapter` in TFI, `singleLinePasteAction` in TFM). This is not a stored-data, secret or multiline-command sanitizer.
 
+### Input submission is application policy, not a global Return binding
+
+Both App settings shells expose `InputSendShortcutPicker`, backed by `SettingsKey.inputSendShortcut` in local defaults. `InputSendShortcut` owns the shared decision: Return sends by default (also the fallback for an unknown stored value); Command-Return can be selected instead, with the other gesture inserting a newline. Shift always requests a newline after the composition guard; marked text, Control and Option leave handling to the system. Native editors own applying that decision at the caret. Assistant composers/message editing and the desktop terminal input editor consume this policy; it is not a replacement for Ghostty's terminal keyboard handling or prompt-specific Next/Submit actions. Keep submission scoped to the active editor rather than giving parked editors a competing default-action shortcut.
+
+Sources and focused tests: [shortcut policy](../../Frameworks/TermindApplication/InputSendShortcut.swift), [policy tests](../../FrameworkTests/InputSendShortcutTests.swift), [mobile editor tests](../../TFITests/MobileMessageTextEditorTests.swift), [desktop message editor tests](../../TFMTests/MessageEditorShortcutTests.swift), [terminal input focus tests](../../TFMTests/TerminalInputAreaLayoutTests.swift).
+
+### Secret entry is not ordinary message input
+
+`AgentSecretInput` binds a prompt-local draft; both Assistant interaction surfaces bind `conversation.secretInputDraft`, not the chat composer. Single-line entry uses `RevealableSecretField`. Multiline entry initially displays only whether a secret is present and requires explicit reveal before mounting its monospaced editor. Changing mode, leaving the active scene, disappearing, or successfully pasting/importing hides the multiline content again. Its multiline editor uses `submitScope()` so Return does not accidentally advance the enclosing prompt.
+
+Explicit paste and file selection use `AgentSecretFileInput`: input must be nonempty UTF-8, at most 1 MiB, and contain no NUL. File reads are bounded, security-scoped access is released, and the temporary byte buffer is reset. Invalid input reports generic import failure without replacing the existing draft; a file-import callback is ignored after the input disappears. This is UI lifecycle and validation, not a guarantee that Swift strings are securely erased.
+
+Sources: [shared secret input](../../Frameworks/TermindPresentation/AgentSecretInput.swift), [bounded import](../../Frameworks/TermindApplication/Agent/AgentSecretFileInput.swift), [desktop prompt](../../TFM/Features/AI/AgentUserInputCard.swift), [mobile prompt](../../TFI/Features/AI/MobileAssistantInteraction.swift).
+
 ### Terminal preferences and Assistant output
 
 `TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include every family with a loadable member, including proportional families, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
@@ -365,7 +385,7 @@ Selection is a persisted user action; a missing stored theme is a display-time f
 
 `AgentToolPresentation` is a generic projection of descriptor metadata and lifecycle state, not an execution or replay owner. The app uses `TermindToolPresentationProfiles.renderer` to inject tool-family policies and localized vocabulary. Profiles can override summary, operation, batch operation, phase wording, detail and truncation notices. Detail decisions distinguish `.hidden` from `.useDefault`: suppression must not accidentally enter a generic JSON/error fallback. A trusted profile can also set `preservesUnprojectedJSON`: when no presenter is supplied, the default detail path keeps the output as monospaced text instead of decoding it into generic fields, still suppressing duplicate Guardian denial feedback. This is an explicit profile opt-in, not the default MCP behavior.
 
-The trusted composition selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors receive the default profile, not local tool-family policy. Without a trusted, explicitly supplied presenter, decoded MCP JSON uses the same **generic structured fields** as an unregistered local tool—not a forced raw JSON block, even with `output: .json`. For example, `{"value":42}` becomes a `Value` field containing `42`. An explicit presenter can instead emit its own typed items and layout. Remote metadata cannot select local executable presentation code; presenter injection is a separate trusted caller decision. See [System Boundaries](../architecture/system-boundaries.md).
+The trusted composition first excludes MCP from local policies, then recognizes supported resource-management tool names for a dedicated resource profile. For other tools it selects registered profiles by `presenterID`; unknown IDs do not recover executable presentation code from a similar tool name. Local pane/chat privacy policies are applied independently of presenter availability. MCP descriptors receive the default profile, not local tool-family policy. Without a trusted, explicitly supplied presenter, decoded MCP JSON uses the same **generic structured fields** as an unregistered local tool—not a forced raw JSON block, even with `output: .json`. For example, `{"value":42}` becomes a `Value` field containing `42`. An explicit presenter can instead emit its own typed items and layout. Remote metadata cannot select local executable presentation code; presenter injection is a separate trusted caller decision. See [System Boundaries](../architecture/system-boundaries.md).
 
 Live approval projects the **in-memory request**, not durable-card or model-transcript arguments. Ordinary arguments remain reviewable without redaction; resolved Host names allow hiding redundant `host_id`. Sensitive chat tools require argument projection and return no argument items when the presenter is unavailable, rather than exposing raw prompt/message fields. Short approval titles keep argument bodies in the detail area.
 
@@ -400,9 +420,21 @@ Failed, denied or interrupted ordinary JSON results pass failure state to regist
 
 `AgentToolDetailPreview` retains full typed items while providing compact items. Desktop Show More/Show Less disclosure is keyed by tool-card ID, and native detail values remain selectable. Extend profiles and registered projectors rather than changing protocol payloads. `AgentToolPresentationProfileTests` checks injected overrides, explicit MCP presenters and unknown-ID isolation; `AgentKnowledgeToolPresentationTests` checks approval bodies, failure-safe details, title limits without argument mutation, preview budgets and independent disclosure.
 
+### Resource cards are allowlisted projections
+
+`ResourceToolCardPresentation` recognizes non-MCP Host/group, identity/key, forwarding, snippet/package and Metrics tools. Its profile supplies approval items directly and supplies typed result detail or hides it; it never falls through to arbitrary raw resource output. Failed, denied or interrupted results use known localized failure copy, and malformed successful output uses unavailable-details feedback. This also protects replayed histories whose errors may contain parser input.
+
+Resource fields are selected explicitly rather than enumerating JSON. Private keys, passphrases, secret handles and credential references do not enter result cards. Approval projects only supplied non-null changes: secret handles become “New credential provided,” and unvalidated public-key/certificate material becomes “Provided,” avoiding disclosure of a mistakenly pasted private key. Named references use display names where available, retaining IDs in detail when unresolved. Group/package deletion distinguishes keeping contents from explicitly deleting them.
+
+Resource lists retain all rows but show five two-line summaries until expanded, without copying script bodies or key material into list rows. Snippet bodies retain full text behind a six-line preview; public keys, certificates and full fingerprints are expanded-only. Forwarding preserves bracketed IPv6 endpoints and gives dynamic rules only a SOCKS listener. Metrics distinguishes null device selection (all devices) from an empty array (none), labels stale samples, and reports start/refresh **requests**, not proof that a connection is ready or a sample is fresh. Native resource fields stack when measured content does not fit, with long or multiline values forced vertical.
+
+Sources and regressions: [resource selection](../../Frameworks/TermindPresentation/ResourceToolCardPresentation.swift), [projection](../../Frameworks/TermindPresentation/ResourceToolCardProjection.swift), [profile](../../Frameworks/TermindPresentation/ResourceToolPresentation.swift), [resource card tests](../../TFMTests/ResourceToolCardTests.swift).
+
 ### Retained detail rendering and approval visibility
 
 `AssistantToolDetails` renders the supplied items verbatim: it does not perform a second truncation or insert per-item folding. `AssistantCompactToolDetails` chooses `preview.items` or `preview.fullItems` using a transcript-owned expansion binding; the desktop native compact renderer makes the same choice using `.toolDetail(card.id)`. Full here means the retained **projected** items, not recovery of raw private payloads. The preview shares a five-row/body-byte budget across collapsible bodies and lists, while fields, messages and noncollapsible text remain outside that body budget.
+
+The following table describes the default detail style, not the resource-card specialization.
 
 | Contract | Shared SwiftUI `AssistantToolDetails` | Desktop native transcript |
 | --- | --- | --- |
@@ -414,7 +446,9 @@ Failed, denied or interrupted ordinary JSON results pass failure state to regist
 
 These are matching semantic roles, not pixel or interaction parity: SwiftUI text blocks use a horizontal scroll view, and links/buttons are actions rather than ordinary selectable text. Keep navigation in app-owned handlers rather than interpreting field strings as local routes.
 
-`AssistantApprovalDetails` renders all `detail.items` directly with primary body text. Only the safety reasons are inside the separate `showsSafetyDetails` disclosure; collapsing safety must not hide the arguments being approved. This visibility rule is distinct from durable persistence redaction and from the sensitive-chat projection policy above.
+`AssistantApprovalDetails` renders all projected `detail.items` with primary body text; only safety reasons fold under `showsSafetyDetails`. “All” means retained projection, not simultaneous onscreen visibility: the layout measures natural height first, then clamps to available height and, when `boundsApprovalHeight` is set, a caption-scaled 240-point cap. `ViewThatFits` selects natural content or a scrolling fallback. A single short item must not stretch to fill the cap, and expanding then collapsing safety reasons must restore natural height. Resource style allows short nonempty plain fields (at most 48 characters, no newline) to fit horizontally with a vertical fallback; accessibility sizes force vertical fields. Resource text blocks scroll in both axes with a 200-point maximum height. None of this folding or scrolling recovers omitted private payloads.
+
+`AssistantApprovalDetailsLayoutTests` measures single-item natural height across 280/390/700/1000-point widths, English and both Chinese scripts, and standard/accessibility type. It checks long fields and text against both the tool cap and available height, unbounded tools against available height, safety expansion/collapse, and iOS accessibility cap scaling.
 
 Focused verification: `builtInAndMCPFallbackUseTheSameFields` asserts equal generic structured items, and `explicitMCPPresenterIsUsedButRemoteMetadataCannotSelectLocalCode` distinguishes the generic `Value` field from an explicit `Projected` field and presenter layout. Approval tests retain an unredacted command/token and generic password argument; knowledge tests preserve complete long approval bodies and full preview items. These tests verify projection and disclosure state, not SwiftUI/AppKit pixel parity. The renderer comparison above is source inspection; rendering suites were not executed for this update.
 

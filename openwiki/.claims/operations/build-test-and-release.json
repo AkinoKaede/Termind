@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bc14527e8eb5b533d5316ebb064f192ee8ea3ae66d3e3d2575614d4f411ad5a1",
+  "pageVersion": "sha256:c952f3e18c54bbc34c0129c72c38db185cd12a32f88e39435474d4685ea8a211",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -46,7 +46,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         }
       ]
     },
@@ -118,11 +118,11 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, Korean dynamic labels, Korean/German/French demo prose, Host-access errors and Taiwan-region/visible-flag naming with colored, grayscale and missing pixel checks.",
+      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, Korean dynamic labels, Korean/German/French demo prose, Host-access errors and Taiwan-region/visible-flag naming with colored, grayscale and missing pixel checks. It also checks Input, Show Input Area and Shortcuts labels across all seven supported locales for nonempty values, expected English wording in en and non-English wording in the other six locales.",
       "evidence": [
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:be8e589a688cb69c5e468d8b29acaa3853edd47e98610be7a628887f2f923c29"
+          "version": "repo-file-v1:sha256:b8011ea28e43bc80c9e6dc93254a7acfb10ad85089d17e4d3b2e8c40d761b827"
         }
       ]
     },
@@ -304,7 +304,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         }
       ]
     },
@@ -366,7 +366,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -486,7 +486,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -576,11 +576,11 @@
     },
     {
       "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
-      "statement": "Committed Debug and Release settings use marketing version 1.17.4 with project build 75, TFM build 112, and TFI and Widgets build 101; explicit target overrides mean project-only changes do not update app build numbers.",
+      "statement": "Committed Debug and Release settings use marketing version 1.18.2 with project build 79, TFM build 117, and TFI and Widgets build 105; explicit target overrides mean project-only changes do not update app build numbers.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         }
       ]
     },
@@ -627,6 +627,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-25T22:25:01.745Z"
+    "at": "2026-11-03T02:07:36.095Z"
   }
 }

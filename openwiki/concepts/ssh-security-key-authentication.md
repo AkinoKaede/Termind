@@ -38,8 +38,12 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-b3ff2edaa14925d2360e5532
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/VaultSSHAgent.swift
+  - id: openwiki-source-5941d7546b162d321c974c61
+    resource: repo://FrameworkTests/SavedPassphraseTests.swift
   - id: openwiki-source-4b0d0e341e84f717f3781eda
     resource: repo://FrameworkTests/SecurityKeySigningCoordinatorTests.swift
+  - id: openwiki-source-b069c3f5fc95db0a8cc26f0d
+    resource: repo://FrameworkTests/SSHCredentialRecoveryTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
@@ -60,10 +64,10 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # SSH Security-Key Authentication
@@ -134,9 +138,37 @@ The libssh2 callback cannot suspend. `SSHKeyboardInteractiveExchange` waits on t
 
 For `webauthn.get`, conversion checks matching credential ID, challenge encoded as unpadded base64url, exact origin, and `crossOrigin` absent or false. Authenticator data must have the RP hash, allowed presence and required verification flags, no attested-credential flag, and either no trailing bytes or exactly one well-formed extension map when the extension flag is set. The DER ECDSA signature must verify over **authenticator data plus SHA-256 of the original signed `clientDataJSON` bytes** using the saved P-256 public key; never reserialize that JSON. OpenSSH compatibility additionally requires those bytes to **start** with `{"type":"webauthn.get","challenge":"...","origin":"https://termind.akinokaede.com"` in that order. The `webauthn-sk-ecdsa-sha2-nistp256@openssh.com` wire response contains ECDSA `r`/`s` SSH mpints, authenticator flags and counter, origin, original JSON, and extension bytes. Malformed CBOR, unsupported key formats, stray extension bytes, wrong challenge or signature, and noncanonical leading JSON fail closed; a response may be cryptographically valid but SSH-incompatible. `requiresUserPresence: false` relaxes the assertion UP-bit check, **not** the interaction policy or native prompt requirement.
 
+## Credential preparation boundary
+
+Resolved key material and transport credentials are different types. [`SSHResolvedKeyCredential`](../../Frameworks/TermindApplication/SSHConnectionTypes.swift#L345-L404) distinguishes Security Key metadata, software private-key/passphrase `SSHSecret` buffers, and a Secure Enclave reference. Conversion preserves Security Key metadata and its display name; software conversion prefers a certificate over the public key (or uses `nil` when both are empty), uses a submitted passphrase override before the saved one, and clears a replaced saved passphrase. Only a nonconsumed software passphrase counts as saved. Secure Enclave conversion carries its public key and presence requirement, not software private-key bytes.
+
+[`SSHConnectionPreparation.credentials`](../../Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L163-L225) resolves the key first, then a submitted password or eligible identity password. An encrypted key with neither a saved nor submitted passphrase is cleared and marked as requiring a passphrase. A protected-store read failure is **not** a missing credential: when no credential is usable, `SSHCredentialAccessUnavailable` is thrown with the owning Host ID, before requesting an unsaved key passphrase. Jump and proxy resolution preserve that classification and owner. A failed key read can still leave a usable password fallback; however, an explicit pending key-passphrase requirement still throws `keyPassphraseRequired` even if a password was collected. Other retrieval failures are thrown only when the result is empty, and an absent required credential becomes `missingCredential`. Failure or cancellation clears resolved secret buffers rather than returning them.
+
+```mermaid
+flowchart TD
+    Resolve["Resolve key for each route node"] --> Material{"Material available?"}
+    Material -->|Yes| Phrase{"Required passphrase missing?"}
+    Phrase -->|No| Convert["Convert resolved material to transport credential"]
+    Phrase -->|Yes| Clear["Clear key buffers and mark passphrase required"]
+    Material -->|No| Record["Retain retrieval failure if any"]
+    Convert --> Password["Collect submitted or saved password"]
+    Clear --> Password
+    Record --> Password
+    Password --> Unavailable{"No credentials and protected access unavailable?"}
+    Unavailable -->|Yes| Wait["Throw access unavailable with Host ID"]
+    Unavailable -->|No| Pending{"Passphrase still required?"}
+    Pending -->|Yes| Prompt["Throw keyPassphraseRequired"]
+    Pending -->|No| Validate["Check remaining retrieval or missing-credential errors"]
+    Validate --> Policy["Apply interaction policy before transport authentication"]
+    Policy --> Silent["Forbidden: replace Security Keys with interactionRequired, retain passwords"]
+    Policy --> Allowed["Allowed: offer Security Key and sign after server acceptance"]
+```
+
+Credential preparation precedes transport authentication; protected-store access, missing passphrases, and forbidden interaction are distinct boundaries. Sources: [preparation](../../Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift), [conversion and policy](../../Frameworks/TermindApplication/SSHConnectionTypes.swift).
+
 ## Connection owners and interaction policy
 
-`SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata directly into `.securityKey` instead of resolving an account in Keychain; `SSHConnectionPreparation` then resolves the same credential for destination and jump Hosts on a detached worker before opening transport. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses [`SSHInteractionPolicy.forbidden`](../../Frameworks/TermindApplication/SSHConnectionTypes.swift), which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
+`SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata into `SSHResolvedKeyCredential.securityKey` without a Keychain lookup. `SSHConnectionPreparation` resolves destination and jump Hosts on a detached worker before opening transport, then uses `sshCredential(for:passphraseOverride:)` to produce transport `SSHCredentials.securityKey` with the key's label. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses [`SSHInteractionPolicy.forbidden`](../../Frameworks/TermindApplication/SSHConnectionTypes.swift), which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
 
 Temporary login submissions and hardware signing are separate state. `RemoteSessionConnectionController` keeps supplied identity/proxy authentication per Host for retries; saving is an explicit continuation choice, and a failed save does not start another attempt. Its `disconnect()` clears those submissions and cancels the signing coordinator. `signWithSecurityKey` pauses reconnect and marks the requesting Host as waiting, resumes only after an assertion and a cancellation check, and fails a still-waiting journey on cancellation or signing error. At the transport boundary, cancellation cancels the exchange, cancels the opening state, and schedules cleanup; the exchange wakes its blocked callback and discards late assertion results. Sources: [authentication continuation](../../Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift), [connection controller](../../Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift), and [authenticated opening](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift).
 
@@ -146,6 +178,7 @@ Failures are reported at the appropriate stage: invalid reference, unverifiable 
 
 ## Focused verification
 
+- [`FrameworkTests/SSHCredentialRecoveryTests.swift`](../../FrameworkTests/SSHCredentialRecoveryTests.swift) distinguishes protected-store failures from missing credentials without polluting `storageError`, checks usable password fallback after key-read failure, gives unavailable password access priority over an unsaved passphrase, and preserves jump/proxy ownership in normal and silent connections. [`FrameworkTests/SavedPassphraseTests.swift`](../../FrameworkTests/SavedPassphraseTests.swift#L200-L252) checks zeroization after preparation failure, cancellation after a store read, and replacement of a saved passphrase. These are preparation-boundary tests, not hardware-signing tests.
 - `TFMTests/WebAuthnSSHTests.swift` covers registration parsing and truncation, public/reference round trips, exact SSH signature fields including unmodified JSON, challenge/RP/signature tampering, verification and presence flags, and malformed or duplicate-key CBOR extensions.
 - `FrameworkTests/WebAuthnVaultMetadataTests.swift` covers destination/jump resolution without Keychain, V45 persistence and V2 Vault sync round trips, legacy `.thisDevice`/`.iCloud` normalization to `.external` (while preserving V2's `thisDevice` wire value), rejection of software `.external` keys, rollback on failed metadata writes/deletes, and reopening a V44 software-key store. `FrameworkTests/SSHInteractionPolicyTests.swift` verifies that forbidden policy blocks even UP-optional Security Keys on both route nodes. `FrameworkTests/SecurityKeySigningCoordinatorTests.swift` covers silent requests, cancellation, auto-start and exactly-once responses; `TFITests/MobileVaultFeatureTests.swift` covers mobile generation/import and selectable verification metadata.
 - `TFMTests/SecurityKeySSHWireTests.swift` exercises OpenSSH direct, jump, SFTP and forwarded-agent authentication with a local fixture. It is **opt-in** behind `TERMIND_SECURITY_KEY_FIXTURE`; its software P-256 fixture verifies wire compatibility, not a physical key or the native system prompt. The rejection test runs both directly and through a jump, asserts that the signing handler is never called, preserves libssh2's `-18` failure detail, and checks stage logging without credential/public-key leakage.
