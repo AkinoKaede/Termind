@@ -1,11 +1,9 @@
 ---
 type: synchronization workflow
-title: Settings and Cloud Sync Workflow
+title: Settings and Cloud Sync
 description: Settings mutation and persistence, device-local desktop language selection, and app-wide ownership of CloudKit synchronization, journals, recovery, and secret boundaries.
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
 sources:
-  - id: openwiki-source-a51ca858a040a90d4ab9c1c4
-    resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-162732a78d991992cfb9458d
     resource: repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
@@ -14,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-d7d857d696a915d0708e13b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift
+  - id: openwiki-source-433ca859160cb6ed3368226a
+    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalExperienceSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-44f3b562f3c7b739d591cf92
@@ -80,6 +80,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-a0d614d618b11f103ec246ae
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
+  - id: openwiki-source-7131cb939451b9143bec319e
+    resource: repo://Frameworks/TermindPersistence/TerminalExperiencePreferences%2BMigration.swift
   - id: openwiki-source-2f7267f869168e6fd20257dd
     resource: repo://Frameworks/TermindPersistence/TerminalThemePersistence.swift
   - id: openwiki-source-79e0f2a939e874c6a6803c19
@@ -148,6 +150,8 @@ sources:
     resource: repo://FrameworkTests/SnippetColorTests.swift
   - id: openwiki-source-7a96834e0ec247f0a7610fde
     resource: repo://FrameworkTests/TerminalCustomThemeTests.swift
+  - id: openwiki-source-410f3c35b878a950dbf8bf1b
+    resource: repo://FrameworkTests/TerminalMousePreferencesTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -170,13 +174,13 @@ sources:
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# Settings and Cloud Sync Workflow
+# Settings and Cloud Sync
 
 Termind replicates a SwiftData-backed journal into the private `iCloud.com.akinokaede.termind` CloudKit container; this is **not** SwiftData CloudKit mirroring (`TermindPersistence.makeContainer` uses `cloudKitDatabase: .none`). Five writable owners—Vault, Settings, Metrics, Connection History, and Device—each own an engine, subscription, binding, queue, and lifecycle. History and Device retain the **same deployed zone**, `TermindConnectionHistoryV1`, but use separate subscriptions, kind-filtered journals and state rows, and separate safety scopes (Device's scope has consumer `device`; History keeps the original empty consumer). Neither should consume, reset or acknowledge the other's records. `HistoryRecordSyncCoordinator` shares the record-handling implementation, **not** their engine or account state. The former legacy importer is retired: Vault ignores obsolete History/Device copies in its own zone; it neither imports nor currently schedules physical cleanup of those copies. [CloudSyncJournal](../../Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift), [HistoryRecordSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift), [VaultSyncCoordinator](../../Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift).
 
@@ -191,6 +195,8 @@ Leaving a provider draft discards it only if unnamed and unconfigured; a new MCP
 `SettingsKey` contains local `UserDefaults` keys for both UI/selection and mirrors of synced preferences; being a key in this enum does **not** imply it is a cloud record. `SettingsSyncSnapshot.recordPayloads` determines what Settings actually journals: AI providers, MCP servers, roles, skills, web search, terminal, per-theme custom themes and per-appearance theme selections, SSH, SFTP, workspace and notification preferences. Retired terminal highlighting no longer participates in that snapshot or active sync. In contrast diagnostic consent (`diagnostics.crashReportingConsent`, retained to avoid resetting earlier choices), debug visibility/logging, review-invitation history and terminal font family/size/follow-theme are device-local. Consent is an optional per-installation choice, not a synced notification preference or a cloud toggle: absence requires a choice and never enables reporting; `DiagnosisController` persists an explicit choice before applying it to the reporter. Terminal theme and integration preferences *do* enter the Settings snapshot even though they are mirrored to defaults. [SettingsKey](../../Frameworks/TermindApplication/SettingsKey.swift#L4-L78), [SettingsSyncStore](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [DiagnosisController](../../Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32), [DiagnosisTests](../../FrameworkTests/DiagnosisTests.swift#L9-L50).
 
 The desktop Show Status Bar toggle is a separate app-wide, device-local `DesktopSettingsKey.showStatusBar` default, enabled initially and shared by Settings and the View menu. It does not add a Settings sync record or per-window durable preference. The floating root overlay appears only for a selected workspace when enabled; it does not dock below or resize the detail area. Expanded/collapsed state is a separate app-wide local preference. [RootView](../../TFM/App/RootView.swift#L13-L65), [DesktopSettingsKey](../../TFM/App/DesktopSettingsKey.swift#L12-L36).
+
+`DesktopSettingsKey` names Mac-only defaults rather than a second sync schema: appearance, main-window size/sidebar state, terminal input-area visibility/height, sidebar expansion, onboarding and quiet-at-login choices remain local. Its built-in MCP listener enabled/port/disabled-tools settings are also explicitly local, unlike configured remote MCP servers in the Settings snapshot. Shared `SettingsKey.inputSendShortcut` is a device-local keyboard choice for message editors and terminal input areas; mobile App Settings exposes it through `InputSendShortcutPicker`. [Desktop keys](../../TFM/App/DesktopSettingsKey.swift), [Shared keys](../../Frameworks/TermindApplication/SettingsKey.swift#L21-L23), [Mobile picker](../../TFI/Features/Settings/MobileAppSettingsView.swift#L26-L28).
 
 On mobile, Settings navigation passes the app-wide models to App, Notifications, Terminal, Connections, AI and Sync. App appearance (`mobile.appearance`) and compact cards (`mobile.compactCards`) are local `@AppStorage` choices, as are debug visibility, review state and diagnosis consent. Workspace automatic renaming instead uses `WorkspaceSettingsModel` and displays storage failures in red; Sync delegates selection changes to `MobileAppModel`. [MobileSettingsView](../../TFI/Features/Settings/MobileSettingsView.swift#L16-L59), [MobileAppSettingsView](../../TFI/Features/Settings/MobileAppSettingsView.swift).
 
@@ -210,16 +216,39 @@ flowchart TD
     Result -->|Yes| Journal["Notify sync owner of durable changes"]
     Journal --> Gate["Cloud lifecycle fetch and upload gates"]
     Remote["Accepted remote settings"] --> Merge["Transactional journal merge and projection rebuild"]
-    Merge --> Snapshot["Publish committed snapshot to AppModel"]
+    Merge --> Mirror["Mirror committed web search, terminal, SSH and SFTP defaults"]
+    Mirror --> Snapshot["Publish committed snapshot to AppModel"]
     Snapshot --> Live
 ```
-Local edits persist before updating live models; remote snapshots reach them after commit without replaying a local edit. The cloud lifecycle gate is independent of local save success. [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L148-L211), [ModelContext.commit](../../Frameworks/TermindPersistence/ModelContext+Commit.swift#L9-L17), [AppModel](../../TFM/App/AppModel.swift#L440-L448).
+Local edits persist before updating live models; remote snapshots reach them after commit without replaying a local edit. `prepare`, remote application and purge mirror the committed web-search, terminal, SSH and SFTP snapshot into defaults; individual local saves mirror the corresponding preference after `saveLocal` returns. Defaults are runtime mirrors, not the journal or an independent source of remote mutations. The cloud lifecycle gate is independent of local save success. [SettingsSyncPersistence](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L83-L255), [Local mirrors](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L350-L382), [ModelContext.commit](../../Frameworks/TermindPersistence/ModelContext+Commit.swift#L9-L17).
 
 ### SFTP concurrency is a synced preference, not queue state
 
 `SFTPPreferences` stores the global/per-host limit pair and strategy (`smart`, `channels_only`, `connections_preferred`). Defaults are 30 global, 10 per host and Smart. Local normalization clamps global concurrency to 1–100 and per-host concurrency to 1–50 without exceeding the global limit; reducing the global limit can therefore commit both numbers together. JSON decoding deliberately retains invalid numeric values for envelope validation rather than silently normalizing remote input. Missing strategy defaults to Smart for older payloads, but an unknown strategy string fails decoding. [SFTPPreferences](../../Frameworks/TermindDomain/Transfers/SFTPPreferences.swift), [SettingsEnvelope validation](../../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift#L268-L277).
 
 `SFTPSettingsModel` saves before publishing limits or strategy. Failure preserves the live preferences and emits no runtime callback; a changed remote snapshot clears the error and notifies once without saving again. Both app models wire `didChange` into connection/transfer preference reconciliation. The local singleton stores normalized JSON and mirrors all three values into defaults; the snapshot emits the `.sftp` record, not transfer jobs. `SFTPSettingsTests` pins paired-limit commits, failed-save isolation, remote deduplication and legacy/unknown strategy decoding. [Model](../../Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift), [Local storage](../../Frameworks/TermindPersistence/PersistentSFTPPreferences.swift), [Desktop callback](../../TFM/App/AppModel.swift#L459-L461), [Mobile callback](../../TFI/App/MobileAppModel.swift#L432-L434), [Tests](../../FrameworkTests/SFTPSettingsTests.swift).
+
+## Device-local terminal experience and migration
+
+Terminal settings have two ownership paths. `TerminalSettingsModel` persists synced theme/custom-configuration and shell-integration values through `SettingsSyncPersistence`. `TerminalExperienceSettingsModel` instead owns local bell sound, vibration, keep-screen-awake, **Copy on Select** and **Paste on Right Click** choices in `UserDefaults`. Both mouse choices default off. Desktop Terminal Settings binds its mouse toggles to the experience model, and mobile receives that same kind of app-wide experience model alongside its synced terminal model. Mouse edits do not create Settings journal intent. [Experience model](../../Frameworks/TermindApplication/FeatureModels/TerminalExperienceSettingsModel.swift), [Desktop controls](../../TFM/Features/Settings/SettingsPageView.swift#L654-L680), [Mobile injection](../../TFI/Features/Settings/MobileSettingsView.swift#L38-L40), [Mouse tests](../../FrameworkTests/TerminalMousePreferencesTests.swift#L12-L33).
+
+The migration reads the **pre-upgrade local terminal row**, not incoming cloud values. `terminalPreferences()` calls typography and mouse migrations before returning an existing row or creating one from defaults. `migrateLegacyMouseSettings` fills only missing defaults keys; an explicit `false` is as authoritative as `true`. Missing legacy fields or a fresh installation seed `false`. Once both keys exist, migration is a no-op. This must run before constructing the experience model: mobile explicitly prepares settings first, then constructs that model. Current `TerminalPreferences` coding and defaults mirroring contain no mouse fields, so an older remote terminal payload can still update theme/integration without overwriting local mouse choices. Remote terminal deletion and destructive Settings purge also leave those choices alone. [Migration](../../Frameworks/TermindPersistence/TerminalExperiencePreferences+Migration.swift), [Row loading](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L335-L353), [Terminal wire value](../../Frameworks/TermindDomain/Sessions/TerminalPreferences.swift), [Mobile ordering](../../TFI/App/MobileAppModel.swift#L254-L257).
+
+```mermaid
+flowchart TD
+    LocalRow["Pre-upgrade local terminal row"] --> Migration["Fill only missing mouse defaults"]
+    Migration --> Defaults["Device-local UserDefaults"]
+    Defaults --> Experience["TerminalExperienceSettingsModel"]
+    MouseEdit["Mouse toggle edit"] --> Experience
+    Experience --> Defaults
+    Remote["Legacy remote terminal payload"] --> Decode["Decode current TerminalPreferences without mouse fields"]
+    Decode --> Commit["Merge journal and commit synced projection"]
+    Commit --> Mirror["Mirror theme and integration defaults only"]
+    Commit --> Live["Apply remote TerminalSettingsModel snapshot"]
+```
+Local migration preserves prior mouse choices; remote terminal replication never writes the mouse defaults.
+
+`TerminalMousePreferencesTests` covers independent devices, all missing/false/true defaults combinations, disk rewrite/reopen, fresh installs, unchanged pending envelopes and callback counts after mouse edits, legacy remote decoding, outgoing field exclusion, deletion and purge. `SettingsSyncTests.terminalPreferencesSyncWithCustomTextAndMirrorExistingRuntimeKeys` additionally checks that custom text/integration reach the destination while source mouse choices do not. These are local persistence/merge tests, not cross-device delivery tests. [Mouse regression suite](../../FrameworkTests/TerminalMousePreferencesTests.swift#L35-L165), [Settings round-trip](../../TFMTests/SettingsSyncTests.swift#L150-L185).
 
 ## Device-local desktop language selection
 
@@ -511,7 +540,7 @@ Terminal keyword highlighting is **retired**, not another active Settings single
 
 On receive, either the legacy `TerminalHighlightPreferencesItem` type or a highlighting record key excludes a record; deletions are filtered by key. This happens **before** replica reconciliation and payload validation, including conflict delivery, whose usual type filter can otherwise be bypassed. Thus malformed retired records do not replace active preferences or create quarantine through this path. This is local retirement and receive filtering, not server-side deletion of historical records. Historical server types and old clients still require separate rollout review; do not recreate the deleted live models or editor. [Receive and conflict paths](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L219-L263), [Conflict forwarding](../../Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L327-L330). See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
 
-`RetiredTerminalHighlightingTests` verifies V46 and V51 disk stores containing unreadable highlighting data can upgrade, prepare and reopen with terminal `copyOnSelect` retained, no highlighting envelope/outgoing entry, and the historical table removed. Its SQLite inspection and scoped container lifetimes are **test mechanics**, not a production SQL cleanup step or proof that every unrelated preference was tested. Separate cases retire a malformed pending upload without replacing terminal preferences, and deliver malformed fetched/conflict/deletion records alongside an active terminal update through a fake transport; active settings still apply and quarantine remains empty. [Retirement regressions](../../FrameworkTests/RetiredTerminalHighlightingTests.swift#L17-L148).
+`RetiredTerminalHighlightingTests` verifies V46 and V51 disk stores containing unreadable highlighting data can upgrade, prepare and reopen with terminal `shellIntegration: false` retained, no highlighting envelope/outgoing entry, and the historical table removed. Its SQLite inspection and scoped container lifetimes are **test mechanics**, not a production SQL cleanup step or proof that every unrelated preference was tested. Separate cases retire a malformed pending upload without replacing terminal preferences, and deliver malformed fetched/conflict/deletion records alongside an active terminal update through a fake transport; active settings still apply and quarantine remains empty. [Retirement regressions](../../FrameworkTests/RetiredTerminalHighlightingTests.swift#L17-L148).
 
 The notification model loads persisted preferences on construction; an invalid or failed edit does not change its live value, whereas a committed remote snapshot replaces it without writing or echoing. An active scene requests initial system authorization at most once per app-level model, only when loaded settings call for system delivery and no load error occurred; disabled notifications and bell-only terminal delivery do not prompt. The shared view modifier runs on active-scene transitions, but the model's one-shot guard deduplicates concurrent scenes and reactivation. [NotificationSettingsModel](../../Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L4-L47), [InitialNotificationAuthorization](../../Frameworks/TermindPresentation/InitialNotificationAuthorization.swift#L4-L20), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L12-L53), [NotificationPreferencesTests](../../FrameworkTests/NotificationPreferencesTests.swift#L77-L93).
 

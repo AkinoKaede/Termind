@@ -1,6 +1,6 @@
 ---
 type: architecture guide
-title: Mobile Scenes and Workspace UI
+title: Mobile UI and Scene Ownership
 description: "How iPhone and iPad retain adaptive feature stacks while scenes own navigation over shared app services and in-process window workspace sessions, including recovery, remote-session selection and native-window verification."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 sources:
@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-b4a7c3f7e2b9f4c6c65ef6e4
     resource: repo://Frameworks/TermindApplication/FeatureModels/LibraryExpansionState.swift
+  - id: openwiki-source-ee37afc31d37a2484edb9e5e
+    resource: repo://Frameworks/TermindApplication/InputSendShortcut.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
@@ -60,6 +62,8 @@ sources:
     resource: repo://TFI/DesignSystem/MobileToolbarEnvironment.swift
   - id: openwiki-source-3dfad0e95bb7d66f292c20c9
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
+  - id: openwiki-source-6198730d1438317cedd37723
+    resource: repo://TFI/Features/AI/MobileAssistantInteraction.swift
   - id: openwiki-source-d43ef236ba4bbb23d8dab797
     resource: repo://TFI/Features/Assistant/MobileAssistantView.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
@@ -108,6 +112,10 @@ sources:
     resource: repo://TFI/UI/Components/MobileEditorSheet.swift
   - id: openwiki-source-e4e69f9f6077911b963b1f83
     resource: repo://TFI/UI/Components/MobileFileImportState.swift
+  - id: openwiki-source-3d15394fe546092b590672d9
+    resource: repo://TFI/UI/Components/MobileMessageTextEditor.swift
+  - id: openwiki-source-a4f3a690a8395e2ac9b065b9
+    resource: repo://TFI/UI/Components/MobileNativeList.swift
   - id: openwiki-source-9e1ad4464fb43a1ffe1283c7
     resource: repo://TFI/UI/Components/MobileNotificationMenuLabel.swift
   - id: openwiki-source-69a5f03670569fd29fe8983d
@@ -148,6 +156,8 @@ sources:
     resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
   - id: openwiki-source-306ac6af21ff8cbce6a68860
     resource: repo://TFITests/MobileHostAdmissionTests.swift
+  - id: openwiki-source-f626c208c1a7ba1420ae9956
+    resource: repo://TFITests/MobileMessageTextEditorTests.swift
   - id: openwiki-source-72d3cbdcda7790780fc552ff
     resource: repo://TFITests/MobileMetricsHostAccessTests.swift
   - id: openwiki-source-2c7245a9a1462a5a8d09b739
@@ -176,13 +186,13 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# Mobile Scenes and Workspace UI
+# Mobile UI and Scene Ownership
 
 TFI is not a scaled-down copy of the desktop split-pane window. It uses system-adaptive top-level tabs/sidebar, a navigation stack for each registered feature, and scene-local routing. Application services are shared, but terminal workspaces and their in-process descriptors belong to window sessions keyed by persistent UIKit identifiers, not to one global workspace collection. Adaptation changes presentation without automatically replacing the conversation, terminal or connection being presented.
 
@@ -196,6 +206,10 @@ flowchart TD
     App --> Sessions["MobileWorkspaceSessionModel per persistent UIKit session"]
     Sessions --> Workspaces[MobileWorkspace instances]
     App --> AssistantRuntime[MobileAssistantModel]
+    App --> Resources[AgentResourceManager]
+    Resources -. borrows existing owners .-> Shared
+    AssistantRuntime --> ToolRegistry[AssistantToolRegistry]
+    ToolRegistry -. injected management .-> Resources
     Root[MobileRootView] --> Scene[MobileSceneModel per scene]
     Scene --> Sessions
     Root --> Registry[MobileFeatureRegistry]
@@ -214,6 +228,10 @@ flowchart TD
 ```
 
 Application services are shared while each scene retains its feature navigation and Assistant selection; each workspace runtime has a window-session owner.
+
+`MobileAppModel` constructs one `AgentResourceManager` from the existing credential, snippet, forwarding-library/runtime and Metrics owners plus `AgentHostLibrary`. It injects that manager into `MobileAssistantModel`, which passes it to `AssistantToolRegistry.make`; Agent management does not create a second persistence or monitoring stack. Default key/password storage is resolved from current settings and Vault Sync access. Agent Host deletion calls back into `app.deleteHost`, preserving cross-window cleanup rather than merely removing a library row. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+
+The mobile approval surface uses shared tool presentation profiles with `MobileAppDependencies.toolPresenter` and resource names resolved by that same manager. `MobileAssistantInteraction` sends Allow Once/Deny back to the conversation by approval ID. Approval details are constrained to the usable interaction-region height, leaving decision controls within the mobile layout; neither this form nor scene selection owns resource execution.
 
 `MobileFeatureRegistry` is the single registration table for feature identity, order, localized title, symbol and view builder. Its standard order is Vault, Metrics, Workspaces, Assistant, Settings, and duplicate destination registration is rejected. `MobileRootView` iterates registrations rather than maintaining independent tab/sidebar/destination switches.
 
@@ -505,7 +523,7 @@ Explicit workspace close removes local rows, runtimes and saved descriptors sync
 
 ### Metrics detail and monitoring boundary
 
-The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. The view's `.task` starts that model idempotently, while the foreground/background lifecycle can restart or pause it independent of the Metrics tab. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Failed persistence is surfaced as `app.error`; the current Metrics selection wrapper no longer enforces a Metrics-count admission limit or opens a limit paywall. Host-access locking is a separate gate: locked card activation opens Pro rather than detail, and an already-pushed locked detail renders a lock notice before journey or data panels. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
+The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. The view's `.task` starts that model idempotently, while the foreground/background lifecycle can restart or pause it independent of the Metrics tab. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Newly added selections must resolve to SSH-enabled Hosts; `replaceHosts` rejects invalid additions before saving, then persists the complete proposal before applying it. Failed persistence is surfaced as `app.error`; the current Metrics selection wrapper no longer enforces a Metrics-count admission limit or opens a limit paywall. Host-access locking is a separate gate: locked card activation opens Pro rather than detail, and an already-pushed locked detail renders a lock notice before journey or data panels. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
 
 `MobileMetricsDetailView` uses `server.showsConnectionJourney` (the shared projection of `requiresAuthentication || journey.isPresented`) to select the inline journey before Metrics status/process panels, after the Host-lock gate. It wires authentication, host-key trust and Retry to `app.metrics.core`; its cancel disables that server and dismisses the pushed detail. When the journey is shown it stops detail observation; otherwise it registers its observer, including on the transition to live data, and removes the observer on disappearance. That observer controls detail-only sampling, **not** the lifetime of the shared monitor. Normal content keeps status and process children mounted in `MobilePaneLayout`, hiding covered children from hit testing and accessibility. A usable split shows both; without a division a sufficiently wide continuous area shows two columns, otherwise a page selection shows one. The page control is absent during the journey or when both panels fit; in a vertical toolbar it becomes a menu, otherwise a segmented picker. This separation keeps a challenge in the Metrics navigation stack instead of presenting a sheet or constructing a terminal workspace.
 
@@ -589,9 +607,17 @@ Initial terminal focus is separate: `MobileTerminalInitialFocus` requests it on 
 
 Message images use `MobileAssistantImageFlowLayout`, not the managed-card grid: each wrapped user row is trailing-aligned, including a partially filled final row, while Assistant rows are leading-aligned. Tiles are 104 points in compact horizontal size class and 160 otherwise, with eight-point flow spacing. `MobileAssistantTranscriptTests` verifies role-edge placement for five images at 320-point width. External file/image drops use a separate attachment modifier, disabled for archived chats, pending approvals and pending user interactions without replacing the conversation tree; loading imports into the composer and accumulates attachment-import errors. `MobileAssistantLayoutTests` uses serialized, opt-in key-window cases to verify approval and user-input round trips retain native transcript identity and history scroll position (and bottom anchoring for approval cases).
 
+The transcript distinguishes **layout revisions** from **interaction-only revisions**. Its refresh identity contains conversation ID and archive state, not streaming state; only plan rows change interaction revision when streaming changes. `MobileNativeList` reconfigures mounted interaction-changed rows without invalidating their measurements, avoids configuring a row twice in a mixed update, and retains the latest renderer for later offscreen mounts. Actual content/disclosure changes still update geometry, and explicit refresh or environment changes still reload rows. Bottom-follow applies only when already within 48 points of the bottom and not actively scrolling. `MobileAssistantTranscriptTests` checks unchanged hosts and history anchors across run boundaries, zero measurements for interaction-only updates, mixed-update deduplication and fresh offscreen renderers; these are native-list harness contracts, not full-device gesture coverage.
+
 The interaction region can contain more than the composer, so its height is measured rather than assumed from a fixed input-bar constant. It bottom-aligns and scrolls based on content size. Tapping the transcript can dismiss composer focus without changing the conversation or ending the run.
 
 The shared application Assistant runtime owns execution, not `onDisappear` on the conversation view. It coalesces concurrent repository loads, restores conversations into one store, and gives each scene its own library selection and draft over that store; send is gated during suspension and on authorization, archive/history/compaction and pending-attachment state. Background expiry requests cancellation across conversations before awaiting their drain, then closes Assistant background commands and Host connections. The view's disappearance only removes its temporary preview directory. App background expiration is a separate boundary.
+
+### Input ownership and shortcuts
+
+Message submission is a native-editor action, not a scene-wide Return shortcut. `MobileMessageTextEditor` reads `SettingsKey.inputSendShortcut` (default `.returnKey`): Return sends and Command-Return inserts a newline, or `.commandReturn` reverses those roles. Shift-Return and Command-Shift-Return insert newlines; marked text, Control and Option defer to system handling. Only an editable first responder in the key window owns input actions. Pasted newlines remain text, and SwiftUI updates do not overwrite marked text. Changing the preference updates the mounted editor and keyboard return type without replacing its draft or selection.
+
+`MobileMessageTextEditorTests` verifies unmounted rejection, preference changes with retained editor/selection, and key-window Return/marked-text behavior. Its key-window cases are serialized and opt-in via `.requiresKeyWindow`. Separately, `MobileShortcutTests` checks the nonduplicating app command map: Command-T Connect, Command-Option-T New Chat, Command-Option-I Show Assistant, Command-I Generate Command, Command-Y History, Command-Shift-B Batch Startup and Command-Shift-[ / ] workspace cycling. App commands target the focused scene; native text submission targets the focused editor.
 
 ## Native notification routing and unread state
 

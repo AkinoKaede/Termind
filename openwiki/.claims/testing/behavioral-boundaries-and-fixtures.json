@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9683d4cff22d90a41c1176c4c7c0944ce7c8cba82122470eb36a83a33ecf24d7",
+  "pageVersion": "sha256:9735fd1ddf3dccb1e5df7e598285434cb419471cbb737b43a71403ffead245a2",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -241,7 +241,7 @@
       "statement": "The same-run SwiftData edit regression uses equal timestamps, reversed UUIDs, compacted production restoration, a legacy prefix invocation with inferred source ownership, backing-row counts, staging adoption and late-write attempts; it does not seed an unknown cutoff invocation. The empty-run regression separately proves live/restored ordering when the replacement clock precedes the retained run.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L893-L1157",
+          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L956-L1220",
           "version": "repo-lines-v1:sha256:7399c2eff1450ed7fe6c461d6cab56b04d04cbd109567e18ec9903aa449e510e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjY1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxYzlhMjg4MzM2YWFlNTM2ZWUyNDBiMGZjMGU5MTI5YzMwYmYzZGZiNmJiNWQwYzI1YThlNTk3ODk2N2Y1Y2Y3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzYWIzNTY3NzNjOTJiZmM4ZTMzOTFjNTRhNmEzMDUyOGE4ZWMxZjI2MTc3NjlkMjUwMjdmNzI1NzA5MDk0NjRiIn0"
         }
       ]
@@ -261,7 +261,7 @@
       "statement": "Composer regression covers compacted same-run display-prefix, tool, title, plan, compaction and run chronology retention; mobile exercises SwiftData restore and operations edit to compare live and restored prefix ownership.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileAssistantTests.swift#L157-L202",
+          "resource": "repo://TFITests/MobileAssistantTests.swift#L200-L245",
           "version": "repo-lines-v1:sha256:d337b352f4c959c9d41ff735d806ee5d7b84f73490eb20bbd0c7e4ed6d69643a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMjNjNGMzNzhiOWZiNzhjM2ZjOWNhMzc0YTNhNjQ0OGE5ZjAzMzJiYWY1ZmEyNDIxMGJjMDc0YjlkMmRmNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1ZjljZmVjYTlmZmQyNDRmMzFjNzdjZmNmNjMzYTA2NmZkZWQyYzI3OGVjNWQ2ZmRiZTU2ODM0NGY1ZWM1N2YifQ"
         },
         {
@@ -541,7 +541,7 @@
       "statement": "Mobile reconciliation retains ownership while the native session exists and transfers missing sessions to an active destination only after saving the complete descriptor handoff. Save failure preserves source runtimes and owners. Live-source provenance permits late discard to close only transferred work from that source, whereas unbound cold-restored sources do not acquire that authority.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L609-L659",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L622-L672",
           "version": "repo-lines-v1:sha256:381115f715de2fb32ee54bddabea53ef6739091c9da049eda08cc4e43e52881b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhYmE1M2E3ZjZiZmE0NDY3MWYyN2ZjNjE1MDE2MDBjNGY1YTc3ODk4ZWJjZGEyMGU0NDFhOWJiN2ZhODg5NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4OTA2YzcxMDI2MmUxYTAwMmNiMDM0MGE2NTI2ODIyNjQzMTI1ODBiNzA4MGU5YjA1YjkxOTI4ZjQzMDZkZWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMGVhYzUyYWE2NjM0MDczNjQ0MjU1MTg2YTc5NGIxMjdmYzQ5MTA2NTRmYTNhMjBiOTgzMjMxOTIxZWU2ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhOTBjYmJkZjRhNDExYzczMTg0N2RhMzMyN2JjYTNjYmZjNDE2NGYzMTU5YWJmOGIwOGRlNDk3YmZkMDVhZDkifQ"
         },
         {
@@ -600,15 +600,11 @@
     },
     {
       "id": "claim_157fdfe530fc4db4a2ba3198e6420a7a",
-      "statement": "Mobile workspace session fixtures direct assistant notifications to matching active or hidden owner scenes without stealing another scene's selection, and hold transfer clicks until an active scene is available, consuming them once; these exercise app/router ownership without a key-window dependency.",
+      "statement": "Mobile workspace session fixtures route assistant notifications to matching active or hidden owners without stealing selection and consume transfer clicks once after activation, without key windows.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:89c26fe6965c4cc522db20224441a02f0a961c0d90ecda9eea9b469e72533f22"
-        },
-        {
-          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
-          "version": "repo-file-v1:sha256:c411dfe11eab54937f88e6dac9dbdd292b16c701a67617e93323f67a518d81d0"
+          "resource": "repo://FrameworkTests/SSHCredentialRecoveryTests.swift",
+          "version": "repo-file-v1:sha256:dc6eb84af53f8bc769bd61e4c311fa885c39f4f5e2423893f5b1bedcafa35be8"
         }
       ]
     },
@@ -956,11 +952,11 @@
     },
     {
       "id": "claim_e607a12e84f54eb28f011d6b944caa17",
-      "statement": "RetiredTerminalHighlightingTests constructs V46/V51 stores, upgrades and reopens while retaining copyOnSelect and removing retired tables and journal entries; read-only SQLite checks explicitly validate API results with a 5000 ms busy timeout, and separate in-memory tests retire pending uploads and ignore malformed legacy fetch/conflict/deletion records without quarantine.",
+      "statement": "RetiredTerminalHighlightingTests constructs V46/V51 stores, upgrades and reopens retaining shellIntegration: false while removing retired tables and journal entries; read-only SQLite checks validate API results with a 5000 ms busy timeout, and in-memory cases retire pending uploads and ignore malformed legacy fetch/conflict/deletion records without quarantine.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/RetiredTerminalHighlightingTests.swift",
-          "version": "repo-file-v1:sha256:f466085c17b5a7bd6354e324461d7174ff48e7ddcba383d9b7af2f7671641c8c"
+          "version": "repo-file-v1:sha256:68d2b02fb18ebc4661b3c51cd34115daf518bdcc0901c55ae95b4954a22d80e8"
         }
       ]
     },
@@ -1007,7 +1003,7 @@
       "statement": "Production macOS Quit returns terminateLater, saves terminal-theme edits and checks remaining unsaved themes, then rechecks pending SFTP edits before shutdown; open workspaces alone no longer cause a confirmation.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L476-L513",
+          "resource": "repo://TFM/App/TermindApp.swift#L482-L519",
           "version": "repo-lines-v1:sha256:13b2b405cc4dbab1424b195322f1c42c0f2d378faf3d48b45930adb9dd0fd04d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMmJlMTBlOWQxYjNjMGE2OTYxNzZmMGYyMDQ3MGVhODMzN2FmYzI4MWZmMTIzYmNmMmRmMjkzMTNkMDIwMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4NWYxZjhkMWY1ODkwZmNjMTE1ZWMwNWRlNGU3NzA1ODdiOWRjNDlkZDhlM2IxNTViYmUwYzI4NWI2ZWQyYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxZGRiMTA1ZDJkYzM4NzIxMjhkM2QwZjEzNDYyNTg4MWYwZmIyNmUyNzRmNWE3ZWVkZDViY2VkZmIwMGI3ZjcifQ"
         }
       ]
@@ -1085,6 +1081,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-25T22:25:01.745Z"
+    "at": "2026-11-03T02:07:36.095Z"
   }
 }

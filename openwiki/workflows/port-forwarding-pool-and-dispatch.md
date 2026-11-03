@@ -1,15 +1,19 @@
 ---
 type: implementation workflow
-title: Forwarding Pool and Dispatch Lifecycle
+title: Port Forwarding Pool and Dispatch
 description: "Trace explicit forwarding Start through Host access checks, primary authentication, pooled TCP flow dispatch, auxiliary connection recovery, and teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
 sources:
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-0dbda709e73949faf35b3984
+    resource: repo://Frameworks/TermindApplication/SSHCredentialAccessUnavailable.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
+  - id: openwiki-source-6f8db123d550d9a8718c172c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/KeychainSecretStore.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
   - id: openwiki-source-8687c653b94feaa9885e1286
@@ -32,13 +36,13 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# Forwarding Pool and Dispatch Lifecycle
+# Port Forwarding Pool and Dispatch
 
 ## Two scheduling decisions, three kinds of rule
 
@@ -237,6 +241,40 @@ The first connect may ask for host trust/credentials or Security Key signing. Re
 
 The snapshot freezes target/jump/proxy topology and authentication provenance (Identity/Key IDs), not resolved secrets. `additionalConnectionRequest` reads the current referenced credentials immediately before each open and returns a one-shot forbidden-interaction request; the worker clears its configuration secrets after connecting. Durable trust is captured from known hosts rather than promoting once-only trust. Architecture tests guard reference retention, and `SSHInteractionPolicyTests` verifies that forbidden policy blocks all Security Keys, including keys not requiring a touch and keys on jumps.
 
+### Protected credentials and availability-gated recovery
+
+Temporarily unreadable saved credentials are **not missing credentials or rejected authentication**. `SSHCredentialAccessUnavailable` preserves that distinction (and can carry the affected Host ID); the Keychain adapter maps `errSecInteractionNotAllowed` to it. In a silent controller attempt, this error keeps intent in recovery with `waitingForCredentials: true`, rather than failing the rules or opening authentication UI. Genuine missing credentials, required passphrases, authentication/trust errors, `SSHInteractionRequired`, and cancellation still end that silent attempt through the manual-retry path.
+
+The controller attaches `hosts.recoveryAvailability` when scheduling recovery. `SessionReconnectController` pauses timers while system sleep or inactive-session blockers make the system unavailable; even `retryNow()` cannot bypass that gate. After old cleanup and Host access resolution, the silent open checks availability again **before resolving snapshot credentials**. Availability is only a hint: an available system can still return protected-storage unavailability.
+
+Network retries use the default 1, 2, 5, 10, 30-second capped sequence and reset after 60 seconds of stability. Credential waits use a separate counter with the same delay policy, do not advance the network-attempt counter, and clear the displayed last error. Availability restoration or `requestRecheck()` schedules a coalesced retry after yielding once. The scheduled action is consumed before invocation, and generation checks reject old timers, so duplicate lifecycle hints cannot duplicate an in-flight open. Stop/retirement clears the retry action and availability observer as well as retiring transport intent.
+
+```mermaid
+stateDiagram-v2
+    Running --> Recovery: transport failure with reusable snapshot
+    Recovery --> WaitingSystem: system blocked
+    Recovery --> Backoff: system available
+    WaitingSystem --> SilentOpen: availability restored
+    Backoff --> SilentOpen: timer or retry now
+    SilentOpen --> WaitingCredentials: saved credentials unavailable
+    WaitingCredentials --> SilentOpen: timer or availability recheck
+    WaitingCredentials --> WaitingSystem: system blocked
+    Backoff --> WaitingSystem: system blocked
+    SilentOpen --> Backoff: transient failure
+    SilentOpen --> ManualRetry: interaction or authentication or trust required
+    SilentOpen --> Running: surviving listeners restored
+    Recovery --> Stopped: intent retired
+    WaitingSystem --> Stopped: intent retired
+    WaitingCredentials --> Stopped: intent retired
+    Backoff --> Stopped: intent retired
+    SilentOpen --> Stopped: intent retired
+```
+The controller recovery lifecycle keeps protected-storage waits silent; each replacement open waits for prior cleanup, and retirement rejects late results.
+
+This gate belongs to **whole-context controller recovery**, not auxiliary pool scheduling. Auxiliary credential-unavailable errors are not classified as manual-retry errors either, but the pool uses its own retry timer and does not acquire the controller's `waitingForSystem`/`waitingForCredentials` states. Healthy published slots can continue serving admitted flows while capacity is below target.
+
+Sources: [controller recovery](../../Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift), [retry timing and gates](../../Frameworks/TermindApplication/SessionReconnectController.swift), [availability hints](../../Frameworks/TermindApplication/ConnectionRecoveryAvailability.swift), and [protected-credential reconnect test](../../TFMTests/PortForwardingReconnectTests.swift).
+
 ## Teardown ordering and stale-result guards
 
 There are several different tokens, none interchangeable:
@@ -283,7 +321,7 @@ The cleanup task waits for preparation cancellation and conversation drains, joi
 - `ArchitectureBoundaryTests.forwardingAndMobileAuthenticationRemainFeatureOwned` guards against controller dependencies on settings/global external authentication and checks forbidden-interaction reconnect wiring.
 - `AppTerminationTests` checks conversation drains before agent resource closure, background-command closure before connection closure, and reuse of termination cleanup. Forwarding retirement placement is established by `AppModel` and controller source, not by a forwarding-drain assertion in that suite.
 - `SSHForwardingPumpTests` is the deterministic low-level seam: short writes, stable retry bytes, ready-queue order, watermarks, half-close, zero-window wakeups, encrypted-buffer allowance and source cancellation.
-- `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering. Its numeric-limit test also checks live limit changes, preservation of the saved Host maximum, and reuse of the effective limit after recovery.
+- `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering. Its protected-credential test blocks recovery during system sleep, verifies Retry Now performs no credential reads while blocked, then checks silent credential waiting, no storage error or authentication form, and restoration after repeated availability rechecks. Its numeric-limit test also checks live limit changes, preservation of the saved Host maximum, and reuse of the effective limit after recovery.
 - `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. It also checks shrink-without-stream-loss, re-expansion, and admission restoration after a retained auxiliary fails while peers drain. That last test closes the real connection and injects the failure callback, so it tests pool recovery rather than network-loss detection. `disconnectReleasesThePortBeforeReturningEvenWithEstablishedStreams` repeatedly checks local/dynamic listener rebinding after disconnect with an accepted flow; separate tests cover backpressured disconnect and stopping an in-flight remote listen before rebinding. These verify cleanup behavior, not live entitlement admission, which is established by the controller, pool, and worker checks above. Source presence or a default suite pass does not mean these wire tests ran.
 
 When investigating low throughput, first inspect whether the pool is actually above one connected slot, whether the rule is local/dynamic, and whether silent extra opens can authenticate. Then inspect stream backpressure and pump progress; increasing the target cannot make one stream span workers. For benchmark fixture setup and interpretation, use [Port Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md). The pool code and current test seams do not establish an exhaustive actor-interleaving proof or a WAN performance guarantee.

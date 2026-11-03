@@ -14,6 +14,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
+  - id: openwiki-source-08806acefd6b21829cd6c353
+    resource: repo://Frameworks/TermindApplication/SessionReconnectController.swift
   - id: openwiki-source-21096ca5afd2c8baca7c623c
     resource: repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift
   - id: openwiki-source-5e7fb300dcdfa0227467d965
@@ -32,8 +34,14 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-6d31fde4399bc6391f30aaf0
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/GetMetricsTool.swift
+  - id: openwiki-source-a5d7e0dceed6f03d335cc324
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/HostManagementTools.swift
+  - id: openwiki-source-bc712869742a856000684c8c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/MetricsManagementTools.swift
   - id: openwiki-source-7b0bd5b2df4c45dd572abbac
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/PlanningSSHExecRunTool.swift
+  - id: openwiki-source-459d5310dcba40b0aa1e3b65
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift
   - id: openwiki-source-f976589f19e3ab05e6ea5a44
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecControlTools.swift
   - id: openwiki-source-cd4e1048d6e972f3f86d27e3
@@ -96,10 +104,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 
@@ -215,7 +223,7 @@ Focused regression coverage: `TFMTests/SSHMaxSessionsPolicyTests.swift` checks d
 
 `ServerMetricsModel` is the application-level owner, independent of windows. It persists ordered `MetricsSelection` configuration (Host ID, enabled state, disk and interface choices), not monitor connections or samples; missing Hosts stay selected but have no card/worker until available. On macOS `AppModel` constructs it with the connection coordinator's sampler factory; on iOS `MobileMetricsModel` wraps the **same `ServerMetricsModel` implementation**, delegating sampling, authentication, and retries to `core`. Neither shell injects a separate Pro-dependent Metrics card limit; current Host access is enforced by the shared Host policy. Admission and preference writes run through the core model, which rejects non-SSH Hosts and does not change runtime configuration if saving fails. UI windows share its card state; the desktop details page observes a Host only while visible outside its connection journey, and the mobile detail view uses the same observation interface.
 
-`ServerMetricsModel` runs a detached serial worker for each enabled SSH Host with a generation guard. The worker resolves an SSH connection preparation with challenge-capable trust and keyboard-interactive handlers, connects a newly made sampler, then samples on a roughly two-second cadence. It publishes the base point first; GPU, filesystem, and process details are optional follow-up work. Filesystems are refreshed only while a detail view is observed and no more often than 30 seconds. On failure it disconnects and retries with exponential delays from 2 seconds to a 60-second cap; a failure needing authentication or an unsupported primary probe waits for attention instead of looping. Cancellation, disabled selection, sleep, stopped model, or a changed generation retires the work; periodic reconciliation notices Host/route/identity changes and invalidates its monitor. `snapshot(for:)` reads the existing monitor without starting collection, returning an explicit paused, sleeping, stopped, or awaiting-authentication state where applicable.
+`ServerMetricsModel` runs a detached serial worker for each enabled SSH Host with a generation guard. The worker resolves an SSH connection preparation with challenge-capable trust, keyboard-interactive, and security-key signing handlers, connects a newly made sampler, then samples on a roughly two-second cadence. It publishes the base point first; GPU, filesystem, and process details are optional follow-up work. Filesystems are refreshed only while a detail view is observed and no more often than 30 seconds. On failure it disconnects and retries with exponential delays from 2 seconds to a 60-second cap; a failure needing authentication or an unsupported primary probe waits for attention instead of looping. Cancellation, disabled selection, sleep, stopped model, or a changed generation retires the work; periodic reconciliation notices Host/route/identity changes and invalidates its monitor. `snapshot(for:)` reads the existing monitor without starting collection, returning an explicit paused, sleeping, stopped, or awaiting-authentication state where applicable.
 
 `SSHMetricsSampler` wraps its connection in `SSHExclusiveConnectionAdapter`, so its commands have exclusive use of that sampler connection. It uses bounded exec calls rather than a PTY: the primary Linux probe has an 8-second timeout and 256 KiB payload limit; filesystem and process probes use 5 seconds with 512 KiB and 1 MiB limits respectively. It recognizes exit status `42` as unsupported primary metrics and recognizes `42` or NVIDIA's `6` as no GPU; other nonzero, truncated, malformed, or oversized output is a read failure.
 
@@ -285,6 +293,28 @@ This shows why an Agent metrics read does not start a sampler and why Agent SSH/
 `get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec_run` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. Concurrent cold opens for the same Host and route join one pending open; if the route changes, a cached transport is retired. A lost connection may be retried once **only before an exec channel opens**; a rejected channel or a command that already started is not replayed. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. Do not confuse TCP port forwarding with the Host's **SSH agent forwarding** switch: when that switch is enabled, Agent exec opens an isolated connection per call instead of reusing the Host pool and closes it after its exec lease, so the forwarded agent capability cannot persist across commands. The authentication registry also avoids sharing the temporary context in this mode. The ordinary pooled Agent exec path explicitly disables agent forwarding, as does the Metrics sampler. The per-connection `VaultSSHAgent` capability checks that the Host still permits forwarding, resolves keys only when used, and refuses signing that needs interaction when the connection policy forbids it. See [Agent runtime and assistant](agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](ssh-multiplexing-and-scheduling.md) for worker internals.
 
 When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics. `TFMTests/AgentConnectionPoolTests.swift` covers reuse, concurrent opens, and agent-forwarded connection isolation; `TFMTests/SSHAgentForwardingWireTests.swift` exercises the shared host-services exec path and capability revocation on a live SSH connection.
+
+### Tool exposure can include management, not just transport
+
+The optional `AgentResourceManager` is a separate app integration boundary. Desktop `AppModel` builds it from saved-resource libraries and the existing forwarding controller and metrics model, then passes it to Assistant and the MCP server. `TermindAgentTools` adds management tools only when this dependency is supplied; Host discovery and cached `get_metrics` remain available without it. Management list/get actions are available in planning and acting modes, while mutations are acting-only. Thus `get_metrics` remains snapshot-only even when the same catalog also exposes monitor-management operations. A tool catalog is neither the saved Host library nor a connection pool.
+
+```mermaid
+flowchart TD
+    App["AppModel"] --> Metrics["Shared ServerMetricsModel"]
+    App --> Forward["PortForwardingController"]
+    App --> Services["AgentHostServices"]
+    App --> Manager["AgentResourceManager"]
+    Manager --> Metrics
+    Manager --> Forward
+    Manager --> Libraries["Saved resource libraries"]
+    Services --> Registry["AssistantToolRegistry"]
+    Metrics --> Registry
+    Manager --> Registry
+    Registry --> Read["Cached get_metrics"]
+    Registry --> Manage["Optional management tools"]
+```
+
+App composition connects tools to existing service owners; management exposure does not merge their transport lifetimes. Sources: [desktop composition](../../TFM/App/AppModel.swift), [tool catalog](../../Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift), and [metrics tool exposure](../../Frameworks/TermindRemoteInfrastructure/Agent/MetricsManagementTools.swift).
 
 ### Exec handles, waiting, and output ownership
 
@@ -366,7 +396,7 @@ This is the controller-facing forwarding lifecycle; a shared Host context can ca
 
 On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 1) and capped by the app-supplied connection limit. Without Pro multi-connection access the effective limit is one; gaining or losing access updates existing contexts without changing the saved Host value. The macOS `.hostConfigured` policy uses `SSHForwardingConnectionPool` even at a one-connection target. iOS preserves the setting but uses a single-connection policy. In a pool, local/dynamic rules register on healthy slots behind one local listener per rule; accepted flows go to the least-loaded eligible slot with round-robin ties. Remote listeners remain on the primary connection. Auxiliary opens are limited to four at once and must install existing rules before becoming eligible. Transient slot loss retries at 1, 2, 5, 10, then 30 seconds, but a failure requiring interaction, trust, or credentials, or cancellation, does not automatically retry. These are transport availability policies, not restored listener intent; for slot promotion, socket dispatch and pumping details, use [Port Forwarding: Multi-Connection Pool and Flow Dispatch](../workflows/port-forwarding-pool-and-dispatch.md).
 
-The first physical connection may use the forwarding Journey to collect host-key approval, credentials, or keyboard-interactive answers. Its recovery and every auxiliary connection are silent opens with interaction forbidden. Their reusable snapshot keeps route/network and identity references, not temporary passwords or passphrases. A remembered host key can permit recovery, but “continue once” trust cannot. If a silent open needs interaction, recovery fails/degrades rather than showing a form; an explicit Retry starts a new interactive Journey. Existing TCP streams are never migrated or replayed to a replacement worker.
+The first physical connection may use the forwarding Journey to collect host-key approval, credentials, or keyboard-interactive answers. Its recovery and every auxiliary connection are silent opens with interaction forbidden. Their reusable snapshot keeps route/network and identity references, not temporary passwords or passphrases. A remembered host key can permit recovery, but “continue once” trust cannot. If a silent open needs user interaction, recovery fails/degrades rather than showing a form; an explicit Retry starts a new interactive Journey. **Temporarily inaccessible saved credentials are different:** a controller recovery receiving `SSHCredentialAccessUnavailable` schedules a silent `waitingForCredentials` retry, not an authentication form. `SessionReconnectController` also pauses attempts in `waitingForSystem` while recovery availability is blocked (for example, sleep); even Retry Now cannot bypass that gate. Availability notifications coalesce and consume the pending retry action before opening, preventing duplicate in-flight attempts. These controller recovery states are distinct from auxiliary-slot refill backoff. `protectedCredentialsWaitSilentlyThenRestoreForwardingWithoutUserInteraction` in the reconnect suite verifies blocked secret reads, hidden prompts, and restoration of both active rules after credentials become accessible. Existing TCP streams are never migrated or replayed to a replacement worker.
 
 A route/Host configuration edit, deleted/replaced rule, or explicit stop invalidates the relevant runtime. Cleanup cancels retry/open work, stops listeners before closing transports, and waits for cleanup where needed so an old bind cannot race a replacement. Local/dynamic listeners use `SO_REUSEADDR` to tolerate `TIME_WAIT`, not `SO_REUSEPORT` or live shared binds.
 

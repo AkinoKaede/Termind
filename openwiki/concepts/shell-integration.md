@@ -6,6 +6,8 @@ tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, 
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
+  - id: openwiki-source-cb178f0d078ab3218679c80e
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-1f7e305d10685aa880c0abea
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift
   - id: openwiki-source-a6d04eaf0b5dc762d077f17e
@@ -58,10 +60,10 @@ sources:
     resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Shell Integration and Command Context
@@ -136,7 +138,7 @@ Tickets capture coordinator **generation, revision and context identity**, and r
 
 Per-context sequence high-water marks suppress duplicate/replayed events. On first joining a multiplexer, snapshot sequences are installed **before** replaying the journal, so past commands do not notify again. Other snapshots establish a high-water mark after processing their event tail, without inventing a command start. A gap clears that context's running-command eligibility; a completion is accepted only after a capability-authorized start and a contiguous event sequence. Old active snapshots are rejected. Independent panes retain separate running state, and an unknown foreground does not forget the outer ordinary shell's pending command (for example manual tmux attach/detach).
 
-Desktop and mobile route runtime updates through the coordinator, then send only accepted events to history and `TerminalCommandMonitor`. They derive cwd, shell, lifecycle availability and prompt readiness from the active snapshot. A revision change cancels draft reads, pending uploads and command generation. Once runtime ownership is established, legacy shell events are ignored; desktop's Ghostty cwd observation is also gated off. Directory-sensitive operations capture and revalidate a `.directory` ticket and use `confirmContext` before committing; see [File Drag and Drop](../workflows/file-drag-and-drop.md).
+Desktop and mobile route runtime updates through the coordinator, then send only accepted events to history and `TerminalCommandMonitor`. They derive cwd, shell, lifecycle availability and prompt readiness from the active snapshot. A revision change cancels draft reads, pending uploads and command generation. Once runtime ownership is established, legacy shell events are ignored. Desktop's `observeWorkingDirectory` accepts Ghostty cwd reports only while integration is enabled and runtime ownership has not begun; empty paths become nil. Runtime cwd instead comes from `terminalContext.directory`, including while a command is running. Directory-sensitive operations capture and revalidate a `.directory` ticket and use `confirmContext` before committing; see [File Drag and Drop](../workflows/file-drag-and-drop.md).
 
 ### Desktop resize policy follows interactive context
 
@@ -190,7 +192,7 @@ flowchart TD
     Charset --> Terminal[Native terminal backend]
     Terminal --> WorkingDirectory[Parsed working directory]
     Events --> Feature
-    WorkingDirectory -->|before runtime ownership| Feature
+    WorkingDirectory -->|integration enabled and before runtime ownership on desktop| Feature
 ```
 
 SSH PTY receive flow: event frames are removed before charset conversion, while cwd is rewritten before terminal parsing.
@@ -302,7 +304,23 @@ Ordinary startup fallback verifies foreground ownership without granting runtime
 
 This startup signal does not reconnect a transport or restore a remote session. Those responsibilities remain in [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md).
 
-Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md).
+Desktop exit and shell-integration callbacks reject a mismatched `connectionAttemptID`; the ID is stored by `RemoteSessionConnectionController` and exposed through `SSHSessionModel`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears shell/runtime state, converters, and pending input; the underlying SSH connection may remain alive for sibling SFTP channels or explicit control ownership. See the transfer lifetime distinction in [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md).
+
+For desktop SSH reconnects, the shared connection controller owns the recovery journey and retry scheduling, while `SSHSessionModel` supplies channel teardown and the retry action. `scheduleReconnect` runs teardown **before** presenting recovery or arming retry: the model resets shell context and draft state, retires the attempt ID, cancels connection work and releases its channel. Retry calls `startConnection`, which creates a fresh attempt and captures the shell-integration preference again. Shell startup configuration and cwd consumption remain feature/PTY responsibilities, not responsibilities of the recovery controller.
+
+```mermaid
+flowchart TD
+    Loss["Desktop SSH recovery request"] --> Controller["Connection controller scheduleReconnect"]
+    Controller --> Teardown["Model resets shell state and retires channel attempt"]
+    Teardown --> Recovery["Controller presents recovery and schedules retry"]
+    Recovery --> Attempt["Model starts fresh attempt and captures integration setting"]
+    Attempt --> Setup["Configure startup and connect PTY"]
+    Setup --> Callback{"Exit or shell callback matches attempt?"}
+    Callback -->|No| Drop["Ignore stale callback"]
+    Callback -->|Yes| Consume["Model consumes current event"]
+```
+
+Desktop SSH retry scheduling is shared, but channel and shell-state teardown remains supplied by the session model.
 
 ## Completion observation and notifications are not prompt readiness
 

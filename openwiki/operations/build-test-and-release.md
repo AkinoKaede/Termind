@@ -78,10 +78,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Build, Test, and Release
@@ -188,10 +188,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.17.4` | `75` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.17.4` | `112` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.17.4` | `101` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.17.4` | `101` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.18.2` | `79` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.18.2` | `117` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.18.2` | `105` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.18.2` | `105` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -323,7 +323,7 @@ python3 Scripts/check-localization.py
 
 ### Focused language and presentation regression tests
 
-Use the resolved-package `AppLanguageTests` command for language-selection behavior: unknown-preference fallback and Simplified Chinese preference migration, Korean dynamic labels, localized Korean/German/French demo conversations and Host-access error presentation. It also checks that the Traditional Chinese display name switches to `正體中文` only for Taiwan when the flag is displayable, and tests colored, grayscale and missing flag pixels.
+Use the resolved-package `AppLanguageTests` command for language-selection behavior: unknown-preference fallback and Simplified Chinese preference migration, Korean dynamic labels, localized Korean/German/French demo conversations and Host-access error presentation. It also checks that Input, Show Input Area and Shortcuts labels are nonempty in all seven supported locales, match the expected English wording in `en`, and differ from English in the other six locales. It checks that the Traditional Chinese display name switches to `正體中文` only for Taiwan when the flag is displayable, and tests colored, grayscale and missing flag pixels.
 
 For resource/formatting behavior also target `PresentationCopyTests`, which exercises resources in `en`, `ja`, `zh-Hans`, and `zh-Hant`, nested native menus, count-sensitive copy and SwiftUI resource bridging. This is focused four-locale coverage, not proof of every supported translation:
 

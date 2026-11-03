@@ -18,12 +18,6 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
-  - id: openwiki-source-04ef2b2f02773f8833db9a8b
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
-  - id: openwiki-source-fe1dc993163bb9ff61397be7
-    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
-  - id: openwiki-source-6df73854db20ee83905a634c
-    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-c9279b591baf8f41084268d6
@@ -70,18 +64,24 @@ sources:
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-2af30f142ffe927708256738
+    resource: repo://TFM/Features/Workspaces/Workspace%2BTerminalInputArea.swift
   - id: openwiki-source-e2a181897da756060494e573
     resource: repo://TFMTests/TerminalActivationWireTests.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
+  - id: openwiki-source-86206e1a61bdc666c123a8de
+    resource: repo://TFMTests/TerminalInputAreaTests.swift
+  - id: openwiki-source-0840663ba1338ab9db59ad37
+    resource: repo://TFMTests/TerminalMouseInteractionTests.swift
   - id: openwiki-source-ea7d1283d8d8c82074ebca85
     resource: repo://TFMTests/TerminalResizeThrottleTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Ghostty Terminal Integration
@@ -168,6 +168,10 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 Desktop's **Paste on Right Click** preference changes the gesture: an ordinary secondary click pastes and does not open the menu, while Option-secondary-click still opens it. Remote mouse capture remains Ghostty-owned. The session's `PersistentTerminalViewOwner` binds upload actions with an ID; updates or teardown from an old pane cannot disable or remove the menu installed by a replacement pane. On disappearance the current pane unbinds its ID. The menu therefore follows the presenting pane even when SwiftUI reparents the same native terminal.
 
+The click route is latched on right-button down: preference or Option-key changes during the gesture do not switch it. Paste happens once on release, through Ghostty's binding and interactive-input capture; an empty clipboard does not arm a deferred input ticket that could misclassify the next mouse report. `PersistentTerminalSurfaceView` observes `terminalCopyOnSelect` and `terminalPasteOnRightClick` through `@AppStorage` and updates native flags during mounting, without replacing the surface.
+
+Upload panels belong to the retained native view's **current window**, not `TerminalViewState.attachedPlatformView`: the custom desktop mount can leave that property nil. `chooseUploadFiles` presents an `NSOpenPanel` sheet on `terminalView.window`, permits files, directories and multiple selection, and checks surface visibility both before presentation and after acceptance. Moving between windows changes the mount, not the session owner.
+
 The desktop menu also offers **Open with SFTP** in the current or a new workspace when the SSH pane binds a companion action. Menu construction and dispatch both check current availability. Its binding uses a separate identity token, so stale pane teardown cannot remove a replacement binding. WindowModel resolves the source by session ID and requires a live session, known working directory and saved host, rather than relying on current focus. When the SSH session supplies a directory-context ticket, dispatch first confirms it asynchronously, then re-resolves the source and checks that the path, workspace and ticket remain current before opening SFTP. A failed confirmation or changed context does not open a companion.
 
 ## Surface and appearance flow
@@ -182,6 +186,10 @@ Despite its name, desktop `TerminalPlaceholderView` is the live SSH terminal com
 
 Desktop Copy on Select copies after a local mouse-selection gesture completes; remote mouse capture does not arm that copy. Registered Termind shortcuts fall through to the application command chain, while other key equivalents use Ghostty. Keyboard and paste handling are wrapped in `TerminalInteractiveInputCapture` before the backend write callback classifies outgoing bytes. This distinguishes interactive writes for Broadcast Input from ordinary backend writes such as protocol replies. A short-lived deferred ticket accommodates asynchronous callbacks, and bracketed-paste provenance is retained through the closing marker with an expiry. Uploaded-text insertion uses a local-paste scope rather than becoming broadcast input. The backend callback alone is therefore not sufficient evidence that bytes came from a user keystroke.
 
+### Pane-local input area
+
+The optional desktop input area is an app-owned draft editor, not another Ghostty surface. `Workspace.submitInputArea(_:from:)` validates the owning pane rather than using whichever pane currently has focus. SSH broadcast submission preflights every target before sending any bytes; accepted submission preserves whitespace and adds the submit carriage return, while failure retains the draft. Command generation fills the local draft for review and does not write to the terminal until explicit submission. Moving a pane preserves its input model; closing it clears the draft. These boundaries are covered by [TerminalInputAreaTests](../../TFMTests/TerminalInputAreaTests.swift).
+
 ### Reparenting and keyboard focus
 
 On desktop, mount ordinals prevent a late update from an older SwiftUI container from stealing the native view back from its newer destination. Dismantling uses the coordinator's original owner, and unmounting checks both the current container and native superview; an old teardown cannot detach a surface already moved elsewhere. Visibility changes update both state and native surface visibility without reconstructing the backend.
@@ -191,16 +199,28 @@ Focus is not synonymous with visibility: several split panes can render, but onl
 Mobile's `MobileTerminalInitialFocus` requests focus on appearance or readiness changes, not every SwiftUI update. Readiness requires a visible workspace, active scene, connected transport and no connection journey. This initial-focus policy is separate from explicit Find dismissal focus restoration.
 
 ```mermaid
-flowchart LR
-    Transport["Termind transport"] -->|Received bytes| Backend["Retained InMemoryTerminalSession"]
-    Backend --> Engine["Ghostty parsing and rendering"]
-    Native["Retained native TerminalView"] -->|Keyboard and paste| Engine
-    Engine -->|Outgoing bytes via backend write callback| Host["Termind session input routing"]
-    Host --> Transport
-    Native -->|Viewport via backend resize callback| Resize["Termind transport resize"]
+flowchart TD
+    Owner["Session-owned backend, state and native view"] --> Mount["Mount in pane container"]
+    Mount --> Update["Update visibility, mouse preferences and focus request"]
+    Update --> Move["Pane or window move"]
+    Move --> Guard["Check per-owner mount ordinal"]
+    Guard -->|New destination| Reparent["Move the same native view"]
+    Guard -->|Older container| Ignore["Ignore stale update"]
+    Reparent --> Update
+    Reparent --> Teardown["Old container dismantled"]
+    Teardown --> Check["Check coordinator owner and current superview"]
+    Check -->|Already moved| Keep["Keep replacement mount intact"]
+    Check -->|Still current| Detach["Hide and detach view, retain owner"]
+    Native["AppKit keyboard or paste"] --> Capture["Interactive input capture"]
+    Capture --> Engine["Retained Ghostty surface"]
+    Engine --> Write["Backend write callback classifies provenance"]
+    Write --> Router["Session input gate and workspace routing"]
+    Router --> Transport["Termind transport"]
+    Transport -->|Received bytes| Engine
+    Engine -->|Viewport callback| Resize["Termind transport resize"]
     Resize --> Transport
 ```
-The retained surface bridges terminal bytes and geometry to host-owned transport callbacks, not to remote session lifetime management.
+Mounts and input events reuse the session-owned surface; stale layout work cannot reclaim a moved view, and transport routing remains host-owned.
 
 Keeping a local surface alive does not itself keep an SSH connection or managed remote shell alive. Connection coordination, shell context and remote-session selection remain separate host responsibilities; see [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Shell Integration](shell-integration.md).
 
@@ -265,8 +285,9 @@ The former app-owned keyword-highlighting feature and its shared modifier/rule m
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.
 - [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys. Its full-workspace SSH fixture also checks unchanged native surface, output and connection generation through repeated reopening with empty, matching and missing queries.
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
+- [TerminalMouseInteractionTests](../../TFMTests/TerminalMouseInteractionTests.swift) is serialized, requires a visible window and is disabled without an active display. It exercises release-time multilingual selection copying, word/line selection, bracketed right-click paste exactly once with broadcast, Option bypass, captured mouse reports remaining local, and empty-paste provenance. It also checks live mirrored preference updates, cross-window moves with stale updates/unmounts, retained contents and surface identity, and upload sheets on the persistent view's window. Path-drop checks cover exact-once bracketed insertion without submitting or re-escaping, plus rejection after hiding or unmounting.
 - `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All and absence of Copy without selection, right-click-paste menu suppression with Option bypass, live Upload File availability and stale pane-binding teardown. Selection-present Copy composition and remote mouse capture are supported by the implementation, not exercised by this suite.
 - `MobileTerminalUploadMenuTests.swift` is no longer present in `TFITests`. For mobile menu changes, verify both touch contexts, inherited-item ordering, absent upload handlers and live availability checks; these are regression targets, not claims of current test coverage. Package gesture mechanics require inspecting the pinned upstream source and testing the targeted interaction.
-- [RetiredTerminalHighlightingTests](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates V46/V51 stores with unreadable historical highlighting data, upgrades and reopens them, and checks that the highlighting table and journal entries are gone while `copyOnSelect` survives. Separate cases check retirement of malformed pending uploads and ignoring malformed incoming records, conflict deliveries and deletions without quarantining them or blocking active terminal settings. These are migration and sync compatibility tests, not Ghostty rendering tests. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
+- [RetiredTerminalHighlightingTests](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates V46/V51 stores with unreadable historical highlighting data, upgrades and reopens them, and checks that the highlighting table and journal entries are gone while `shellIntegration: false` survives. Separate cases check retirement of malformed pending uploads and ignoring malformed incoming records, conflict deliveries and deletions without quarantining them or blocking active terminal settings. These are migration and sync compatibility tests, not Ghostty rendering tests. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
 
 For upload destination and drop behavior, continue with [File Drag and Drop](../workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](ui-design-principles.md). For test scope, see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).

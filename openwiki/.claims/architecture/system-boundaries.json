@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:07f376db2c0fff16f654a3a3cd05a83e4cd079881b80e32037d6b5435fa3e5a3",
+  "pageVersion": "sha256:ad87a5917978e0e14754852eac5ddf4fa8140cbf384ae6c3c083abca55909fc3",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         }
       ]
     },
@@ -54,7 +54,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:89c26fe6965c4cc522db20224441a02f0a961c0d90ecda9eea9b469e72533f22"
+          "version": "repo-file-v1:sha256:9198b04975e7ba45a20a080ca7f00d0ef34fae2e29926408eac65679d2993873"
         },
         {
           "resource": "repo://TFI/App/MobileStartupView.swift",
@@ -66,7 +66,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:2900cee0ebb8e7d36ecbfe369865162853f63b6c0871fbc57f7f31c712e5843a"
+          "version": "repo-file-v1:sha256:684a342f0da4719b0cf0c15160889cf3b918d3dbad88c0c1c60dd29de0a6f4f4"
         }
       ]
     },
@@ -80,11 +80,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:4e8e348a328559da22e8fa69ddf0e3035acf8c1d23373bdcb0a88027d6755818"
+          "version": "repo-file-v1:sha256:2bde30cb8f550c006d635a9ae6955d9689af28d0d0db702704a96486ea038dd4"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:e95a36e14e9ce98f6e902e742cd1f211973c3b342374df8f0f2dc4233e489b59"
+          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
         }
       ]
     },
@@ -98,7 +98,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:4e8e348a328559da22e8fa69ddf0e3035acf8c1d23373bdcb0a88027d6755818"
+          "version": "repo-file-v1:sha256:2bde30cb8f550c006d635a9ae6955d9689af28d0d0db702704a96486ea038dd4"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -108,19 +108,27 @@
     },
     {
       "id": "claim_368fa7e429f84aa1aa9e34b296de06d7",
-      "statement": "Termind registers host-aware agent functionality additively through TermindAgentTools, whose injected environment supplies host, connection, authentication, metrics, background-command, and scratch services; AssistantToolRegistry supplies AgentKit built-ins and then these additional tools.",
+      "statement": "Termind tools are additive to built-ins and receive narrowly injected host services. Optional management enables resource management and acting/planning snippets while absent management retains host discovery and cached metrics reads. Management reads support both modes, mutations only acting, and persisted presenters remain independent of executable availability.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L40-L64",
-          "version": "repo-lines-v1:sha256:96d2022ac85e42ad40bb81bea8e47fe4788dc3b5d83391e536147413931ccede:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YjBhZGQ3NDg1ZGY0OTA5MTkwNzI5ZGEzYTVkZWY5MjVkZmFkMTQ2YTJkMTA1MDk5YmFjZTJiYmJhM2ViMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTBhODk2YTNjYjAzNmM0NDZiNDgyMTA3MDA4ZDZkOTZmNTdkNzA2MGRiNDk4ZjQ5YTVhNjhkNDI1ZWI4NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzQ4ZTU4YzVlMTBhZWJkMDdkOGQ5OTljOWJhYjg0MDBlNWRlMDA3NzE4YWQwNzA5OTkxOGRjOGMxMDg3ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:2bde30cb8f550c006d635a9ae6955d9689af28d0d0db702704a96486ea038dd4"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L51-L68",
-          "version": "repo-lines-v1:sha256:74627a2745ff783912181210d9283bca8f0d39f2f9d0611a90b97371d2429d30:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3N2EwYzQwOTMzNDI2NWIxN2I5N2E2OGM1MmYwNWQwNmNmMGU0ZTAwOTNlZWIzNTE0MmQzYWFiMWJkOTkyOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYWE5ZTVmMGI2N2UwYjRlYTEyOWI5NDQ2NjhhMjNlNDdlZWJhOThmM2I0Nzk3MGU3NmM5ZWQzNzAzMjZlNTMifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/HostManagementTools.swift",
+          "version": "repo-file-v1:sha256:0e082e910687d331d2b31024ea421d2f67dfb72713ec614c61c7a0d53bca4697"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L8-L27",
-          "version": "repo-lines-v1:sha256:da7c64eb10ca515a23e92f8e7408d9830908cb71ce16cb35edb82455a155cbbc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxODQ0ZjI4MjI1MWUwZTVkYWY2ZTZlZWQ1N2RhNzljYzAzOTMyMjU0NWQ0ZDdjODYxNGNkZGZiM2U1MDQxM2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzNjg4OWY0NDhlNDhjMWE0MjM5NjQ5ZDdkZTEyNzBlNDU1NDk0NDgyODY3NjQ4M2ZkYWY1YjhmYjkwZWUzN2EifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/MetricsManagementTools.swift",
+          "version": "repo-file-v1:sha256:961998948071433613e3b8cdc4dc7b01b196705d407fbd12d6a8bda1d58ebf09"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift",
+          "version": "repo-file-v1:sha256:624a7badee9c61c252b0b499b44ae0035e02e8b00163672a33021a41df24454e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
         }
       ]
     },
@@ -139,7 +147,7 @@
       "statement": "Connection-history ownership is layered and independent from device naming: Domain defines events that reference sourceDeviceID, Application defines the history model/repository port, and Persistence owns event storage/journal transactions; the reusable DeviceRecord-to-name directory has its own Domain value, Application model/port, and Persistence repository, while TFM supplies trimmed kern.hostname with a DeviceKit fallback and TFI supplies DeviceKit's Device.current.safeDescription directly as their app-owned naming adapters.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L847-L872",
+          "resource": "repo://TFM/App/AppModel.swift#L861-L886",
           "version": "repo-lines-v1:sha256:3dbd25c27842dbbe5e68b3dec44c23b0726f73db9ce154f48db5df8991632417:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYWY1MjA0Njk5ZGYxZjYyZWVlYjY1ODA5NDM4NWJiYTU2MTI0YThjNmQ4ODJjNmEwN2IxZDZiZTA0MzAyMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjIwYzczZTZlNWY0YzVhODg1OWQ5MzJjOGM2NDFhM2E2MjdiODI4NjYwYTE1YWJkOGVlNjFiY2M5MjEwYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmZTg4YmFiMDgwZmI0NTAyZDg4YTM2MDIxNjY3MjFmYmE3N2RhYzgyMDMxODYwNDg2ODQ0NTcyOTBlM2I5MWUifQ"
         },
         {
@@ -175,7 +183,7 @@
           "version": "repo-lines-v1:sha256:bfec530735b1452a8e35fbe1fc13b6cc1b6f97363f37ded1d2f3fd35718e25ed:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0OTliYzQxYTdlZjM5ODZlZjc5Y2EyNzY5ZGE4MGIzYjk5ZGJiYjk2OTlmNGMyMmNmNTE2MWYxZTcwYTg2ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiOWVlODU3NGEyYzJmNTVjNmE5NjdmNmFhM2Q1NzM0NGFiZmFmNzgyZjMzZTBkMDk1YzYwNTdkZGMzNjdhOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L200-L240",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L201-L241",
           "version": "repo-lines-v1:sha256:c5f017ffc3a62c073a413071c92189b5807396939d37650f0d84f9d7d1d50400:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMWUwYThkMGE4OWM0NGE0MjQyMzhiOTQ4NWM5YmZkZWUyMGQ3M2M1ODFiYTEzOWMxODNiMTEwYzU4N2FjYjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1MTAyMmY5NmRhZTRmMTdjMGY3MjIxZjgzNWIyZjZlNzIxOTEyMjkxYzVmNjgxMjVmMjYyNmNlOWU1YTIwNTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiYjUzMTU2YTNkYjA5MDdmY2I4NDEwNjJjNjc5NjdiMzMwY2I5NTk1ZjViNWEzM2I4ZWVmNTZjZTVlMzczZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmNDE1Yzk1MDdiNmNlMmM4MzA0MTAxYTM5M2MxN2NiZGFkNzcyMzQ3MTY5YjA1YWMzYmU2OGVlNDJmNzhjMzgifQ"
         }
       ]
@@ -254,7 +262,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:2900cee0ebb8e7d36ecbfe369865162853f63b6c0871fbc57f7f31c712e5843a"
+          "version": "repo-file-v1:sha256:684a342f0da4719b0cf0c15160889cf3b918d3dbad88c0c1c60dd29de0a6f4f4"
         }
       ]
     },
@@ -281,7 +289,7 @@
           "version": "repo-lines-v1:sha256:1b4e4c8ee9cdffcc54b32f43366813a1fd51e5c291c275def41aff96a3b16c01:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzNGI5YmRmNmUzOTljMGFlZDcwMzE0NTFhMWIzN2ZhZDJmNTgxMTMwNGY0NmJiMjg4MTI1ZGIzYzhiYmI5NzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L267-L302",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L268-L303",
           "version": "repo-lines-v1:sha256:7dc6c142c0988510d1a88156c50858f8a08123680799dc891cb24284017a5d3f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhNWM1ZWQxNTlkYWMxNWJkZmQzNzM1YWZhYmJhNTEzOWQwN2EzOGFkNzBhYmZjNmM5NTg1YjcwOTVmYzFlOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5MWE4NTYyMjQ4YTM0MTNmY2I1ZDY0YzdjYTQ2ZmQ1MDYxYWRiODFhZTc0YmJiODU2N2I1YjIxZjM3NDIxZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNmY0MTY5ODIxNTkwZjRmMGJjZDljNTYzYTc3NzVhNjM1N2JlZDc5ZjM0NWVmNWVmOWUxNTY2MDdlYmNkM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjNWYxN2I4YzA5NzcwZDY0MjFhMDNjOTNlZWE2Y2Y2NDkxNTJlMDJhNTRlY2NmYzgyYWJiMTVmOWI5Y2QzODMifQ"
         },
         {
@@ -342,7 +350,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:89c26fe6965c4cc522db20224441a02f0a961c0d90ecda9eea9b469e72533f22"
+          "version": "repo-file-v1:sha256:9198b04975e7ba45a20a080ca7f00d0ef34fae2e29926408eac65679d2993873"
         }
       ]
     },
@@ -362,21 +370,21 @@
     },
     {
       "id": "claim_3a95584aeef9445fbcc779b732d63432",
-      "statement": "AssistantToolRegistry returns an empty registry for models without tool-call ability; otherwise it supplies a shared application scratch workspace to built-in and Termind tools, passes the conversation ID as the Termind environment scope, records plans through the event channel, and passes usable MCP servers with resolved credentials and the authorization client into AgentKit's built-in configuration rather than separately routing task updates.",
+      "statement": "AssistantToolRegistry returns an empty registry without tool-call ability; otherwise built-ins and Termind tools share scratch, Termind receives conversation scope, plans emit through the ordered channel, and usable MCP servers, resolved credentials and authorization client enter built-in configuration.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L22-L64",
-          "version": "repo-lines-v1:sha256:4aff3266dd94c046a0527d04bf0e7a8824d523350eeea18aa6eff1ca85a181c2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmMWZiMDM0N2JlYTczMGU3MTc0YTI3MGNkNDM2ZTk5NDFjZjAyYTAwNGJmZTY4OTRmODAwMjYzZjJmZmY3YzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTBhODk2YTNjYjAzNmM0NDZiNDgyMTA3MDA4ZDZkOTZmNTdkNzA2MGRiNDk4ZjQ5YTVhNjhkNDI1ZWI4NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2NjJlOGY5MDUzY2U1ZWMzZGY4NWE4MDM1Yjc1NzQyZmFlOTY0MGI0NThlMTYzYWIzZWNjMmNmMjE1NzhhZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:2bde30cb8f550c006d635a9ae6955d9689af28d0d0db702704a96486ea038dd4"
         }
       ]
     },
     {
       "id": "claim_af8b19d157b049638abc5ec61840bc10",
-      "statement": "TermindAgentTools combines AgentKit built-in and Termind tool presenters for persisted cards; descriptor lookup rejects MCP and requires an explicit registered presenter ID, with no legacy tool-name fallback or separate ssh_exec/ssh_wait registrations.",
+      "statement": "The immutable presenter registry combines built-in and Termind presenters independently of optional executable capabilities; descriptor lookup rejects MCP and requires an explicit registered presenter ID without legacy name fallback.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L56-L155",
-          "version": "repo-lines-v1:sha256:e17349072d3ddf12841f543535eab5e9782cb966e8cd2bd0a97a16775e9ddf09:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ZmMxNzFhMTUwMGFkOGJmMWViODMxY2NkZGUwNWRmZDFjZTliMmM3ODU3MGU2Mzk1MzBlNjU5MmExNmJkMzkyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhZGQyNDQ1ODJiNmZiMDNkMjNiODQxNWFiZWNkMzQ2YjBjOWY0NjZiNmY3NTJiMDY4MTg5Y2U3ZTlhMmRjMzUwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxZjAzYjdhY2RkN2U1Y2JiYWJiMDE2MDFjZmY1YWNlNTcwYzAzYzEzMTZjN2ZjNTM5NjllOGJlN2RjZGIzNTM1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
         }
       ]
     },
@@ -400,15 +408,15 @@
     },
     {
       "id": "claim_016bd1016d5549549d93a08195296405",
-      "statement": "SSH execution receives the injected AgentSSHAuthenticationRegistry; Termind handles host login rather than obtaining SSH credentials via the built-in user-secret tool.",
+      "statement": "Termind injected SSH authentication owns host login. Exported MCP calls reject unknown/disabled tools and use runID-scoped registries, external authentication, audit events, fullAccess and externalClient projection. Teardown cancels and drains calls, revokes transfers, closes scoped background commands, cancels authentication, unregisters history and discards secrets.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift#L31-L47",
-          "version": "repo-lines-v1:sha256:468e8ae521afc372a036cf427d5e9c62cad09523d0002b7bbc4736b06a51f18f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwYWJmMTQzODU4YzRjNTNhMTY3NTQ3YjA0OWEzN2VlNTRkZTM3ZTI3MTEzYzBhMTllYjNmOTUzOGJlYjEyZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1Y2E1ODEyMTQ1YjY2ZjUyYTdlOTNhMmEzZjRjZDBjOGRlNzc3NGFlNGFhNzZmNTgyY2UwOTM0OWZkOTliZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMWNkNTVmMzIwZTQzNWQxMjdlMTQwNmU4YWRkMWZiZjAwZjJiNjAwYWUxMTVjMjU5OTBjMTc1Y2E1ZjQ3MjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkMmJlYWUwMWY1ZjE3OTY5NzlhMzA2YTcxZjQwMGJmODkyMDFjNDQ2NTNiMjdkYjg4ZmQyZmQ3NTQ5YTlmMDcifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift",
+          "version": "repo-file-v1:sha256:dfb744bca22c113aafb17b9d55be6ce5171a08ea944e9dac60a502f61fee1783"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L86-L98",
-          "version": "repo-lines-v1:sha256:0c7d913430cfccd205907db8020fec3c54caaec3cc8546b26ed1262346e8f6f1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlOWQ4NzMxYzEwN2E1N2NjZjllZDlhODcxNmVhYmU4ZWY5ODQ1OWU1M2NhM2UzODI3YThmNmQ2OWFjZTlkYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFjNjdjZjE4NTFhZDE4ZDRiZmI3ODYyYjQxNGFkODRlZTI3N2Y5Y2MwZDQ5MTQxOGVkMTUwNzM0YTc4MWM0NWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlYWFhYTJiNzA4N2ZlYTdkMDk1ODdkM2VlN2ZhMWM5ZTllNDJhN2JkNTcyYjc1NDRhNGE1ZjA4MjIzYmZhZTQifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:5e743c3247311ca51005e5be51ebd78abb21d570a5ce4e896c4882138711e823"
         }
       ]
     },
@@ -557,36 +565,28 @@
           "version": "repo-lines-v1:sha256:54f991d6fb92ae88a06f4cafc747020d4da916e5e47760f0bf171d2d19b9c3f6:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlNzcyM2VhNjY1ZTBlMTFkZjU0Nzk5MjQ1NzYwZGI5ZGIzZjg4YjY0ZTBkMWY5OGY2YTBjMDI1ZmI4YTk3ODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyOGU2ZTYzYmQwNGM1ODFmNjliYjg4MzlmM2EwOTc5YWNhOTk2MDE2MGUyZDYwNTI1NjUyMWEyOWZhYTg2OTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkY2JiZTRjNmIyYjJjMzgwZjZmMWVkNTFiMTVlZDJjMzJmMTI2ZWQyZmQ3ZjM3Y2ViMmQzOTRlZmE0NzUxMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         },
         {
-          "resource": "repo://TFITests/MobileShortcutTests.swift#L406-L451",
+          "resource": "repo://TFITests/MobileShortcutTests.swift#L404-L449",
           "version": "repo-lines-v1:sha256:69ab356f4594716e4fafc37fce1d24e301e6f2be89b23e200c70b01ed1f2336a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MzI0YmJlZjJiMjE4YTg0NzA1MzE5NTRiZjYyODM5ZGYxZjA5ZmMzYmZjYWNhZGUzMzFlZTRkOTY0MTU3NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OWRiMGEwYjBlMzljM2QwMmEyMTU3ZWJhODA5MWU0MjdlZjI5MTViOWRiOTMzMTM5ZmJjY2M2MzFlNzBmN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwNzJhOTQxZjUzYWRiZTRjNjEzZGRjYmZhMGYyMmNhNjE5OWRjOTg3MjRlNDI0NGFhMDg5OTBhODFiY2VmZDUifQ"
         }
       ]
     },
     {
       "id": "claim_0aca6f7f2c8e4c6f905bc8d84f8c758f",
-      "statement": "AssistantToolRegistry passes optional chat-model, chat-coordination and chat-source ports to AgentKit's built-in configuration while registering TermindAgentTools separately as additional tools.",
+      "statement": "AssistantToolRegistry passes optional chat model, coordination and source ports to built-in configuration and Termind tools separately as additional definitions.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L18-L61",
-          "version": "repo-lines-v1:sha256:c358cdec42c426f53fe72b486731239e44b524d9c7e244223ac688431b9723d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjMWRhNDk2N2M3ZmU3ODc3Mzk1MWU3MDY0ODgwNGY1M2FlNzQzZDE1YmFjZTA3ZDBmMWNmMTBhMzU0YTBiMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlZGMzNjA0ZjkyYzU3MDQ5MTBiZGJmNGRiNjBlYzViN2RiNjg5NjE1Yzg2MmFmZDJjMmFjY2NiNWRkMGZiOGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjMzVhNWUzZmJkMTIxMDc2ZGQzMmRiOWE0YzA2YzlhM2ViYTQ0NTRhMmI1Mzc2NTEyMmM4OWZiMTRiNmM5MjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiZmNmMDNhYjM4YmQ1ZTY0OTk3OGYzNzk3YjM2Zjk5OWU3NjVmMGNmMGRlZDdkMjIyZmQzY2ZjN2VmYmI5MDkifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
+          "version": "repo-file-v1:sha256:2bde30cb8f550c006d635a9ae6955d9689af28d0d0db702704a96486ea038dd4"
         }
       ]
     },
     {
       "id": "claim_dafed892ecbb469ab02c64a0a7b2b792",
-      "statement": "TermindAgentTools omits executable list_panes and read_pane definitions when AgentPaneAccess is absent and omits host-facing scratch pull/push definitions without a workspace; its persisted-card presenter registry is constructed independently of that optional executable availability.",
+      "statement": "Pane definitions require AgentPaneAccess and host scratch pull/push require a workspace; persisted presenters remain available independently.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L139-L154",
-          "version": "repo-lines-v1:sha256:115a05de9a5dfe6bb311e843026f4ed7d847445773c7c667c42bdaa0f904cb0f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1MmVhOTZlMjgzMzE3ZTg1M2E5MjFkNTJmYzg0OTllNGQyM2MxMTI3NDQ1ZDEzOWUyYzlmM2E4NDBkOGE3ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNjczYWJkNDU3YTk3ZWVhMTdhNjAwNjJlYjBmYWVhNmJkZjA5NDg2OGNjNmI4ZjhjMGViZGEyZjYxZWQ0MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3NmI3Y2RhMDE5NDc2YjllZmM4NmVlNGU2YzQ0NzNkNWEyYTA3ZjZiMjk1MDFlN2QyZDNjMTcyMWZkZjFlYmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3OTQxNzg4NDc3NTljMDg1ODZkYWRkZjhjMThjNjI1YzYyYzAzMjFhOWI4NGMwMzQ4MThiMTA3YzM2OTZiNjMifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L59-L68",
-          "version": "repo-lines-v1:sha256:639fbff0dbadd2f1333d960d63768aa8f5f18f1ec2942ec2b13ce9a2e8ad1f4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxZjk5YjExMDQyMGU1YzFmM2JlOWQwOWZlM2FlMjEwMTQ4MjBkZjdiZjQ2ZTAwM2JmMDBmNDIyZjVhMmUwNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0MWI0YTI2NzUxMDU4ZWE1MDI2NGM0NTg2Y2IwZWQ0ZGMyYjFkNDdlMTE1NWFjNTcyNjUyYjgzZGFjNDgyNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYWE5ZTVmMGI2N2UwYjRlYTEyOWI5NDQ2NjhhMjNlNDdlZWJhOThmM2I0Nzk3MGU3NmM5ZWQzNzAzMjZlNTMifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L79-L88",
-          "version": "repo-lines-v1:sha256:6ea5f79b94b012dbdce5aabca5814658a4c030ca4cd43d4214f05c923d267f16:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY5ZGIzYzBkNGZjYzA4YjgxOWIxZmNkNzE5YjMzYzc5ZDljZGVjNDdkMWJhOWYxZGRhMmRmM2MwOWZhZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhMWFjYTQ4MzFmMjUwZWRjOTc2ZTg0MzRiNDY0MDc5ZTM3MWJhMzA1ZTE1NWJkZjJlYzBkZWM2MzA0ZGY2MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNzJhMmNhNDdjMTY2YWY3M2MzZDdiZjQxMzQwYTdjMmVjYWE1ZTYwMWEzYTlhOTFiMjZhNTUzMGYwM2NkZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzYTA1ZmZlMzRhZjQwMjNkMzE1NTY2MTE5NDg2ZjMyMDYyODU4YjgzOWVmYWQyMGZkNjgxM2Y0YjViZmMwYTkifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
         }
       ]
     },
@@ -595,7 +595,7 @@
       "statement": "MobileSceneModel injects app-provided pane access into its assistant scene model; the mobile app adapter lists connected terminal workspaces with readable viewports, distinguishes closed, disconnected and missing-surface reads, and derives active/current pane metadata from scene and session ownership.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L64-L110",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L65-L111",
           "version": "repo-lines-v1:sha256:4c43308069bc7cee92558b4af8984ac120c077790c878511e2f17a2c25570ee7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5Y2RmM2RkMjI3YmM5ZmY0YTUzOWRiMjBjMjAxYjJjNmUzNjIzZDkxMGU5N2FlNjQ1Zjg1YWZlYjgxMDIwZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyODA3NWFhZTYwMTgzM2E4YjgzOWI2ZDJhNmU3ZDc0Yzc1OTAwMmIyYTAxYjRjN2VjNTAzNTkxOWUzNWM1YTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyOWJmNjU0OGRhYWI2ZDAxZjRjM2FmOWRhZTJlMWFkMTg4OTUzNGU5OGYwZTYxYTNiNzVhYmIxZjQ5OTExYTAifQ"
         },
         {
@@ -606,81 +606,73 @@
     },
     {
       "id": "claim_f24310ff312f41e8b8efe58188b77fe6",
-      "statement": "TermindAgentTools declares separate acting and planning registrations for SSH run/stdin tools, while SFTP mutations and scratch push are acting-only registrations; execution-mode availability is owned by the remote tool catalog rather than native UI.",
+      "statement": "SSH run/stdin have acting/planning registrations; SFTP mutations and scratch push are acting-only. Desktop MCP export separately selects acting tools, only the built-in userInteraction group, Termind tools without pane/scratch access and transfer tools. Allowlist and disabled-tool filtering suppress run_snippet when ssh_exec_run is disabled, covered by management export tests.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L79-L155",
-          "version": "repo-lines-v1:sha256:e5ceb37f95509257baf2b0d978c80f722f517dac513c87d9d0fed4b504cafc73:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY5ZGIzYzBkNGZjYzA4YjgxOWIxZmNkNzE5YjMzYzc5ZDljZGVjNDdkMWJhOWYxZGRhMmRmM2MwOWZhZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDI0NDU4MmI2ZmIwM2QyM2I4NDE1YWJlY2QzNDZiMGM5ZjQ2NmI2Zjc1MmIwNjgxODljZTdlOWEyZGMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNzJhMmNhNDdjMTY2YWY3M2MzZDdiZjQxMzQwYTdjMmVjYWE1ZTYwMWEzYTlhOTFiMjZhNTUzMGYwM2NkZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjNjEzNmJiYzlhOWUzYjVmMDNmYjg1ZTNhYjgzMGIwNWY4N2E4NTdiNTc2ZjdiY2JhN2NjY2ExZTAwOWQwZjEifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
+        },
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:5e743c3247311ca51005e5be51ebd78abb21d570a5ce4e896c4882138711e823"
+        },
+        {
+          "resource": "repo://TFMTests/ResourceManagementToolsTests.swift",
+          "version": "repo-file-v1:sha256:5c1d66456b86bc12724e5b898d1d0045592751b5a4f38c754a790ce77c83b16c"
         }
       ]
     },
     {
       "id": "claim_6e349154c86c462389334c5e3014b600",
-      "statement": "Both app dependency roots decorate TermindAgentTools.presenterRegistry with SSHExecToolPresentation and resolve trusted descriptors before selecting the decorated presenter by ID. The decorator localizes selected SSH results while preserving IDs, layout and operation policy, delegating argument rendering to the original with generic fallback when absent; Presentation does not import Remote Infrastructure.",
+      "statement": "Both apps decorate the trusted Termind presenter registry with localized SSH results, preserving IDs, layout, operation policy and original argument rendering with generic fallback. Descriptor lookup rejects MCP before selecting a decorated presenter; Presentation does not import Remote Infrastructure.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift#L4-L31",
-          "version": "repo-lines-v1:sha256:c676b84f16f3d59685132596a9512e702060258fb973293dfa2ed2afc7802819:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlOTE5NjUyYjQ3ZmJjZTM2Y2UxYzA4NTE5MjFlZWY4YjBmZjE1NGNiODMyYjlkNTY2YTY0MDYyMGQ2MjFmNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4ZTg5YTJlOTg1ZGVhYzk5Y2RjYmQ5Y2M3ZTliOWI0NDNhNDk5NmM0M2UwNWFmODYxNjU4YzQ2OWQyMmNkZDgifQ"
+          "resource": "repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift",
+          "version": "repo-file-v1:sha256:4e254c86be687a158d65721ac8bc7efdeb354fe2e78a29d856f23a125720f3a6"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L66-L77",
-          "version": "repo-lines-v1:sha256:50401944ea17a305733c6cb3190318d7fcb13d56de8a326acfcdcc7261cdb8d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyYTU2YjYxYzU3Mzg4MjMxYTM4ZTNkYzJmNjlkMmNhMjRhODQ3MmNlOTUyMzIwOTgwYTEyZWU2YmVlMmVlZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZTczN2RiZTA2MWMzMmY2NzYwYzIwNjE2ODMyYmVhYTA0MjU5YzkyODExMjhhM2M1NjhkMmNjMmIzNDRlYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjNmNiNzk1N2Y1ODdiZjMyMWE1NDgxOTFlMTEzYjlkZDBjYzdhM2M3ODU1NjQ1ZjQxZGExMDg4MmVlYmFlYjAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
         },
         {
-          "resource": "repo://TFI/App/MobileAppDependencies.swift#L13-L20",
-          "version": "repo-lines-v1:sha256:623a2e002811c749f0e2e3d9253a4706dc0add8c2f6e178afd9eb77cfc713d9b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTEwMTIzZDk3OGIzN2M1NWRkYTAyZGJmYmYyMjBjNjBhMzNkNDhhM2QzMjJjYTk1MjdkZTc5YzNmODFlNDFmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmE0ZDY1ODhmOWI3YWQwODA5MzgyODExMDk1NTQ3ZTJjZDE4OGEzYTM0ZDMzM2E0OGQ4YmM5NzgxZDY0NTM5NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjk5ZDlhYzA3OTMzMWRlMTcwYWNjYTE1YjNiMWMwYzI5ZjE1OGRkYmRiMDU1NTRkOGM5NmU0MzM1OTE5M2M3ZSJ9"
+          "resource": "repo://TFI/App/MobileAppDependencies.swift",
+          "version": "repo-file-v1:sha256:a390e16396dba3dbe8a7e026e745780365c596f685d43950b28f488e812d579f"
         },
         {
-          "resource": "repo://TFM/App/AppDependencies.swift#L23-L30",
-          "version": "repo-lines-v1:sha256:d7f4bcbc7406554c1915946793e839ed5922f9d2770b3d1640a2b69a15e6e3af:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjFjMmVhZTY2ZTVlZmJlYTc4NDg4YzZjOTcxZjA1ZjA2NGNkY2Q2ZDljNWVjYmU2YTZmMmVjZGIyNjZkZjdlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmM0ZjYxZDRhYTM3OTExNDhhNTI0ZmY3MDZhYTlhODYyNDAwNmQ0Y2ExMjNlYzc1ZThiNDM5NGViZmRiN2E5ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGQ1ZDNmZWNjMzhiODZlYzZjNWUzZTYwYjcwZTE4ZTE3NjAxMmY0OTI5YjdkYWQ4YmE2Zjk5NDgxMDI2YzEyZCJ9"
+          "resource": "repo://TFM/App/AppDependencies.swift",
+          "version": "repo-file-v1:sha256:82869218006629fe80feae8d776027e3e583c48aa8f548387fd3db4730287b26"
         }
       ]
     },
     {
       "id": "claim_7cc9dd2b1ac745c7bed455c88b26b175",
-      "statement": "AgentToolPresentation is a generic renderer driven by injected profiles and vocabulary without modifying execution, approval or replay payloads. TermindToolPresentationProfiles composes knowledge, SSH, pane and chat policy, selecting an empty profile for MCP first, local pane/chat privacy by name next, and otherwise a profile by explicit presenter ID or an empty profile. Unknown or absent IDs do not recover SSH semantics by tool name, although generic descriptor metadata still drives rendering.",
+      "statement": "Generic presentation leaves execution payloads unchanged. Profile selection checks MCP first, recognized non-MCP resource names next, local pane/chat privacy next, then explicit presenter IDs. Unknown IDs do not recover SSH semantics by name.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L8-L23",
-          "version": "repo-lines-v1:sha256:2436a27e43692435d2ad3ba524dfecdf72b1f6b038b87419a54bcc0aae0675e1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4N2M2MmQ1ZDM3N2M2MzQyZjM5ZjVjMDgxOWY5Y2Q0NWZiODFmNTEyZmUxYzk3NGYxNjJlMmRkOGRmNTE3M2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyOGU4Mzk3ZDg4Y2QzOTJmNzc3YmU4ZjUzOTY4YmJjZTNmYmI5MTUzZmZlMWFkM2I5ZWVmMjk2YmU1NzJkNzcifQ"
+          "resource": "repo://Frameworks/TermindPresentation/ResourceToolCardPresentation.swift",
+          "version": "repo-file-v1:sha256:d59724f05c75e8340f38132d9c4375b72287cca4b3195b51a032bc3beb60230c"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
-          "version": "repo-file-v1:sha256:acfc8a46cb5e93adad10c5d3bde03bbbee13a3af9262ed26747913742ea03047"
-        },
-        {
-          "resource": "repo://TFMTests/AgentToolPresentationProfileTests.swift#L91-L107",
-          "version": "repo-lines-v1:sha256:4f1f9049cbfddfc8e49d401057baec1355a404f907344995208e1804dc9d8ba1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4MjI3MTYyOGYwMjg3NTRmYjRlMjMwMzZhYjMxZjhhOTI2MzNkOWI0NDlhYTkzMmJkNjg2MWVkOTZiY2IyMjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkM2QzYWM4ZmVhMDFhNTUzZDVmOWE0ZmRhZDA5OWE1NjZhYTllN2ZlZjA2NDljYTFjODFhMzljNGVlMDM4YzAifQ"
+          "version": "repo-file-v1:sha256:28bd763acf1f81c82eadb3ff2f200306914e28d6622fae0dcd7f25ea67d79803"
         }
       ]
     },
     {
       "id": "claim_b3190cf08737403595ffffc081bd83a8",
-      "statement": "Profile detail distinguishes hidden output from default fallback, stopping hidden content before generic JSON/error rendering; local pane/chat privacy applies independently of presenter availability or executable registration. Trusted app composition gates descriptor presenter lookup through TermindAgentTools, which rejects MCP metadata selecting local code. MCP receives an empty profile, not raw-JSON preservation: default decoded results use generic items without a presenter, or an explicitly caller-supplied presenter and its layout; non-JSON results use generic text/error rendering.",
+      "statement": "Hidden profile detail suppresses generic JSON/error fallback. Local pane/chat privacy is independent of presenter availability; MCP gets an empty profile and cannot select trusted local presenters through metadata. Default decoded results use generic items unless a caller explicitly supplies a presenter; non-JSON results use generic text/error rendering.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift#L36-L79",
-          "version": "repo-lines-v1:sha256:f8cfac3764b34ff050a6a10304f67eb970bd6d5027a93218ab90298c54026613:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDQ4ZTQyZjc0NWI3ZThjOTZmNjg4YzYyNzE2NzM1MjVlYmM2OTZlNjMyY2NhYTc1OTNkMzQ4Mjk3ZjRmYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYzg2Y2EzMzVlNzIyOTY5NzNmZmI2NTJjNTkzMzljZjIwMTQxNTcyNTA1NmFiNTk1MzQ2MWU2YjI0ODAwNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhOTIzZDYzZDViZTc0YmJkZmIxN2Q2ODJmYTlkZTJkNjY1M2VkYjcwODQ5OGE3YmIwMDBiYTc2ZWM1ODY1ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0YjEzMTRjNGU0MjQzMDUxNzE0YzYxZGMxMmVkNTdlMzU2OTc2MzAxMDJmMjVkMDIxOGI3NzhiNWUyMDBlZDUifQ"
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
+          "version": "repo-file-v1:sha256:f69ca650b5c5e38afb094c360b1796ce515b33fd0403d21b008e8cdb12552f3b"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L315-L377",
-          "version": "repo-lines-v1:sha256:ee92ed4bb504a877a4ba0dc6dfa4fd01ae4f112fc0a10c46661facec3a029241:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzZTEyMGRlODYzNWZlY2VkNWMxYTA4YTc2YzAzODhhNjAyYzRlNWViZDYyNWU5NGVmYTNjZjk4M2QwODRkM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4YWNlOWI3NWYyZWQ5ZTRiMDk4NTZlNGJjYjFhMDJiMzVjNzY1MzRjNzhiZjM0MjZlYjllYWQxNWM2YmUyYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmZjAwNmM3NTU4MzlhOTdiMDczYmM5NTBlNTVjMjJiMTM4Y2U0MTAxZWQ0N2I2MDU5OTAyOTRhNmQ0ZDg1NWUifQ"
+          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift",
+          "version": "repo-file-v1:sha256:28bd763acf1f81c82eadb3ff2f200306914e28d6622fae0dcd7f25ea67d79803"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift#L28-L51",
-          "version": "repo-lines-v1:sha256:c74bb326fccf6a63bfdeafa77d1c84217c212d43c2ab8944501f74fc91c6659a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3M2UzZTFkOGNiZjI0MmNjMmU2NTlmNmYzYWM4ZWZkZjQ0MGI5OWM2YjZkMWM4YjdjNTgxMDgyMmE1NGRmNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MjQzNjA5Zjc2YTNkOGFmYmZiZGQ3OWYwMDRmNmJlNzdmMjI2NGJiYmI5OTBhMmI0N2M4NzUyYzc3ZmUxNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift#L28-L41",
-          "version": "repo-lines-v1:sha256:6a657a430947e742759792a69e15ae5a86af0c33f248e517e7c7a2aa9efb7df7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MjE3OGJiOTBhNjc4MmVjNWM3NGIwZDMzMDhjMzc5YzUxYjUwYTgwYmUwMzc1Y2VmNWYzYjFlNDA2Y2VjZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3NDFmMzk5NTFhOGRhNzAzMzFlMDJjZmRkMzQwZjAxYzZiNTVkZThhNmE3Yjk2OTRkNTg0MDQ1ZDExYjY0NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L63-L77",
-          "version": "repo-lines-v1:sha256:cc6484a13635f00edc8c77582bbf0fd425ace1d2d566a90118292db8ec786eec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZDMzMDFlNWE3MGRjYTk1NjFjNjY4NWE4NjdhNDAwNWFkYjM2ZTg3Nzk4ZjkxYWY1ODY2NTRmNTFkYTAwZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmZDhkYmMxYWQ0N2NmOTVhNGRkMGUzZThjNDg1MGFmZjkwMTRiMmE5ZDZlYzJiYmQ0Njg2ZmEwYTk2NGMxMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjNmNiNzk1N2Y1ODdiZjMyMWE1NDgxOTFlMTEzYjlkZDBjYzdhM2M3ODU1NjQ1ZjQxZGExMDg4MmVlYmFlYjAifQ"
-        },
-        {
-          "resource": "repo://TFM/App/AppDependencies.swift#L23-L30",
-          "version": "repo-lines-v1:sha256:d7f4bcbc7406554c1915946793e839ed5922f9d2770b3d1640a2b69a15e6e3af:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjFjMmVhZTY2ZTVlZmJlYTc4NDg4YzZjOTcxZjA1ZjA2NGNkY2Q2ZDljNWVjYmU2YTZmMmVjZGIyNjZkZjdlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmM0ZjYxZDRhYTM3OTExNDhhNTI0ZmY3MDZhYTlhODYyNDAwNmQ0Y2ExMjNlYzc1ZThiNDM5NGViZmRiN2E5ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGQ1ZDNmZWNjMzhiODZlYzZjNWUzZTYwYjcwZTE4ZTE3NjAxMmY0OTI5YjdkYWQ4YmE2Zjk5NDgxMDI2YzEyZCJ9"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:03499e2b8028ec00c5df85bb5651ca89f6d8b29a112e6778cc1ebeba99737a7b"
         }
       ]
     },
@@ -697,6 +689,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-25T22:25:01.745Z"
+    "at": "2026-11-03T02:07:36.095Z"
   }
 }

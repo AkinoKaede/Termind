@@ -22,6 +22,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
+  - id: openwiki-source-08806acefd6b21829cd6c353
+    resource: repo://Frameworks/TermindApplication/SessionReconnectController.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
@@ -82,12 +84,16 @@ sources:
     resource: repo://FrameworkTests/ResumableTerminalExitTests.swift
   - id: openwiki-source-ffc9054d578eba7be684b885
     resource: repo://FrameworkTests/SessionPersistenceTests.swift
+  - id: openwiki-source-1270a81df0871fdaaef0a7ea
+    resource: repo://FrameworkTests/SessionReconnectControllerTests.swift
   - id: openwiki-source-ed4da67c229084479edcd999
     resource: repo://FrameworkTests/SFTPChannelLifetimeTests.swift
   - id: openwiki-source-7d8c92c7f508941f92360dcd
     resource: repo://FrameworkTests/SSHConnectionPreparationTests.swift
   - id: openwiki-source-6f2f3aed2218602847085f4d
     resource: repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift
+  - id: openwiki-source-b069c3f5fc95db0a8cc26f0d
+    resource: repo://FrameworkTests/SSHCredentialRecoveryTests.swift
   - id: openwiki-source-2635e6aecc48e14adbb07b91
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -134,6 +140,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-402ac6130bdf99999b39579e
+    resource: repo://TFM/Platform/ConnectionRecoveryActivityObserver.swift
   - id: openwiki-source-dad03c68d6b805a4170ffc02
     resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
@@ -144,6 +152,8 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-173ecf6c93d15ae1a1f17da6
+    resource: repo://TFMTests/CredentialRecoveryTests.swift
   - id: openwiki-source-c40a8f8c27fd537db3a62965
     resource: repo://TFMTests/DesktopAuthenticationSubmissionTests.swift
   - id: openwiki-source-da61dbcdf7f720ccca8efaad
@@ -158,10 +168,10 @@ sources:
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # SSH Session Lifecycle
@@ -179,19 +189,27 @@ The session feature—not the coordinator—owns user-facing `ConnectionJourney`
 ```mermaid
 sequenceDiagram
     participant Feature
+    participant Store as RemoteSessionHostStore
     participant Prepare as SSHConnectionPreparation
+    participant Worker as Detached credential worker
     participant Opener as SSHConnectionOpener
     participant Route as SSHRoutedSocket
     participant Remote as Server or jump host
     alt mobile or preparation based caller
-        Feature->>Prepare: resolve route and one shot credentials
-        Prepare-->>Feature: SSHConnectionConfiguration
+        Feature->>Store: snapshot route identities trust and submissions
+        Store-->>Feature: preparation with access and wake hooks
+        Feature->>Prepare: resolve with live challenge policy
+        Prepare->>Worker: resolve ordered jumps then target
+        Worker-->>Prepare: configuration or typed credential error
+        Prepare->>Prepare: cancellation check and secret cleanup on failure
+        Prepare-->>Feature: one shot configuration or error
     else desktop terminal
         Feature->>Feature: stage prompts and build attempt configuration from host store
     else Agent tool
         Feature->>Feature: resolve through Agent authentication registry and pool
     end
-    Feature->>Opener: open authenticated connection
+    Feature->>Opener: open only after successful resolution
+    Opener->>Opener: check access then wake and cancellation
     Opener->>Route: open direct or routed socket
     Route->>Remote: proxy negotiate and SSH hop handshake
     Route-->>Opener: socket to destination
@@ -210,7 +228,20 @@ Host selection is not permission to open indefinitely. Desktop `AppModel.open` a
 
 ## Prepare the route and attribute proxies correctly
 
-`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. Cancellation cancels that worker; if it has already returned a configuration, the awaiting task checks cancellation and clears its secrets before throwing. Partial resolution also clears any collected jump/target credentials and proxy passwords on failure. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes an unavailable secret-store error from an absent credential, permits username-only identities to reach server authentication, and rejects a protected key lacking both a saved passphrase and a supplied passphrase, clearing the resolved key material before throwing. Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
+`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. Cancellation cancels that worker; if it has already returned a configuration, the awaiting task checks cancellation and clears its secrets before throwing. Partial resolution also clears any collected jump/target credentials and proxy passwords on failure. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes temporarily unavailable secret access from an absent credential and permits username-only identities to reach server authentication. A resolved protected key without a saved or submitted passphrase is cleared immediately; preparation reports `keyPassphraseRequired` unless no usable credential exists and a credential-access-unavailable error takes precedence (see below). Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
+
+### Credential outcomes are not interchangeable
+
+| Outcome | Preparation and recovery behavior |
+| --- | --- |
+| `SSHCredentialAccessUnavailable` | A saved secret could not currently be read, not evidence that it is missing or rejected. Preserve the typed error and failing Host ID. Shared credential resolution does not write this transient condition into `HostLibraryModel.storageError`. |
+| Missing configured material | An absent password/private key with no usable credential remains an authentication requirement (`missingCredential`), not a system-wait condition. Username-only identities may legitimately supply no credentials. |
+| Protected-key passphrase needed | Successfully reading an encrypted key without its saved/submitted passphrase clears that key material and records the passphrase requirement. If the password fallback is unreadable and no usable credential remains, access-unavailable wins before asking for the passphrase. A failed key read alone must not fabricate a passphrase prompt. |
+| Usable fallback | A key retrieval failure does not discard a successfully resolved password fallback. Access-unavailable is fatal only when no usable credential remains; an actual resolved-key passphrase requirement still has its own prompt semantics. |
+| Route or proxy failure | Jump credential access failures stay `SSHCredentialAccessUnavailable.at(jumpID)` rather than becoming generic `routeHost` authentication errors. Proxy secret-access failures retain the proxy-owning Host ID; genuinely missing proxy identities/passwords remain `proxyAuthentication` errors. |
+| Cancellation | Detached resolution checks cancellation during route/credential work and again after awaiting the result. Partial failure clears collected keys/passwords, and cancellation after resolution clears the returned configuration before it can escape. |
+
+These distinctions apply to synchronous host-store configuration and detached preparation. Silent additional-connection resolution also preserves access-unavailable for target, jump and proxy secrets; an `.interactionRequired` marker is not a usable fallback that may hide an unreadable saved password. See [SSHCredentialRecoveryTests](../../FrameworkTests/SSHCredentialRecoveryTests.swift) and [persistence and secrets](../concepts/persistence-and-secrets.md).
 
 Each node may carry a separate proxy configuration and proxy identity/submission. The proxy password is resolved independently from SSH credentials and becomes an `SSHTransportProxy` with `ownerHostID` set to the host whose proxy it is. This preserves a key UI and retry invariant:
 
@@ -277,7 +308,7 @@ flowchart TD
 
 A configuration carries credentials only for one physical connection attempt. Its `SSHSecret` values are shared mutable secret owners, so copies of the configuration can be invalidated together. `SSHConnectionConfiguration.clearSecrets()` clears target credentials, proxy password, and every jump credential. Public entrypoints defer that cleanup on both success and failure, and the authenticated opener also clears at its own transport boundary. Retrying resolves saved material again; a temporary password or key passphrase is not a reusable connection snapshot.
 
-Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits only informational keyboard-interactive rounds (no prompts and not a Tailscale browser-approval banner). This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](../concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
+Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits only keyboard-interactive rounds with no prompts. This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](../concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
 
@@ -521,7 +552,19 @@ A connection failure before the first successful session remains a failed journe
 
 ### Ordinary SSH retry timing
 
-[SessionReconnectController](../../Frameworks/TermindApplication/SessionReconnectController.swift) owns timing and stale-callback rejection, not transport construction. Its default policy delays successive attempts by 1, 2, 5, 10 and then 30 seconds, retaining the latest error and next retry date. A connection stable for at least 60 seconds resets the attempt counter on the next failure; initial success resets it immediately. `pauseForUserInteraction()` cancels timing and clears the pending action without discarding the attempt counter. `retryNow()` cancels the scheduled wait and invokes the retained action immediately; `stop()` clears recovery state and counters. Scheduled sleep runs detached, then returns to the MainActor and checks its generation before invoking the feature-owned retry. Policy, sleep and clock are injectable for deterministic verification.
+[SessionReconnectController](../../Frameworks/TermindApplication/SessionReconnectController.swift) owns timing and stale-callback rejection, not transport construction. Its default policy delays successive attempts by 1, 2, 5, 10 and then 30 seconds, retaining the latest error and next retry date. A connection stable for at least 60 seconds resets the attempt counter on the next failure; initial success resets it immediately. `pauseForUserInteraction()` cancels timing and clears the pending action without discarding the attempt counter. `retryNow()` cancels the scheduled wait and invokes the retained action only if system availability permits it; it cannot bypass a sleep/session blocker. The action is consumed before invocation, so repeated hints or Retry Now cannot duplicate an in-flight attempt. `stop()` clears recovery state and counters. Scheduled sleep runs detached, then returns to the MainActor and checks its generation before invoking the feature-owned retry. Policy, sleep and clock are injectable for deterministic verification.
+
+### System availability and credential recovery
+
+Desktop `AppModel` installs a shared `ConnectionRecoveryAvailability` on the host library. `AppDelegate` starts `ConnectionRecoveryActivityObserver` against that instance. System sleep and inactive login session are **independent blockers**: waking clears only sleep, and session activation clears only the inactive-session blocker. Application activation merely requests a recheck. None of these notifications proves Keychain access has recovered; the next attempt must read saved credentials again. Observer start is idempotent and stop removes notification tokens.
+
+Desktop ordinary SSH and SFTP recovery checks availability before credential resolution. A known blocker preserves retry intent as `waitingForSystem` without reading secrets. After a previously successful connection, `SSHCredentialAccessUnavailable` schedules `waitingForCredentials` without showing a replacement authentication form. First-connection failures remain explicit failures without automatic credential retry. Credential waiting has its own capped 1/2/5/10/30-second backoff, does not consume network-failure attempts, and exposes an empty `lastError` rather than a raw security error. It retries even without lifecycle notifications.
+
+Availability hints cancel the old countdown and coalesce through a MainActor yield into one retry when all blockers clear. Stop, disconnect, successful connection, or a user-interaction pause invalidates queued callbacks and removes observation. A real trust/authentication prompt therefore owns its continuation rather than racing automatic recovery.
+
+This is shared policy with platform-owned integration, not a universal unlock observer: `RemoteSessionHostStore.recoveryAvailability` defaults to nil. Mobile uses the same snapshot and typed credential-resolution contracts, but its scene background/foreground orchestration below governs suspension and resume; do not infer desktop credential-wait UI from that shared preparation path. Mosh/ET protocol recovery remains separate from the ordinary SSH timer.
+
+Sources and regression coverage: [activity observer](../../TFM/Platform/ConnectionRecoveryActivityObserver.swift), [availability](../../Frameworks/TermindApplication/ConnectionRecoveryAvailability.swift), [desktop credential recovery tests](../../TFMTests/CredentialRecoveryTests.swift), and [reconnect tests](../../FrameworkTests/SessionReconnectControllerTests.swift).
 
 These delays govern ordinary reconnect attempts, not Mosh/ET protocol recovery. The latter is driven by transport state and must not arm the SSH retry controller merely because a data route is unavailable.
 
@@ -596,7 +639,14 @@ stateDiagram-v2
     opening --> failed: first attempt fails or trust is rejected
     opening --> retired: explicit close cancels socket and attempt
     authenticated --> recovering: transport loss after first connect
-    recovering --> opening: scheduled retry when allowed
+    recovering --> waitingSystem: sleep or inactive session blocks retry
+    waitingSystem --> recovering: all blockers clear and hint is coalesced
+    recovering --> opening: timer or Retry Now when available
+    opening --> waitingCredentialAccess: unreadable saved secrets after prior success
+    waitingCredentialAccess --> opening: credential backoff or available recheck
+    waitingCredentialAccess --> waitingSystem: system becomes blocked
+    waitingSystem --> retired: stop or disconnect
+    waitingCredentialAccess --> retired: stop or disconnect
     authenticated --> retired: plain shell exit or verified successful managed end
     authenticated --> detached: managed session still exists or inspection unknown
     detached --> opening: explicit reconnect with reference validation

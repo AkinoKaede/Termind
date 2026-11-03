@@ -74,10 +74,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Storefront and Commerce Release
@@ -105,7 +105,7 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ### Inspect the release artifact, not just the project
 
-The checked-in native Release settings use marketing version `1.17.4` for both apps, but separate build numbers: Mac `TFM` is `112` and mobile `TFI` is `101`. The project-level `CURRENT_PROJECT_VERSION` is `75`, so it is not the app artifact's build number: the app targets override it. Project Debug/Release inherit `Services.xcconfig`, whose tracked contents do not set versions. These are source baselines, not uploaded build identifiers. The CI archive script runs `Scripts/bump-version.py "$BUILD_VERSION"` first: it sets the requested marketing version, increments the project and each app's build independently, and aligns Widgets with TFI. Local includes and invocation overrides still require artifact inspection, and export permits Xcode to manage the final build number. Match the processed build in App Store Connect to the intended platform and version rather than copying a project value. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2380), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2456-L2587), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2626-L2667).
+The checked-in native Release settings use marketing version `1.18.2` for both apps, but separate build numbers: Mac `TFM` is `117` and mobile `TFI` is `105`. The project-level `CURRENT_PROJECT_VERSION` is `79`, so it is not the app artifact's build number: the app targets override it. Project Debug/Release inherit `Services.xcconfig`, whose tracked contents do not set versions. These are source baselines, not uploaded build identifiers. The CI archive script runs `Scripts/bump-version.py "$BUILD_VERSION"` first: it sets the requested marketing version, increments the project and each app's build independently, and aligns Widgets with TFI. Local includes and invocation overrides still require artifact inspection, and export permits Xcode to manage the final build number. Match the processed build in App Store Connect to the intended platform and version rather than copying a project value. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2380), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2456-L2587), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2626-L2667).
 
 For each platform, privately inspect the resolved configuration for the actual archive invocation and the app that will be delivered (again after export if signing changes). Do not dump build settings or publish raw logs containing service configuration; the CI archive script deliberately avoids both. Retain sanitized verification results rather than credential-bearing output. Check:
 
@@ -152,7 +152,7 @@ For focused pipeline checks, run `python3 -m unittest discover -s Scripts/Tests 
 
 Host access is a separate admission check: free access permits three ordinary Hosts, selected deterministically by creation date then UUID; Pro unlocks all ordinary Hosts. Additional saved Hosts are locked rather than deleted. Over-limit operations during `.loading` or `.verificationFailed` report unresolved/failed verification rather than treating that state as a resolved free account. Check purchase, expiry and verification failure with more than three Hosts, not just with an empty library. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the detailed Host policy.
 
-The Mac built-in MCP server is constructed without a Pro predicate and its settings toggle calls `setEnabled` directly. Mobile remote MCP Add and Import actions likewise have no `.remoteMCP` gate. This does not establish a built-in server on mobile: validate remote-client messaging separately from Mac server availability. [Source: `ProAccessTypes.swift`](../../Frameworks/TermindDomain/Commerce/ProAccessTypes.swift), [Host policy](../../Frameworks/TermindDomain/Hosts/HostAccessPolicy.swift), [mobile MCP settings](../../TFI/Features/Settings/MobileMCPSettings.swift).
+The Mac built-in MCP server is constructed without a Pro predicate and its settings toggle calls `setEnabled` directly. Mobile remote MCP Add and Import actions likewise have no `.remoteMCP` gate. This does not establish a built-in server on mobile: validate remote-client messaging separately from Mac server availability. Inspect the current [AppModel wiring](../../TFM/App/AppModel.swift#L391-L396), [server controller](../../TFM/App/MCPServerController.swift#L49-L94) and [settings toggle](../../TFM/Features/Settings/MCPServerSettings.swift#L15-L24), alongside [Pro feature definitions](../../Frameworks/TermindDomain/Commerce/ProAccessTypes.swift) and [mobile MCP settings](../../TFI/Features/Settings/MobileMCPSettings.swift). See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for server-specific verification.
 
 For Mac release verification, inspect the **composition root**, not the `AppModel` initializer default: `AppModel` defaults to `.unrestrictedForTesting()`, but `TermindApp` explicitly injects `.live()` for normal launches and `.unrestrictedForTesting()` when running tests. The DEBUG screenshot-demo branch also explicitly injects unrestricted access and returns early. Neither a screenshot nor a directly constructed default `AppModel` demonstrates production entitlement enforcement.
 

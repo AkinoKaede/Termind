@@ -66,12 +66,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncPersistence.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-8a05ed491f0965e8444981d6
+    resource: repo://Frameworks/TermindPersistence/ModelContext%2BCommit.swift
   - id: openwiki-source-cea80bf19da5e3f99d178655
     resource: repo://Frameworks/TermindPersistence/PersistentAgentMessageReplay.swift
   - id: openwiki-source-9b1d7edbd0fef02b4998e432
     resource: repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift
-  - id: openwiki-source-0e8ecbf3896cbf237a679d6a
-    resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
     resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-6df73854db20ee83905a634c
@@ -128,6 +128,8 @@ sources:
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
+  - id: openwiki-source-7a96834e0ec247f0a7610fde
+    resource: repo://FrameworkTests/TerminalCustomThemeTests.swift
   - id: openwiki-source-5f8ec704a2abdcb7e9db5130
     resource: repo://FrameworkTests/TerminalTransportTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
@@ -162,10 +164,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Persistence and Secrets
@@ -223,6 +225,27 @@ Deletion is a durable saga, not an immediate blind removal: `requestHostDeletion
 The platform projections differ around durable deletion. Desktop commits deletion before projecting removal and clearing connection history; mobile closes workspace/runtime dependencies before requesting deletion, with its outbox also clearing connection history. Command and SFTP browse history are memory-only per-session data, cleared by close rather than durable per-Host cleanup. Direct deletion of Tailscale-managed Hosts is rejected. Failure after runtime cleanup does not roll back those earlier effects.
 
 Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It deduplicates replayed earlier turns by message ID, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot. V42 adds *sidecars*, rather than modifying historical message rows: a message origin records the source conversation/run/tool call and optional redacted title; a conversation-origin row records chat creation provenance; and a delivery receipt reserves the source run/tool-call pair. `SwiftDataAssistantChatCollaborationStore` reads and writes receipts and creation relations using fresh contexts from the shared container. When a new originated message is saved, its origin insertion marks matching queued receipts delivered in the **same snapshot save**; stale receipt saves or callbacks cannot downgrade a delivered receipt. Origin rows are removed along with message backing during edit/delete; the origin on a user message also prevents editing it as an ordinary user turn.
+
+### Settings commits and library rollback
+
+`SettingsSyncPersistence.saveLocal` loads the previous snapshot, bootstraps the journal, stages the change and records the snapshot diff within one `ModelContext.commit`. That helper saves only after the operation and optional `beforeSave` hook succeed; any thrown error rolls back the context and propagates. `didRecordChanges` runs after commit, not while intent is merely staged. `applyRemote` instead accepts journal winners, rebuilds the complete materialized snapshot and applies rows in the same commit; it returns accepted keys/upload needs without invoking the local-write callback. Defaults mirrors are updated after the successful commit. This makes defaults a projection, not a substitute transaction log. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
+
+[`TerminalCustomThemeTests`](../../FrameworkTests/TerminalCustomThemeTests.swift) injects `CocoaError(.fileWriteNoPermission)` through `beforeSave`: legacy-seed reconciliation must restore theme and terminal projections, journal contents and pending uploads while leaving the defaults mirror unchanged; a subsequent successful retry applies the winner. A separate native-batch fixture requires both custom theme and selection to disappear on rollback, with neither envelope retained. These are controlled failure seams, not tests of a physically full disk.
+
+Library value projections need their own rollback in addition to database rollback. `HostLibraryModel.removeSnippets` and `removeSnippetPackage` capture the affected arrays, clear startup references and attempt `persistCore()`; failure restores snippets, packages where applicable, Hosts and groups. Reference cleanup includes offline Tailscale host preferences inside groups, not just currently visible Hosts. [`ResourceLibraryTransactionTests`](../../FrameworkTests/ResourceLibraryTransactionTests.swift) uses a failing `VaultPersisting` fake to verify failed snippet/package deletion restores startup and grouping references, failed group save/removal restores both Hosts and groups, and successful retry clears references. Its reopened library reads the fake's saved snapshot—it is not a disk migration/reopen fixture.
+
+```mermaid
+flowchart TD
+    Edit["Local Settings edit"] --> Stage["Stage rows and journal diff"]
+    Remote["Remote Settings winners"] --> Materialize["Accept journal and materialize rows"]
+    Stage --> Commit{"Context save succeeds"}
+    Materialize --> Commit
+    Commit -->|no| Rollback["Rollback context and propagate error"]
+    Commit -->|yes| Projection["Update mirrors and return committed values"]
+    Projection --> Local["Local path notifies mutation callback"]
+```
+
+Settings rows and replication intent share a commit; remote application does not echo the local callback.
 
 ### Mobile card ordering is not a second store
 
@@ -481,11 +504,37 @@ AI secrets apply the same rule with an extra migration-location record. `Persist
 
 For new AI secrets, iCloud use requires coordinator authorization plus both master iCloud and Settings-sync switches. A successful migration first writes and verifies the iCloud Keychain value, records `usesICloud`, then removes the device copy. Once a reference has migrated, later writes remain in iCloud even if the switches are disabled. Remote reference metadata marks the location as iCloud without treating an old device copy as authoritative. Deletion persists `pendingDeletion` before Keychain removal and retains that tombstone so delayed Keychain delivery cannot resurrect a secret.
 
+### Missing, inaccessible, and failed storage are different outcomes
+
+For Keychain **data reads**, `errSecItemNotFound` returns nil, whereas `errSecInteractionNotAllowed` becomes `SSHCredentialAccessUnavailable`. Other statuses remain `KeychainSecretError.status`; malformed values also remain storage errors. This mapping is not a blanket conversion of every Keychain operation: attribute checks and writes retain their status-error paths. `SSHCredentialAccessUnavailable.at(_:)` attaches the owning Host only if one is not already present, preserving jump/proxy attribution rather than converting a protected read into server authentication rejection.
+
+`HostLibraryModel.sshCredentials(for:)` loads key and password independently. It records inaccessible access in `SSHCredentialResolution.accessUnavailable`, without setting `storageError`; ordinary read errors still populate storage errors/failure descriptions. A usable password survives a failed key read. When no usable credential remains, connection construction preserves the inaccessible classification rather than treating the reference as missing. In particular, an unreadable saved password fallback takes precedence over requesting an unsaved key passphrase. Truly absent material still follows the missing-credential authentication path. Silent additional connections preserve this classification for target, jump and proxy owners; an interaction-required marker is not evidence that an unreadable saved fallback is usable.
+
+[`SSHCredentialRecoveryTests`](../../FrameworkTests/SSHCredentialRecoveryTests.swift) checks blocked password/encrypted-key reads, recovery after unblocking, surviving password fallback, passphrase precedence in synchronous and prepared connections, route/proxy ownership, silent additional connections and genuinely missing credentials. These fixtures use a controllably failing secret store, not a locked-device Keychain integration test. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for runtime recovery and [SSH Security Key Authentication](ssh-security-key-authentication.md) for authenticator interaction.
+
 ## Runtime-only authentication material
 
 A session receives resolved credentials, not a database record. `SSHCredentials` wraps password, private-key, and passphrase values in `SSHSecret`; `SSHConnectionConfiguration.clearSecrets()` clears target credentials, proxy secret, and jump-hop secrets while preserving non-secret network data and `SSHAuthenticationReference` provenance. The provenance contains IDs, username, and capability flags so later connections can re-resolve current Keychain material, but it does not retain a plaintext password or key.
 
 `SSHSecret` owns a single non-copy-on-write byte allocation shared by its copies. It clears source `Data` when taking ownership, exposes its NUL-terminated bytes once through `withUnsafeCStringAndConsume`, wipes/deallocates the allocation before return, and rejects a second consumption. Explicit clearing is idempotent. Interaction-forbidden connection requests additionally replace credentials that require a passphrase or user-presence authorization with `interactionRequired`, so silent auxiliary work cannot prompt for or consume protected authentication material.
+
+`SSHConnectionPreparation` snapshots route inputs on the main actor and resolves potentially blocking secret references on a detached worker before transport opens. Resolution tracks acquired credentials and proxy secrets and clears them if a later node, trust check or cancellation fails. A completed configuration transfers ownership to the caller; if the awaiting caller is already cancelled, `resolve()` clears that completed result before throwing. A loaded encrypted key without its required saved/submitted passphrase is cleared before reporting the requirement. Cleanup is therefore required even when no SSH socket was opened—not only at session teardown.
+
+```mermaid
+flowchart TD
+    Ref["Non-secret route and credential references"] --> Read["Detached secret resolution"]
+    Read --> Missing["Missing material requires authentication"]
+    Read --> Blocked["Protected access preserves unavailable error"]
+    Read --> Owned["Track one-shot credentials and proxy secrets"]
+    Owned --> Failure["Later resolution or cancellation fails"]
+    Failure --> Clear["Clear acquired runtime secrets"]
+    Owned --> Ready["Return completed configuration"]
+    Ready --> Cancelled["Awaiting caller cancelled"]
+    Cancelled --> Clear
+    Ready --> Transport["Caller owns authentication and cleanup"]
+```
+
+Preparation owns partial results until successful handoff, and cancellation clears even a completed result.
 
 ## GRDB Hermes Memory is a separate durable store
 
@@ -522,4 +571,4 @@ Memory history indexing follows committed agent data; suspension invalidates con
 4. **Adding a credential:** persist only a stable reference and non-secret provenance. Use `SecretStoring`/Keychain for material; exclude it from logs, CloudKit/sync records, `UserDefaults`, SwiftData/GRDB ordinary records, and reusable session snapshots.
 5. **Passing a secret to transport:** use the runtime secret owner, clear it at every success, error, cancellation, and teardown boundary, and retain only non-secret identifiers when a reconnectable configuration is needed.
 
-V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. `discardInactiveEntries()` identifies retired rows by stored kind or parsed record name, so invalid envelope bytes and old tombstones are removed without decoding them; when rows are removed it clears serialized engine state rather than scheduling a CloudKit deletion. The receiver filters retired record types/names and deletion IDs before reconciliation and validation, including the conflict path. Historical V46/V51 shapes remain immutable; [`RetiredTerminalHighlightingTests`](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates both historical disk versions with unreadable retired data, upgrades through the production factory, and reopens to assert `copyOnSelect` survives and the highlighting table is absent from SQLite. Separate fixtures assert pending malformed uploads disappear from journal/outgoing/cloud records, and malformed, conflict and deletion deliveries leave active terminal settings intact with zero quarantine rows. These are source-defined regressions, not a report of tests executed here. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host writes use V8 and read V1/V2/V4–V8 (not V3); HostGroup writes V7 and reads V1–V7. SSHKey writes V3 and reads V1–V3; Snippet writes V2 and reads V1/V2. Native History writes V2 and reads V1/V2, while Device remains V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.
+V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. `discardInactiveEntries()` identifies retired rows by stored kind or parsed record name, so invalid envelope bytes and old tombstones are removed without decoding them; when rows are removed it clears serialized engine state rather than scheduling a CloudKit deletion. The receiver filters retired record types/names and deletion IDs before reconciliation and validation, including the conflict path. Historical V46/V51 shapes remain immutable; [`RetiredTerminalHighlightingTests`](../../FrameworkTests/RetiredTerminalHighlightingTests.swift) creates both historical disk versions with unreadable retired data, upgrades through the production factory, and reopens to assert `shellIntegration` remains disabled and the highlighting table is absent from SQLite. Separate fixtures assert pending malformed uploads disappear from journal/outgoing/cloud records, and malformed, conflict and deletion deliveries leave active terminal settings intact with zero quarantine rows. These are source-defined regressions, not a report of tests executed here. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host writes use V8 and read V1/V2/V4–V8 (not V3); HostGroup writes V7 and reads V1–V7. SSHKey writes V3 and reads V1–V3; Snippet writes V2 and reads V1/V2. Native History writes V2 and reads V1/V2, while Device remains V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.

@@ -10,6 +10,8 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-1ec9ab80a210ef2b285346a3
+    resource: repo://Configuration/README.md
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
     resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
@@ -30,8 +32,6 @@ sources:
     resource: repo://Frameworks/TermindDomain/Hosts/HostAccessPolicy.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
-  - id: openwiki-source-f0aa3596750ed8bd3ffd8c9e
-    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift
   - id: openwiki-source-38ed84f3c15242480046f900
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift
   - id: openwiki-source-82f1da82c84bec6e60959357
@@ -124,13 +124,15 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 ## Commerce ownership and configuration
+
+Service wiring is optional, but access enforcement is not. Both app targets use `Configuration/Services.xcconfig` for Debug and Release; repository builds without a local RevenueCat key or Firebase plist leave the corresponding service unconfigured rather than unlocking Pro. The ignored `Configuration/Services.local.xcconfig` supplies `REVENUECAT_API_KEY` and `REVENUECAT_ENTITLEMENT_ID`. Firebase configuration and Crashlytics symbol upload are independent of commerce; upload is disabled by default and runtime diagnostics still require consent. See [local service configuration](../../Configuration/README.md) for provisioning details, rather than treating test-only unrestricted access as a production fallback.
 
 `ProAccessController` is the shared, observable main-actor access gate. Both production app targets construct it with `live()`; test, in-memory and screenshot setups can use unrestricted test access. Its `ProPurchaseService` is a narrow status-and-update interface, not a StoreKit purchasing API. `live()` builds `RevenueCatProPurchaseService` from the bundled `TermindRevenueCatAPIKey` and `TermindRevenueCatEntitlementID`; an absent or invalid configuration yields `.verificationFailed`, **not** free access through a second StoreKit observer. The configuration trims values, rejects unresolved placeholders and private keys, allows `test_` keys only in DEBUG and expects a public `appl_` production key. The configured entitlement (`termind_pro` in the project settings) is the unlock key: product IDs alone do not grant access. Both apps configure RevenueCat's StoreKit 2 mode with informational entitlement verification, an anonymous app user ID, device-identifier collection disabled and a preferred UI locale from the stored app language. See [Storefront Commerce Release Checks](../operations/storefront-commerce-release.md) for production dashboard and sandbox checks.
 
@@ -193,7 +195,9 @@ Host admission distinguishes unresolved verification from a resolved quota denia
 
 SSH-based connection admission includes the target and jump-host route; Telnet checks only its target, not the Host's independent SSH jump configuration. Prepared configurations carry a `HostOperationAccessCheck` backed by a lock-protected current policy/Host snapshot, so cached configurations do not freeze the entitlement that existed at preparation time. SSH execution, cached Agent connections, SFTP operations and forwarding admission consult these checks. The SFTP wrapper admits each new operation without cancelling a transfer already delegated to its channel. Preserve these runtime checks when adding alternate entrypoints; see [Remote Services and Forwarding](remote-services-and-forwarding.md).
 
-Metrics no longer has an independent three-card cap or `.unlimitedMetrics` gate. The shared model retains selections outside the edited picker, deduplicates additions and persists the replacement in one operation. Collection instead follows Host access: locked Hosts surface a locked monitoring state, and the mobile locked card opens Pro rather than detail. Picker save failures report storage errors, not an automatic unlimited-Metrics paywall.
+Metrics no longer has an independent three-card cap or `.unlimitedMetrics` gate. The shared model retains selections outside the edited picker, deduplicates additions, validates SSH availability for new selections and persists the replacement in one operation. Collection instead follows Host access: locked Hosts surface a locked monitoring state, and the mobile locked card opens Pro rather than detail. Picker save failures report storage errors, not an automatic unlimited-Metrics paywall.
+
+Metrics admission is also a worker boundary, not just a picker rule. `ServerMetricsModel.reconcile()` rechecks Host access and Tailscale availability; denial cancels that Host's worker and clears pending authentication presentation. `.verifyingEntitlement` remains connecting, `.lockedHost` becomes locked, and other denials become failed. Sampling access checks consult the current Host store rather than relying on admission when the card was added.
 
 Status changes update Host policy, reconcile Tailscale and Metrics, and recompute connection acceleration preferences through the controller's app-owned `accessDidChange` callback, without requiring a visible paywall. Losing Vault sync access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data. Both app-owned access-change callbacks reconcile these coordinators directly; mobile sync additionally requires an active foreground scene and is also reconciled on scene activity. The built-in MCP server is not suspended merely because Pro expires.
 
@@ -274,7 +278,7 @@ flowchart TD
 ```
 The desktop picker persists the next launch's choice while rendering only the notice in the newly selected language.
 
-Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests unknown-preference fallback, Simplified Chinese preference migration, the region/flag-dependent Traditional Chinese name, Korean dynamic labels, localized demo conversations, and Host-access error presentation. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
+Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests unknown-preference fallback, Simplified Chinese preference migration, the region/flag-dependent Traditional Chinese name, Korean dynamic labels, localized demo conversations, and Host-access error presentation. It also checks the short Input, Show Input Area and Shortcuts labels in all seven explicit languages: English must match its expected wording, and each non-English result must be nonempty and differ from English. Demo-conversation tests preserve technical references such as `127.0.0.1:8080`, `/health` and tool names while translating prose. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
 
 ### Library cards and compact mobile surfaces
 

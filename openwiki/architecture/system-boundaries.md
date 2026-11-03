@@ -1,6 +1,6 @@
 ---
 type: architecture boundaries
-title: System Boundaries and Composition
+title: System and Tool Boundaries
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
@@ -24,18 +24,22 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
-  - id: openwiki-source-743e6dcf5fbbd1fcc58c991e
-    resource: repo://Frameworks/TermindPresentation/AgentPaneToolPresentation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
-  - id: openwiki-source-7e27e66540bd1ea5c642a652
-    resource: repo://Frameworks/TermindPresentation/AgentToolPresentationProfile.swift
+  - id: openwiki-source-ec38c02ae298b470ccc6d414
+    resource: repo://Frameworks/TermindPresentation/ResourceToolCardPresentation.swift
   - id: openwiki-source-0d8bc8948aed7b3cc4944dbf
     resource: repo://Frameworks/TermindPresentation/SSHExecToolPresentation.swift
   - id: openwiki-source-6ab30745153a4cbf15c4b18c
     resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-a5d7e0dceed6f03d335cc324
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/HostManagementTools.swift
+  - id: openwiki-source-bc712869742a856000684c8c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/MetricsManagementTools.swift
+  - id: openwiki-source-459d5310dcba40b0aa1e3b65
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift
   - id: openwiki-source-cd4e1048d6e972f3f86d27e3
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -80,6 +84,8 @@ sources:
     resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-76b1cdca4a02038756187f92
+    resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-7c65a9e84644dfdb436d849d
@@ -88,13 +94,15 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+  - id: openwiki-source-a0939deb764eaca503038262
+    resource: repo://TFMTests/ResourceManagementToolsTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+    at: 2026-11-03T02:07:36.095Z
 ---
 
-# System Boundaries and Composition
+# System and Tool Boundaries
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -305,7 +313,7 @@ Execution registration and localized rendering are separate extension points:
 
 - **Execution availability belongs to the remote catalog.** `TermindAgentTools` registers separate acting and planning variants of SSH run/stdin tools. SFTP mutations and scratch push are acting-only registrations; read-oriented tools remain available without that restriction. Preserve these mode declarations when extending the catalog rather than relying on UI visibility to restrict execution.
 - **Localized SSH result rendering belongs to Presentation, assembled by the apps.** Both `AppDependencies` and `MobileAppDependencies` decorate `TermindAgentTools.presenterRegistry` with `SSHExecToolPresentation.registering(in:)`. The decorator replaces selected SSH result projections while retaining persisted presenter IDs, tool-owned layout, and operation policy; argument rendering delegates to the original presenter, falling back to generic argument items if needed. Descriptor lookup first passes through the remote catalog's trusted lookup, which rejects MCP descriptors and requires an explicit registered presenter ID, then selects the decorated presenter by ID. There is no legacy tool-name fallback or separate `ssh_exec`/`ssh_wait` presenter registration. This lets shared Presentation localize results without importing Remote Infrastructure. See the [presentation decorator](../../Frameworks/TermindPresentation/SSHExecToolPresentation.swift) and [desktop composition](../../TFM/App/AppDependencies.swift).
-- **Tool-family policy is injected into a generic renderer.** `AgentToolPresentation` interprets descriptor metadata and lifecycle through an injected profile resolver and activity vocabulary, rather than resolving concrete tool behavior by protocol name. `TermindToolPresentationProfiles.renderer` composes knowledge, SSH, pane, and chat profiles with localized vocabulary; profiles control summaries, phases, pending detail, approval projection requirements, and truncation notices. Rendering leaves execution, approval, and replay payloads unchanged. Profile selection first returns an empty profile for an MCP target, then checks local pane/chat privacy policy, and otherwise looks up the explicit presenter ID. Unknown or absent IDs receive an empty profile, not SSH semantics recovered from a matching tool name; generic descriptor metadata can still drive the summary.
+- **Tool-family policy is injected into a generic renderer.** `AgentToolPresentation` interprets descriptor metadata and lifecycle through an injected profile resolver and activity vocabulary, rather than resolving concrete tool behavior by protocol name. `TermindToolPresentationProfiles.renderer` composes knowledge, SSH, pane, and chat profiles with localized vocabulary; profiles control summaries, phases, pending detail, approval projection requirements, and truncation notices. Rendering leaves execution, approval, and replay payloads unchanged. Profile selection first returns an empty profile for an MCP target, then selects resource-card policy for recognized non-MCP resource tool names, then checks local pane/chat privacy policy, and otherwise looks up the explicit presenter ID. Unknown or absent IDs do not recover SSH semantics from a matching tool name; outside the resource/privacy branches they receive an empty profile, and generic descriptor metadata can still drive the summary.
 - **Privacy suppression is distinct from generic fallback.** Profile detail can return `.useDefault`, `.content`, or `.hidden`; hidden output stops before generic JSON or error rendering. Local pane/chat privacy profiles apply by name independently of presenter availability, not as semantic presenter recovery or executable registration. MCP receives an empty profile, not a raw-JSON-preservation policy, and cannot select local presenter code through remote metadata. After profile policy permits default detail, the renderer decodes result JSON: without a presenter it uses generic items (for example, `{"value":42}` becomes a `Value` field); an explicitly caller-supplied presenter can instead project the decoded result and supply its layout. Non-JSON output follows the generic text/error path. These are display choices, not changes to the stored or model-facing payload.
 
 ```mermaid
@@ -317,8 +325,10 @@ flowchart TD
     Lookup --> Presenter["Trusted decorated presenter or none"]
     Descriptor --> Profiles["Profile selection with localized vocabulary"]
     Profiles --> MCP["MCP target gets empty profile"]
-    Profiles --> Local["Local pane and chat privacy first"]
+    Profiles --> Resource["Non-MCP resource names get resource policy"]
+    Profiles --> Local["Then local pane and chat privacy"]
     Profiles --> ID["Otherwise explicit ID or empty profile"]
+    Resource --> Renderer
     MCP --> Renderer["Generic AgentToolPresentation"]
     Local --> Renderer
     ID --> Renderer
@@ -337,20 +347,41 @@ The apps compose trusted presenters across the remote/presentation boundary; inj
 
 Pane integration is **optional capability injection**, not part of AgentKit's host-neutral catalog. `TermindAgentTools` constructs `list_panes` and `read_pane` only when `AgentPaneAccess` is supplied; absent access omits their executable definitions, while the presenter registry remains available for persisted cards. Similarly, host-facing scratch pull/push definitions require a supplied workspace. On mobile, `MobileSceneModel` supplies `app.paneAccess(for: self)` to its assistant scene model. The app adapter lists connected terminal workspaces with readable viewport surfaces and distinguishes closed, disconnected, and missing-surface reads; it derives active/current metadata from session and scene ownership. This keeps native terminal surfaces behind closures rather than importing UI into AgentKit or the tool catalog.
 
+### Four tool boundaries
+
+| Surface | Owner and admission boundary |
+| --- | --- |
+| AgentKit built-ins | Host-neutral runtime tools configured by `AssistantToolRegistry`, including scratch, web, planning, chat and MCP client facilities. They are not Termind SSH implementations. |
+| Termind assistant tools | `TermindAgentTools` adds host operations and optional native capabilities through injected ports. Tool-call ability gates the assistant registry; execution modes further restrict definitions. |
+| Remote MCP tools | Configured usable servers and resolved credentials enter AgentKit's MCP client configuration. Discovered definitions join after built-ins and Termind definitions; remote descriptors cannot select trusted local presenters. |
+| Exported local MCP tools | Desktop `MCPServerTools` builds a separate acting-mode allowlisted registry for external clients. It is not an export of the complete assistant registry or a proxy for its remote MCP servers. |
+
+Optional management is a capability boundary alongside pane and scratch access. `AssistantToolRegistry` passes `AgentResourceManager?` into the Termind environment. Without it, host discovery (`list_hosts`) and cached metrics reading (`get_metrics`) remain, but resource-management tools and `run_snippet` are omitted. With it, host/group, identity/key, forwarding, snippet/package and metrics management become available. Read-only management actions are available in planning and acting; mutations are acting-only. `run_snippet` has separate acting/planning registrations using the injected SSH services. Persisted presenters include management and snippet presenters independently of whether those executable capabilities are currently injected. See the [Termind catalog](../../Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift) and [management registrations](../../Frameworks/TermindRemoteInfrastructure/Agent/ResourceManagementTool.swift).
+
 ```mermaid
 flowchart TD
     Composition["Native composition and injected ports"] --> Registry["AssistantToolRegistry tool-call gate"]
     Registry --> BuiltIn["AgentKit built-in configuration"]
     Registry --> RemoteTools["TermindAgentTools additional definitions"]
-    BuiltIn --> Catalog["AgentToolCatalog registry"]
+    BuiltIn --> Catalog["Assistant resolved registry"]
     RemoteTools --> Catalog
-    PaneAccess["Optional AgentPaneAccess"] --> RemoteTools
+    Capabilities["Optional panes and management"] --> RemoteTools
     Scratch["Shared application scratch workspace"] --> BuiltIn
     Scratch --> RemoteTools
-    Catalog --> Resolved["Built-ins then additional then discovered MCP definitions"]
+    Servers["Configured remote MCP servers"] --> BuiltIn
+    Catalog --> Resolved["Built-ins then Termind then discovered MCP"]
+    External["External MCP client"] --> Export["Desktop MCPServerTools"]
+    RemoteTools --> Export
+    Secret["AgentKit userInteraction group"] --> Export
+    Transfers["Session-bound upload and download tools"] --> Export
+    Export --> Filter["Acting mode and export allowlist minus disabled tools"]
 ```
 
-The registry assembles host-neutral runtime capabilities and separately injected Termind capabilities without allowing additional or MCP names to shadow built-ins. The external MCP-facing boundary is documented in [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+Assistant consumption of remote MCP and desktop export of local tools are separate assembly paths. The export path supplies neither pane access nor a scratch workspace; only AgentKit's user-interaction group is configured, with `request_user_secret` the exported runtime-owned tool. It adds session-bound upload/download tools, applies `exportedNames` and disabled-tool filtering, and also suppresses `run_snippet` when `ssh_exec_run` is disabled. Calls absent from the registry fail as unknown/disabled tools.
+
+Exported calls use a registry scoped to `runID`, external authentication interaction, audit events, `.fullAccess` permission mode and `.externalClient` output projection; do not assume the assistant's interactive approval path protects this entrypoint. Session teardown cancels and drains tracked calls, revokes transfers, closes scoped background commands, cancels authentication, unregisters history, and discards session secrets. Transport authorization and bridge workflows are detailed in [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md); assistant execution and approvals are covered in [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+
+[`ResourceManagementToolsTests`](../../TFMTests/ResourceManagementToolsTests.swift) checks management export uniqueness and that disabling SSH execution also rejects snippet execution. These complement the presenter trust tests above: execution admission, persisted-card availability, and display policy must be tested independently.
 
 ### Remote packages versus upstream checkouts
 

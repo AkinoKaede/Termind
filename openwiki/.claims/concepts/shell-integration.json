@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a4bc5eb38d09a0a05d0c48e93a15fff097b8cd6003bfa347f057b023524700ee",
+  "pageVersion": "sha256:d2d4afce21c523a6a618c675a8e23e79d9a0a2c6268a4c26c398dd5b0a71fee0",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -25,7 +25,7 @@
           "version": "repo-lines-v1:sha256:22259b0faa9f2a08d6c614dbf102ec2c3499970b2c046a4b2a6ed3915e9d2413:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTY5OTJiNGIyYjVhYTNmMjFjOTQ0NzdjYWRlYzBkZTI4NjBmZmRhZGZlYjFjZDE0NTllZGQ2MTQ3YjkxNjc3NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ1YzU4MjU2NTIxMTBkNDRjNjU5YjA4ZjQzYTU4NzAwYjVkMTU1OGFiZTRiZmQ1Nzg1ZDk2MzEwM2U4ZmRkMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTBiNDk1M2NkNzhiZWZlMzg3MTEyMWQ5MzEzMGY3ZDAyOWQ5M2I5N2NiNThjMDE3NzFhNDdiNGU1Y2FmZjAzNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjUyNDJjMGQ1NWFmOGVkOTY5YmJmZDMxYzM4ZjgwMzYyMjcxYTgxMGRhYzJiODY0MmYyNTJkNjNkMDg1NDQxNCJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L540-L543",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L555-L558",
           "version": "repo-lines-v1:sha256:73d00859b8370670d63fe58dc6131e80d2d3f0c9f5143ec54e9470a1899755b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTY5OTJiNGIyYjVhYTNmMjFjOTQ0NzdjYWRlYzBkZTI4NjBmZmRhZGZlYjFjZDE0NTllZGQ2MTQ3YjkxNjc3NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjlhN2Y2OGYxN2JkZTA0ZWU5MGM4MGU2NDk2MjZlZWY1NTVhOWFiYzNiM2ZlN2IxYjdjNDIxOTQ1NzdmOTQyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFmODM0YTdjMWNjZTA1ZDBkY2Y5NzJjNzQ3Yzc1YzU5ZTM2ZDY4NGFjMzNhNTM1ZjE3NjZlYTYwYzBhYzE5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDYwYzRhMjJhODE4ZmY5YmIwOTM0N2E0MGMyYzZhNDEwZjk2Mjc5NjUxMDQxNTEzOTI2ZTc0YTMxMjRhMzMzNyJ9"
         },
         {
@@ -98,19 +98,23 @@
     },
     {
       "id": "claim_ee7e1649cd0847a583d24f85e9e2e504",
-      "statement": "Legacy desktop availability leaves readiness false while mobile accepts availability/completion recovery. Runtime ownership instead ignores legacy events and derives active state from the coordinator; revision changes cancel draft, upload and generation work. Tickets bind ready capabilities to context, generation and revision; input, switches, state changes and intervening commands invalidate them while draft-only events do not.",
+      "statement": "Legacy desktop availability leaves readiness false while mobile accepts availability/completion recovery. Runtime ownership ignores legacy events and derives active state and cwd from the coordinator, retaining reported cwd during commands; desktop Ghostty cwd reports are accepted only with integration enabled and before runtime ownership, with empty paths mapped to nil. Revision changes cancel draft, upload and generation work. Tickets bind ready capabilities to context, generation and revision; input, switches, state changes and intervening commands invalidate them while draft-only events do not.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift",
-          "version": "repo-file-v1:sha256:3c2e472b116eb05ce9ba196b956f4de3612d3243a4ec834a84e3b190c659ebe9"
+          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift#L39-L155",
+          "version": "repo-lines-v1:sha256:d658f1f1f3f91013ab33474aad912e3c3a1340839bb6931cf599bf91c6e772a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNWMzOGU0M2VmMDJjNDI0NzIzNTc3MWRhOTM5NTc5OTBkMmViYTBjYzQ5YjQ3MzE4MTIyNmQ4YzFiMWZmNmY3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyNjM0MmQyZjdjMTY3OTMyZWI2MTZjYzkxZGQ3Mzc2YzFiMDQ3OGNjOGQzODRiYjMyMjY0NDc5MjY2NTM3Nzc0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0M2IxZDBiYzUwMzMxYzJjNDg3OTFiN2I4ZWYyMWJhODBjZjMzZmE2M2NiNTExMTUyMjU4MTZiMDIyNzdiZmE1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MiwiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzNzk0ZDAyYTgxMjE5NDRkMTc2ZDI2NWU5YmI5Y2M1OWY2YWI4OTBiY2FkZjhhZWZkZWJkYmJiNGYyZWE4NDQ0In0"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:24e9f6c37e8a2e1c67cb479024ca9e1965ccd58729a7c5da2fdebc961f06bc2c"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L736-L835",
+          "version": "repo-lines-v1:sha256:8a520ae0e580861dfc733b53bc791508a20306efa9d1f6881e6c96ca172a4a76:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1OTk1NWRkNThmOWMyODJiMDE2N2JmZjgyZDVlNDlkZTFkY2JjMzlhYzk0OGY0ZGIzMjMzNjhhMWNkMGEwMjk2IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOTBiNDIyZmMwNjllNjg0MzM4ZTE3YTEwMTA1MzViNWZkNWFhNTM1ZGQ0NjFkNDExMDAxZjZjOTkzNDQ4NTcxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:571e1c20a3d1dd491fba12068feb417070ae8889ddb5d1f2834b0110584af7b8"
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1479-L1595",
+          "version": "repo-lines-v1:sha256:d96bb49c8294e962aa4dd6bec8bac6da1fe77bdcc08acf0edd6e046fa2980aae:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4NDRhOGYwYWM3NDMxNGQ4NDQ3YTFkOWE4OTIyNWJhNzc0NTE0ZGExMmYxZTlkZGIyOTQyNTllYTY3ZDFkOTA4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMDlhZWQ2ODJiMDg3ZDc0NzY4ZDNkZjBiNDA2OTE5MTY4MTkzZjM3YjljOGY5MTYwZTNkYTBjZjgyODgyN2E1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMDZmNDIwY2NjNTZmY2M3YWFjY2NkYzkxNzUwOWRmZGU3NTZmMWM3MDRjYzg4ZjY0ZmZmNzMwM2I2OWI0ZDc2In0"
+        },
+        {
+          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L162-L195",
+          "version": "repo-lines-v1:sha256:a413e4b8bdee9d1a08fcabf3c52ecb10327696818b961e849dd37a540d284105:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzMmQ2ZDZiMTljOTdhYmJkY2I5OGE5NGZkOGUyN2Y2YjZkOTI4NWU5NzlkNDQzNzNjOTJjM2RiYTBjOGExN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmOTY2ZThmM2FlNWZjMjczMjE5MDNlNTJkOWQxNWVkZDQ5OTkwMjAyNWMyOTU1NzA1NGE1M2YyNTFhNTEyNjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiZTc4MTVhOTc2ZTkxNWQyNzU5YmU4ZWUyZWI1ZWRjZWY5ZTdlYWZhNmUxMDJjMzZlZGYwNDQ5ZjAzOGYyMGYifQ"
         }
       ]
     },
@@ -142,19 +146,35 @@
     },
     {
       "id": "claim_d098c2f42a614425aa566d8997cd3fc8",
-      "statement": "Desktop callbacks are attempt-guarded and mobile consumes SSH events in a generation-guarded stream. PTY close clears shell/runtime state and may retain transport for sibling SFTP or explicit control ownership. Runtime exec uses that existing authenticated transport with immediate capacity admission, no channel-open retry, a two-second timeout and 1 MiB output bound; refusal conservatively withholds control capabilities without disabling terminal I/O.",
+      "statement": "Desktop exit and shell callbacks are guarded by the connection controller's attempt ID, while mobile consumes SSH events in a generation-guarded stream. Desktop recovery scheduling belongs to RemoteSessionConnectionController, which invokes model-supplied teardown before presenting recovery or arming retry; SSHSessionModel resets shell state and retires channel work, then starts a fresh attempt and recaptures integration settings on retry, retaining responsibility for startup configuration and cwd consumption. PTY close clears shell/runtime state and may retain transport for sibling SFTP or explicit control ownership. Runtime exec uses the existing authenticated transport with immediate capacity admission, no channel-open retry, a two-second timeout and 1 MiB output bound; refusal conservatively withholds control capabilities without disabling terminal I/O.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:56e3701cdaeaa7a49a86427e4a1bbac9afbe3c687029082a6223187808efbe82"
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L105-L209",
+          "version": "repo-lines-v1:sha256:3c79666e5b4db030a3e60ff4f562d0b57fdc631c14d5c6d6fa6611048b547aad:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMzY2MjlmYzVhZjgwMzdmZDg2NjViMGU4ZmNhMWNiNTBhY2RhNThmMDE0ZTQxYzIwNWMyZmVkNDUyMmVhZDUwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlZjNjMmJlOWM4ODg2YzJjNWMyODI2Mzk5ODEwZmU2MjA2NGFmYWVhMjdkZjEzZjc0OThiODNkMjJlZTgwYzg5In0"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:24e9f6c37e8a2e1c67cb479024ca9e1965ccd58729a7c5da2fdebc961f06bc2c"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1473-L1512",
+          "version": "repo-lines-v1:sha256:e8dff7da4c561efb110b873b18b11a1d90d441b0212cc679a74293c3e300681c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNzZlNTA2Yjc2MWNjYjBjNWEyNzIyYmI3Y2FhMzljZGJhNmYwZWVmNjE0MWVmODU2NTI0NmQzZDRmZWM3ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4Yzc0MzZlZWE4MzY2ZDk5ODFmNzcwODJkZGM1NGZlMjZjZmE3ZWNmNGE4ZWRkMjg4ZDA4NTQ0MGVjZTM5NDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5MjQwODMxZDkxMjNlYjc2ZGQ3M2UwMjQ4M2Y4OWM1MDc2N2JmOTZmNjJmOTE4NWZkNDg2OWYzNzc0Yzk5OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzMTk4ZDNjMzBlODcwNTY0YTY4YjllNTJiZjkxN2ExYTUyMjAwNzZhZjAwZjQ1ZDk0OWZmM2FhYzQyYWNhYTQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:571e1c20a3d1dd491fba12068feb417070ae8889ddb5d1f2834b0110584af7b8"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2525-L2556",
+          "version": "repo-lines-v1:sha256:d4ef56d33aa489755d24f61379c80560cd20f16aea2094cc593e8e76db0c3d01:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlNTQzZGRkMjRiYzc0YzQ1NDAwM2FhYTJhZGU1OTYyY2M2NmE0ZjI2ZDg3MjliNmRmMTI4ZjM2YjQ3YTg2YmUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1971-L1998",
+          "version": "repo-lines-v1:sha256:ad6fc61c51c751a860291a7b8d4fbefff652e398a905709ae87a3d39a898d808:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyM2Y0N2VlOTQ2YjA1NjNkZTEwNTZhMzdiZmIzOTViNGRmZTQxNjNkMTgyMjVhZTUxODc1N2Q5NjRiNjExMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiYzFhZjlkYzA4MGQxZTZkNmY0MDU3ZTE3ZWI1MjdiYTc2OTg5OGEwYmU4OGZlYWNhMjQyZjg2MGU1NjAwYjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5MzBjN2ZiOTcwOTAwYTUxMzkyODQyZTMwOWExMTAzMGRkYzQ2YjYzNzE0NWMwMDExMmJkZDJlZTVhMDFlMzkifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1298-L1316",
+          "version": "repo-lines-v1:sha256:7c2ccdbc50fb06ade769471652e20b1f859c45c303324c8c0832ee5f0d332cf1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNDAyNDQxMDIxMDk1MDUzNjg5NzMxYTQxNmNhZDVmZjE2ZWUyOWM4ZWY1YzdiMjdhOTNiOTFlNjg1MmZmOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIxNzQ2ODNlYmI0NTBmZDRhNGYyNmYzNDlmMmJlMTMwNjUyYjhhNmRiNDU5ZWQwZDdlYTUxOTM4YWFmMGI3YTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5MTJhZTZlOTEzYjZlOGM4NWI3YmZiMTE4ZTYwZjU3MjMxMzhhZDVjMTIyZDEwYjZjOWVkOWVkYzIyYmMzY2IifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L491-L558",
+          "version": "repo-lines-v1:sha256:28ef55bac790c23ed361aa410c7ebe6ca86436d76296d10bfbd2b0c45448e112:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxMzM2MDUxOTRjYzIxOTEzZTJhYjcwMTFmZjAyY2JmN2EzOGE0OGU4ZjhmMjcwYjI2MjE1MmUzMjk5YTNiMDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5YTdmNjhmMTdiZGUwNGVlOTBjODBlNjQ5NjI2ZWVmNTU1YTlhYmMzYjNmZTdiMWI3YzQyMTk0NTc3Zjk0MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMzA1MmM2NjY1ZGU2ZWYwMTFlOTQ5YjYxZWRhNDIwZDJjMTM3YmFlZDU4OGYxYTI0MTZhYmMwZTI2OWNlZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2MGM0YTIyYTgxOGZmOWJiMDkzNDdhNDBjMmM2YTQxMGY5NjI3OTY1MTA0MTUxMzkyNmU3NGEzMTI0YTMzMzcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L983-L1092",
+          "version": "repo-lines-v1:sha256:4e8bf86b790eade4b1dfb41ddc7a81735b35cc93a1a4093b5e2a032f8b4a1c09:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjODhjOGFhNDAyN2FjZjU2ZWZhYWM5ZGEzNjU1NjA2MTczYTgzZWE1YzllY2ZkYmIwMmY3MTY2YmYxY2NjYTBjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1NTAzMmU5NjRkMDkzMjM1MWU1ZDE4NTI2OTI4MWIxNzFhM2EwOWIwOGIyODZlNjYxZWE0NzAzMjNjODJlYjRkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjYjU3ODYwYmIyMTM3YWRkYjY5ZTUzZTdhNGVkMDhhMGE0YTc0ZDM4OWYxYzBhOGY1ZjMzYmExYmUxNjA3Nzc0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmODMzMGRkZTM1YTQyMWY0NGZiZjM0NmMyMGJhZDBkNzJmNWViYWRjMGM0NGQ0MGE5OThjOGJlOTQ3NDE0YjI3In0"
         }
       ]
     },
@@ -331,7 +351,7 @@
           "version": "repo-lines-v1:sha256:793c23c93e109cc350ebac30d1de7f70e701dd3b78ab839fcdc8c77e4834e9e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjkwNTJiOWI4YmQwNDJjOGY1MmI3ODc1OWI2YmQ5YTJiN2FlYjRhZmZkMWI5ZjhiNGI3YTM4NTBhN2U3OTczNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjI4OTdiMmVjODk5OGM4OThmMDY2YTlhM2FkMzcxOTY5NTM3MGJhODBiMmJkM2JlMTFlNGZkOWFhOTlhZjdjNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGI0YjU5MGQwYWQ0NWEwOGFlYzk1NDM3MGQwOTI4N2RlNTM5YzUxODIyZDBhYmRmYjJjMDZhNWI4ZjA4NzBkNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGJlYTZlYTM1YTg1MmY5OGUzYjBmMDM3YTJkZmU5MDI5ZTg3ZDllNGQ3M2RjOWI1ZTQyNjg0NWM1N2VhYmMzMSJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L949-L950",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L981-L982",
           "version": "repo-lines-v1:sha256:7c5f2e6733c4da73406a9c149a6959beb39ade6eb93487c176bea2d035690de7:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjkwNTJiOWI4YmQwNDJjOGY1MmI3ODc1OWI2YmQ5YTJiN2FlYjRhZmZkMWI5ZjhiNGI3YTM4NTBhN2U3OTczNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmMzMTFhMDg5OTQyNzMzMGI0M2M4M2FmOWE1ODZlZGRlYzQ3ZjhjMWFhOTEyZDAwYjAwOGVkZDlhNGNmM2NlNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGY0MzZjOGE2NGZlZWExOTY5ZDZmZjRhNWI0N2IzYzcyMWI4YWQyYTRlZTU2MzQwOGE2Yjg4MjMxZjdmOWIxMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDY3YmZjNmUyMDgyNWMxM2FhZjZhYzhiN2U2ZDJiOTNmNTBkZDMwMWE3NDE5NTg0YWY3Y2MyNGI0ZTMwMzYxZSJ9"
         }
       ]
@@ -353,7 +373,7 @@
           "version": "repo-lines-v1:sha256:a1a5c8158ee6eb1197eeaebf87f70a8da2d97ac5de1e26283eb3c6fbef9f6b14:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNmI1YzY4ZDUzMjk0NzYxNjkyN2YzMTc3MmEzNmY5ZmY5ZWZmZDA2NDQyOGE0YTJlNDQwYzMxYTZhODYyNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjNWI0ODljOWRiN2QzZjE2ZDQ4MGRjZTIzNjBhYjllNDhmMGE0Yzk3YWQzN2NkODNiY2FiNTRiNmZkOWFjNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODIxZTIwZTQzYWNkNDk3OWZhMmVhMjViOWFhOGJjNjE3YTYxNGU2NmM5MjA4ZTg5MDZjNzBmNWI1NWY3NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzYjA4MzQxMmYyZWM4NDVjNWI3MjJhNzAxN2Y4NTJmZTEyZjAwMjAwZjJkYzBjZTE0N2EyNmUzOGI4MGVmMjYifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1456-L1475",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1493-L1512",
           "version": "repo-lines-v1:sha256:c0bc51bc05a739f64bae89d88226161a2de0539dc79c4c668f7d1874b4dadcfc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkOTMyMmU2NzAzNDJjNDJkNGYxYTE2NjI1ZTZiZmRkMTgzNWQ1Mjg3ZDU5NjEwYzVjZDUzMDMyNjRlMzQ1ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjNWI0ODljOWRiN2QzZjE2ZDQ4MGRjZTIzNjBhYjllNDhmMGE0Yzk3YWQzN2NkODNiY2FiNTRiNmZkOWFjNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM1ZDAwMjY3NzNmNjA0NDkwYzZkY2E4ZmVjNmZlZDczODI5ZjczMGEwYzkxNWE0MjUwNzVmMjczZDU3Y2I5OGUifQ"
         },
         {
@@ -385,7 +405,7 @@
           "version": "repo-file-v1:sha256:e6c463c8f50089c0c1c77260fb58d4f141f22e2de537a5f0c227fb385e6dff0c"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L42-L48",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L43-L49",
           "version": "repo-lines-v1:sha256:41bef5c34c9a5f9b81ac4121d3f27ba1ba4412672de06bb9affaf07dba6bdc13:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjMyOTUxMmUwYjVlMDRjNDU2M2E5ZDhiMzBmOWJiYzEzYTk2M2JlOTNkMDQ5MGNmYjI5ZGNmMmQxNjRjYjllNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmFiOGYyMjIyZjYzMjQ0NTQ4Y2UxOGU2MTNkZTE1ZDQ2NjA3Zjk2YzBiODg4ODVmMTgzYzUxNTZkZmU2NzFhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjZlMzc5OGM1OGM5MThhZDljY2FmMmRiOGQ2ODA1MWM5ZDJiNTNmOTlkNzQzYTViMjhjZmY1ZTU2Zjk3MGIzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzc3NjE1ZDk1NTZmYTIwYjQ2MGYyMmZiNWMzMDlkMzQ3YTg0ODAxNzQ1YTMzMzdlNTYyYTI2MDZhMDg4MWRlNSJ9"
         },
         {
@@ -399,7 +419,7 @@
       "statement": "Desktop SSH resize throttling uses 35 ms without live enabled lifecycle integration, zero at an interactive prompt, and 128 ms otherwise. Runtime ordinary and multiplexer prompts require a readDraft ticket for zero delay, not replaceDraft; legacy completion alone does not restore readiness and reconnect requires fresh shell state.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L367-L386",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L377-L396",
           "version": "repo-lines-v1:sha256:128a4e2b820ce780888af3876a1da29945d7fcf1afa6e2c9ce387e615228cd9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NjhhNWJlODljODcxYTdlMGE2ZWIzNWE2Y2FjMTA0ZWYxZjM2N2I2NmFlZjhhZjgxMDVmZGNmOTNiZWY0MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ODg1NGUzMDI5MzQ5NDRhNGFkOGI4NzY1MjRlYzY1MWEwOTYxMWI2M2I3ZTVkMGYyOTY3NzMxZWI2MDI5YTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYTkzMDc3N2RlN2I0ODVjNTA2NTRlOTI1MDU5NzI1NjJiYjc5ZjEzMzZlMTJiOGUzOGI2NTgyZDJlOTZhMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjM2NlYzk1NjgyNTU3ZjU3YzFhZWI5ZjRjM2FhOTNjZTA3YmMyZmNjNTRjMTI5ZjNjYzhhYjQxYzQ0Mjc1YjQifQ"
         },
         {
@@ -410,7 +430,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.2",
-    "at": "2026-10-24T09:28:40.039Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-11-03T02:07:36.095Z"
   }
 }

@@ -58,12 +58,10 @@ sources:
     resource: repo://FrameworkTests/TailscaleSyncSafetyTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-6570374eaac2e0278fa84640
-    resource: repo://TFM/App/TermindApp.swift
-generated: { by: "openwiki/0.7.2", at: "2026-10-24T09:28:40.039Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
 verified:
-  - by: openwiki/0.7.2
-    at: 2026-10-24T09:28:40.039Z
+  - by: openwiki/0.7.0
+    at: 2026-11-03T02:07:36.095Z
 ---
 
 # Embedded Tailscale Integration
@@ -92,6 +90,8 @@ For a dependency update, review both the Xcode requirement and lockfile rather t
 | Apps and shared Presentation | App composition and native group/detail routes; shared login, peer, Exit Node and ping forms. Forms do not own app-wide node lifetime. |
 
 Both app roots inject the local store, node factory, current device name and `.tailscale` Pro check. Memory-only compositions disable native profile storage and reject native factory calls. Losing Pro blocks new operations, including retained dialers, without immediately closing existing nodes. It is an admission boundary rather than a promise to terminate every established SSH stream.
+
+On mobile, `MobileAppModel` constructs `TailscaleModel` with the shared `HostLibraryModel`, a `SwiftDataTailscaleLocalStore` using its own `ModelContext` in the app container, and the native factory/profile storage. Its hostname closure reads the device directory's current device name; its access closure reads `pro.canUse(.tailscale)`. Either `inMemory` or an injected host repository selects the memory-only safeguards. Resource-library and Assistant composition do not take over node ownership.
 
 ## Enrollment is separate from saving a group
 
@@ -168,6 +168,10 @@ The implementation hashes namespace bytes plus `nameBytes` with SHA-1, takes the
 `hostIdentityVersion: groupScopedV2` is explicitly encoded in group configuration. `hostPreferences` wire keys use lowercase UUID strings and decoding rejects invalid or noncanonical keys. Changing the UUID algorithm or its input set can orphan saved preferences, Metrics references and history associations, so it requires deliberate compatibility work rather than a cosmetic refactor. `TailscaleHostIdentityTests` checks independently generated vectors, UTF-8 length framing, excluded control URLs and rename/rebinding behavior. Its network-switch test preserves the old event but excludes it from current Recents until the original identity is projected again; it never attaches that event to the replacement network.
 
 Managed Hosts are rebuilt from discovery and group preferences, not persisted as ordinary Vault Host rows. Their address, name, port 22, authentication and trust remain managed. Saving allows username, tags, color, artwork override, charset, initial SFTP path, Wake-on-LAN, terminal transport options, session persistence, shell integration, startup snippet and environment preferences through the group. Terminal transport options survive projection rebuilding; managed peers exclude Mosh from available transports but can enable Eternal Terminal. An unavailable preferred transport falls back to SSH. These options do not change auxiliary SSH services; see [Mosh and Eternal Terminal](mosh-and-eternal-terminal.md). It rejects ordinary Identity, proxy, jump, Telnet and agent-forwarding configuration. Managed Hosts cannot be duplicated or directly deleted and are unavailable for jump-host, key-export and port-forwarding use cases. Group removal/disablement owns their retirement.
+
+### Startup snippet deletion includes undiscovered peers
+
+Startup snippet references live in saved group preferences as well as visible Host projections. `removeSnippets` and `removeSnippetPackage(keepSnippets: false)` clear matching references in **every** Tailscale group's `hostPreferences`, including peers currently absent from discovery, before persisting the deletion. They also clear visible Host references. On persistence failure they restore snippets, Hosts and groups; package deletion additionally restores packages. Cleanup must not depend on iterating discovered peers alone, or a later rediscovery could resurrect a dangling startup reference.
 
 ### Detected artwork is a preference, not a transport capability
 
@@ -248,6 +252,8 @@ When debugging, first distinguish Pro denial, device enrollment, pending Exit No
 
 ## Focused verification
 
+- `ResourceLibraryTransactionTests`: failed snippet/package deletion restores startup and grouping references; `snippetDeletionAlsoRollsBackAndClearsOfflineTailscalePreferences` checks rollback and persisted cleanup without any discovered peer. Failed group mutations restore both Hosts and groups.
+- `TailscaleKeychainTests.nativeStateUsesDataProtectionAndCleanupErasesOnlyTheSelectedProfile`: signing-gated native storage test checks `AfterFirstUnlockThisDeviceOnly` accessibility in the nonsynchronizing Data Protection Keychain, selected-profile erasure, preservation of a second profile and repeatable erasure.
 - `TailscaleGroupEditorTests`: login without Save, candidate cancellation, partial-save retry, deferred logout, replacement-enrollment guards and concurrent cloud edits.
 - `TailscaleHostIdentityTests`: independent same-Tailnet groups, rename-stable IDs and network rebinding; `TailscaleIntegrationTests`: nearest ancestor routing, managed credential isolation, local-store reopen, discovery/metadata, username, Exit Node and retained-dialer Pro revocation.
 - `HostIconTests.tailscaleChoicesSurviveRediscoveryAndWireRoundTrips`: manual/automatic artwork and detected macOS survive managed projection rebuilding and HostGroup sync. `TailscaleIntegrationTests.tagsAndColorSyncBeforeAnotherDeviceDiscoversTheHost` additionally verifies detected distribution arrives before discovery, kernel-only Linux metadata resolves to generic `linux`, FreeBSD resolves to `freebsd`, empty metadata preserves the last detection, and a resolved unsupported OS clears it.
