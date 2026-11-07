@@ -111,9 +111,9 @@ public final class AssistantTranscriptPresentationState {
         let previous = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
         for entry in new {
             guard case .work(let group) = entry.content,
-                group.run.state == .completed, !group.appearsAfterAnswer,
+                group.presentationState == .completed, !group.appearsAfterAnswer,
                 case .work(let oldGroup)? = previous[entry.id]?.content,
-                oldGroup.run.state != .completed, !readerDidToggle(.work(entry.id))
+                oldGroup.presentationState != .completed, !readerDidToggle(.work(entry.id))
             else { continue }
             if visibleIDs.contains(entry.id) {
                 deferAutoCollapse(entry.id)

@@ -442,10 +442,7 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Breaks a tie at the same instant. A compaction mark is anchored to the
-    /// last message it summarized, so it belongs *after* that message rather
-    /// than in a position `sorted` is free to pick either way — Swift's sort is
-    /// not stable, so equal timestamps otherwise swap between redraws.
+    /// Orders supplemental rows sharing a message boundary and timestamp.
     public var sortRank: Int {
         switch self {
         case .work: -1
@@ -460,9 +457,8 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
 nonisolated public struct AgentToolBatch: Identifiable, Hashable, Sendable {
     public var id: UUID { cards.first?.id ?? Self.emptyID }
     public var cards: [AgentToolCard]
-    /// Batches are run-scoped rather than provider-turn-scoped. A reasoning
-    /// message or another model round trip must not split one visual activity
-    /// into a succession of structurally different rows.
+    /// Execution ownership. Presentation batches span provider turns, but never
+    /// cross a delivered user message.
     public var runID: UUID
     /// The latest provider-authored reasoning that can temporarily occupy the
     /// batch title. The renderer keeps the Markdown and derives plain text only
@@ -498,7 +494,7 @@ nonisolated public enum AgentWorkItem: Identifiable, Hashable, Sendable {
     case reasoning(AgentReasoningBlock)
     case message(ChatMessage)
     case tool(AgentToolCard)
-    /// One or more run-scoped tool calls, regardless of their current result.
+    /// One or more tool calls from the same work segment, regardless of result.
     /// The view shows activity until every member is terminal, then summarizes.
     case tools(AgentToolBatch)
 
@@ -522,8 +518,12 @@ nonisolated public enum AgentWorkItem: Identifiable, Hashable, Sendable {
 }
 
 nonisolated public struct AgentWorkGroup: Identifiable, Hashable, Sendable {
-    public var id: UUID { run.id }
+    public var id: UUID
     public var run: AgentRunSummary
+    public var boundaryMessageID: UUID?
+    public var segmentStartedAt: Date?
+    /// A delivery closes the presentation segment, not its underlying run.
+    public var segmentFinishedAt: Date?
     public var items: [AgentWorkItem]
     public var orderedAt: Date
     public var anchorMessageID: UUID?
@@ -533,12 +533,26 @@ nonisolated public struct AgentWorkGroup: Identifiable, Hashable, Sendable {
     public var activeReasoningBlockID: AgentReasoningBlock.ID?
     public var retryProgress: AgentModelRetryProgress?
 
+    public var presentationState: AgentRunState {
+        segmentFinishedAt == nil ? run.state : .completed
+    }
+    public var startedAt: Date { segmentStartedAt ?? run.startedAt }
+    public var finishedAt: Date? {
+        (segmentFinishedAt ?? run.finishedAt).map { max(startedAt, $0) }
+    }
+
     public init(
         run: AgentRunSummary, items: [AgentWorkItem], orderedAt: Date, anchorMessageID: UUID? = nil,
         appearsAfterAnswer: Bool, activeReasoningBlockID: AgentReasoningBlock.ID? = nil,
-        retryProgress: AgentModelRetryProgress? = nil
+        retryProgress: AgentModelRetryProgress? = nil,
+        id: UUID? = nil, boundaryMessageID: UUID? = nil,
+        segmentStartedAt: Date? = nil, segmentFinishedAt: Date? = nil
     ) {
+        self.id = id ?? run.id
         self.run = run
+        self.boundaryMessageID = boundaryMessageID
+        self.segmentStartedAt = segmentStartedAt
+        self.segmentFinishedAt = segmentFinishedAt
         self.items = items
         self.orderedAt = orderedAt
         self.anchorMessageID = anchorMessageID
@@ -662,12 +676,14 @@ nonisolated public struct AgentPlanCard: Identifiable, Hashable, Sendable {
     public var id: UUID { plan.id }
     public var plan: AgentPlan
     public var outcome: AgentPlan.Outcome = .pending
+    public var sourceMessageID: UUID?
     /// Ordered against messages and tool cards by the same clock they use.
     public var createdAt: Date { plan.createdAt }
 
-    public init(plan: AgentPlan, outcome: AgentPlan.Outcome = .pending) {
+    public init(plan: AgentPlan, outcome: AgentPlan.Outcome = .pending, sourceMessageID: UUID? = nil) {
         self.plan = plan
         self.outcome = outcome
+        self.sourceMessageID = sourceMessageID
     }
 }
 
@@ -1371,7 +1387,13 @@ public final class ConversationModel: Identifiable {
         runSummaries[replacement.id] = AgentRunSummary(
             id: replacement.id, state: .completed,
             startedAt: stagingStartedAt, finishedAt: stagingStartedAt)
-        plans.removeAll { $0.createdAt >= original.createdAt }
+        plans.removeAll {
+            if let source = $0.sourceMessageID {
+                if removedMessageIDs.contains(source) { return true }
+                if keptMessageIDs.contains(source) { return false }
+            }
+            return $0.createdAt >= original.createdAt
+        }
         compactionRecords.removeAll { record in
             guard let boundary = record.compactedThroughMessageID else { return false }
             return removedMessageIDs.contains(boundary)
@@ -1515,11 +1537,22 @@ public final class ConversationModel: Identifiable {
         return String(base.prefix(max(0, 80 - suffix.count))) + suffix
     }
 
-    /// One collapsible work group per run, keyed by source-message ownership.
+    private var workSegmentation: AgentWorkSegmentation {
+        AgentWorkSegmentation(
+            messages: messages, transcript: transcript, messageRunIDs: messageRunIDs,
+            runs: runSummaries, toolCards: toolCards
+        )
+    }
+
+    /// Provider turns share work until a delivered user message starts a new segment.
     public var workGroups: [AgentWorkGroup] {
-        let cardsByRun = Dictionary(
+        makeWorkGroups(segmentation: workSegmentation)
+    }
+
+    private func makeWorkGroups(segmentation: AgentWorkSegmentation) -> [AgentWorkGroup] {
+        let cardsBySegment = Dictionary(
             grouping: toolCards.filter { $0.terminalSuggestion == nil },
-            by: { $0.invocation.runID }
+            by: { segmentation.segmentID(for: $0.invocation) }
         )
         let toolProcessMessageIDs = Set(
             transcript.compactMap { message -> UUID? in
@@ -1554,41 +1587,30 @@ public final class ConversationModel: Identifiable {
             }
         }
 
-        let stoppedRunIDs = runSummaries.values.compactMap { run in
-            run.state == .cancelled ? run.id : nil
-        }
-        let runIDs = Set(cardsByRun.keys)
-            .union(processRunIDs.values)
-            .union(stoppedRunIDs)
-        var processMessagesByRun: [UUID: [ChatMessage]] = [:]
-        var answersByRun: [UUID: [ChatMessage]] = [:]
-        // Prefix maxima preserve the first qualifying source position even when
-        // restored message timestamps are out of order.
-        var anchors: [(date: Date, id: UUID)] = []
+        var processMessagesBySegment: [UUID: [ChatMessage]] = [:]
+        var answersBySegment: [UUID: [ChatMessage]] = [:]
         for message in messages {
-            if anchors.last.map({ message.createdAt > $0.date }) ?? true {
-                anchors.append((message.createdAt, message.id))
-            }
-            if let runID = processRunIDs[message.id] {
-                processMessagesByRun[runID, default: []].append(message)
-            } else if message.role == .assistant, !message.text.isEmpty,
-                let runID = messageRunIDs[message.id]
-            {
-                answersByRun[runID, default: []].append(message)
+            guard let segmentID = segmentation.messageSegments[message.id] else { continue }
+            if processRunIDs[message.id] != nil {
+                processMessagesBySegment[segmentID, default: []].append(message)
+            } else if message.role == .assistant, !message.text.isEmpty {
+                answersBySegment[segmentID, default: []].append(message)
             }
         }
-        return runIDs.compactMap { runID in
-            let cards = cardsByRun[runID] ?? []
-            let processMessages = processMessagesByRun[runID] ?? []
+        return segmentation.segments.values.compactMap { segment in
+            let runID = segment.runID
+            let cards = cardsBySegment[segment.id] ?? []
+            let processMessages = processMessagesBySegment[segment.id] ?? []
+            let isClosed = segment.finishedAt != nil
             let workHasNonReasoningOutput =
                 !cards.isEmpty
                 || processMessages.contains { !$0.text.isEmpty }
             let hasVisibleReasoning = processMessages.contains { message in
-                message.id == activeReasoningMessageID && !message.reasoning.isEmpty
+                !isClosed && message.id == activeReasoningMessageID && !message.reasoning.isEmpty
             }
             let visibleProcess = processMessages.filter { message in
                 let livePlaceholder =
-                    message.isStreaming && message.text.isEmpty
+                    !isClosed && message.isStreaming && message.text.isEmpty
                     && message.reasoning.isEmpty
                 let toolProcess =
                     toolProcessMessageIDs.contains(message.id)
@@ -1611,7 +1633,6 @@ public final class ConversationModel: Identifiable {
             }
             let latestToolReasoning =
                 processMessages
-                .sorted { $0.createdAt < $1.createdAt }
                 .reversed()
                 .compactMap { message -> AgentToolReasoning? in
                     guard let markdown = message.reasoning.last?.text,
@@ -1627,20 +1648,34 @@ public final class ConversationModel: Identifiable {
             // transient title instead of a separate structural row. Before the
             // atomic batch is published it remains visible on its own.
             let reasoningItems =
-                !hasUnfinishedGroupableTool
+                !isClosed && !hasUnfinishedGroupableTool
                 ? processMessages.flatMap { message -> [AgentWorkItem] in
                     guard message.id == activeReasoningMessageID else { return [] }
                     return message.reasoning.map(AgentWorkItem.reasoning)
                 }
                 : []
             let activeReasoningBlockID = processMessages.first(where: {
-                $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
+                !isClosed && $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
             })?.reasoning.last?.id
-            let retryProgress = processMessages.compactMap(\.retryProgress).last
+            let retryProgress = isClosed ? nil : processMessages.compactMap(\.retryProgress).last
             var items =
                 reasoningItems + visibleProcess.map(AgentWorkItem.message)
                 + cards.map(AgentWorkItem.tool)
+            var itemPositions: [UUID: Int] = [:]
+            for message in processMessages {
+                guard let position = segmentation.positions[message.id] else { continue }
+                itemPositions[message.id] = position
+                for block in message.reasoning { itemPositions[block.id] = position }
+            }
+            for card in cards {
+                itemPositions[card.id] =
+                    segmentation.sourcePosition(for: card.invocation)
+                    ?? segmentation.timestampPosition(card.invocation.createdAt)
+            }
             items.sort {
+                let lhs = itemPositions[$0.id] ?? segment.lowerBound
+                let rhs = itemPositions[$1.id] ?? segment.lowerBound
+                if lhs != rhs { return lhs < rhs }
                 if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
                 switch ($0, $1) {
                 case (.reasoning, .message), (.reasoning, .tool), (.reasoning, .tools): return true
@@ -1650,15 +1685,15 @@ public final class ConversationModel: Identifiable {
                 default: return $0.id.uuidString < $1.id.uuidString
                 }
             }
-            items = Self.groupRunTools(
+            items = Self.groupSegmentTools(
                 in: items,
                 runID: runID,
-                reasoning: hasUnfinishedGroupableTool ? latestToolReasoning : nil
+                reasoning: !isClosed && hasUnfinishedGroupableTool ? latestToolReasoning : nil
             )
             let stored = runSummaries[runID]
             // A user stop is useful transcript state even when it interrupted a
             // direct response before any tool or process item was produced.
-            guard !items.isEmpty || stored?.state == .cancelled else { return nil }
+            guard !items.isEmpty || (!isClosed && stored?.state == .cancelled) else { return nil }
 
             // The work row follows the clock of the first thing it actually
             // presents. A stopped direct answer has no work item, so its stop
@@ -1668,18 +1703,31 @@ public final class ConversationModel: Identifiable {
                 ?? stored?.finishedAt
                 ?? stored?.startedAt
                 ?? .now
-            var lower = 0
-            var upper = anchors.count
-            while lower < upper {
-                let middle = lower + (upper - lower) / 2
-                if anchors[middle].date < orderedAt {
-                    lower = middle + 1
-                } else {
-                    upper = middle
-                }
+            var processPositions = visibleProcess.compactMap { segmentation.positions[$0.id] }
+            if !reasoningItems.isEmpty,
+                let activeReasoningMessageID, let position = segmentation.positions[activeReasoningMessageID]
+            {
+                processPositions.append(position)
             }
-            let anchorID = lower < anchors.count ? anchors[lower].id : nil
-            let answerAt = answersByRun[runID]?.last(where: { $0.createdAt < orderedAt })?.createdAt
+            let toolPositions = cards.compactMap { card -> Int? in
+                guard let position = segmentation.sourcePosition(for: card.invocation) else { return nil }
+                let source = messages[position]
+                let followsAnswer =
+                    !toolProcessMessageIDs.contains(source.id) && !source.text.isEmpty
+                    && card.invocation.createdAt > source.createdAt
+                return position + (followsAnswer ? 1 : 0)
+            }
+            let sourcePosition = (processPositions + toolPositions).min()
+            let fallbackPosition =
+                items.isEmpty
+                ? segmentation.endPosition(for: runID, fallback: orderedAt)
+                : segmentation.timestampPosition(orderedAt)
+            let position = segmentation.clampedPosition(sourcePosition ?? fallbackPosition, in: segment)
+            let anchorID = position < messages.count ? messages[position].id : nil
+            let appearsAfterAnswer =
+                answersBySegment[segment.id]?.contains {
+                    (segmentation.positions[$0.id] ?? messages.count) < position
+                } ?? false
             let fallbackState: AgentRunState =
                 cards.allSatisfy {
                     $0.state == .completed
@@ -1694,18 +1742,26 @@ public final class ConversationModel: Identifiable {
             if activeRunID == runID { run.state = runState }
             return AgentWorkGroup(
                 run: run, items: items, orderedAt: orderedAt,
-                anchorMessageID: anchorID, appearsAfterAnswer: answerAt != nil,
+                anchorMessageID: anchorID, appearsAfterAnswer: appearsAfterAnswer,
                 activeReasoningBlockID: activeReasoningBlockID,
-                retryProgress: retryProgress
+                retryProgress: retryProgress,
+                id: segment.id, boundaryMessageID: segment.boundaryMessageID,
+                segmentStartedAt: segment.startedAt, segmentFinishedAt: segment.finishedAt
             )
-        }.sorted { $0.orderedAt < $1.orderedAt }
+        }.sorted {
+            let lhs = $0.anchorMessageID.flatMap { segmentation.positions[$0] } ?? messages.count
+            let rhs = $1.anchorMessageID.flatMap { segmentation.positions[$0] } ?? messages.count
+            if lhs != rhs { return lhs < rhs }
+            if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
+            return $0.id.uuidString < $1.id.uuidString
+        }
     }
 
-    /// Produces one stable batch for every grouping-enabled tool in the run.
+    /// Produces one stable batch for every grouping-enabled tool in the segment.
     /// Reasoning, provider-turn boundaries and ordinary process messages remain
     /// in chronological order but no longer flush the tool collection. Tools
     /// that explicitly opt out keep their direct row.
-    private static func groupRunTools(
+    private static func groupSegmentTools(
         in items: [AgentWorkItem],
         runID: UUID,
         reasoning: AgentToolReasoning?
@@ -1741,10 +1797,11 @@ public final class ConversationModel: Identifiable {
         return grouped
     }
 
-    /// Messages and run-scoped work in the order the reader experienced them.
+    /// Weave rows into authoritative message order; supplemental cards must not
+    /// trigger a timestamp sort that moves work across a delivered user message.
     public var timeline: [TimelineItem] {
-        var items: [TimelineItem] = []
-        let groups = workGroups
+        let segmentation = workSegmentation
+        let groups = makeWorkGroups(segmentation: segmentation)
         let groupedProcessIDs: Set<UUID> = Set(
             groups.flatMap { group -> [UUID] in
                 group.items.compactMap { item -> UUID? in
@@ -1752,55 +1809,70 @@ public final class ConversationModel: Identifiable {
                     return message.id
                 }
             })
-        let groupsByAnchor = Dictionary(grouping: groups, by: \.anchorMessageID)
-        var emittedGroups = Set<UUID>()
-        for message in messages {
-            for group in groupsByAnchor[message.id] ?? [] {
-                items.append(.work(group))
-                emittedGroups.insert(group.id)
+        var insertions: [Int: [TimelineItem]] = [:]
+        for group in groups {
+            let position = group.anchorMessageID.flatMap { segmentation.positions[$0] } ?? messages.count
+            insertions[position, default: []].append(.work(group))
+        }
+        for card in toolCards {
+            guard let command = card.terminalSuggestion else { continue }
+            var position =
+                segmentation.sourcePosition(for: card.invocation).map { $0 + 1 }
+                ?? segmentation.timestampPosition(command.createdAt)
+            if let segment = segmentation.segments[segmentation.segmentID(for: card.invocation)] {
+                position = segmentation.clampedPosition(position, in: segment)
             }
+            insertions[position, default: []].append(.command(command))
+        }
+        for card in plans {
+            let position =
+                card.sourceMessageID.flatMap { segmentation.positions[$0] }.map { $0 + 1 }
+                ?? segmentation.timestampPosition(card.createdAt, afterEqual: true)
+            insertions[position, default: []].append(.plan(card))
+        }
+        let compactionBoundaries = Dictionary(
+            uniqueKeysWithValues: compactionRecords.compactMap { record -> (UUID, Int)? in
+                guard let boundary = record.compactedThroughMessageID,
+                    let position = segmentation.position(after: boundary)
+                else { return nil }
+                return (record.id, position)
+            }
+        )
+        for mark in compactions {
+            let position =
+                compactionBoundaries[mark.id]
+                ?? segmentation.timestampPosition(mark.createdAt, afterEqual: true)
+            insertions[position, default: []].append(.compaction(mark))
+        }
+        if let compactionActivity {
+            insertions[messages.count, default: []].append(.compactionActivity(compactionActivity))
+        }
+        for run in runSummaries.values {
+            guard run.state == .failed, let reason = run.failure, !reason.isEmpty else { continue }
+            let failure = AgentRunFailureNotice(
+                runID: run.id, reason: reason,
+                createdAt: run.finishedAt ?? run.startedAt
+            )
+            let position = segmentation.endPosition(for: run.id, fallback: failure.createdAt)
+            insertions[position, default: []].append(.failure(failure))
+        }
+        var items: [TimelineItem] = []
+        for position in 0...messages.count {
+            items += (insertions[position] ?? []).sorted {
+                if $0.orderedAt != $1.orderedAt { return $0.orderedAt < $1.orderedAt }
+                if $0.sortRank != $1.sortRank { return $0.sortRank < $1.sortRank }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            guard position < messages.count else { break }
+            let message = messages[position]
             if groupedProcessIDs.contains(message.id) { continue }
-            // A turn that only called tools has no text to show, and an empty
-            // bubble reads as the model having said nothing. While it is still
-            // streaming it stays only until this turn receives reasoning; that
-            // live text then owns the activity treatment until turnFinished.
             guard
                 message.role != .assistant || !message.text.isEmpty
                     || (message.isStreaming && message.reasoning.isEmpty)
             else { continue }
             items.append(.message(message))
         }
-        items += groups.filter { !emittedGroups.contains($0.id) }.map(TimelineItem.work)
-        let commands = toolCards.compactMap(\.terminalSuggestion)
-        let failures = runSummaries.values.compactMap { run -> AgentRunFailureNotice? in
-            guard run.state == .failed, let reason = run.failure, !reason.isEmpty else {
-                return nil
-            }
-            return AgentRunFailureNotice(
-                runID: run.id, reason: reason,
-                createdAt: run.finishedAt ?? run.startedAt
-            )
-        }
-        guard
-            !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty || !failures.isEmpty
-                || compactionActivity != nil
-        else {
-            return items
-        }
-        // Merged by time rather than woven into the loop above. A plan ends its
-        // run and a compaction happens between runs, so there are never many of
-        // either, and two more cursors inside that loop would be two more things
-        // to keep right for no gain.
-        var extra =
-            commands.map(TimelineItem.command)
-            + plans.map(TimelineItem.plan)
-            + compactions.map(TimelineItem.compaction)
-            + failures.map(TimelineItem.failure)
-        if let compactionActivity { extra.append(.compactionActivity(compactionActivity)) }
-        return (items + extra).sorted {
-            $0.orderedAt == $1.orderedAt
-                ? $0.sortRank < $1.sortRank : $0.orderedAt < $1.orderedAt
-        }
+        return items
     }
 
     // MARK: - Compaction
@@ -3314,7 +3386,7 @@ public final class ConversationModel: Identifiable {
                 publishContextEstimateImmediately()
             }
         case .planPresented(let plan):
-            plans.append(AgentPlanCard(plan: plan))
+            plans.append(AgentPlanCard(plan: plan, sourceMessageID: messages.last?.id))
         case .tasksUpdated:
             // AgentKit supports task lists, but Assistant does not register that tool.
             break

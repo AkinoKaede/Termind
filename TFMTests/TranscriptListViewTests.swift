@@ -339,6 +339,47 @@ struct TranscriptListCacheTests {
 @Suite
 struct TranscriptListViewBridgeTests {
     @Test
+    func steeringClosesTheOldHeaderWithoutReplacingItsMountedContent() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let list = coordinator.makeListView()
+        list.frame = CGRect(x: 0, y: 0, width: 600, height: 1000)
+        let presentation = TranscriptPresentationState()
+        let run = AgentRunSummary(id: UUID(), state: .running, startedAt: .now.addingTimeInterval(-10))
+        var old = AgentWorkGroup(
+            run: run, items: [.message(.init(role: .assistant, text: "Earlier work"))],
+            orderedAt: run.startedAt, appearsAfterAnswer: false)
+        update(coordinator, list, entries: [.init(id: old.id, content: .work(old))], presentation: presentation)
+        await settleResize(list)
+        let row = try #require(list.rowView(for: old.id))
+        let markdown = try #require(descendant(in: row, ofType: MarkdownTextView.self))
+
+        let steeringID = UUID()
+        old.segmentFinishedAt = run.startedAt.addingTimeInterval(3)
+        let next = AgentWorkGroup(
+            run: run, items: [.message(.init(role: .assistant, text: "New work"))],
+            orderedAt: run.startedAt.addingTimeInterval(4), appearsAfterAnswer: false,
+            id: UUID(), boundaryMessageID: steeringID, segmentStartedAt: old.segmentFinishedAt)
+        let entries: [TranscriptEntry] = [
+            .init(id: old.id, content: .work(old)),
+            user(id: steeringID, text: "Revised request"),
+            .init(id: next.id, content: .work(next)),
+        ]
+        update(coordinator, list, entries: entries, presentation: presentation)
+        await settleResize(list)
+
+        #expect(list.rowView(for: old.id) === row)
+        #expect(descendant(in: row, ofType: MarkdownTextView.self) === markdown)
+        let header = try #require(
+            descendants(in: row, ofType: NSControl.self).first {
+                String(describing: type(of: $0)) == "NativeDisclosureHeader"
+            })
+        #expect(header.accessibilityLabel() == "Worked for 3s")
+        #expect(presentation.disclosures.hasPendingAutoCollapse(old.id))
+        #expect(!presentation.disclosures.hasPendingAutoCollapse(next.id))
+        #expect(list.rectForRow(with: next.id).minY >= list.rectForRow(with: steeringID).maxY)
+    }
+
+    @Test
     func interactionMetadataPreservesEditorMarkdownMeasurementsAndHistoryAnchor() async throws {
         let coordinator = TranscriptListView.Coordinator()
         let list = coordinator.makeListView()

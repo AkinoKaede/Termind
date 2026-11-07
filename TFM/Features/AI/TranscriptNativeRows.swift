@@ -999,7 +999,7 @@ private enum NativeTranscriptFactory {
                         return [item.id]
                     }))
         let defaultExpanded = AgentWorkPresentation.isExpandedByDefault(
-            for: group.run.state,
+            for: group.presentationState,
             appearsAfterAnswer: group.appearsAfterAnswer,
             isCompact: context.configuration.isCompact
         )
@@ -1011,9 +1011,9 @@ private enum NativeTranscriptFactory {
                 )
             }
             return AgentWorkPresentation.title(
-                for: group.run.state,
-                from: group.run.startedAt,
-                to: group.run.finishedAt ?? .now,
+                for: group.presentationState,
+                from: group.startedAt,
+                to: group.finishedAt ?? .now,
                 locale: context.configuration.locale
             )
         }
@@ -1032,7 +1032,7 @@ private enum NativeTranscriptFactory {
                 reduceMotion: context.configuration.reduceMotion,
                 measurement: context.measurement,
                 lineLimit: 1,
-                titleProvider: group.run.state.isTerminal ? nil : titleProvider
+                titleProvider: group.presentationState.isTerminal ? nil : titleProvider
             )
         header.toolTip =
             expanded

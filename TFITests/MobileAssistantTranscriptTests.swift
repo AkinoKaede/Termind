@@ -13,6 +13,42 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAssistantTranscriptTests {
+    @Test func steeringAppendsANewSegmentWithoutMovingTheHistoryBeingRead() async throws {
+        let conversation = ConversationModel(messages: (0..<30).map { message("History \($0)") })
+        conversation.appendUserTurn("Inspect")
+        let runID = UUID()
+        conversation.handle(.runStarted(.init(id: runID, state: .running, startedAt: .now)))
+        conversation.handle(.runState(.running))
+        let source = AgentTranscriptMessage(
+            role: .assistant, text: "Earlier work",
+            toolCalls: [.init(id: "inspect", name: "inspect", arguments: .object([:]))])
+        conversation.handle(.messageFinished(source))
+        let harness = ConversationHarness()
+        harness.update(conversation)
+        harness.list.setContentOffset(CGPoint(x: 0, y: 120), animated: false)
+        harness.list.layoutIfNeeded()
+        let index = try #require(harness.list.indicesForVisibleRows.first)
+        let id = harness.entries[index].id
+        let row = try #require(harness.list.rowView(for: id))
+        let hosted = try #require(row.subviews.first?.subviews.first)
+        let anchor = harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y
+        let oldID = try #require(conversation.workGroups.first?.id)
+
+        let steering = AgentTranscriptMessage(role: .user, text: "Revised request")
+        conversation.handle(.steeringDelivered(steering))
+        conversation.handle(.messageStarted(.init(role: .assistant)))
+        harness.update(conversation, followsBottom: true)
+        try await Task.sleep(for: .milliseconds(30))
+
+        #expect(Array(harness.entries.suffix(4).map(\.kind)) == [.user, .work, .user, .work])
+        #expect(conversation.workGroups.first?.id == oldID)
+        #expect(conversation.workGroups.last?.id != oldID)
+        #expect(conversation.workGroups.map(\.presentationState) == [.completed, .running])
+        #expect(harness.list.rowView(for: id) === row)
+        #expect(row.subviews.first?.subviews.first === hosted)
+        #expect(abs(harness.list.rectForRow(with: id).minY - harness.list.contentOffset.y - anchor) < 1)
+    }
+
     @Test func userBubbleShrinksForShortTextAndWrapsAtTheAvailableWidth() {
         func measuredWidth(_ text: String) -> CGFloat {
             let controller = UIHostingController(rootView: MobileAssistantUserBubble(text: text))

@@ -15,7 +15,8 @@ struct MobileAssistantWorkRow: View {
     @Environment(\.mobileListSceneIsActive) private var sceneIsActive
 
     private var defaultExpanded: Bool {
-        AgentWorkPresentation.isExpandedByDefault(for: group.run.state, appearsAfterAnswer: group.appearsAfterAnswer)
+        AgentWorkPresentation.isExpandedByDefault(
+            for: group.presentationState, appearsAfterAnswer: group.appearsAfterAnswer)
     }
 
     var body: some View {
@@ -24,10 +25,10 @@ struct MobileAssistantWorkRow: View {
                 expanded: presentation.isExpanded(.work(group.id), default: defaultExpanded),
                 toggle: { presentation.toggleDisclosure(.work(group.id), default: defaultExpanded) }
             ) {
-                if !group.run.state.isTerminal && displayed && sceneIsActive {
+                if !group.presentationState.isTerminal && displayed && sceneIsActive {
                     TimelineView(.periodic(from: .now, by: 1)) { context in workTitle(now: context.date) }
                 } else {
-                    workTitle(now: group.run.finishedAt ?? .now)
+                    workTitle(now: group.finishedAt ?? .now)
                 }
             } content: {
                 VStack(alignment: .leading, spacing: AssistantTranscriptStyle.blockSpacing) {
@@ -64,8 +65,8 @@ struct MobileAssistantWorkRow: View {
                 AgentWorkPresentation.reconnectingTitle($0, locale: locale)
             }
                 ?? AgentWorkPresentation.title(
-                    for: group.run.state, from: group.run.startedAt,
-                    to: group.run.finishedAt ?? now, locale: locale
+                    for: group.presentationState, from: group.startedAt,
+                    to: group.finishedAt ?? now, locale: locale
                 )
         )
         .font(.callout)
