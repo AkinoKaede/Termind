@@ -909,6 +909,21 @@ public final class ConversationModel: Identifiable {
     /// for.
     public var isPlanning = false
 
+    /// Removes one composer selection, from right to left, without touching attachments.
+    @discardableResult
+    public func dismissLastComposerSelectionIfDraftEmpty() -> Bool {
+        guard composer.draft.isEmpty else { return false }
+        if composer.armedSkillName != nil {
+            composer.armedSkillName = nil
+            return true
+        }
+        if isPlanning {
+            isPlanning = false
+            return true
+        }
+        return false
+    }
+
     /// Plans presented in this conversation, oldest first.
     public private(set) var plans: [AgentPlanCard] = []
 

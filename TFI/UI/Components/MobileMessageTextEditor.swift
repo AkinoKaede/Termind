@@ -11,6 +11,7 @@ struct MobileMessageTextEditor: UIViewRepresentable {
     var prompt = ""
     var maximumLines: Int?
     let submit: () -> Void
+    var emptyBackspace: () -> Bool = { false }
 
     @AppStorage(SettingsKey.inputSendShortcut) private var sendShortcut = InputSendShortcut.returnKey
     @Environment(\.isEnabled) private var isEnabled
@@ -23,6 +24,7 @@ struct MobileMessageTextEditor: UIViewRepresentable {
         view.onTextChange = { text = $0 }
         view.onFocusChange = { focus?.wrappedValue = $0 }
         view.submit = submit
+        view.emptyBackspace = emptyBackspace
         view.sendShortcut = sendShortcut
         view.isEditable = isEnabled
         view.placeholder = prompt
@@ -64,6 +66,7 @@ struct MobileMessageTextEditor: UIViewRepresentable {
 
     static func dismantleUIView(_ view: MobileMessageTextView, coordinator: Void) {
         view.submit = {}
+        view.emptyBackspace = { false }
         view.onTextChange = { _ in }
         view.onFocusChange = { _ in }
         view.resignFirstResponder()
@@ -73,6 +76,7 @@ struct MobileMessageTextEditor: UIViewRepresentable {
 final class MobileMessageTextView: UITextView, UITextViewDelegate {
     var sendShortcut = InputSendShortcut.returnKey
     var submit: () -> Void = {}
+    var emptyBackspace: () -> Bool = { false }
     var onTextChange: (String) -> Void = { _ in }
     var onFocusChange: (Bool) -> Void = { _ in }
     var placeholder = "" {
@@ -151,6 +155,11 @@ final class MobileMessageTextView: UITextView, UITextViewDelegate {
     override func insertText(_ text: String) {
         if consumesReturn(text) { return }
         super.insertText(text)
+    }
+
+    override func deleteBackward() {
+        if ownsInputActions, text.isEmpty, markedTextRange == nil, emptyBackspace() { return }
+        super.deleteBackward()
     }
 
     override func paste(_ sender: Any?) {

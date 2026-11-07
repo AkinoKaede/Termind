@@ -44,7 +44,8 @@ struct AssistantExecutionControllerTests {
 
         conversation.permissionMode = .fullAccess
         conversation.reasoningEffort = .high
-        conversation.isPlanning = false
+        #expect(conversation.dismissLastComposerSelectionIfDraftEmpty())
+        #expect(!conversation.isPlanning)
         skills.setEnabled(false, for: oldSkill.id)
         skills.upsert(AgentSkill(name: "new-skill", summary: "New procedure", body: "Do the new procedure"))
         ai.setSecret(nil, for: provider.credentialRef)

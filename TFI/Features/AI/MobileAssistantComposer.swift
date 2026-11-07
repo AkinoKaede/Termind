@@ -188,7 +188,8 @@ struct MobileAssistantComposer: View {
                 focus: activeFocus,
                 prompt: localized(AppStrings.Assistant.prompt),
                 maximumLines: 6,
-                submit: submitFromKeyboard
+                submit: submitFromKeyboard,
+                emptyBackspace: { conversation.dismissLastComposerSelectionIfDraftEmpty() }
             )
             .disabled(ownsTranscription)
             .padding(.horizontal, 4)

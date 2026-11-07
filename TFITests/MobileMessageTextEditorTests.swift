@@ -11,6 +11,74 @@ import UIKit
 @Suite(.serialized) @MainActor
 struct MobileMessageTextEditorTests {
     @Test
+    func unfocusedOrUnmountedEditorsCannotDismissSelections() {
+        let editor = MobileMessageTextView()
+        var calls = 0
+        editor.emptyBackspace = {
+            calls += 1
+            return true
+        }
+        editor.deleteBackward()
+        #expect(calls == 0)
+    }
+
+    @Test(.requiresKeyWindow)
+    func backspaceDeletesTextBeforeSelectionsAndPreservesComposition() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        let controller = UIViewController()
+        let editor = MobileMessageTextView()
+        controller.view = editor
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            editor.resignFirstResponder()
+            window.isHidden = true
+            window.rootViewController = nil
+            previousWindow?.makeKey()
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        try #require(editor.becomeFirstResponder())
+        let conversation = ConversationModel()
+        conversation.isPlanning = true
+        conversation.composer.armedSkillName = "disk-triage"
+        editor.emptyBackspace = { conversation.dismissLastComposerSelectionIfDraftEmpty() }
+        editor.onTextChange = { conversation.composer.draft = $0 }
+        editor.insertText("x")
+        editor.deleteBackward()
+        #expect(editor.text.isEmpty)
+        #expect(conversation.composer.draft.isEmpty)
+        #expect(conversation.composer.armedSkillName == "disk-triage")
+
+        editor.setMarkedText("a", selectedRange: NSRange(location: 1, length: 0))
+        editor.deleteBackward()
+        #expect(conversation.composer.armedSkillName == "disk-triage")
+        editor.unmarkText()
+        editor.text = ""
+        conversation.composer.draft = ""
+        editor.isEditable = false
+        editor.deleteBackward()
+        #expect(conversation.composer.armedSkillName == "disk-triage")
+        editor.isEditable = true
+        try #require(editor.becomeFirstResponder())
+
+        editor.deleteBackward()
+        #expect(conversation.composer.armedSkillName == nil)
+        #expect(conversation.isPlanning)
+        editor.deleteBackward()
+        #expect(!conversation.isPlanning)
+        editor.deleteBackward()
+        #expect(editor.text.isEmpty)
+        #expect(editor.isFirstResponder)
+
+        editor.emptyBackspace = { false }
+        editor.insertText("normal")
+        editor.deleteBackward()
+        #expect(editor.text == "norma")
+    }
+
+    @Test
     func unfocusedOrUnmountedEditorsCannotSubmit() {
         let editor = MobileMessageTextView()
         var submissions = 0

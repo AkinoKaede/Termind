@@ -17,10 +17,12 @@ import UniformTypeIdentifiers
 struct TextViewMarkedTextObserver: NSViewRepresentable {
     @Binding var hasMarkedText: Bool
     var paste: () -> Bool = { false }
+    var emptyBackspace: () -> Bool = { false }
 
     final class ObserverView: NSView {
         var report: (Bool) -> Void = { _ in }
         var paste: () -> Bool = { false }
+        var emptyBackspace: () -> Bool = { false }
         private var monitors: [any NSObjectProtocol] = []
         private var eventMonitor: Any?
 
@@ -44,6 +46,7 @@ struct TextViewMarkedTextObserver: NSViewRepresentable {
             eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) {
                 [weak self, weak window] event in
                 guard event.window === window else { return event }
+                if self?.consumeEmptyBackspace(event) == true { return nil }
                 if event.type == .keyDown, event.modifierFlags.contains(.command),
                     event.charactersIgnoringModifiers?.lowercased() == "v",
                     self?.paste() == true
@@ -54,6 +57,16 @@ struct TextViewMarkedTextObserver: NSViewRepresentable {
                 return event
             }
             refresh()
+        }
+
+        func consumeEmptyBackspace(_ event: NSEvent) -> Bool {
+            guard event.type == .keyDown, event.keyCode == 51,
+                event.modifierFlags.intersection([.command, .control, .option, .shift, .function]).isEmpty,
+                let window, event.window === window, window.isKeyWindow,
+                let editor = window.firstResponder as? NSTextView,
+                editor.isEditable, editor.string.isEmpty, !editor.hasMarkedText()
+            else { return false }
+            return emptyBackspace()
         }
 
         private func refresh() {
@@ -76,12 +89,14 @@ struct TextViewMarkedTextObserver: NSViewRepresentable {
         let view = ObserverView(frame: .zero)
         view.report = update
         view.paste = paste
+        view.emptyBackspace = emptyBackspace
         return view
     }
 
     func updateNSView(_ nsView: ObserverView, context: Context) {
         nsView.report = update
         nsView.paste = paste
+        nsView.emptyBackspace = emptyBackspace
     }
 
     static func dismantleNSView(_ nsView: ObserverView, coordinator: ()) {
@@ -630,7 +645,8 @@ struct ComposerView: View {
             .background {
                 TextViewMarkedTextObserver(
                     hasMarkedText: $hasMarkedText,
-                    paste: { isFocused && handleContextPaste() }
+                    paste: { isFocused && handleContextPaste() },
+                    emptyBackspace: { isFocused && conversation.dismissLastComposerSelectionIfDraftEmpty() }
                 )
             }
             .onPasteCommand(of: [.fileURL, .image, .text]) { _ in
