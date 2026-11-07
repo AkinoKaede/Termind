@@ -1,0 +1,8 @@
+{
+  "hiddenFromAssistant": [
+    {
+      "provider": "openai",
+      "modelID": "codex-auto-review"
+    }
+  ]
+}

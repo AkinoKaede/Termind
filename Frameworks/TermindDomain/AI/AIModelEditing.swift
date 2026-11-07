@@ -7,6 +7,20 @@ nonisolated
 
     extension AIModel
 {
+    /// The input cap can be smaller than the total context window. Do not let
+    /// compaction wait for the larger limit after loading models.dev metadata.
+    public var compactionContextWindow: Int? {
+        [specification.limit.context, specification.limit.input].compactMap { $0 }.filter { $0 > 0 }.min()
+    }
+
+    /// Older clients must not mistake newly classified, non-chat models for chat.
+    public var legacyKindValue: String {
+        switch kind {
+        case .speech, .transcription, .realtime, .other: AIModel.Kind.classifier.rawValue
+        default: kind.rawValue
+        }
+    }
+
     public var withoutReasoningOverride: AIModel {
         var copy = self
         copy.reasoningProfile = nil

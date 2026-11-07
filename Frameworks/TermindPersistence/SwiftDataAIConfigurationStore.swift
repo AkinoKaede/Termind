@@ -24,6 +24,9 @@ public final class AIPersistence {
             FetchDescriptor<PersistentAIModel>(sortBy: [SortDescriptor(\.sortIndex)])
         )
         let modelsByProvider = Dictionary(grouping: modelRows, by: \.providerID)
+        let specificationRows = try context.fetch(FetchDescriptor<PersistentAIModelSpecification>())
+        let specifications = Dictionary(
+            specificationRows.map { ($0.modelRecordID, $0) }, uniquingKeysWith: { first, _ in first })
         let providerRows = try context.fetch(
             FetchDescriptor<PersistentModelProvider>(sortBy: [SortDescriptor(\.sortIndex)])
         )
@@ -37,7 +40,9 @@ public final class AIPersistence {
             var seenModels: Set<String> = []
             let models: [AIModel] = (modelsByProvider[row.id] ?? []).compactMap { modelRow -> AIModel? in
                 guard seenModels.insert(modelRow.modelID).inserted else { return nil }
-                return modelRow.value
+                var model = modelRow.value
+                specifications[modelRow.recordID]?.apply(to: &model)
+                return model
             }
             endpoints[row.id] = row.endpoint
             var provider = row.value(models: models)
@@ -99,6 +104,7 @@ public final class AIPersistence {
     /// Stages rows in the caller-owned transaction.
     public func replace(_ snapshot: AIConfigurationSnapshot) throws {
         try context.delete(model: PersistentAIModel.self)
+        try context.delete(model: PersistentAIModelSpecification.self)
         try context.delete(model: PersistentModelProvider.self)
         try context.delete(model: PersistentModelProviderVertexConfiguration.self)
         try context.delete(model: PersistentAIRoleAssignment.self)
@@ -118,9 +124,10 @@ public final class AIPersistence {
             )
             context.insert(PersistentModelProviderVertexConfiguration(provider))
             for (modelIndex, model) in provider.models.enumerated() {
+                let row = PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)
+                context.insert(row)
                 context.insert(
-                    PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)
-                )
+                    try PersistentAIModelSpecification(modelRecordID: row.recordID, specification: model.specification))
             }
         }
         for role in AIRole.allCases {

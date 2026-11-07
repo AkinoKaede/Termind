@@ -160,7 +160,7 @@ public final class PersistentAIModel {
         modelID = value.id
         displayName = value.displayName
         ownedBy = value.ownedBy
-        kind = value.kind.rawValue
+        kind = value.legacyKindValue
         input = value.input.map(\.rawValue).sorted()
         output = value.output.map(\.rawValue).sorted()
         abilities = value.abilities.map(\.rawValue).sorted()

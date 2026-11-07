@@ -433,12 +433,14 @@ struct ModelCapabilityResolverTests {
         ])
         let model = try #require(ModelCatalogClient.parseOpenAIPage(data).models.first)
         #expect(model.kind == .chat)
-        #expect(model.contextLength == 272_000)
+        #expect(model.contextLength == 1_050_000)
         #expect(model.abilities.contains(.toolCall))
     }
 
     @Test
-    func bundledPiCatalogEnrichesKnownModelWithoutRegex() {
+    func bundledModelsDevCatalogEnrichesKnownModelWithoutRegex() {
+        #expect(ModelCapabilityResolver.catalogMetadata?.package == "models.dev")
+        #expect(ModelCapabilityResolver.catalogMetadata?.source == "https://models.dev/api.json")
         let provider = ModelProvider(name: "OpenAI")
         let resolution = ModelCapabilityResolver.resolve(
             model: AIModel(id: "gpt-5.4"),
@@ -446,18 +448,20 @@ struct ModelCapabilityResolverTests {
         )
 
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "gpt-5.4"))
-        #expect(resolution.model.input == [.text, .image])
+        #expect(resolution.model.input == [.text, .image, .pdf])
         // Search and structured output are additive model-family capabilities:
         // catalogs commonly omit both even when the request protocol supports them.
         #expect(resolution.model.abilities == [.toolCall, .reasoning, .structuredOutput, .webSearch])
-        #expect(resolution.model.contextLength == 272_000)
+        #expect(resolution.model.contextLength == 1_050_000)
+        #expect(resolution.model.specification.limit.input == 922_000)
+        #expect(resolution.model.specification.cost.input == 2.5)
         #expect(resolution.model.maxOutputTokens == 128_000)
         #expect(resolution.model.isShownInAssistant)
         #expect(resolution.supported == [.off, .low, .medium, .high, .xHigh])
     }
 
     /// Nobody publishes server-side search as a capability: no `/models`
-    /// payload carries it and Pi's catalog has no field for it. So "the
+    /// payload carries it and model catalogs do not consistently report it. So "the
     /// endpoint reported its abilities" must not be read as "the endpoint said
     /// there is no search" — otherwise the ability stays off for exactly the
     /// well-described models most likely to have it.
@@ -595,6 +599,11 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == nil)
         #expect(!resolution.model.isShownInAssistant)
+        #expect(resolution.model.specification.limit.context == 272_000)
+        #expect(resolution.model.specification.limit.output == nil)
+        #expect(
+            resolution.model.specification.reasoningOptions?.first?.values == ["low", "medium", "high", "xhigh", "max"])
+        #expect(resolution.model.specification.fields["showInAssistant"] == nil)
         #expect(resolution.supported == [.low, .medium, .high, .xHigh, .max])
         #expect(resolution.wireValue(for: .xHigh) == "xhigh")
         #expect(resolution.wireValue(for: .max) == "max")
@@ -603,7 +612,7 @@ struct ModelCapabilityResolverTests {
     }
 
     @Test
-    func explicitlyReportedFieldsWinOverPiCatalog() {
+    func explicitlyReportedFieldsWinOverCatalog() {
         let provider = ModelProvider(name: "OpenAI")
         var model = AIModel(id: "gpt-5.4")
         model.kind = .embedding
@@ -650,7 +659,7 @@ struct ModelCapabilityResolverTests {
     }
 
     @Test
-    func openAIExtendedFamiliesFollowPiStyleExceptions() {
+    func openAIExtendedFamiliesFollowDeclaredModelsDevEfforts() {
         let provider = ModelProvider(name: "OpenAI")
         let gpt54 = ModelCapabilityResolver.resolve(
             model: reasoningModel("gpt-5.4"), provider: provider

@@ -20,12 +20,14 @@ public nonisolated struct SyncedAIModel: Codable, Hashable, Sendable {
     public var origin = AIModel.Origin.manual.rawValue
     public var isShownInAssistant = true
     public var reasoningProfileData: Data?
+    /// Native specification; flattened fields remain as a compatibility projection for older clients.
+    public var specification: ModelsDevModel?
 
     public init(_ value: AIModel) {
         modelID = value.id
         displayName = value.displayName
         ownedBy = value.ownedBy
-        kind = value.kind.rawValue
+        kind = value.legacyKindValue
         input = value.input.map(\.rawValue).sorted()
         output = value.output.map(\.rawValue).sorted()
         abilities = value.abilities.map(\.rawValue).sorted()
@@ -38,6 +40,7 @@ public nonisolated struct SyncedAIModel: Codable, Hashable, Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         reasoningProfileData = value.reasoningProfile.flatMap { try? encoder.encode($0) }
+        specification = value.specification
     }
 
     public var value: AIModel {
@@ -58,6 +61,9 @@ public nonisolated struct SyncedAIModel: Codable, Hashable, Sendable {
         model.isShownInAssistant = isShownInAssistant
         model.reasoningProfile = reasoningProfileData.flatMap {
             try? JSONDecoder().decode(ReasoningProfile.self, from: $0)
+        }
+        if let specification, specification.id == model.id {
+            model.specification = specification
         }
         return model
     }

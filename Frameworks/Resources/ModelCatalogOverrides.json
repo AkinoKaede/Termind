@@ -1,36 +1,39 @@
 {
-  "models": [
-    {
-      "type": "chat",
-      "provider": "openai",
-      "id": "codex-auto-review",
-      "name": "Codex Auto-review",
-      "reasoning": true,
-      "input": [
-        "text",
-        "image"
-      ],
-      "output": [
-        "text"
-      ],
-      "abilities": [
-        "toolCall",
-        "reasoning",
-        "structuredOutput"
-      ],
-      "showInAssistant": false,
-      "contextWindow": 272000,
-      "supportedEfforts": [
-        "low",
-        "medium",
-        "high",
-        "xhigh",
-        "max"
-      ],
-      "effortWireValues": {
-        "xhigh": "xhigh",
-        "max": "max"
+  "openai": {
+    "id": "openai",
+    "models": {
+      "codex-auto-review": {
+        "id": "codex-auto-review",
+        "name": "Codex Auto-review",
+        "type": "chat",
+        "reasoning": true,
+        "tool_call": true,
+        "structured_output": true,
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "limit": {
+          "context": 272000
+        },
+        "reasoning_options": [
+          {
+            "type": "effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          }
+        ]
       }
     }
-  ]
+  }
 }

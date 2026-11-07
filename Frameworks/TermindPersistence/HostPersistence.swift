@@ -959,6 +959,14 @@ public enum TermindSchemaV59: VersionedSchema {
     }
 }
 
+/// Preserves complete models.dev specifications alongside historical model settings.
+public enum TermindSchemaV60: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(60, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV59.models + [PersistentAIModelSpecification.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -977,7 +985,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
             TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self, TermindSchemaV53.self,
             TermindSchemaV54.self, TermindSchemaV55.self, TermindSchemaV56.self, TermindSchemaV57.self,
-            TermindSchemaV58.self, TermindSchemaV59.self,
+            TermindSchemaV58.self, TermindSchemaV59.self, TermindSchemaV60.self,
         ]
     }
 
@@ -1096,6 +1104,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV56.self, toVersion: TermindSchemaV57.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV57.self, toVersion: TermindSchemaV58.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV58.self, toVersion: TermindSchemaV59.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV59.self, toVersion: TermindSchemaV60.self),
         ]
     }
 }

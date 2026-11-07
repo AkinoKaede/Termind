@@ -672,7 +672,7 @@ public final class AssistantExecutionController {
                 reasoning: GuardianClient.preferredReasoning(
                     model: review.model, provider: review.provider))
         }()
-        let contextWindow = chat?.model.contextLength
+        let contextWindow = chat?.model.compactionContextWindow
         let shouldCompact =
             conversation.usage.map {
                 AgentCompaction.shouldCompact(
