@@ -2033,7 +2033,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 105;
+				CURRENT_PROJECT_VERSION = 106;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Development;
@@ -2056,7 +2056,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = TermindIOS;
 				PRODUCT_NAME = Termind;
@@ -2162,7 +2162,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 105;
+				CURRENT_PROJECT_VERSION = 106;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TFIWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Termind Workspaces";
@@ -2172,7 +2172,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.workspaces;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -2345,7 +2345,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 105;
+				CURRENT_PROJECT_VERSION = 106;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Production;
@@ -2368,7 +2368,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = TermindIOS;
 				PRODUCT_NAME = Termind;
@@ -2384,7 +2384,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 105;
+				CURRENT_PROJECT_VERSION = 106;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TFIWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Termind Workspaces";
@@ -2394,7 +2394,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind.workspaces;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -2482,7 +2482,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 79;
+				CURRENT_PROJECT_VERSION = 80;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
@@ -2502,7 +2502,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2551,7 +2551,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 79;
+				CURRENT_PROJECT_VERSION = 80;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = F6SUNDBBN9;
@@ -2566,7 +2566,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = (
@@ -2595,7 +2595,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 117;
+				CURRENT_PROJECT_VERSION = 118;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -2613,7 +2613,7 @@
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = Termind;
 				PRODUCT_NAME = Termind;
@@ -2633,7 +2633,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 117;
+				CURRENT_PROJECT_VERSION = 118;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -2655,7 +2655,7 @@
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.18.2;
+				MARKETING_VERSION = 1.19.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = Termind;
 				PRODUCT_NAME = Termind;
@@ -2899,7 +2899,7 @@
 			repositoryURL = "https://github.com/AkinoKaede/libtailscale-spm.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 1.0.3;
+				minimumVersion = 1.0.4;
 			};
 		};
 		8CD75E28C1BB4D9F1890547E /* XCRemoteSwiftPackageReference "swift-mosh" */ = {
@@ -2907,7 +2907,7 @@
 			repositoryURL = "https://github.com/wiedymi/swift-mosh";
 			requirement = {
 				kind = revision;
-				revision = 9677768702727ba9094d4936062a452b9c544480;
+				revision = 966bd6fc9c7e4a7cf0ff514e313ca1e456e45494;
 			};
 		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
@@ -2915,7 +2915,7 @@
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 7.11.1;
+				minimumVersion = 7.12.0;
 			};
 		};
 		C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
@@ -2923,7 +2923,7 @@
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 5.96.0;
+				minimumVersion = 5.102.3;
 			};
 		};
 		C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */ = {
@@ -2939,7 +2939,7 @@
 			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 5.9.0;
+				minimumVersion = 5.10.0;
 			};
 		};
 		F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
@@ -2947,7 +2947,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 13.0.1;
+				minimumVersion = 13.1.1;
 			};
 		};
 		LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */ = {
@@ -2955,7 +2955,7 @@
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 1.16.1;
+				minimumVersion = 1.17.0;
 			};
 		};
 		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
@@ -2971,7 +2971,7 @@
 			repositoryURL = "https://github.com/Lakr233/libghostty-spm.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 2.2.2026101502;
+				minimumVersion = 2.2.2026110702;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {
@@ -2995,7 +2995,7 @@
 			repositoryURL = "https://github.com/Lakr233/MarkdownView";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 4.8.3;
+				minimumVersion = 4.8.5;
 			};
 		};
 		TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
