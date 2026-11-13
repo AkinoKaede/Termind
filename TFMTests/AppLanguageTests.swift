@@ -11,6 +11,23 @@ import Testing
 
 struct AppLanguageTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant", "ja", "ko", "de", "fr"])
+    func bundledFontLabelsAreLocalizedWithoutRenamingFamilies(language: String) {
+        for resource in [
+            AppStrings.Terminal.builtInFonts, AppStrings.Terminal.systemFonts,
+            AppStrings.Terminal.basedOnSourceCodePro,
+        ] {
+            let localized = AppLocalization.resolve(resource, locale: Locale(identifier: language))
+            #expect(!localized.isEmpty)
+            if language != "en" {
+                #expect(localized != AppLocalization.resolve(resource, locale: Locale(identifier: "en")))
+            }
+        }
+        let description = AppLocalization.resolve(
+            AppStrings.Terminal.basedOnSourceCodePro, locale: Locale(identifier: language))
+        #expect(description.contains("Source Code Pro"))
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant", "ja", "ko", "de", "fr"])
     func inputSettingsUseLocalizedShortLabels(language: String) {
         let locale = Locale(identifier: language)
         let title = AppLocalization.resolve(AppStrings.Settings.input, locale: locale)

@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>JetBrainsMono-Regular.ttf</string>
+		<string>JetBrainsMono-Bold.ttf</string>
+		<string>JetBrainsMono-Italic.ttf</string>
+		<string>JetBrainsMono-BoldItalic.ttf</string>
+		<string>SauceCodeProNerdFont-Regular.ttf</string>
+		<string>SauceCodeProNerdFont-Bold.ttf</string>
+		<string>SauceCodeProNerdFont-Italic.ttf</string>
+		<string>SauceCodeProNerdFont-BoldItalic.ttf</string>
+		<string>FiraCodeNerdFont-Regular.ttf</string>
+		<string>FiraCodeNerdFont-Bold.ttf</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

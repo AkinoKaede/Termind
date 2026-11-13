@@ -512,6 +512,28 @@
 			);
 			target = 1EAB6B47E04D61C8CFC54762 /* TFI */;
 		};
+		F07A00000000000000000001 /* Exceptions for "Resources" folder in "TermindWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Fonts/FiraCode-LICENSE.txt",
+				"Fonts/FiraCodeNerdFont-Bold.ttf",
+				"Fonts/FiraCodeNerdFont-Regular.ttf",
+				Fonts/Fonts.README.md,
+				Fonts/Fonts.sources.json,
+				Fonts/JetBrainsMono-Bold.ttf,
+				Fonts/JetBrainsMono-BoldItalic.ttf,
+				Fonts/JetBrainsMono-Italic.ttf,
+				Fonts/JetBrainsMono-OFL.txt,
+				Fonts/JetBrainsMono-Regular.ttf,
+				"Fonts/NerdFonts-LICENSE.txt",
+				"Fonts/SauceCodePro-LICENSE.txt",
+				"Fonts/SauceCodeProNerdFont-Bold.ttf",
+				"Fonts/SauceCodeProNerdFont-BoldItalic.ttf",
+				"Fonts/SauceCodeProNerdFont-Italic.ttf",
+				"Fonts/SauceCodeProNerdFont-Regular.ttf",
+			);
+			target = B34524427DC3DF7A5835776C /* TermindWidgets */;
+		};
 		TRMD00000000000000000011 /* Exceptions for "TFM" folder in "TFM" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -542,6 +564,9 @@
 		};
 		46E0A2AA823D19093256BE94 /* Resources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F07A00000000000000000001 /* Exceptions for "Resources" folder in "TermindWidgets" target */,
+			);
 			path = Resources;
 			sourceTree = "<group>";
 		};

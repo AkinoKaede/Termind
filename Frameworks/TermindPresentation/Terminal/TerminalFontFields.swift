@@ -9,14 +9,18 @@ public struct TerminalFontFields: View {
 
     @Binding private var preferences: TerminalFontPreferences
     private let families: [String]
+    private let builtInFamilies: Set<String>
 
-    public init(preferences: Binding<TerminalFontPreferences>, families: [String]) {
+    public init(
+        preferences: Binding<TerminalFontPreferences>, families: [String], builtInFamilies: Set<String> = []
+    ) {
         _preferences = preferences
         self.families = families
+        self.builtInFamilies = builtInFamilies
     }
 
     public var body: some View {
-        TerminalFontPicker(family: $preferences.family, families: families)
+        TerminalFontPicker(family: $preferences.family, families: families, builtInFamilies: builtInFamilies)
         VStack(alignment: .leading, spacing: 8) {
             Picker("Font Size", selection: $preferences.sizeFollowsTheme) {
                 Text("Follow Theme").tag(true)

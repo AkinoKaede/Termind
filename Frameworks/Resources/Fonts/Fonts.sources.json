@@ -1,0 +1,92 @@
+{
+  "releases": {
+    "nerdFonts": "v3.4.0",
+    "jetBrainsMono": "v2.304"
+  },
+  "files": [
+    {
+      "file": "SauceCodeProNerdFont-Regular.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/SourceCodePro/SauceCodeProNerdFont-Regular.ttf",
+      "sha256": "564dbe189cee4b24e06e257ed5e99e0b40c38f5aa6b93af19d747138223e98a5",
+      "bytes": 2369332
+    },
+    {
+      "file": "SauceCodeProNerdFont-Bold.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/SourceCodePro/SauceCodeProNerdFont-Bold.ttf",
+      "sha256": "10d7a62907a342e7843a0542637a34b130dae659c3e441cb84fbfb9a25ae3639",
+      "bytes": 2365848
+    },
+    {
+      "file": "SauceCodeProNerdFont-Italic.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/SourceCodePro/SauceCodeProNerdFont-Italic.ttf",
+      "sha256": "98b1944274430ea0a910bdca7e74f486edc8d6d78a2c9674e1cdd667120110df",
+      "bytes": 2329500
+    },
+    {
+      "file": "SauceCodeProNerdFont-BoldItalic.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/SourceCodePro/SauceCodeProNerdFont-BoldItalic.ttf",
+      "sha256": "b980272e897e70e8b0f960078b41c9afa1e6eae7df76244d2d536612bc3119f8",
+      "bytes": 2332152
+    },
+    {
+      "file": "FiraCodeNerdFont-Regular.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/FiraCode/Regular/FiraCodeNerdFont-Regular.ttf",
+      "sha256": "29b619655612cb273e034737408b9508a04beb63c1ddbdfaa9a6846c409c7a2e",
+      "bytes": 2642616
+    },
+    {
+      "file": "FiraCodeNerdFont-Bold.ttf",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/FiraCode/Bold/FiraCodeNerdFont-Bold.ttf",
+      "sha256": "594a51c86afb58c1160df286e45dc551eeeba4d5f0e6edb1c304fc43ab8a0a09",
+      "bytes": 2672432
+    },
+    {
+      "file": "SauceCodePro-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/SourceCodePro/LICENSE.txt",
+      "sha256": "37f1d07d235509973aeaff5d6f22378d8d812eb998a14d321d6562e5a4cb6a89",
+      "bytes": 4578
+    },
+    {
+      "file": "FiraCode-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/patched-fonts/FiraCode/Regular/LICENSE",
+      "sha256": "1d41e10031ab125302780a05ec4c91d218e47db0c7e37cf315cce5e608cdc25c",
+      "bytes": 4389
+    },
+    {
+      "file": "NerdFonts-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.4.0/LICENSE",
+      "sha256": "1f6ad4edae6479aaace3112ede5279a23284ae54b2a34db66357aef5f64df160",
+      "bytes": 6200
+    },
+    {
+      "file": "JetBrainsMono-Regular.ttf",
+      "source": "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Regular.ttf",
+      "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+      "bytes": 273900
+    },
+    {
+      "file": "JetBrainsMono-Bold.ttf",
+      "source": "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Bold.ttf",
+      "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+      "bytes": 277828
+    },
+    {
+      "file": "JetBrainsMono-Italic.ttf",
+      "source": "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-Italic.ttf",
+      "sha256": "9d0a1f7a708e6af183f1193b7e81d40da294f5c67682c085d8401c60aac8ded4",
+      "bytes": 276840
+    },
+    {
+      "file": "JetBrainsMono-BoldItalic.ttf",
+      "source": "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf/JetBrainsMono-BoldItalic.ttf",
+      "sha256": "4039d5ce0ed225bf9c8b2c8c6436290ae2f356b7e90d70fa666227238324aa3b",
+      "bytes": 279832
+    },
+    {
+      "file": "JetBrainsMono-OFL.txt",
+      "source": "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/OFL.txt",
+      "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+      "bytes": 4399
+    }
+  ]
+}

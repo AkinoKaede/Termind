@@ -77,7 +77,8 @@ struct TerminalFontPreferencesTests {
         #expect(defaults.bool(forKey: SettingsKey.terminalFontFollowTheme))
     }
 
-    @Test func twoDevicesKeepIndependentTypographyAcrossSyncAndRestart() throws {
+    @Test(arguments: ["Courier", "JetBrains Mono", "SauceCodePro Nerd Font", "FiraCode Nerd Font"])
+    func twoDevicesKeepIndependentTypographyAcrossSyncAndRestart(destinationFamily: String) throws {
         let names = ["TerminalFontSource.\(UUID())", "TerminalFontDestination.\(UUID())"]
         let sourceDefaults = try #require(UserDefaults(suiteName: names[0]))
         let destinationDefaults = try #require(UserDefaults(suiteName: names[1]))
@@ -96,18 +97,19 @@ struct TerminalFontPreferencesTests {
         sourceDefaults.set("Menlo", forKey: SettingsKey.terminalFontFamily)
         sourceDefaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         sourceDefaults.set(false, forKey: SettingsKey.terminalFontFollowTheme)
-        destinationDefaults.set("Courier", forKey: SettingsKey.terminalFontFamily)
+        destinationDefaults.set(destinationFamily, forKey: SettingsKey.terminalFontFamily)
         destinationDefaults.set(22.0, forKey: SettingsKey.terminalFontSize)
         #expect(try source.journal.pendingEnvelopes() == originalEnvelopes)
 
         try source.saveTerminal(.init(lightTheme: "GitHub Light"))
         let records = try source.journal.pendingEnvelopes().filter { $0.key.kind == .terminal }
         _ = try destination.applyRemote(records)
+        let restoredDefaults = try #require(UserDefaults(suiteName: names[1]))
         let restarted = SettingsSyncPersistence(
-            context: destinationContainer.mainContext, defaults: destinationDefaults)
+            context: destinationContainer.mainContext, defaults: restoredDefaults)
         try restarted.prepare()
         #expect(try restarted.loadTerminal().lightTheme == "GitHub Light")
-        #expect(destinationDefaults.string(forKey: SettingsKey.terminalFontFamily) == "Courier")
+        #expect(restoredDefaults.string(forKey: SettingsKey.terminalFontFamily) == destinationFamily)
         #expect(destinationDefaults.double(forKey: SettingsKey.terminalFontSize) == 22)
         #expect(destinationDefaults.bool(forKey: SettingsKey.terminalFontFollowTheme))
         #expect(sourceDefaults.string(forKey: SettingsKey.terminalFontFamily) == "Menlo")

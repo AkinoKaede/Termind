@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import Observation
+import TermindPresentation
 import UIKit
 
 @MainActor @Observable
 final class TerminalFontCatalog {
     static let shared = TerminalFontCatalog()
     private(set) var families: [String] = []
+    var builtInFamilies: Set<String> { TerminalBundledFonts.families.intersection(families) }
 
     private init() { refresh() }
 
     func refresh() {
-        families = UIFont.familyNames.filter { family in
+        families = Set(UIFont.familyNames).filter { family in
             UIFont.fontNames(forFamilyName: family).contains { name in
                 UIFont(name: name, size: 12) != nil
             }

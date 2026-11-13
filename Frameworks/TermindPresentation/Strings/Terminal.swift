@@ -5,6 +5,10 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Terminal {
+        public static var builtInFonts: LocalizedStringResource { "Built-in Fonts" }
+        public static var systemFonts: LocalizedStringResource { "System Fonts" }
+        public static var basedOnSourceCodePro: LocalizedStringResource { "Based on Source Code Pro" }
+
         public static var uploadFile: LocalizedStringResource { "Upload File" }
 
         public static var connectionLog: LocalizedStringResource {

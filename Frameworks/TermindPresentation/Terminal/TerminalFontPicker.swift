@@ -6,11 +6,13 @@ import SwiftUI
 public struct TerminalFontPicker: View {
     @Binding private var family: String
     private let families: [String]
+    private let builtInFamilies: Set<String>
     @State private var isPresented = false
 
-    public init(family: Binding<String>, families: [String]) {
+    public init(family: Binding<String>, families: [String], builtInFamilies: Set<String> = []) {
         _family = family
         self.families = families
+        self.builtInFamilies = builtInFamilies
     }
 
     public var body: some View {
@@ -28,9 +30,11 @@ public struct TerminalFontPicker: View {
             .popover(isPresented: $isPresented) {
                 // Native menu pickers can discard item fonts. SwiftUI rows keep
                 // each family's name as a preview on both platforms.
-                TerminalFontOptions(family: $family, families: families) { isPresented = false }
-                    .frame(width: 280, height: 320)
-                    .presentationCompactAdaptation(.popover)
+                TerminalFontOptions(family: $family, families: families, builtInFamilies: builtInFamilies) {
+                    isPresented = false
+                }
+                .frame(width: 280, height: 320)
+                .presentationCompactAdaptation(.popover)
             }
         }
         if !family.isEmpty && !families.contains(family) {
@@ -44,15 +48,32 @@ public struct TerminalFontPicker: View {
 struct TerminalFontOptions: View {
     @Binding var family: String
     let families: [String]
+    let builtInFamilies: Set<String>
     let didSelect: () -> Void
 
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 2) {
                 option("")
-                ForEach(families, id: \.self) { option($0) }
+                let choices = TerminalFontChoices(families: families, builtInFamilies: builtInFamilies)
+                fontSection(AppStrings.Terminal.builtInFonts, families: choices.builtIn)
+                fontSection(AppStrings.Terminal.systemFonts, families: choices.system)
             }
             .padding(8)
+        }
+    }
+
+    @ViewBuilder
+    private func fontSection(_ title: LocalizedStringResource, families: [String]) -> some View {
+        if !families.isEmpty {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(families, id: \.self) { option($0) }
         }
     }
 
@@ -62,7 +83,14 @@ struct TerminalFontOptions: View {
             didSelect()
         } label: {
             HStack {
-                TerminalFontName(name: name, isAvailable: true)
+                VStack(alignment: .leading, spacing: 3) {
+                    TerminalFontName(name: name, isAvailable: true)
+                    if builtInFamilies.contains(name), let description = TerminalBundledFonts.description(for: name) {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
                 Image(systemName: "checkmark").opacity(family == name ? 1 : 0)
                     .accessibilityHidden(true)

@@ -646,7 +646,9 @@ private struct TerminalSettings: View {
                 .buttonStyle(.plain)
             }
             Section(AppStrings.Settings.font.swiftUIKey) {
-                TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
+                TerminalFontFields(
+                    preferences: $font, families: TerminalFontCatalog.shared.families,
+                    builtInFamilies: TerminalFontCatalog.shared.builtInFamilies)
             }
             Section(AppStrings.Settings.input.swiftUIKey) {
                 Toggle(AppStrings.TerminalInput.show.swiftUIKey, isOn: $showsTerminalInputArea)

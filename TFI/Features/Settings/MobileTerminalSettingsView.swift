@@ -32,7 +32,9 @@ struct MobileTerminalSettingsView: View {
                 }
             }
             Section(AppStrings.Settings.font.swiftUIKey) {
-                TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
+                TerminalFontFields(
+                    preferences: $font, families: TerminalFontCatalog.shared.families,
+                    builtInFamilies: TerminalFontCatalog.shared.builtInFamilies)
             }
             Section(AppStrings.Settings.bell.swiftUIKey) {
                 Toggle(AppStrings.Settings.vibration.swiftUIKey, isOn: experienceBinding(\.bellVibration))
