@@ -11,6 +11,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     private let context: ModelContext
     private var deletedConversationIDs = Set<UUID>()
     private var deletedRunIDs = Set<UUID>()
+    private var historyGeneration = 0
 
     public init(context: ModelContext) {
         self.context = context
@@ -19,6 +20,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func save(_ snapshot: AgentRunSnapshot) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedConversationIDs.contains(snapshot.conversationID) else {
             deletedRunIDs.insert(snapshot.id)
             return
@@ -126,6 +128,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     public func persistCompaction(
         _ record: AgentCompactionRecord, conversationID: UUID
     ) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedConversationIDs.contains(conversationID) else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
@@ -160,6 +163,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func record(_ event: AgentEvent, runID: UUID) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedRunIDs.contains(runID) else { return }
         switch event {
         case .toolProposed(let invocation, _):
@@ -196,6 +200,31 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func loadConversations() async throws -> [StoredAgentConversation] {
+        while true {
+            try Task.checkCancellation()
+            // Preserve visibility of a caller's pending transaction without
+            // committing unrelated edits just to read history.
+            if context.hasChanges { return try Self.readConversations(in: context) }
+            let generation = historyGeneration
+            let conversations = try await Self.readConversations(container: context.container)
+            try Task.checkCancellation()
+            // A save/edit/delete can run while the reader is suspended. Retry
+            // rather than publish a graph assembled across different commits.
+            if generation == historyGeneration { return conversations }
+        }
+    }
+
+    @concurrent
+    private nonisolated static func readConversations(container: ModelContainer) async throws
+        -> [StoredAgentConversation]
+    {
+        try Task.checkCancellation()
+        // Both the context and its models stay on this executor. Only Sendable
+        // conversation values cross back to the UI actor.
+        return try readConversations(in: ModelContext(container))
+    }
+
+    private nonisolated static func readConversations(in context: ModelContext) throws -> [StoredAgentConversation] {
         let conversations = try context.fetch(
             FetchDescriptor<PersistentAgentConversation>(
                 sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
@@ -222,10 +251,27 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         let invocations = try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
         let results = try context.fetch(FetchDescriptor<PersistentAgentToolResult>())
         let reviews = try context.fetch(FetchDescriptor<PersistentAgentReviewRecord>())
-        return conversations.map { conversation in
-            let matchingRuns = runs.filter { $0.conversationID == conversation.id }
-                .sorted(by: Self.runPrecedes)
-            let runIDs = Set(matchingRuns.map(\.id))
+        // Index each table once. Scanning all messages/results for every
+        // conversation and tool card makes launch quadratic in history size.
+        let runsByConversation = Dictionary(grouping: runs, by: \.conversationID)
+        let messagesByRun = Dictionary(grouping: messages, by: \.runID)
+        let invocationsByRun = Dictionary(grouping: invocations, by: \.runID)
+        let resultsByRun = Dictionary(grouping: results, by: \.runID)
+        let compactionsByConversation = Dictionary(grouping: compactionRows, by: \.conversationID)
+        let resultByCall = Dictionary(
+            results.map { (RunToolCall(runID: $0.runID, callID: $0.callID), $0) },
+            uniquingKeysWith: { _, last in last })
+        let resultByInvocation = Dictionary(
+            results.map { ($0.invocationID, $0) }, uniquingKeysWith: { _, last in last })
+        let reviewByInvocation = Dictionary(
+            reviews.map { ($0.invocationID, $0) },
+            uniquingKeysWith: { first, last in first.createdAt > last.createdAt ? first : last })
+        return try conversations.map { conversation in
+            try Task.checkCancellation()
+            let matchingRuns = (runsByConversation[conversation.id] ?? []).sorted(by: Self.runPrecedes)
+            let matchingMessages = matchingRuns.flatMap { messagesByRun[$0.id] ?? [] }
+            let matchingInvocations = matchingRuns.flatMap { invocationsByRun[$0.id] ?? [] }
+            let matchingResults = matchingRuns.flatMap { resultsByRun[$0.id] ?? [] }
             // Ordered by run first, then by time within it. Sorting the whole
             // conversation on `createdAt` alone let two runs interleave whenever
             // their message timestamps were close, which reorders a transcript
@@ -233,7 +279,8 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             let runOrder = Dictionary(
                 uniqueKeysWithValues: matchingRuns.enumerated().map { ($0.element.id, $0.offset) }
             )
-            let transcript = messages.filter { runIDs.contains($0.runID) }
+            let transcript =
+                matchingMessages
                 .sorted { lhs, rhs in Self.messagePrecedes(lhs, rhs, runOrder: runOrder) }
                 .compactMap { row -> AgentTranscriptMessage? in
                     guard let role = AgentTranscriptRole(rawValue: row.role) else { return nil }
@@ -253,8 +300,9 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     var text = row.text
                     var modelText = replayByMessage[row.id]?.modelText
                     if role == .tool {
-                        let result = results.last { $0.runID == row.runID && $0.callID == row.toolCallID }?
-                            .restoredResult
+                        let result = row.toolCallID.flatMap {
+                            resultByCall[RunToolCall(runID: row.runID, callID: $0)]?.restoredResult
+                        }
                         modelText =
                             modelText.map {
                                 AgentPersistenceRedactor.restoredToolResultText($0, fallbacks: [result?.modelContent])
@@ -277,8 +325,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     )
                 }
             var messageRunIDs = Dictionary(
-                uniqueKeysWithValues: messages.filter { runIDs.contains($0.runID) }
-                    .map { ($0.id, $0.runID) }
+                uniqueKeysWithValues: matchingMessages.map { ($0.id, $0.runID) }
             )
             let state =
                 matchingRuns.last.flatMap { AgentRunState(rawValue: $0.state) }
@@ -290,10 +337,15 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     sourceMessageIDsByRun[runID, default: [:]][call.id] = message.id
                 }
             }
-            let cards = invocations.filter { runIDs.contains($0.runID) }
+            let cards =
+                matchingInvocations
                 .sorted { $0.createdAt < $1.createdAt }
                 .compactMap { row -> StoredAgentToolCard? in
-                    guard var card = storedToolCard(row, results: results, reviews: reviews) else {
+                    guard
+                        var card = storedToolCard(
+                            row, result: resultByInvocation[row.id]?.restoredResult,
+                            review: reviewByInvocation[row.id])
+                    else {
                         return nil
                     }
                     // Older invocation rows predate source-message ownership. The
@@ -304,10 +356,9 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     }
                     return card
                 }
-            let matchingResults = results.filter { runIDs.contains($0.runID) }
             let recoveredTranscript = Self.recovering(
                 transcript, results: matchingResults,
-                invocations: invocations.filter { runIDs.contains($0.runID) })
+                invocations: matchingInvocations, messageRunIDs: messageRunIDs)
             let recoveredMessageIDs = Set(recoveredTranscript.map(\.id))
             for result in matchingResults {
                 let messageID = AgentTranscriptMessage.toolResultID(
@@ -318,8 +369,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             }
             let projection = AgentCompactionProjection.restore(
                 messages: recoveredTranscript,
-                records: compactionRows.filter { $0.conversationID == conversation.id }
-                    .map(\.value)
+                records: (compactionsByConversation[conversation.id] ?? []).map(\.value)
             )
             return StoredAgentConversation(
                 id: conversation.id,
@@ -350,6 +400,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func setTitle(_ title: String, conversationID: UUID) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedConversationIDs.contains(conversationID) else { return }
         let descriptor = FetchDescriptor<PersistentAgentConversation>(
             predicate: #Predicate { $0.id == conversationID }
@@ -366,6 +417,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     public func setConversationMetadata(
         _ metadata: StoredAgentConversationMetadata, conversationID: UUID
     ) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedConversationIDs.contains(conversationID) else {
             throw AgentConversationPersistenceError.conversationNotFound
         }
@@ -386,6 +438,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func reorderConversations(_ updates: [StoredAgentConversationOrder]) async throws {
+        defer { historyGeneration &+= 1 }
         let ids = Set(updates.map(\.id))
         guard updates.count == ids.count else {
             throw AgentConversationPersistenceError.conversationNotFound
@@ -426,6 +479,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         _ id: UUID, fromUserMessageID messageID: UUID,
         replacingWith replacement: AgentTranscriptMessage
     ) async throws {
+        defer { historyGeneration &+= 1 }
         try Task.checkCancellation()
         guard replacement.role == .user, !replacement.isCompaction,
             replacement.toolCalls.isEmpty, replacement.toolCallID == nil,
@@ -535,6 +589,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func createConversation(_ value: StoredAgentConversation) async throws {
+        defer { historyGeneration &+= 1 }
         guard !deletedConversationIDs.contains(value.id) else {
             throw AgentConversationPersistenceError.conversationAlreadyExists
         }
@@ -622,6 +677,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
 
     @MainActor
     public func deleteConversation(_ id: UUID) async throws {
+        defer { historyGeneration &+= 1 }
         deletedConversationIDs.insert(id)
         let runs = try context.fetch(FetchDescriptor<PersistentAgentRun>())
             .filter { $0.conversationID == id }
@@ -720,12 +776,12 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             && !reviews.contains { $0.runID == id }
     }
 
-    private static func runPrecedes(_ lhs: PersistentAgentRun, _ rhs: PersistentAgentRun) -> Bool {
+    private nonisolated static func runPrecedes(_ lhs: PersistentAgentRun, _ rhs: PersistentAgentRun) -> Bool {
         if lhs.startedAt != rhs.startedAt { return lhs.startedAt < rhs.startedAt }
         return lhs.id.uuidString < rhs.id.uuidString
     }
 
-    private static func messagePrecedes(
+    private nonisolated static func messagePrecedes(
         _ lhs: PersistentAgentMessage, _ rhs: PersistentAgentMessage, runOrder: [UUID: Int]
     ) -> Bool {
         let left = runOrder[lhs.runID] ?? 0
@@ -790,17 +846,24 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
     /// gap, and does for anything still missing after this. Doing it here first
     /// is what gives the model the output the tool actually produced instead of
     /// being told the outcome is unknown when it is sitting in the database.
-    public static func recovering(
+    public nonisolated static func recovering(
         _ transcript: [AgentTranscriptMessage],
         results: [PersistentAgentToolResult],
-        invocations: [PersistentAgentToolInvocation]
+        invocations: [PersistentAgentToolInvocation],
+        messageRunIDs: [UUID: UUID] = [:]
     ) -> [AgentTranscriptMessage] {
         guard transcript.contains(where: { $0.role == .assistant && !$0.toolCalls.isEmpty })
         else { return transcript }
 
         let names = Dictionary(
-            invocations.map { ($0.callID, $0.toolName) }, uniquingKeysWith: { first, _ in first }
+            invocations.map { (RunToolCall(runID: $0.runID, callID: $0.callID), $0.toolName) },
+            uniquingKeysWith: { first, _ in first }
         )
+        let resultByCall = Dictionary(
+            results.map { ($0.callID, $0) }, uniquingKeysWith: { _, last in last })
+        let resultByRunAndCall = Dictionary(
+            results.map { (RunToolCall(runID: $0.runID, callID: $0.callID), $0) },
+            uniquingKeysWith: { _, last in last })
         var recovered: [AgentTranscriptMessage] = []
         recovered.reserveCapacity(transcript.count)
         var index = transcript.startIndex
@@ -819,11 +882,18 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             for call in message.toolCalls where !answered.contains(call.id) {
                 // The last recorded one: a call id is unique to its invocation,
                 // so more than one row can only mean a rewritten result.
-                guard let stored = results.last(where: { $0.callID == call.id }) else { continue }
+                let stored: PersistentAgentToolResult?
+                if let runID = messageRunIDs[message.id] {
+                    stored = resultByRunAndCall[RunToolCall(runID: runID, callID: call.id)]
+                } else {
+                    stored = resultByCall[call.id]
+                }
+                guard let stored else { continue }
                 let result = stored.restoredResult
                 recovered.append(
                     AgentTranscriptMessage.toolResult(
-                        result, runID: stored.runID, toolName: names[call.id] ?? call.name
+                        result, runID: stored.runID,
+                        toolName: names[RunToolCall(runID: stored.runID, callID: call.id)] ?? call.name
                     ))
             }
         }
@@ -846,10 +916,10 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         }
     }
 
-    private func storedToolCard(
+    private nonisolated static func storedToolCard(
         _ row: PersistentAgentToolInvocation,
-        results: [PersistentAgentToolResult],
-        reviews: [PersistentAgentReviewRecord]
+        result: AgentToolResult?,
+        review: PersistentAgentReviewRecord?
     ) -> StoredAgentToolCard? {
         guard let arguments = try? AgentJSONValue.decode(row.argumentsData) else { return nil }
         let invocation = AgentToolInvocation(
@@ -858,32 +928,34 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
             sourceMessageID: row.sourceMessageID,
             targetHostID: row.targetHostID, createdAt: row.createdAt
         )
-        let result = results.last(where: { $0.invocationID == row.id })?.restoredResult
         let descriptor = AgentToolDescriptor(
             name: row.toolName, summary: row.toolName,
             inputSchema: .object(["type": .string("object")]),
             target: row.targetHostID == nil ? .local : .host,
             approvalPolicy: .ask, presentation: result?.toolPresentation
         )
-        let review = reviews.filter { $0.invocationID == row.id }
-            .sorted { $0.createdAt < $1.createdAt }
-            .last.flatMap { stored -> GuardianDecision? in
-                guard let verdict = stored.verdict.flatMap(GuardianVerdict.init),
-                    let risk = stored.risk.flatMap(GuardianRisk.init),
-                    let authorization = stored.userAuthorization.flatMap({ raw in
-                        GuardianAuthorization(rawValue: raw)
-                            ?? (raw == "sufficient" ? .high : raw == "insufficient" ? .low : nil)
-                    })
-                else { return nil }
-                return GuardianDecision(
-                    verdict: verdict, risk: risk, userAuthorization: authorization,
-                    reason: stored.reason ?? ""
-                )
-            }
+        let decision = review.flatMap { stored -> GuardianDecision? in
+            guard let verdict = stored.verdict.flatMap(GuardianVerdict.init),
+                let risk = stored.risk.flatMap(GuardianRisk.init),
+                let authorization = stored.userAuthorization.flatMap({ raw in
+                    GuardianAuthorization(rawValue: raw)
+                        ?? (raw == "sufficient" ? .high : raw == "insufficient" ? .low : nil)
+                })
+            else { return nil }
+            return GuardianDecision(
+                verdict: verdict, risk: risk, userAuthorization: authorization,
+                reason: stored.reason ?? ""
+            )
+        }
         return StoredAgentToolCard(
             invocation: invocation, descriptor: descriptor, state: row.state,
-            result: result, review: review
+            result: result, review: decision
         )
+    }
+
+    private nonisolated struct RunToolCall: Hashable {
+        let runID: UUID
+        let callID: String
     }
 
     private func interruptUnfinishedRuns() {

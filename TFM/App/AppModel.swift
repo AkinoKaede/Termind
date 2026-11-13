@@ -189,6 +189,8 @@ final class AppModel {
     /// The one set of conversations every window navigates. See
     /// `AssistantConversationStore`.
     private let assistantConversations: AssistantConversationStore
+    @ObservationIgnored private var assistantRestorationTask: Task<Void, any Error>?
+    private var hasRestoredAssistantConversations = false
     private let agentRunRepository: any AgentRunPersisting
     let assistantModelSelections: AssistantModelSelectionController
     private let assistantChatCollaborationStore: any AssistantChatCollaborationStoring
@@ -833,12 +835,13 @@ final class AppModel {
                 )
             }
         )
-        Task { [agentRunRepository, weak window, weak self] in
+        Task { [weak window, weak self] in
+            guard let self else { return }
             do {
-                let restored = try await agentRunRepository.loadConversations()
+                try await self.restoreAssistantConversations()
                 guard window?.isClosed == false else { return }
-                try self?.restoreAssistantConversations(restored)
-                self?.notificationRouter.resume()
+                self.notificationRouter.resume()
+            } catch is CancellationError {
             } catch {
                 window?.assistantOperationError = error.localizedDescription
             }
@@ -848,7 +851,22 @@ final class AppModel {
     var notificationWindows: [WindowModel] { windows.values.compactMap(\.value).filter { !$0.isClosed } }
 
     func restoreAssistantConversations() async throws {
-        try restoreAssistantConversations(await agentRunRepository.loadConversations())
+        guard !hasRestoredAssistantConversations, !isTerminating else { return }
+        if let assistantRestorationTask {
+            try await assistantRestorationTask.value
+            return
+        }
+        // History belongs to the process-wide store. New/restored windows join
+        // one load and then adopt that store without rereading every transcript.
+        let task = Task { [agentRunRepository] in
+            let restored = try await agentRunRepository.loadConversations()
+            try Task.checkCancellation()
+            try restoreAssistantConversations(restored)
+            hasRestoredAssistantConversations = true
+        }
+        assistantRestorationTask = task
+        defer { assistantRestorationTask = nil }
+        try await task.value
     }
 
     private func restoreAssistantConversations(_ restored: [StoredAgentConversation]) throws {
@@ -1036,6 +1054,7 @@ final class AppModel {
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {
         isTerminating = true
+        assistantRestorationTask?.cancel()
         persistentSessionCloser.cancelAll()
         notificationBadge?.stop()
         sftpNotifications?.stop()

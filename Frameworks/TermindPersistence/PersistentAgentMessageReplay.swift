@@ -7,7 +7,7 @@ import SwiftData
 
 /// Additive replay backing; historical message schemas remain frozen.
 @Model
-public final class PersistentAgentMessageReplay {
+public nonisolated final class PersistentAgentMessageReplay {
     @Attribute(.unique) public var messageID: UUID = UUID()
     public var contextData = Data()
     public var modelText: String?

@@ -6,7 +6,7 @@ import Foundation
 import SwiftData
 
 @Model
-public final class PersistentAgentConversation {
+public nonisolated final class PersistentAgentConversation {
     @Attribute(.unique) public var id: UUID = UUID()
     public var title = ""
     public var customTitle = ""
@@ -24,7 +24,7 @@ public final class PersistentAgentConversation {
 }
 
 @Model
-public final class PersistentAgentConversationOrder {
+public nonisolated final class PersistentAgentConversationOrder {
     @Attribute(.unique) public var conversationID: UUID = UUID()
     public var sortIndex = 0.0
 
@@ -35,7 +35,7 @@ public final class PersistentAgentConversationOrder {
 }
 
 @Model
-public final class PersistentAgentRun {
+public nonisolated final class PersistentAgentRun {
     @Attribute(.unique) public var id: UUID = UUID()
     public var conversationID: UUID = UUID()
     public var state = AgentRunState.idle.rawValue
@@ -60,7 +60,7 @@ public final class PersistentAgentRun {
 }
 
 @Model
-public final class PersistentAgentMessage {
+public nonisolated final class PersistentAgentMessage {
     @Attribute(.unique) public var id: UUID = UUID()
     public var runID: UUID = UUID()
     public var role = AgentTranscriptRole.user.rawValue
@@ -122,7 +122,7 @@ public final class PersistentAgentMessage {
 /// Keeping it in its own table preserves the complete run/message graph for the
 /// transcript reader while giving restore an exact model-context boundary.
 @Model
-public final class PersistentAgentCompaction {
+public nonisolated final class PersistentAgentCompaction {
     @Attribute(.unique) public var id: UUID = UUID()
     public var conversationID: UUID = UUID()
     public var summaryMessageID: UUID = UUID()
@@ -161,7 +161,7 @@ public final class PersistentAgentCompaction {
 /// V3 storage for original context snapshots. A separate model keeps the V2
 /// message schema frozen and makes the migration an additive lightweight one.
 @Model
-public final class PersistentAgentContextAttachments {
+public nonisolated final class PersistentAgentContextAttachments {
     @Attribute(.unique) public var messageID: UUID = UUID()
     @Attribute(.externalStorage) public var attachmentsData = Data()
 
@@ -178,7 +178,7 @@ public final class PersistentAgentContextAttachments {
 }
 
 @Model
-public final class PersistentAgentToolInvocation {
+public nonisolated final class PersistentAgentToolInvocation {
     @Attribute(.unique) public var id: UUID = UUID()
     public var runID: UUID = UUID()
     public var callID = ""
@@ -204,7 +204,7 @@ public final class PersistentAgentToolInvocation {
 }
 
 @Model
-public final class PersistentAgentToolResult {
+public nonisolated final class PersistentAgentToolResult {
     @Attribute(.unique) public var id: UUID = UUID()
     public var runID: UUID = UUID()
     public var invocationID: UUID = UUID()
@@ -240,7 +240,7 @@ public final class PersistentAgentToolResult {
 }
 
 @Model
-public final class PersistentAgentReviewRecord {
+public nonisolated final class PersistentAgentReviewRecord {
     @Attribute(.unique) public var id: UUID = UUID()
     public var runID: UUID = UUID()
     public var invocationID: UUID = UUID()

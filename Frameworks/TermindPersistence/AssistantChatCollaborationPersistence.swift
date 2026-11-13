@@ -8,7 +8,7 @@ import TermindApplication
 
 /// Additive sidecar; the historical message model remains frozen.
 @Model
-public final class PersistentAgentMessageOrigin {
+public nonisolated final class PersistentAgentMessageOrigin {
     @Attribute(.unique) public var messageID: UUID = UUID()
     public var sourceConversationID: UUID = UUID()
     public var sourceRunID: UUID = UUID()
