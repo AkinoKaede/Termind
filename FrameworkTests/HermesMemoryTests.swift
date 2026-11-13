@@ -309,6 +309,29 @@ struct HermesMemoryTests {
         #expect(try await store.learningProgress(conversationID).turns == 1)
     }
 
+    @Test func reviewCommitsEveryWindowAndClearsOnlyItsActivity() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        let messages = (0..<205).map { AgentTranscriptMessage(role: .user, text: "Request \($0)") }
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: messages.map(\.id),
+            toolInvocations: [], messages: messages, model: nil)
+        let reviewer = CountingMemoryReviewModel()
+        await memory.review(
+            conversationID: conversationID, messages: messages, model: reviewer, wait: true)
+        let progress = try await store.learningProgress(conversationID)
+        #expect(await reviewer.count == 3)
+        #expect(progress.lastReviewedMessage == messages.last?.id)
+        #expect(progress.turns == 0)
+        #expect(progress.events.isEmpty)
+        #expect(memory.error == nil)
+        try await store.close()
+    }
+
     @Test func correctionCandidatesIncludeChineseAndEnglishCommandsButExcludeAcknowledgments() {
         #expect(MemoryModel.looksLikeCorrection("No, use yarn instead"))
         #expect(MemoryModel.looksLikeCorrection("不要 npm，用 yarn"))

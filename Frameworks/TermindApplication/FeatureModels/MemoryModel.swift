@@ -516,50 +516,32 @@ public final class MemoryModel {
                 guard epoch == learningEpoch(for: conversationID) else { return }
                 guard force || progress.turns >= 10 || progress.tools >= 15 else { return }
                 guard force || (retryAfter[conversationID].map({ $0 <= .now }) ?? true) else { return }
+                let transcript = MemoryReviewTranscript(messages: messages)
                 while true {
-                    let cursorIndex = progress.lastReviewedMessage.flatMap { cursor in
-                        messages.firstIndex(where: { $0.id == cursor })
-                    }
-                    let pendingIndex = progress.events.compactMap { event in
-                        messages.firstIndex(where: { $0.id == event.sourceMessageID })
-                    }.min()
-                    let start = min(cursorIndex.map { $0 + 1 } ?? 0, pendingIndex ?? messages.count)
-                    guard start < messages.count else { return }
-                    var end = start
-                    while end < messages.count, end - start < 100 {
-                        let candidate = end + 1
-                        let serialized = AgentCompaction.serialized(
-                            Array(messages[start..<candidate]), toolResultLimit: 300)
-                        if serialized.count > 28_000, end > start { break }
-                        end = candidate
-                    }
-                    let messageIDs = Set(messages[start..<end].map(\.id))
-                    let reviewedIDs = progress.events.filter { messageIDs.contains($0.sourceMessageID) }.map(\.id)
-                    var contextStart = max(0, start - 2)
-                    while contextStart < start {
-                        let withContext = AgentCompaction.serialized(
-                            Array(messages[contextStart..<end]), toolResultLimit: 300)
-                        if withContext.count <= 28_000 { break }
-                        contextStart += 1
-                    }
-                    let delta = Array(messages[contextStart..<end])
+                    _ = try require(token)
+                    guard epoch == learningEpoch(for: conversationID),
+                        let batch = try await transcript.nextBatch(progress: progress)
+                    else { return }
+                    _ = try require(token)
+                    guard epoch == learningEpoch(for: conversationID) else { return }
                     let current = try await read(token: token)
                     let operations = try await timedOperations {
-                        try await AgentMemoryLearningService().review(messages: delta, state: current, model: model)
+                        try await AgentMemoryLearningService().review(
+                            messages: batch.messages, state: current, model: model)
                     }
                     _ = try require(token)
                     guard epoch == learningEpoch(for: conversationID) else { return }
                     guard
                         let updated = try await storage.applyReview(
-                            operations, expected: current, messageID: messages[end - 1].id,
-                            conversationID: conversationID, reviewedActivityIDs: reviewedIDs)
+                            operations, expected: current, messageID: batch.lastMessageID,
+                            conversationID: conversationID, reviewedActivityIDs: batch.reviewedActivityIDs)
                     else {
                         retryAfter[conversationID] = .now.addingTimeInterval(30)
                         return
                     }
                     try publishCommittedState(updated, token: token)
                     retryAfter.removeValue(forKey: conversationID)
-                    guard end < messages.count else { return }
+                    guard batch.hasMore else { return }
                     progress = try await storage.learningProgress(conversationID)
                 }
             } catch is CancellationError {
