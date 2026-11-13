@@ -88,9 +88,14 @@ public nonisolated enum TermindTerminalThemeCatalog {
         let base = selected.toTerminalConfiguration()
         let themed = TerminalCustomConfiguration(customEnabled ? customText : "")
             .applying(to: base, preferredFontFamily: font.family)
-        // Ghostty renders theme commands after session overrides, so manual size must come last here.
+        // Ghostty renders theme commands after session overrides, so device typography overrides must come last here.
         return GhosttyTerminal.TerminalConfiguration(startingFrom: themed) { builder in
             if !font.sizeFollowsTheme { builder.withFontSize(Float(font.size)) }
+            switch font.thicken {
+            case .followTheme: break
+            case .enabled: builder.withFontThicken(true)
+            case .disabled: builder.withFontThicken(false)
+            }
         }
     }
 

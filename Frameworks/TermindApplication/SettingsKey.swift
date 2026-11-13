@@ -57,6 +57,7 @@ public nonisolated enum SettingsKey {
     public static let terminalFontFamily = "terminal.fontFamily"
     public static let terminalFontFollowTheme = "terminal.font.followTheme"
     public static let terminalFontSize = "terminal.fontSize"
+    public static let terminalFontThicken = "terminal.fontThicken"
     public static let terminalCopyOnSelect = "terminal.copyOnSelect"
     public static let terminalPasteOnRightClick = "terminal.pasteOnRightClick"
     public static let terminalBellSound = "terminal.bellSound"

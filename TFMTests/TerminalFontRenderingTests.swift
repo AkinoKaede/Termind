@@ -11,6 +11,43 @@ import Testing
 
 @Suite @MainActor
 struct TerminalFontRenderingTests {
+    @Test(arguments: [false, true], TerminalFontPreferences.ThickenMode.allCases)
+    func fontThickenOverridesBothThemesAndCanReturnToTheme(
+        themeEnabled: Bool, mode: TerminalFontPreferences.ThickenMode
+    ) {
+        let text = "font-thicken = \(themeEnabled)"
+        let preferences = TerminalPreferences(
+            darkCustomEnabled: true, lightCustomEnabled: true,
+            darkCustomConfiguration: text, lightCustomConfiguration: text)
+        let state = TerminalViewState()
+        let controller = state.controller
+        state.applyPreferences(preferences, font: .init(thicken: mode))
+        let expected: String
+        switch mode {
+        case .followTheme: expected = String(themeEnabled)
+        case .enabled: expected = "true"
+        case .disabled: expected = "false"
+        }
+        for configuration in [state.theme.light, state.theme.dark] {
+            #expect(configuration.rendered.hasSuffix("font-thicken = \(expected)"))
+        }
+        #expect(state.controller === controller)
+        #expect(state.controller.lastConfigurationIssue == nil)
+
+        state.applyPreferences(preferences)
+        for configuration in [state.theme.light, state.theme.dark] {
+            #expect(configuration.rendered.hasSuffix(text))
+        }
+        #expect(state.controller === controller)
+        #expect(state.controller.lastConfigurationIssue == nil)
+    }
+
+    @Test func defaultFontThickenPreservesBuiltInThemeConfiguration() {
+        let configuration = TermindTerminalThemeCatalog.terminalConfiguration(
+            themeName: "Termind Dark", customEnabled: false, customText: "", isDark: true)
+        #expect(configuration == TermindTerminalThemeCatalog.defaultDark.toTerminalConfiguration())
+    }
+
     @Test(arguments: [false, true])
     func preferredFontPrecedesThemeFallbacksAndManualSizeWins(_ isDark: Bool) {
         let configuration = TermindTerminalThemeCatalog.terminalConfiguration(

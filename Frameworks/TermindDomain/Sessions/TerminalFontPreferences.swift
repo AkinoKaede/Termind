@@ -5,14 +5,25 @@ import Foundation
 
 /// Device-local typography, deliberately separate from synced terminal preferences.
 public nonisolated struct TerminalFontPreferences: Hashable, Sendable {
+    public enum ThickenMode: String, CaseIterable, Sendable {
+        case followTheme
+        case enabled
+        case disabled
+    }
+
     public var family: String
     public var size: Double
     public var sizeFollowsTheme: Bool
+    public var thicken: ThickenMode
 
-    public init(family: String = "", size: Double = 12, sizeFollowsTheme: Bool = true) {
+    public init(
+        family: String = "", size: Double = 12, sizeFollowsTheme: Bool = true,
+        thicken: ThickenMode = .followTheme
+    ) {
         self.family = family
         self.size = size
         self.sizeFollowsTheme = sizeFollowsTheme
+        self.thicken = thicken
     }
 
     public func resolvingFamily(in availableFamilies: [String]) -> Self {

@@ -11,15 +11,19 @@ public struct TerminalFontSettings: DynamicProperty {
     @AppStorage(SettingsKey.terminalFontFamily) private var family = ""
     @AppStorage(SettingsKey.terminalFontSize) private var size = 12.0
     @AppStorage(SettingsKey.terminalFontFollowTheme) private var sizeFollowsTheme = true
+    @AppStorage(SettingsKey.terminalFontThicken) private var thicken = TerminalFontPreferences.ThickenMode.followTheme
 
     public init() {}
 
     public var wrappedValue: TerminalFontPreferences {
-        get { TerminalFontPreferences(family: family, size: size, sizeFollowsTheme: sizeFollowsTheme) }
+        get {
+            TerminalFontPreferences(family: family, size: size, sizeFollowsTheme: sizeFollowsTheme, thicken: thicken)
+        }
         nonmutating set {
             family = newValue.family
             size = newValue.size
             sizeFollowsTheme = newValue.sizeFollowsTheme
+            thicken = newValue.thicken
         }
     }
 

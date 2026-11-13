@@ -23,7 +23,7 @@ public struct TerminalFontFields: View {
         TerminalFontPicker(family: $preferences.family, families: families, builtInFamilies: builtInFamilies)
         VStack(alignment: .leading, spacing: 8) {
             Picker("Font Size", selection: $preferences.sizeFollowsTheme) {
-                Text("Follow Theme").tag(true)
+                Text(AppStrings.Settings.followTheme).tag(true)
                 Text(AppStrings.Vault.custom).tag(false)
             }
             .pickerStyle(.menu)
@@ -31,6 +31,12 @@ public struct TerminalFontFields: View {
                 sizeEditor
             }
         }
+        Picker(AppStrings.Settings.fontThicken, selection: $preferences.thicken) {
+            Text(AppStrings.Settings.followTheme).tag(TerminalFontPreferences.ThickenMode.followTheme)
+            Text(AppStrings.Common.enabled).tag(TerminalFontPreferences.ThickenMode.enabled)
+            Text(AppStrings.Settings.disabled).tag(TerminalFontPreferences.ThickenMode.disabled)
+        }
+        .pickerStyle(.menu)
     }
 
     @ViewBuilder private var sizeEditor: some View {

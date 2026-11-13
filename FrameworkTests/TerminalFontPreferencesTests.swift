@@ -12,9 +12,11 @@ import Testing
 struct TerminalFontPreferencesTests {
     @Test func defaultAndUnavailableFamiliesFollowThemeWithoutChangingSize() {
         #expect(TerminalFontPreferences() == .init(family: "", size: 12, sizeFollowsTheme: true))
-        let selected = TerminalFontPreferences(family: "Missing Font", size: 19, sizeFollowsTheme: false)
+        #expect(TerminalFontPreferences().thicken == .followTheme)
+        let selected = TerminalFontPreferences(
+            family: "Missing Font", size: 19, sizeFollowsTheme: false, thicken: .disabled)
         let resolved = selected.resolvingFamily(in: ["Menlo"])
-        #expect(resolved == .init(family: "", size: 19, sizeFollowsTheme: false))
+        #expect(resolved == .init(family: "", size: 19, sizeFollowsTheme: false, thicken: .disabled))
         #expect(selected.family == "Missing Font")
         #expect(selected.resolvingFamily(in: ["Missing Font"]) == selected)
     }
@@ -97,8 +99,12 @@ struct TerminalFontPreferencesTests {
         sourceDefaults.set("Menlo", forKey: SettingsKey.terminalFontFamily)
         sourceDefaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         sourceDefaults.set(false, forKey: SettingsKey.terminalFontFollowTheme)
+        sourceDefaults.set(
+            TerminalFontPreferences.ThickenMode.enabled.rawValue, forKey: SettingsKey.terminalFontThicken)
         destinationDefaults.set(destinationFamily, forKey: SettingsKey.terminalFontFamily)
         destinationDefaults.set(22.0, forKey: SettingsKey.terminalFontSize)
+        destinationDefaults.set(
+            TerminalFontPreferences.ThickenMode.disabled.rawValue, forKey: SettingsKey.terminalFontThicken)
         #expect(try source.journal.pendingEnvelopes() == originalEnvelopes)
 
         try source.saveTerminal(.init(lightTheme: "GitHub Light"))
@@ -112,11 +118,17 @@ struct TerminalFontPreferencesTests {
         #expect(restoredDefaults.string(forKey: SettingsKey.terminalFontFamily) == destinationFamily)
         #expect(destinationDefaults.double(forKey: SettingsKey.terminalFontSize) == 22)
         #expect(destinationDefaults.bool(forKey: SettingsKey.terminalFontFollowTheme))
+        #expect(
+            restoredDefaults.string(forKey: SettingsKey.terminalFontThicken)
+                == TerminalFontPreferences.ThickenMode.disabled.rawValue)
         #expect(sourceDefaults.string(forKey: SettingsKey.terminalFontFamily) == "Menlo")
         #expect(sourceDefaults.double(forKey: SettingsKey.terminalFontSize) == 18)
         #expect(!sourceDefaults.bool(forKey: SettingsKey.terminalFontFollowTheme))
+        #expect(
+            sourceDefaults.string(forKey: SettingsKey.terminalFontThicken)
+                == TerminalFontPreferences.ThickenMode.enabled.rawValue)
         let encoded = try String(decoding: SettingsSyncCodec.encode(#require(records.first)), as: UTF8.self)
-        for key in ["fontFamily", "fontSize", "fontFollowTheme"] { #expect(!encoded.contains(key)) }
+        for key in ["fontFamily", "fontSize", "fontFollowTheme", "fontThicken"] { #expect(!encoded.contains(key)) }
     }
 
     @Test func legacyTypographyIsDiscardedWhenRecordsAreReencodedForUpload() throws {

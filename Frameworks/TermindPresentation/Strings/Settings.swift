@@ -18,6 +18,8 @@ extension AppStrings {
         public static var lightTheme: LocalizedStringResource { "Light Theme" }
         public static var darkTheme: LocalizedStringResource { "Dark Theme" }
         public static var customTheme: LocalizedStringResource { "Custom" }
+        public static var followTheme: LocalizedStringResource { "Follow Theme" }
+        public static var fontThicken: LocalizedStringResource { "Font Thicken" }
         public static var searchThemes: LocalizedStringResource { "Search Themes" }
         public static var noMatchingThemes: LocalizedStringResource { "No matching themes" }
         public static var noThemeSelected: LocalizedStringResource { "No Theme Selected" }
