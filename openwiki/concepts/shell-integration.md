@@ -1,6 +1,6 @@
 ---
 type: implementation guide
-title: Shell Integration and Command Context
+title: Shell Integration
 description: "SSH shell startup, multiplexer context inspection, display-only native directories, context-bound history and capability-gated drafts. Explains active-context authority, replay protection, command notifications and separate Telnet semantics."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
 sources:
@@ -54,19 +54,29 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-194f038fde2b1218c1c960b2
+    resource: repo://TFM/Features/Terminal/DesktopTerminalSurface.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-6551e1821f08f37b10dfe7fa
     resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
-# Shell Integration and Command Context
+# Shell Integration
+
+Shell integration owns remote shell context and protocol events; appearance and app notification settings are separate consumers, not shell protocol controls.
+
+## Appearance is not shell configuration
+
+Desktop `DesktopTerminalChrome` applies `TerminalViewState.applyPreferences` on appearance and whenever the shared appearance settings change, passing terminal preferences, device font preferences and the theme library. `TerminalAppearance.swift` builds light/dark themes, applies preferred font family and device size/thickening overrides, and sets the terminal configuration. These are rendering updates, not hook installation or a change to shell event parsing. SSH integration enablement is instead captured by `SSHSessionModel` at connection start, as described below.
+
+Notification ownership remains independent of typography: custom theme entries named `notify-on-command-finish` are excluded, and `applyPreferences` forces the session setting to `never`. Completion delivery therefore remains with the app coordinator even when appearance or font preferences are reapplied. See [Ghostty Terminal Integration](ghostty-terminal-integration.md) for rendering configuration and precedence.
 
 ## Ownership and entrypoint
 

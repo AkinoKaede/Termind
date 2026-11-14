@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4ba09e9c606d1456925bef1d7e97758833260c72a9a172c9cb63f6490caab9fa",
+  "pageVersion": "sha256:d847c77284ee5551f19bc542dcd24ed87b2d91384fa7a601841287ef11365bd1",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -118,7 +118,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         }
       ]
     },
@@ -278,7 +278,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
@@ -288,7 +288,7 @@
     },
     {
       "id": "claim_263358b0ab424869a92b6de729584fb2",
-      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, region/flag-dependent Traditional Chinese naming, Korean dynamic labels, localized demo conversations preserving technical references and tool names, and Host-access error presentation. It checks Input, Show Input Area and Shortcuts across seven explicit languages for expected English and nonempty non-English wording distinct from English. It does not establish Pro offer copy or whole-catalog completion; completion is enforced by check-localization.py.",
+      "statement": "AppLanguageTests covers unknown-preference fallback, legacy Simplified Chinese migration, region/flag-dependent Traditional Chinese naming, Korean dynamic labels, localized demo conversations preserving technical references and tool names, and Host-access error presentation. It checks Input, Show Input Area and Shortcuts across seven explicit languages for expected English and nonempty non-English wording distinct from English. It also checks nonempty localized Built-in Fonts, System Fonts and Source Code Pro attribution in those languages, requiring non-English wording to differ from English and the attribution to retain Source Code Pro. It does not establish Pro offer copy or whole-catalog completion; completion is enforced by check-localization.py.",
       "evidence": [
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -296,7 +296,7 @@
         },
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:b8011ea28e43bc80c9e6dc93254a7acfb10ad85089d17e4d3b2e8c40d761b827"
+          "version": "repo-file-v1:sha256:a1f246e1f039bd0f7c15a7eec49384585b88630c439b879e6e0cb0ed487bb5d7"
         }
       ]
     },
@@ -320,7 +320,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:60458d63c458bd4dcb7b24de551f0d00bca503706499ee1eeacb047f8987d3b7"
+          "version": "repo-file-v1:sha256:bb11e8e0394109cd1f2096606304ea09951c1ea68f04b7de5968345d7055285a"
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
@@ -384,7 +384,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift",
@@ -456,7 +456,7 @@
         },
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:b8011ea28e43bc80c9e6dc93254a7acfb10ad85089d17e4d3b2e8c40d761b827"
+          "version": "repo-file-v1:sha256:a1f246e1f039bd0f7c15a7eec49384585b88630c439b879e6e0cb0ed487bb5d7"
         }
       ]
     },
@@ -470,7 +470,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         }
       ]
     },
@@ -624,13 +624,23 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:db89657d6321e3f628deb9045d9e99be8aacee9e3130d74759fd7f95c457bab1"
+          "version": "repo-file-v1:sha256:57c7d6a21361d443d2693cf2130d6ab508aae057eb981e57336c250f25b1c905"
+        }
+      ]
+    },
+    {
+      "id": "claim_76cb4869d14c45be940b99be3b2cdadf",
+      "statement": "The string-catalog normalizer validates the full requested batch before writing, so invalid input prevents all writes; changed catalogs are individually replaced atomically with their file modes preserved, rather than written in place or committed as an all-files transaction.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L83-L137",
+          "version": "repo-lines-v1:sha256:669212ebb8dc6141f5ccda90b1674e01da56c5190f896b58133f7846448c51f9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NDE0Y2MzNDVjYzZkOTE2NWE3YTk5N2VlM2RkZDI1NWUxMTYzMWY0ZGViNDlhNmUyNjMzZTRkYjY5YzUxYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjNTFlZjY2Y2ZkNTgwZmEyNDYxNGViZjYwYjk5Zjg1ODZlMTE3MWQ5MjJlNDA1ZjVkNDc2ZGExZDE2MDA5ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3YjVlY2M2Y2U3MGI4NzVhMmFlZjU4M2I3YmQ0ZmYwNTNhMzZiMDEzODM1Mzc1YmY1ZTA2Mzc3YmYzM2JlNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmZGVhZGJjOWQyNjhjOTAwZDNjY2FhMjI3OTFhZWM2MWJkOWI3MzJjMjAyMzY1MzJiMzAyOTg5MDcyY2M2ZWUifQ"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

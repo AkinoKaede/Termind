@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:b289478f63dd0108cc92ec888a93aa88d69dc92c2144da978238a28d9b0e34cc",
+  "pageVersion": "sha256:95652b24b524ce7d1d3d9e8ab5463be4d09fb1d35da1e4c6040352f2229dfff9",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -190,7 +190,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         }
       ]
     },
@@ -270,7 +270,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         }
       ]
     },
@@ -382,7 +382,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         }
       ]
     },
@@ -461,11 +461,11 @@
           "version": "repo-lines-v1:sha256:41ede44c88c62ea41ddb39fa654b76b8f38dc29d92cbc379e75c9cf0465521cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YzE3YzljMmY1YTg1MjQwODQzMTYyMGJmYzk3OWMzNDJkNWU4ZmMyOGY0ZjlhYjFjMGVhYzA0MTJhY2E0ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4OTdjZTAyNDQ1ZTc0ZmY3MGMxN2QxYjVmOTMyZDJjODc5ZDJjYTNhMWI5MDAwZjJhZjY5ZDgwYmE1MjFiMDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5NmYzNzZiZDdkZDc4YmVlYTdkNTMxM2E5MmE4MTUyYzE1MzEwZTU0NTcxNGQwOGNhMmJjMTQzMjJjYmMyYTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L344-L356",
+          "resource": "repo://TFM/App/AppModel.swift#L346-L358",
           "version": "repo-lines-v1:sha256:6ddd440558a59fbf5b1f1dc163d4c8e3e38eac863ac04e65c0b1c87eb19e9825:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxNjJiMTY3ZmQ5M2EzNGNkMjY0YThlZDM3Y2FmZTFkZjZiNTExNTMwNzA2YzI4NzQ0NjY1MWM4YTBjYWU3MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5OTc5ZTRmY2Y1YThlMTEwZjVmNGY2N2MzNzk3NDMzZjgwMWNiNGQxYWFmNWRjZWY2NDNhYjBjN2RjOTUyZDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2NTc1YTRkNjEzYWViZTIxNDg0ZDM0OTYzYjQzYjA5ZDYzNDNkNzgwNTYwNWEzNDIzMzU3M2M5Y2VmMjdiMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2YzFmOWIwM2E4YzU0MGZiZjdlODNkZGQ0M2M5Mzg1NjE5MGUxYjQxYjk1MGRkMTYwNmFjMzMzOGFjNGQyMzEifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L536-L544",
+          "resource": "repo://TFM/App/AppModel.swift#L538-L546",
           "version": "repo-lines-v1:sha256:24d26825f5580d0369959e872f5a2afdfb4fe531f748ddf9d6d8d633c6ad2b77:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2U5ODQ0ZmQzNGQyMDY0YTViNzVhMmY5YjJmMWZkZTA2YmNkNTAxMTBhYWYxNWVmMjU4Yzg4ZmRjODA0ZjcxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY0NGI1YmI1NWFjNzAxMzJmNjEyODE1MWUzMGQxYzY4NGNlNTVkOWFiNmVkNDBiZTEwM2EzM2M1YTUxY2Q0YyJ9"
         }
       ]
@@ -589,10 +589,38 @@
           "version": "repo-lines-v1:sha256:d459391d924af62015d5aa858dd13dd4fe819dbf2da01af60d6a8502321109f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMWI5YjJlYzFmZWIwMGZkYWE5MzRiZTgxMTE4ZDg4Y2I2OTBiNTUwYzg3OGU3NGMwY2JmMTY2MjY5YjRhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMzJiNDYyMjMxZDk4ZGU0NTZlZWVmN2ViM2NkNWZhOThmYmJjOWE4YmFkZTNkMDBlMThlYTQyMTAzMjA1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkMWI5ZmIyMmQ1OTY3NzgwMjZjYjI2Y2ZiODlkYzJiZDU5MzY5MWVkNjc2YWU1OTQ5ZTM2ZTg1ZjZiM2QwYmMifQ"
         }
       ]
+    },
+    {
+      "id": "claim_1d3b35a71df24ceda6aee6bacf493e37",
+      "statement": "Desktop AppModel.shutdownForTermination fences Assistant admission, cancels preparations and stops all stored conversations before awaiting drains; its retained cleanup task concurrently starts MCP and SFTP drains, joins preparation and conversation drains and both service drains, then closes Agent background commands, Agent connections and Tailscale in order. Repeated calls reuse that task.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L1053-L1120",
+          "version": "repo-lines-v1:sha256:0c6d6a8e0031bb54c501b538a3a639f5b7d132a395d56f99c0c49b7e456b091e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTk5YjY4ZWJlZTcyZDdiMjc1ZjkxMjdmMjJhNWRhZDc1Y2JkODFkMDMwNzA5NDg0NTM0MDAyMDczYWZjOTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjM2Y3Nzc3YWVlNzg2NjQwZTgyZGIzNGQyZjM2NjhmODlkNzZjYjFlYzIxMmNlYjIzODIxMTM1MDE2NjBkOTQifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L621-L624",
+          "version": "repo-lines-v1:sha256:b52eda9cb118dce1dc3279a0737ffed413899078780ebafc22e41acce5afba65:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjczMjA1MGQ5MzNlOWFhZjNlZjc1ZTEzNjQ4MjcyNTRmODI3YmE2YjA5NGUxZmEzNmM3NzUzMjY3N2EyZjkyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWZmYTA3NzU5ZTgyMDIzOThjNDUzZGRhOGZlMzJkN2VkNTZiODdhNDI1Mzk0MjhjYjA5ZDRhMjNkOWYyM2M0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWQ4ZDZhNzIxMmNmOTlmNTg2NDYyNzBhODYzMDg1MzllOWJmYjcwYzdkNTA2Yjk2N2E3NGI4NzYzN2IzNjllZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWU0YmUxNTM2NzNhZDBkMTVkNjczN2RhZmQ3YTYwNzc0ZmYzOWUyOGExZDlkOTJhNGMzYTA3ZjkxNWE4OWZmZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/AppTerminationTests.swift#L16-L69",
+          "version": "repo-lines-v1:sha256:3ae07dff420f8d8d50c58248fe8b3d2c525c034a3335b1fca88f52e5291a7a68:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhNjU5Nzc0ZmRjZTlkZjVmZGFkM2Q2MDA5M2FlZjY0ZjZmOWE4Y2I1MjI0N2Q2NTI3Zjk3YjFlNjA5YmQ1YzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4N2ExY2I0YTk2NTRhYmIwN2RjYjc5MTc0ODFmNmQwYTI4ODIzNmVjYmFlZTZlYjBjZjg0MGZjNDNkMzdlNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNTg4YmUwOTg1YmY0YjM2ZTM2ODU2NmViNjlmMjI3NGVkN2UyOTIwOWFmYTJjYTYxNjFjYWU2OTFiODA0YjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec9b0efc051148a29e380afb03b1c785",
+      "statement": "Desktop AppModel's synchronous termination path shuts down Metrics, closes registered window workspaces with applicationTermination intent, cancels SFTP transfers and external authentication, and stops forwarding.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L1103-L1115",
+          "version": "repo-lines-v1:sha256:886bfaa8b739c57f9e445d3f8f70fefc17530b2d785d5b1ea56219a1017fc8f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlYzBjZmUzMzZiYTVhODk4YTJlYWViMzY5MWE1ZDViMzI5MDYwNjRlZjAzZTNmZWMxYzMzNzRmZTkxNzAxOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYmExMmRjNjgzMWEzMWU5NzdjMTMzMDU0NWZiMzZhMTFjYjE2MDQ5YjQ5ZGYwN2MzYjAyNjM4YjIwNzA2YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0N2M1MDkxYmU2OTFlM2Y0MjMxZTZjZDA5OTI1N2ZlOTYxZTM0ZTg0MDE0MWVkMzFkNTMwOTkyNGFhNjQwMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkYjkxZWUwZThhZmIwMWVmNzYyMmM2ZTg0NzA2MDM2YmVmMzAwNTc5YWU1ZjcyYmQzOTViMmY3MjllNmRjOWUifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

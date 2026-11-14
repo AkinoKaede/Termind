@@ -74,10 +74,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Storefront and Commerce Release
@@ -105,7 +105,7 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ### Inspect the release artifact, not just the project
 
-The checked-in native Release settings use marketing version `1.18.2` for both apps, but separate build numbers: Mac `TFM` is `117` and mobile `TFI` is `105`. The project-level `CURRENT_PROJECT_VERSION` is `79`, so it is not the app artifact's build number: the app targets override it. Project Debug/Release inherit `Services.xcconfig`, whose tracked contents do not set versions. These are source baselines, not uploaded build identifiers. The CI archive script runs `Scripts/bump-version.py "$BUILD_VERSION"` first: it sets the requested marketing version, increments the project and each app's build independently, and aligns Widgets with TFI. Local includes and invocation overrides still require artifact inspection, and export permits Xcode to manage the final build number. Match the processed build in App Store Connect to the intended platform and version rather than copying a project value. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2340-L2380), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2456-L2587), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2626-L2667).
+The checked-in native Release settings use marketing version `1.19.1` for both apps, but separate build numbers: Mac `TFM` is `120` and mobile `TFI` is `108`. The project-level `CURRENT_PROJECT_VERSION` is `82`, so it is not the app artifact's build number: the app targets override it. Project Debug/Release inherit `Services.xcconfig`, whose tracked contents do not set versions. These are source baselines, not uploaded build identifiers. The CI archive script runs `Scripts/bump-version.py "$BUILD_VERSION"` first: it sets the requested marketing version, increments the project and each app's build independently, and aligns Widgets with TFI. Local includes and invocation overrides still require artifact inspection, and export permits Xcode to manage the final build number. Match the processed build in App Store Connect to the intended platform and version rather than copying a project value. See the [mobile Release settings](../../Termind.xcodeproj/project.pbxproj#L2365-L2406), [project configurations](../../Termind.xcodeproj/project.pbxproj#L2473-L2612), and [Mac Release settings](../../Termind.xcodeproj/project.pbxproj#L2651-L2692).
 
 For each platform, privately inspect the resolved configuration for the actual archive invocation and the app that will be delivered (again after export if signing changes). Do not dump build settings or publish raw logs containing service configuration; the CI archive script deliberately avoids both. Retain sanitized verification results rather than credential-bearing output. Check:
 

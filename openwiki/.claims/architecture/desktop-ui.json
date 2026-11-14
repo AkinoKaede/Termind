@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c768d065ee8d255a16c73a7c191ca7ff3b3a6f3c476fb531b38d620082428b5a",
+  "pageVersion": "sha256:b0767f70147199f4183a20da05d2ef8e79f9c4dcba354d0deb48b42647929fc6",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -188,7 +188,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
@@ -205,7 +205,7 @@
       "statement": "Saved-host SSH-family terminals (SSH, Mosh and Eternal Terminal), Telnet and SFTP panes own connection-history events; closing ends the event, moving preserves it, and Serial or unsaved targets are excluded.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L1542-L1554",
+          "resource": "repo://TFM/App/AppModel.swift#L1561-L1573",
           "version": "repo-lines-v1:sha256:9655c0c65f4075c2e523cfabc76c04ea79461ee126b832d4a475757653f1cc9e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzOTJjMGNiM2FjN2Y3YzcyNDg0NWYyOWY1N2M1YTc2MWQ3ZmYyZTA3MGViZjQ0YjE0ZWE4ZWIxOGQ4OGM0NGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2NmIxZDk4MDU5YTg0MTM5MTc5Yzg3MjU2NjRhMzczZWU3NDJlZTM2ZjQ3NmUwNDFlMGI3NTVlM2Y0NTE0NzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1NTU5OTIyOWE5ODMyNjgyNDNjMjMyMjVmYzk3NDY4MzU5MGZjMTExMDhiODFiMjdlM2IwNDU2NGZjNjExZDEifQ"
         },
         {
@@ -562,7 +562,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
@@ -630,7 +630,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:db89657d6321e3f628deb9045d9e99be8aacee9e3130d74759fd7f95c457bab1"
+          "version": "repo-file-v1:sha256:57c7d6a21361d443d2693cf2130d6ab508aae057eb981e57336c250f25b1c905"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -698,7 +698,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8ba3b738751df68ef4989f5322d221165baa759c70ac2f8344b7df624f481083"
+          "version": "repo-file-v1:sha256:34cbdb39383107d1cbaa321117afffc381ee952aac514af672f6bb13faf9ceec"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
@@ -971,7 +971,7 @@
       "statement": "AppModel injects its app-owned RemoteSessionCloseCoordinator into windows. WindowModel builds validated managed-session requests, prioritizes requests carrying transferred SSH connections, and marks accepted sessions closing so recovery records and copyForReconnect omit the scheduled remote identity; absence of a cleanup owner or valid request preserves the reference.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L797-L806",
+          "resource": "repo://TFM/App/AppModel.swift#L799-L808",
           "version": "repo-lines-v1:sha256:f8380cbeb3bd75ab2a2330d743dbb8866bcfac429e92b17930b792b1af54d15c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyZGM1ZjhiMjc2YWM4MjBlNzdjMWZkYWIwYzU1NGFkMGE5Yjk5YzNiMGIzYmI2N2U3NjM4NmIwNDM0NjQzNTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyYzU5NzJkMDQ5NDFjYjgyODk0NTM4MzExMWFjZGVmYmY0YTdlZGU5OWU4N2RjNDdhNzk3ZWJhODcxZGU4YTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyMzc3OGViMjVjZWFlNDg1Mzg4ZDhhZGM3MTlkZTgwYmVhZGE1Mzc4YzdiZjBkN2JjM2YyYTE3YjUyMWY5NTkifQ"
         },
         {
@@ -1075,10 +1075,102 @@
           "version": "repo-lines-v1:sha256:67ebc37af7492836552e07765f38f7d64a8b1a0276c9a087688033883ed0a07a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyY2E5NTY5MjM0NjlkMTg5MjU3NTBjNDllNjU3OWViNjY5MDQ4ODk2ZTliNzI1YjQ1ODgyZmM0NTc3NWY5YmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNzY5YjFlNzAwMWVmNWUyZWNlZDM4Y2QyZWNkMDdiZTM4MzhlY2M0ODMxZDQ5MjFkYzg1ZGQ1ZjQ1OTk5NDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0ZDM5OGFiNzZhNGE1ZGNjMDVmODA5MDIwZDA2MDA2ODg0MjA5MzFjM2EwOWNmN2YzYTMyZTEyZTBjODMxMDYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_d59b44c6197f49878f03b43a0f44e179",
+      "statement": "Desktop Assistant history restoration is app-owned: concurrent callers join one task, closing an initiating window does not cancel it, and after successful restoration later windows adopt the same conversation instances without reloading history.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L795-L878",
+          "version": "repo-lines-v1:sha256:b300e30eedfededc9d3b90afad6a967055e5e70a08d53fabf013bbc808f2f4ea:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5NmNiNzJjNThmMjRjYzg3ZjhkYzk0NmY1NmU5YmVhODA2OGNlNTcyNDlhN2MyNTc5NmEzMDhkM2FiODMyNjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmOWQzYjMxYzE4NzkzOTU1NDRjOTRjYjliMjc0NGM2MTk0ZGQ4NTUzMjZjMDc0N2JlZmFjMWFmODgxMWFhMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyODMzMDFlYTc5ZTk3NmVmZjdkOTNiNjg3YzJkMGE4M2Y3ZGYzY2M0ZWYyYWQyZTg3OTYwYmIyNTYyMjAyOWIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AssistantStartupTests.swift",
+          "version": "repo-file-v1:sha256:ebdf13b17f3314c57ec199d2c36b567e7cd5c0d82828c9cfb19fcd7c3ea4df95"
+        }
+      ]
+    },
+    {
+      "id": "claim_014ef149ad054928928c78dbda271df7",
+      "statement": "Assistant restoration clears its in-flight task on exit and marks restoration complete only after successful load and application, allowing failures to be retried; registration ignores cancellation and projects other failures through the window's assistantOperationError.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L836-L878",
+          "version": "repo-lines-v1:sha256:9f69155fa7f8d1de771d648786c9e295ec4219087a9350ae8ba4d50d3f6f5405:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNkMTg3MzAwMmE5MGMxMzkxNzk4YThlOTQzMzE3Y2IwMDgxMjcwZDliZThmYzM1OGNhNDI1M2M4OWQxZWY5OTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyODMzMDFlYTc5ZTk3NmVmZjdkOTNiNjg3YzJkMGE4M2Y3ZGYzY2M0ZWYyYWQyZTg3OTYwYmIyNTYyMjAyOWIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AssistantStartupTests.swift",
+          "version": "repo-file-v1:sha256:ebdf13b17f3314c57ec199d2c36b567e7cd5c0d82828c9cfb19fcd7c3ea4df95"
+        }
+      ]
+    },
+    {
+      "id": "claim_9fea8175456d4e499af630e695b40302",
+      "statement": "Desktop restoration filters conversation IDs deleted during startup and resolves model selections before restoring the shared conversation store.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L872-L899",
+          "version": "repo-lines-v1:sha256:dcfef7f02755b5f374b381b73cd75db6e352bef6d734abead49dc83fa59855bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYTk0ZTUwNzQwZDg5ZTZjYjI5OTRiNmIzYTM2ZjQxMTYxYWE0NDk1ODdiZGRiNWM4MzRjMjY1ODljOGQyYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxNWE1NmM0MDc1OTJkMTNmZDc1ZjQ5ZWE2ODEyZTBiODU1MzkzM2FiMjA0Y2UxYjZjYTQxNTFlYzVjNmRiYWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1MzhhNjM2NDMxZWE4MTI3YWQ1NTcwYzI5ZGI3MTZkNDFiZDMwMGNmNGZkNTFmZmEzNjQ2NjI3ODY3NzQzMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2MTM5MDkzY2JmMjNiMjU4OTMxMzE2OWE2ZmY5YzJiNTNiYjUxMWVmNGUyZGJjYzg4ODQzY2NlMDE2NDgxZjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_36c6e5c55b58447daa5c2a30f13cba96",
+      "statement": "Application termination marks the app terminating and cancels Assistant restoration; the post-load cancellation check and termination guard prevent late history results from repopulating the shared store.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L1053-L1066",
+          "version": "repo-lines-v1:sha256:41c8a54976440e2cd2c332e7b31579be77248cd1ecaaae23a7f8d7f894b80bcc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NjUzOTY0Zjk3Y2IzNjRjZTcxMzJiY2ZkYzRkYjU3M2Y5NWEzMGViNTRmZWZkZGRiNzQ1MTFkZTI2ZmM3NDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNTkyMzU4NWI5MjdmMGM3NTRlNGQ0MTA0YjBkNTA3ZjUzNzIzZTM2YWM2NzRiYmZjOTFkYjJhZjIwNjA4NjgifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L853-L878",
+          "version": "repo-lines-v1:sha256:93bf5f068b0e29331148214dfe5cdb5296e96617a69f5e882120370f99dbd2f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ZjQzZjU1NWNiOTZlNmRlOGUxOWViNGNmMWEwMTc0MWIxMDZmZDQ0NTc1NjcyYmM3NDAzN2ExMzFkNGU3MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwZTAxN2YyYTI4M2VhZjk4NTdiNWZhYzc0NDE5YzI2YmQyYmU4MjNkYzM4ZTY3OGExNzJmMjBmMjBlZDY0MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyODMzMDFlYTc5ZTk3NmVmZjdkOTNiNjg3YzJkMGE4M2Y3ZGYzY2M0ZWYyYWQyZTg3OTYwYmIyNTYyMjAyOWIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AssistantStartupTests.swift",
+          "version": "repo-file-v1:sha256:ebdf13b17f3314c57ec199d2c36b567e7cd5c0d82828c9cfb19fcd7c3ea4df95"
+        }
+      ]
+    },
+    {
+      "id": "claim_842a6bc6890148e78feb0c801fcd039b",
+      "statement": "Native Assistant work rows use work-group presentation state and segment timing for headers and retain child views by identity; a steering boundary can complete the old header without replacing mounted Markdown, with completed-segment auto-collapse and the next work row ordered after the steering message.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift#L985-L1112",
+          "version": "repo-lines-v1:sha256:39fe1b9311b6964b8e2415a354446344403d9504ec9a65219fb8d6c40b71f0f4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxN2IwM2FhNDU1MDA0ZDEwMWMyNDljOWRjNzYyNDFmOGEyZTA3NGU3OWE3ZWUzYjFlMDU1YTljZjcwMjhmMDFkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJkMzJmY2FiMDMwNzI5NWVmNzk3NjVmYzRiOTY5YTJlYWI0NGNmZjEyMmMyNzNkOGZhM2YzMWU3YWVkYjhjZjI4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNTExMzViNTA5NzJlNTRhNWVhMDgzZWM3YmFjMGY5NzIxMGI1MjAyZjRiY2ZhZDA5ZWNjNGNhZDAwMDczMWRhIn0"
+        },
+        {
+          "resource": "repo://TFMTests/TranscriptListViewTests.swift#L338-L380",
+          "version": "repo-lines-v1:sha256:f7622e341a31c340770cced90c3e4773e5bc432d79a9261340f2667f61f042b9:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiODNiYzVmZmEzNzk1NzIzZjU4MTRlZmI4Nzg5YzU5ZWQ2ZGIxMWViYTBlYmU3Y2IzYzNmZjY1ZjEyYzk5OWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c97c3319e2204e7890cb161d9d39d278",
+      "statement": "Desktop empty-Backspace selection dismissal is restricted to plain key-down Backspace in the observer's key window with an editable empty unmarked text first responder and composer focus; it dismisses the armed skill before planning mode without touching attachments or losing editor focus, otherwise leaving normal editing intact.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L928-L941",
+          "version": "repo-lines-v1:sha256:4059b88725a9f2e0b6c008ffa294f55cbe9bfb9b8322bb806df2b5311e0b74e0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmMmJlYTExOWRkZmQ1Njg0OGVhOTViNWIzMjk5NDRiMjZkN2MzYWZmOGEwYTdhNzUwMDk0YmQwYmY0MzAzNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM2NGI3ZTVjYTBkYjU0Mjk4NjA5M2E0OGZmOTVjZWQ2M2I1ODNiYTZmMTBiOTUwZjA4NTEwNDQ2ODJiNWE5ZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxZmI2YTIyMGY3MTNmOWZjNmU0ZWRmYjI0ZmM2NjAzZWExYmUzYWY3NjFlMGZmZjE2NDg4ZWE2ODEyMDU2ZjAifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/AI/ConversationViews.swift#L13-L105",
+          "version": "repo-lines-v1:sha256:44991003e13f2ddadc3d57044ac424f81564369da77aecb7066c2df4419d8eff:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYjgxNjdiOGQ1ZjAxYjgxN2Y3Zjc0NjI1NzI2ZTY0MTcyMDk5MGEzZmVmZTQ3NjIzZDU2NTA4NTU1MGRjYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlMTJkNDEzNDM2ZmZjNTA5ZmM2YzU0ODdhMDZhNGU5ZWJhYjQ3MGI4NjkwMWZkNTNlYWFhNTE2NzUxOTE5OTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1N2VhNWQ5NDNlNDI2MzU0ZmZiM2EyMTM5ODkxNmFhNmM3MTZjYTM2YWE3MTcxY2VjMjhkMzIxOTljODA5MjgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/AI/ConversationViews.swift#L649-L649",
+          "version": "repo-lines-v1:sha256:e3b004a5b4555301b802a8a9719a58e8eb96e9f07c7d912c0f4c341f6288cbaa:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTNiMDA0YTViNDU1NTMwMWI4MDJhOGE5NzE5YTU4ZThlYjk2ZTlmMDdjN2Q5MTJjMGY0YzM0MWY2Mjg4Y2JhYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTNiMDA0YTViNDU1NTMwMWI4MDJhOGE5NzE5YTU4ZThlYjk2ZTlmMDdjN2Q5MTJjMGY0YzM0MWY2Mjg4Y2JhYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTcyYTUxN2Q1ZjU1YzBlNmZjNzcyODYyMjJmNTFmNTQyM2JjYWRlM2NiM2YyNWU4NjVjZjI4NjYxY2Y2YTI3ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGNmOTU2NzMwOTNhMzFjMTQ4ZWUzZGE0YTMwNjAyYmQ0MWRhZmNiZWI1NjNhYjhkYjVjNzdhMjQ5NzQxZmQ2MiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/ComposerBackspaceTests.swift",
+          "version": "repo-file-v1:sha256:2cdd5bb5cbd3d89358a77a641674c8780f82c7c4c0cd48369aca5240dfe44a88"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

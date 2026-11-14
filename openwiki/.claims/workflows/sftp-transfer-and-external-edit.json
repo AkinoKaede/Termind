@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bb6abb81bd5789e0238374c4a709a2ebdffaf111ddb78eafa4875822d68d05b9",
+  "pageVersion": "sha256:85422d3d25c58b12b7e8659a0db30616aa0665c9d38c52188f1f2015900c7fd7",
   "claims": [
     {
       "id": "claim_5ca6241ea6cc4ebbb915ccbe304f8430",
@@ -607,11 +607,11 @@
           "version": "repo-lines-v1:sha256:db0e92d61633acdb4c879895a200fa4c923d433729c6224138f222bba1e49d53:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzBiYjIxZThlMWMwNTJmMDM3Mzc0ZWFiZDk0ZGY3OTljNzNhM2E5M2NhMmQyYzk0ZDc3NjA5ZTc1M2ViODU1NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmFhMDIyNWY0MWUxMTU1NWMzNDUxMTVhMDdiMzY0YjBiZjc0ZjQyNDMwYWZiZjQ3OTM1Y2M1NjY1ZjU1OWIwMiJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L331-L338",
+          "resource": "repo://TFM/App/AppModel.swift#L333-L340",
           "version": "repo-lines-v1:sha256:ffc519db4c85fe1e6ddab6735c746860834cffa16fb0da7038dc20306e53f1ba:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTMwMzdiMWQzMWYwNjZmYzJlNDEwOGE0M2Y1ZWY4MTQwOWJiYzIxMDdiYmQ3NDhmZGFiMWRhZmRmYTNiMDg0YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjAxZGRmYTJjMDM4MmYzYjYzNzM5MmMwNzBiODhiYWU5ODdlMzYxYzY4YzY5NjkzOGVmMzk4YTUzMzBkOWVlMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjRlMTQxNjg2Njc4YWNhYzkyMmJmOTdjMGY2NjQwMjE2MjBlNTYwMTM3MWZlMjI3MDkxNWJlOGQwOGFmZjUxZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjQyNWMyZmIzNGQ1N2VmMzI0ZmMxNWYyMjAzYmJmNTUzOGY0NzE5MzcyOTJlZTA4MTFkMTA0ZTc1YzkxMmI4MSJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L545-L548",
+          "resource": "repo://TFM/App/AppModel.swift#L547-L550",
           "version": "repo-lines-v1:sha256:a86941f823947913680dea35851838bf3ae342d032f6f17f4ba83a4160a3d53c:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2U2Y2E1N2M4MWRmOTU0NDRjYzU3NTk5YWYxNmQ4YTBjMDlkOWEyMzc2ZjlhMjZjODM4N2ZmM2JiMTY1MTY2NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzUwZmJmMGU0YTM3MDQyMWUzMjY5ZjhkNTkzYjRjYjkyZGY5YWFkNWQ1NGQ4NTdkODQwODUzZjc4ZjY1YmZlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTU5ZDE0ZTg1NjMzYjFkNjI1YWUzZGVmMDc2MmRlMTNhM2ExNWYzNTcyY2Q3YmE4MGRlMTEyN2RhMmVhOGEwYyJ9"
         }
       ]
@@ -698,7 +698,7 @@
     },
     {
       "id": "claim_825bb8d413eb401ab8542ee613ceb578",
-      "statement": "The application pins remote AgentKit 4.0.0. For tool-call-capable models AssistantToolRegistry composes one shared scratch workspace into both AgentKit built-ins and TermindAgentTools; host-backed SFTP and scratch tools receive the Agent authentication registry and pool rather than browser contexts. Scratch pull requires a workspace, and scratch push additionally registers for acting mode. Repository tests establish shared files across conversation workspaces and preservation after removeScope.",
+      "statement": "The application pins remote AgentKit 4.1.2 from https://github.com/AkinoKaede/AgentKit.git at revision dae2fc9ac8698a188574c1ae8bee2545ad83afe0. For tool-call-capable models AssistantToolRegistry composes one shared scratch workspace into both AgentKit built-ins and TermindAgentTools; host-backed SFTP and scratch tools receive the Agent authentication registry and pool rather than browser contexts. Scratch pull requires a workspace, and scratch push additionally registers for acting mode. Repository tests establish shared files across conversation workspaces and preservation after removeScope.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L27-L63",
@@ -714,7 +714,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20",
-          "version": "repo-lines-v1:sha256:5aa8f9a37e8cbff8126709e07eb643289736208400925fd0c94a842be8e45cd3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
+          "version": "repo-lines-v1:sha256:301edd8fedcacbf10b01a047d5db5bdc8303675ca44553e4d071ccdb37750d97:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
         }
       ]
     },
@@ -810,7 +810,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

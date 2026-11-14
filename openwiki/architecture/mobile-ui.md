@@ -4,6 +4,8 @@ title: Mobile UI and Scene Ownership
 description: "How iPhone and iPad retain adaptive feature stacks while scenes own navigation over shared app services and in-process window workspace sessions, including recovery, remote-session selection and native-window verification."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 sources:
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
@@ -28,6 +30,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/OperationConfirmation.swift
   - id: openwiki-source-8130b7f1a7f0512955959ba7
     resource: repo://Frameworks/TermindPresentation/RemoteSessionPromptView.swift
+  - id: openwiki-source-c3d4e72485fed09342421617
+    resource: repo://FrameworkTests/ComposerSelectionDismissalTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-60d390fe6fbfea55a2a8230a
@@ -60,10 +64,14 @@ sources:
     resource: repo://TFI/DesignSystem/MobileLayoutEnvironment.swift
   - id: openwiki-source-bb7c576ff899dcdee98e37f9
     resource: repo://TFI/DesignSystem/MobileToolbarEnvironment.swift
+  - id: openwiki-source-76119c371b890965bea9c6bc
+    resource: repo://TFI/Features/AI/MobileAssistantComposer.swift
   - id: openwiki-source-3dfad0e95bb7d66f292c20c9
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-6198730d1438317cedd37723
     resource: repo://TFI/Features/AI/MobileAssistantInteraction.swift
+  - id: openwiki-source-a8b605c0150a80437a6a95ec
+    resource: repo://TFI/Features/AI/MobileAssistantWorkRow.swift
   - id: openwiki-source-d43ef236ba4bbb23d8dab797
     resource: repo://TFI/Features/Assistant/MobileAssistantView.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
@@ -186,10 +194,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Mobile UI and Scene Ownership
@@ -609,6 +617,8 @@ Message images use `MobileAssistantImageFlowLayout`, not the managed-card grid: 
 
 The transcript distinguishes **layout revisions** from **interaction-only revisions**. Its refresh identity contains conversation ID and archive state, not streaming state; only plan rows change interaction revision when streaming changes. `MobileNativeList` reconfigures mounted interaction-changed rows without invalidating their measurements, avoids configuring a row twice in a mixed update, and retains the latest renderer for later offscreen mounts. Actual content/disclosure changes still update geometry, and explicit refresh or environment changes still reload rows. Bottom-follow applies only when already within 48 points of the bottom and not actively scrolling. `MobileAssistantTranscriptTests` checks unchanged hosts and history anchors across run boundaries, zero measurements for interaction-only updates, mixed-update deduplication and fresh offscreen renderers; these are native-list harness contracts, not full-device gesture coverage.
 
+Steering delivery is a **presentation-segment boundary**, not completion of the underlying run. The mobile transcript consumes `conversation.timeline` through `AssistantTranscriptEntry.items`, rendering successive user/work entries rather than merging all same-run work into one row. `MobileAssistantWorkRow` uses each group's `presentationState`, `startedAt` and `finishedAt` for default disclosure, activity timing and title: a closed segment presents as completed while the next segment can still be running. Keep these segment-aware consumers when changing work-row presentation; using only `group.run.state` would make earlier work appear active again. [`MobileAssistantTranscriptTests`](../../TFITests/MobileAssistantTranscriptTests.swift) checks that delivered steering retains the earlier work ID, creates a distinct new work ID and preserves the hosted history row and its viewport anchor even when bottom following is requested.
+
 The interaction region can contain more than the composer, so its height is measured rather than assumed from a fixed input-bar constant. It bottom-aligns and scrolls based on content size. Tapping the transcript can dismiss composer focus without changing the conversation or ending the run.
 
 The shared application Assistant runtime owns execution, not `onDisappear` on the conversation view. It coalesces concurrent repository loads, restores conversations into one store, and gives each scene its own library selection and draft over that store; send is gated during suspension and on authorization, archive/history/compaction and pending-attachment state. Background expiry requests cancellation across conversations before awaiting their drain, then closes Assistant background commands and Host connections. The view's disappearance only removes its temporary preview directory. App background expiration is a separate boundary.
@@ -617,7 +627,9 @@ The shared application Assistant runtime owns execution, not `onDisappear` on th
 
 Message submission is a native-editor action, not a scene-wide Return shortcut. `MobileMessageTextEditor` reads `SettingsKey.inputSendShortcut` (default `.returnKey`): Return sends and Command-Return inserts a newline, or `.commandReturn` reverses those roles. Shift-Return and Command-Shift-Return insert newlines; marked text, Control and Option defer to system handling. Only an editable first responder in the key window owns input actions. Pasted newlines remain text, and SwiftUI updates do not overwrite marked text. Changing the preference updates the mounted editor and keyboard return type without replacing its draft or selection.
 
-`MobileMessageTextEditorTests` verifies unmounted rejection, preference changes with retained editor/selection, and key-window Return/marked-text behavior. Its key-window cases are serialized and opt-in via `.requiresKeyWindow`. Separately, `MobileShortcutTests` checks the nonduplicating app command map: Command-T Connect, Command-Option-T New Chat, Command-Option-I Show Assistant, Command-I Generate Command, Command-Y History, Command-Shift-B Batch Startup and Command-Shift-[ / ] workspace cycling. App commands target the focused scene; native text submission targets the focused editor.
+Empty Backspace has a separate, opt-in composer action. `MobileMessageTextView.deleteBackward()` calls `emptyBackspace` only when it owns input actions, its native text is already empty and there is no marked text; a handled callback consumes that deletion, otherwise UIKit performs normal editing. `MobileAssistantComposer` delegates to `conversation.dismissLastComposerSelectionIfDraftEmpty()`, which also checks the model draft is exactly empty (whitespace is not empty), removes the armed skill first, then planning mode on a later press, and leaves attachments and pending attachments intact. Deleting the last character does not dismiss a selection in the same press, and dismissal does not resign focus. Other editor consumers default to an unhandled callback; dismantling clears it.
+
+`MobileMessageTextEditorTests` verifies unmounted rejection, preference changes with retained editor/selection, and key-window Return/marked-text behavior. Its empty-backspace case also checks ordinary text deletion precedes selection dismissal, composition and disabled editing preserve selections, and successive empty presses remove skill then planning while retaining focus. Shared [`ComposerSelectionDismissalTests`](../../FrameworkTests/ComposerSelectionDismissalTests.swift) checks whitespace rejection and attachment preservation. Its key-window cases are serialized and opt-in via `.requiresKeyWindow`. Separately, `MobileShortcutTests` checks the nonduplicating app command map: Command-T Connect, Command-Option-T New Chat, Command-Option-I Show Assistant, Command-I Generate Command, Command-Y History, Command-Shift-B Batch Startup and Command-Shift-[ / ] workspace cycling. App commands target the focused scene; native text submission targets the focused editor.
 
 ## Native notification routing and unread state
 

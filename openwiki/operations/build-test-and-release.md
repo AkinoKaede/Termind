@@ -24,10 +24,22 @@ sources:
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
     resource: repo://fastlane/lib/screenshots.rb
+  - id: openwiki-source-04e31a9ae842ff3fd99408f1
+    resource: repo://Frameworks/Resources/Fonts/Fonts.README.md
+  - id: openwiki-source-a8083bc1da83e08945ca7144
+    resource: repo://Frameworks/Resources/Fonts/Fonts.sources.json
+  - id: openwiki-source-1a906e9aae78eda115cd7411
+    resource: repo://Frameworks/Resources/ModelCatalogOverrides.json
+  - id: openwiki-source-de6df872199c2174ef5070ca
+    resource: repo://Frameworks/Resources/ModelCatalogPolicy.json
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
+  - id: openwiki-source-d5a1739d11bdad59b9de4986
+    resource: repo://Gemfile
+  - id: openwiki-source-5b54a58d1b51cd490b0e7162
+    resource: repo://package.json
   - id: openwiki-source-d125bef219ce9eee56abf917
     resource: repo://Scripts/check-localization.py
   - id: openwiki-source-ba52e849ccbc71f7247c983a
@@ -40,6 +52,10 @@ sources:
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-af3f04baa8e4f13f98b7d6c7
     resource: repo://Scripts/Tests/test_apple_build.py
+  - id: openwiki-source-71548a55cce9d5afca8b8c3e
+    resource: repo://Scripts/Tests/test_model_catalog.py
+  - id: openwiki-source-1f3f8fa99020eb49f32278f1
+    resource: repo://Scripts/update-model-catalog.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -56,6 +72,8 @@ sources:
     resource: repo://TFITests/KeyWindowTestTrait.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-bc95e901ca3e10fe208b8b39
+    resource: repo://TFITests/MobileBundledFontTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-f4b87eae375fa9241ff8cb35
@@ -68,6 +86,8 @@ sources:
     resource: repo://TFITests/Screenshots/MobileScreenshotTests.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-4e263bc2697f604c9b85e2e9
+    resource: repo://TFMTests/AIProviderPersistenceTests.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-c760fd3440c4d99945238ba5
@@ -76,12 +96,14 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-db017475c6e5a30e0527fd60
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
+  - id: openwiki-source-eff0965a6404aed978ca9b22
+    resource: repo://TFMTests/TerminalBundledFontTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Build, Test, and Release
@@ -188,10 +210,10 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.18.2` | `79` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.18.2` | `117` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.18.2` | `105` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.18.2` | `105` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.19.1` | `82` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.19.1` | `120` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.19.1` | `108` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.19.1` | `108` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
 
@@ -319,7 +341,7 @@ python3 Scripts/check-localization.py
 
 **Use the current Python checker, not retired script names.** `AGENTS.md` names `Scripts/check-localization.py`, but its references to a Chinese-only check and a `jq` requirement lag the implementation: the current checker uses Python's standard library plus the sibling normalizer module and checks all six non-English locales. Do not recommend the unavailable `check-zh-localization.sh` or `check-cjk-localization.py`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when shared catalogs, the normalizer, localization checker, or the workflow change. Its sole validation command is `python3 Scripts/check-localization.py`; it does not run native Swift tests or Python regression discovery. Its path filters do not make it an every-commit check, so keep the catalog gate in the local commit pipeline even for code-only changes.
 
-`Scripts/Tests/` now contains `test_apple_build.py` and `test_firebase_configuration.py`, and Test CI discovers `test_*.py`. Historical `test_localization.py`, `test_normalize_string_catalogs.py`, `test_cjk_localization.py` and `test_bump_version.py` remain unavailable; do not mistake CI-script discovery for dedicated localization regression coverage. When changing validation tools, explicitly provide focused regression evidence.
+`Scripts/Tests/` contains `test_apple_build.py`, `test_firebase_configuration.py`, and `test_model_catalog.py`, and Test CI discovers `test_*.py`. Historical `test_localization.py`, `test_normalize_string_catalogs.py`, `test_cjk_localization.py` and `test_bump_version.py` remain unavailable; do not mistake CI-script discovery for dedicated localization regression coverage. When changing validation tools, explicitly provide focused regression evidence.
 
 ### Focused language and presentation regression tests
 
@@ -350,7 +372,7 @@ The website directory is empty in this checkout; its README and package manifest
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed remote Swift package. Termind’s project specifies an **up-to-next-minor** minimum of `4.0.0`; the workspace `Package.resolved` selects AgentKit `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`.
+AgentKit is a separately developed remote Swift package. Termind’s project specifies an **up-to-next-minor** minimum of `4.1.2`; the workspace `Package.resolved` selects AgentKit `4.1.2` at revision `dae2fc9ac8698a188574c1ae8bee2545ad83afe0`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`.
 
 AgentKit, libssh2-spm and libtailscale-spm are remote-only native dependencies, not maintenance submodules. `.gitmodules` contains only the public website. There is no local package manifest from which to infer AgentKit's current internal target graph. Ordinary resolved Termind builds validate the selected remote release, not unreleased changes in a separate package checkout.
 
@@ -374,13 +396,50 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 
 ### Ghostty direct upstream dependency
 
-Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026101502` at `42bacd1339f323a693ddbca779295f4f77e5a697`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
+Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026110702` at `1d84cf66fe29abd1f24f10b88dcfc25882cf68ee`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
 
 Update the upstream requirement and `Package.resolved` together, then use resolved-only TFM and TFI builds and the affected adapter tests. Grouping, localization and upload policy remain Termind-owned around the package's separate touch/selection hooks. Package internals need their own source/test review; a host test or pin inspection is not a binary-release or live interaction result. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
 
+## Model catalog snapshot maintenance
+
+[The updater](../../Scripts/update-model-catalog.py) downloads `https://models.dev/api.json` to `Frameworks/Resources/ModelCatalog.json`, or replays saved input without network access. It preserves upstream bytes, including unknown fields, rather than generating a reduced capability table. Review the printed SHA-256 and snapshot diff together.
+
+```sh
+python3 Scripts/update-model-catalog.py
+python3 Scripts/update-model-catalog.py --input /path/to/saved-api.json --output /path/to/replayed.json
+python3 -m unittest discover -s Scripts/Tests -p 'test_model_catalog.py'
+```
+
+The output parent directory must exist. Validation rejects duplicate JSON keys, nonfinite numbers, malformed objects/IDs, ID mismatches and normalized provider/model collisions (case-insensitive, with a leading model `~` removed). It checks capability booleans, nonnegative integer limits, modality string arrays, and effort-option string arrays. At least one supported model must exist. Unknown model types produce warnings but remain in the snapshot; missing fields and future reasoning-option types are not synthesized or discarded.
+
+```mermaid
+flowchart TD
+    Download["Download models.dev bytes"] --> Validate["Validate raw snapshot"]
+    Replay["Read saved input bytes"] --> Validate
+    Validate -->|valid| Temporary["Write same-directory temporary file"]
+    Temporary --> Replace["Atomically replace snapshot"]
+    Validate -->|invalid| Retain["Keep existing snapshot"]
+    Replace --> Review["Review digest and diff with policy and overrides"]
+```
+This flow preserves the previous snapshot on validation failure and uses atomic replacement after validation.
+
+The updater writes mode `0644`, cleans temporary files on replacement failure, and reports download/validation/I/O failure with a nonzero exit. Focused Python tests cover byte-identical replay, unknown fields/types, all supported types, malformed inputs, duplicate identities, download failure and failed atomic replacement without changing the old snapshot. These are fixture tests, not a live provider capability audit.
+
+Keep product policy separate from upstream data. [ModelCatalogOverrides.json](../../Frameworks/Resources/ModelCatalogOverrides.json) supplies Termind's `openai/codex-auto-review` metadata; [ModelCatalogPolicy.json](../../Frameworks/Resources/ModelCatalogPolicy.json) hides it from the assistant. The updater replaces neither file. `TFMTests/ModelCapabilityResolverTests` (declared in `AIProviderPersistenceTests.swift`) checks the bundled override's modalities, abilities, limits and reasoning options and its hidden status without embedding `showInAssistant` in model specification fields. Use that resolved-package suite when changing these resources, alongside the Python updater tests. The remote AgentKit implementation is not a local maintenance checkout; see [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for runtime context.
+
+The former `Scripts/update-pi-model-catalog.sh` compatibility path and `PiModelCatalog.json` are no longer present. Do not document historical npm-version refresh/deduplication as current behavior: use the raw models.dev updater and its `--input` replay interface instead.
+
+## Bundled font provenance and validation
+
+[Fonts.README.md](../../Frameworks/Resources/Fonts/Fonts.README.md) records unmodified standard Nerd Font variants from Nerd Fonts **v3.4.0** (not Mono or Propo) and official JetBrains Mono **v2.304**. There are ten faces: SauceCodePro and JetBrains Mono each supply Regular/Bold/Italic/BoldItalic, while FiraCode supplies Regular/Bold. Review each file's source URL, byte count and SHA-256 against [Fonts.sources.json](../../Frameworks/Resources/Fonts/Fonts.sources.json) when replacing assets. Retain `SauceCodePro-LICENSE.txt`, `FiraCode-LICENSE.txt`, `NerdFonts-LICENSE.txt`, and `JetBrainsMono-OFL.txt`; these assets use their own licenses, not the app source license. Hash comparison establishes byte provenance, not legal clearance.
+
+The synchronized resources are copied to each app's resource root; iOS uses `UIAppFonts`, macOS uses `ATSApplicationFontsPath`, and Widgets excludes the fonts. Official bundled JetBrains Mono makes the family selectable through CoreText; Ghostty's private font and Nerd-symbol fallback do not replace app registration.
+
+Run resolved-package tests with `-only-testing:TFMTests/TerminalBundledFontTests` and, on a concrete simulator, `-only-testing:TFITests/MobileBundledFontTests`. Both check all ten registered resource URLs, family availability, bold/italic traits, terminal glyphs and monospaced advances, plus selection/reset behavior. The mobile suite also checks that embedded extensions contain no TTF resources. These tests are registration/rendering-contract checks, not digest or license audits. `AppLanguageTests` additionally checks built-in/system font labels across all seven locales and preserves the upstream name `Source Code Pro` in localized descriptions.
+
 ## Scheduled documentation operations
 
-[OpenWiki Update](../../.github/workflows/openwiki-update.yml) runs daily at `20:00 UTC` or on manual dispatch, using full Git history so updates can diff against the documented baseline. It runs `openwiki code --update --print` with Node 22 and pinned OpenWiki/Mermaid/jsdom tooling. Configuration is checked before generation. Generation may fail after completing some pages: the workflow still removes transient `.run.json` and opens an `openwiki/update` PR preserving completed work when not cancelled, then propagates the failure. Review that PR and its reported outcome; partial documentation progress is not a successful native verification or release.
+[OpenWiki Update](../../.github/workflows/openwiki-update.yml) runs daily at `20:00 UTC` or on manual dispatch, using full Git history so updates can diff against the documented baseline. It runs `openwiki code --update --print` with Node 22 and globally installed `openwiki@0.9.0`, `mermaid@12.1.0`, and `jsdom@30.1.1`. It validates `OPENAI_COMPATIBLE_API_KEY`, `OPENAI_COMPATIBLE_BASE_URL`, and `OPENWIKI_MODEL_ID` before selecting the `openai-compatible` provider. `OPENWIKI_LANGSMITH_API_KEY` authenticates connector pulls; optional `LANGSMITH_API_KEY` tracing is separate and defaults off. The PR may include `openwiki`, `AGENTS.md`, `CLAUDE.md`, and the workflow itself. This describes configuration, not evidence of a completed run. Generation may fail after completing some pages: the workflow still removes transient `.run.json` and opens an `openwiki/update` PR preserving completed work when not cancelled, then propagates the failure. Review that PR and its reported outcome; partial documentation progress is not a successful native verification or release.
 
 ## Release-oriented checklist
 
@@ -400,17 +459,19 @@ CloudKit production deployment and signed-device delivery are separate release e
 
 | Dependency | Current Xcode requirement and resolved release |
 | --- | --- |
-| AgentKit | `upToNextMinorVersion` from `4.0.0`, resolved `4.0.0` |
+| AgentKit | `upToNextMinorVersion` from `4.1.2`, resolved `4.1.2` |
 | libssh2 | `upToNextMinorVersion` from `2.0.3-termind-4`, resolved `2.0.3-termind-4` |
-| Tailscale | `upToNextMinorVersion` from `1.0.3`, resolved `1.0.3` at `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
+| Tailscale | `upToNextMinorVersion` from `1.0.4`, resolved `1.0.4` at `f0823de8da8c5fbf50218566825d346f2cc3daf5` |
 | Ghostty | Direct upstream remote package described above |
 
 The lockfile supplies selected revisions. No local `AgentKit/`, `libssh2-spm/`, or `libtailscale-spm/` build scripts are available. Historical instructions involving `Script/test-source.py`, patched-native staging, or XCFramework release workflows must be checked against upstream source and CI before use; this checkout cannot establish those release procedures. Keep project requirements and resolved pins aligned, and do not substitute native-package gitlink updates for dependency-file changes.
 
-Development tools stay in the parent repository, not the optional website:
+Development tools stay in the parent repository, not the optional website. The root `package.json` is private repository tooling: Node `>=22.22.0`, exact OpenWiki `0.9.0`, and an `openwiki` script—not the Astro app. `Gemfile` requires Ruby `>=3.3`, `<4.0`, pins fastlane `2.241.2`, and constrains minitest to `~>6.1`. Use the asset guide for the separate screenshot setup.
+
+Other maintenance entrypoints:
 
 - `Scripts/check-mcp-bridge.py /path/to/termind-mcp` exercises a built bridge against deterministic loopback HTTP for modern headers, legacy session deletion and JSON-RPC error passthrough. It does not validate the desktop server or a live remote host; see [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
-- `Scripts/update-pi-model-catalog.sh PI_VERSION` refreshes `Frameworks/Resources/PiModelCatalog.json` from an explicit npm package version, recording commit and integrity. It preserves capability fields and deduplicates provider/ID pairs preferring chat, then image, then other model types; do not replace its pinned input with a moving tag.
+- Model catalog maintenance uses `Scripts/update-model-catalog.py` and the raw models.dev snapshot described below. `Scripts/update-pi-model-catalog.sh` and `Frameworks/Resources/PiModelCatalog.json` are absent in this checkout: the historical Pi compatibility updater is not a current entrypoint, and no Pi-version argument should be passed to the Python updater.
 - Historical SwiftData fixtures and forwarding benchmark runners have independent provenance and measurement requirements. Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Port Forwarding Benchmarks](port-forwarding-benchmarks.md), not routine app tests, when changing them.
 
 The project owns target membership, embedding and build settings; shared schemes own build/test selection; `Package.resolved` owns selected remote revisions. Source-level architecture guards complement functional tests but neither audit remote binaries nor prove signed-device, storefront or capture readiness.

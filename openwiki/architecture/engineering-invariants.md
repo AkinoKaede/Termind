@@ -124,6 +124,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-c77d3e013db9567c1998697e
+    resource: repo://FrameworkTests/AgentHistoryLoadingTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-e1f030139039cf085fdbfce0
@@ -172,8 +174,6 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
-  - id: openwiki-source-7431229315ca54a8d8633a3c
-    resource: repo://TFI/Features/Settings/MobileTerminalThemeView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-f7aa24af0100c1767226879a
@@ -214,8 +214,6 @@ sources:
     resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-  - id: openwiki-source-c661b665fc19c6bd43499b01
-    resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-49f0fac89c69b4a04f428496
     resource: repo://TFM/Features/Terminal/SerialSessionModel.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -258,10 +256,10 @@ sources:
     resource: repo://TFMTests/TailscaleKeychainTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Engineering Invariants
@@ -438,6 +436,8 @@ Enforcing tests: [CloudSyncLifecycleTests](../../FrameworkTests/CloudSyncLifecyc
 Keep the full runtime contract in [Assistant Runtime](../concepts/agent-runtime-and-assistant.md). Cross-system changes must preserve these boundaries:
 
 - Optional model-selection persistence precedes synchronous capture of the complete turn/configuration before memory/compaction awaits. Capture freezes model/provider, credential availability, permission/reasoning, native search, skills, registry, guardian and compaction/review configuration; later settings changes must not reinterpret an accepted turn or revive a turn captured without credentials. Explicit payload-carrying `ContextChip`s disclose output/selection/file content; detach removes payload and accepted capture consumes attachments once. Replay keeps full tagged extraction/images; bubbles render authored text or legacy `visiblePrompt` plus references. Original non-image bytes support reopening, not implicit model upload. Tests: [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift), [ChatComposerStateTests](../../TFMTests/ChatComposerStateTests.swift), [AgentPersistenceTests](../../TFMTests/AgentPersistenceTests.swift).
+- **Main-actor writes do not imply main-actor history reconstruction.** `SwiftDataAgentRunRepository` keeps mutations on the main actor. With no pending context changes, `loadConversations()` uses an `@concurrent` reader that creates and owns its own `ModelContext`; only Sendable conversation values return. A repository mutation generation change while awaiting forces a retry, and cancellation is checked before publication. With pending edits, it reads the caller's context instead, preserving unsaved visibility **without saving unrelated changes**. Tests: [AgentHistoryLoadingTests](../../FrameworkTests/AgentHistoryLoadingTests.swift).
+- **Tool call IDs are run-scoped, not globally unique.** History restoration indexes transcript results by run plus call ID and card results by invocation ID. Crash recovery uses the owning run when message ownership is known, generates run-scoped result message IDs and restores their ownership; the standalone recovery helper retains call-ID-only fallback only when message run ownership is absent. Reused provider call IDs must not leak another run's output. `loadingSavedHistoryAllowsMainActorWorkAndKeepsRunLocalToolResults` covers both restored messages and cards.
 - Preparing cancellation invalidates identity synchronously, joins tracked edit/history/preparation work, then attempts interrupted persistence before projection. `stop()` alone does not wait; drain callers await `stopAndWait()` or cancellation task. Failed save reports error. In `savingFailure`, cancellation joins the existing failed-snapshot save rather than replacing it with interruption. Archive/delete wait; manual compaction refuses preparation; selection alone does not cancel.
 - History edits commit truncation before live replacement at the selected canonical user-message boundary. Preserve same-run prefix/tool ownership, neutral completed summary, title and relevant compacted display history; remove suffix/later runs and prune compactions by removed message IDs. Executed suffix tool invocation/result/review rows can be removed; legacy unowned cards belong to the suffix. Agent-provenance user messages remain uneditable. Editing history does not undo remote effects.
 - Edited replacement initially owns a same-message-ID staging run. The first real saved snapshot adopts only that staged row and removes staging while preserving chronology and historical replay ownership. Missing-model/credential preparation failures project only after save; failed saves do not adopt staging. Repository-instance retired IDs reject late writes.
@@ -457,7 +457,7 @@ Terminal monitoring belongs to live terminals, not mounted views/history: shell 
 
 ### Terminal preferences
 
-Typography is device-local, outside Settings sync: shared binding controls edit 8–36 points with macOS slider/iOS stepper, without appearance-time normalization. App-owned font catalogs accept families with **any loadable member**, not only monospaced members, and use localized ordering. Saved unavailable/wrong-appearance built-in names stay stored and summarized; available tiles are filtered/sorted and show fallback notice without browser-time writes. Named custom themes and independent appearance selections come from the theme library. Rendering resolves the base, applies custom commands and local typography; manual font size is last. Tests: [TerminalFontPreferencesTests](../../FrameworkTests/TerminalFontPreferencesTests.swift), [TerminalThemeSelectionTests](../../FrameworkTests/TerminalThemeSelectionTests.swift), [TerminalCustomThemeTests](../../FrameworkTests/TerminalCustomThemeTests.swift).
+Typography is device-local, outside Settings sync: shared binding controls edit 8–36 points with macOS slider/iOS stepper, without appearance-time normalization. App-owned font catalogs accept families with **any loadable member**, not only monospaced members, and use localized ordering. Saved unavailable/wrong-appearance built-in names stay stored and summarized; available tiles are filtered/sorted and show fallback notice without browser-time writes. Named custom themes and independent appearance selections come from the theme library. Rendering resolves the base and applies custom commands with the preferred device family; a theme's empty `font-family` reset reapplies that preference. Device overrides are applied after theme commands: manual font size wins when not following the theme, and explicit font thickening enabled/disabled wins while `followTheme` leaves the theme unchanged. Custom `notify-on-command-finish` commands are excluded because alerts belong to the app dispatcher. Tests: [TerminalFontPreferencesTests](../../FrameworkTests/TerminalFontPreferencesTests.swift), [TerminalThemeSelectionTests](../../FrameworkTests/TerminalThemeSelectionTests.swift), [TerminalCustomThemeTests](../../FrameworkTests/TerminalCustomThemeTests.swift).
 
 ### Localization and verification
 

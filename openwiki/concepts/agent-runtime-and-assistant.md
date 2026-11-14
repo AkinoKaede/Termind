@@ -6,8 +6,12 @@ tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sft
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-8bac296b55648c6171276be4
+    resource: repo://Frameworks/Resources/ModelCatalog.json
   - id: openwiki-source-c8b26c87188ce3aa11dc622b
     resource: repo://Frameworks/TermindApplication/Agent/AgentPaneAccess.swift
+  - id: openwiki-source-02675e02be7935e7a4cf0861
+    resource: repo://Frameworks/TermindApplication/Agent/AgentWorkSegmentation.swift
   - id: openwiki-source-0dc45e296e0ec3d99731a2f2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantChatCollaboration.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
@@ -28,6 +32,10 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
+  - id: openwiki-source-64918b9eae0cc4f157308e11
+    resource: repo://Frameworks/TermindApplication/MemoryReviewTranscript.swift
+  - id: openwiki-source-5f53986b62e427b5f7c00076
+    resource: repo://Frameworks/TermindDomain/AI/AIModelEditing.swift
   - id: openwiki-source-4b9f58eec58128055ac58b6f
     resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
   - id: openwiki-source-85b30c7ff8f6f034b2bc980f
@@ -36,8 +44,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/AssistantChatCollaborationPersistence.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
+  - id: openwiki-source-13ba070e411d89e979aac933
+    resource: repo://Frameworks/TermindPersistence/PersistentAIModelSpecification.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-5bfb44617fb594292c716f44
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift
   - id: openwiki-source-3476c075c0a89fef4b1cecf4
     resource: repo://Frameworks/TermindPresentation/AgentToolDetailPreview.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -78,10 +90,14 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SSHExecRunTool.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-c77d3e013db9567c1998697e
+    resource: repo://FrameworkTests/AgentHistoryLoadingTests.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-6d759b4cb61f68a067dae42c
     resource: repo://FrameworkTests/AgentSteeringTests.swift
+  - id: openwiki-source-59e762b82e096b9cdd6c0908
+    resource: repo://FrameworkTests/AgentSteeringTimelineTests.swift
   - id: openwiki-source-32bb2b0bf7a39f2a4856d7bf
     resource: repo://FrameworkTests/AgentUserInputTests.swift
   - id: openwiki-source-b564fb5c588f5bcbd8ca96f9
@@ -100,6 +116,8 @@ sources:
     resource: repo://FrameworkTests/AssistantTranscriptPresentationTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
+  - id: openwiki-source-deda5fdc00ef614e335cd1f4
+    resource: repo://FrameworkTests/MemoryReviewTranscriptTests.swift
   - id: openwiki-source-e3cd41518bdd14077e7725e6
     resource: repo://FrameworkTests/ResourceLibraryTransactionTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -110,6 +128,8 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-fddb0d2221cd4c91889f44ca
+    resource: repo://TFI/Application/FeatureModels/MobileModelDiscovery.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -118,6 +138,8 @@ sources:
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-16ea9065fbce2f04f7d317ae
+    resource: repo://TFM/Features/Settings/ModelListEditor.swift
   - id: openwiki-source-49c5ca81284394384f3c3913
     resource: repo://TFMTests/AgentBuiltInToolAvailabilityTests.swift
   - id: openwiki-source-8f676dd306369e67985f3dd0
@@ -132,8 +154,6 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-7c65a9e84644dfdb436d849d
     resource: repo://TFMTests/AgentToolPresentationProfileTests.swift
-  - id: openwiki-source-78797a18dd3153d23a2c42e2
-    resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-32734a5d0c7e053627a24d40
     resource: repo://TFMTests/ContextAttachmentImporterTests.swift
   - id: openwiki-source-a0939deb764eaca503038262
@@ -142,17 +162,17 @@ sources:
     resource: repo://TFMTests/ResourceToolCardTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Agent Runtime and Assistant
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, the persistence store outside its tools. With pane inspection injected, it can request a read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 4.0.0, `upToNextMinorVersion`) and declares both `AgentKit` and `AgentKitScrubber` products from that package; the desktop app links both. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **4.0.0** at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. AgentKit is not a Termind submodule; its upstream implementation and tests are a separate package boundary. Ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change spans the package boundary, test and release the package, then align the Xcode `minimumVersion` and resolved pin with the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, the persistence store outside its tools. With pane inspection injected, it can request a read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 4.1.2, `upToNextMinorVersion`) and declares both `AgentKit` and `AgentKitScrubber` products from that package; the desktop app links both. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **4.1.2** at revision `dae2fc9ac8698a188574c1ae8bee2545ad83afe0`. AgentKit is not a Termind submodule; its upstream implementation and tests are a separate package boundary. Ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change spans the package boundary, test and release the package, then align the Xcode `minimumVersion` and resolved pin with the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 
@@ -191,6 +211,14 @@ Termind composes the registry in this order:
 3. Discovered MCP tools, which are additive and cannot shadow a built-in or Termind tool name. The registry adapter documents this non-shadowing contract; collision resolution itself belongs to AgentKit, not an app-local runtime implementation. Registry construction captures usable server configurations and bearer tokens, while execution still depends on authorization and tool policy.
 
 The shared `AssistantChatCoordinator` implements AgentKit's chat catalog and coordinating interfaces for both native apps; `AssistantToolRegistry` injects it and the captured source context into AgentKit's generic chat tools, rather than defining a second set of platform-specific collaboration tools. The chat model catalog reports enabled Chat models and readiness without exposing credentials. See the [cross-chat delivery lifecycle](#cross-chat-collaboration-and-delivery) for its persistence boundary.
+
+### Native model specifications at the runtime boundary
+
+The bundled `Frameworks/Resources/ModelCatalog.json` uses native models.dev provider/model data, including modalities, tool-call and reasoning metadata, and context/input/output limits. Settings discovery delegates to AgentKit's `ModelCatalogClient` on both platforms rather than implementing provider discovery in the execution loop. `AIPersistence` saves each model's complete `ModelsDevModel` specification in `PersistentAIModelSpecification`, keyed by the historical model row's `recordID`; load applies it only when decoding succeeds and its model ID matches. This sidecar preserves historical configuration columns rather than rewriting shipped schemas.
+
+The controller captures the resolved `AIModel` and provider before preparation and passes them to `AgentProviderClient`. Tool registration still gates on `.toolCall`; automatic compaction uses `AIModel.compactionContextWindow`, the minimum positive native context/input limit, so a smaller input cap is not ignored. Reasoning overrides remain separate: `withoutReasoningOverride` restores automatic mapping, and editing cannot disable the last supported effort. Catalog refresh commands belong in [Build, Test, and Release](../operations/build-test-and-release.md), not in the run lifecycle.
+
+Sources: [model editing](../../Frameworks/TermindDomain/AI/AIModelEditing.swift), [configuration persistence](../../Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift), [specification sidecar](../../Frameworks/TermindPersistence/PersistentAIModelSpecification.swift).
 
 ### Catalog, run mode, and surface availability
 
@@ -324,6 +352,12 @@ flowchart TD
 ```
 
 Cancellation has separate preparation and runtime owners: `stop` requests cancellation and settles presentation, while `stopAndWait` also joins their tracked work.
+
+### Steering boundaries in visible history
+
+`AgentWorkSegmentation` reconstructs work segments from visible `messages`, `messageRunIDs` and run summaries, including user boundaries compacted out of the model-facing transcript. A delivered user turn closes the preceding work segment without completing its underlying run; subsequent reasoning and tools appear below that user row. Segment IDs are deterministic from the run and boundary message, so reopening does not require persisted UI-only ordering. Consecutive delivered turns do not create empty work groups.
+
+Tool attribution prefers a source message owned by the same run, then the assistant call grammar indexed by **run ID and call ID**. Only unknown legacy ownership falls back to timestamps. Late tool results stay in their original segment; terminal run state applies to the final segment rather than relabeling previously closed work. Supplemental timeline rows are positioned against message boundaries instead of globally sorting by clocks, preserving order with equal or backward timestamps. [AgentSteeringTimelineTests](../../FrameworkTests/AgentSteeringTimelineTests.swift) covers delivery, late updates, retries, compacted disk reopen, edits and forks; [AgentWorkSegmentation](../../Frameworks/TermindApplication/Agent/AgentWorkSegmentation.swift) is the reconstruction boundary.
 
 ### Provider retry presentation
 
@@ -583,6 +617,29 @@ The repository instance retires the edited target run, removed later runs and ad
 
 ### Restore and metadata
 
+History loading has its own concurrency boundary. `SwiftDataAgentRunRepository.loadConversations` reads committed history through an `@concurrent` helper with a fresh `ModelContext`; SwiftData models stay on that executor and only `StoredAgentConversation` values return to the UI actor. If the caller's context has pending changes, it reads that context synchronously instead, preserving those edits without committing unrelated work. It checks cancellation and retries an off-actor read if repository `historyGeneration` changed while suspended. Tables are indexed once by conversation, run, invocation and run-local call identity rather than repeatedly scanned for each card.
+
+Desktop windows join one process-wide `assistantRestorationTask`; successful restore sets `hasRestoredAssistantConversations`, while failure clears the task and permits a later retry. Termination cancels the task, and restore filters locally deleted conversations. Mobile similarly joins `loadTask`, setting `loaded` only after history, model selections and conversation configuration succeed; failures surface through `error` and remain retryable. These load retries are not provider retries or automatic execution of interrupted runs.
+
+```mermaid
+flowchart TD
+    App["Desktop or mobile shared load task"] --> Load["Repository loadConversations"]
+    Load --> Pending{"Caller context has pending changes"}
+    Pending -->|Yes| Local["Read caller context without saving"]
+    Pending -->|No| Background["Concurrent read with fresh ModelContext"]
+    Background --> Check{"Cancelled or generation changed"}
+    Check -->|Cancelled| Cancel["Throw cancellation"]
+    Check -->|Changed| Load
+    Check -->|Current| Values["Sendable restored conversation values"]
+    Local --> Values
+    Values --> Repair["Restore model selection and conversation store"]
+    Repair --> Projection["Visible history and compacted model transcript"]
+```
+
+Restoration reads values off the UI actor when safe; app-level task sharing avoids duplicate loads, while generation retry prevents publishing a stale repository graph. See [AgentHistoryLoadingTests](../../FrameworkTests/AgentHistoryLoadingTests.swift).
+
+Result repair and tool-card restoration are run-local: transcript result lookup and missing-result recovery use `(runID, callID)`, cards use invocation IDs, and legacy source inference indexes calls within each run. Reused provider call IDs in another run must not substitute another run's output. The standalone recovery helper retains a call-ID-only fallback when no message ownership map is supplied; normal repository restoration supplies that map.
+
 At repository initialization, every nonterminal persisted run becomes `interrupted`; Termind never replays unfinished execution automatically. Restore reconstructs completed tool cards and can recover a durable tool result that was recorded before its next transcript snapshot. If an outcome remains unknown, repair records an explicit unknown/refusal result rather than assuming a call was never dispatched.
 
 ```mermaid
@@ -632,6 +689,38 @@ The GRDB store opens lazily, so disabled memory does not create or open its data
 A memory session receives a revocable context and generation-bound access; memory state and indexed history remain in separate storage rather than a stored per-conversation prompt snapshot. Memory reviews use a compare-and-apply base state, so a stale review cannot overwrite newer memory. Disabling memory invalidates sessions, cancels indexing and reviews, and closes the database while preserving stored data. Mobile backgrounding and desktop termination also suspend memory, revoking existing contexts and access without deleting data; on mobile, background expiration separately requests cancellation of Assistant preparation and active runs before draining and closing host connections. Resuming memory reloads current state and schedules history reindexing. Generation checks reject stale access/results and prevent publishing stale writes into the current UI state; they are not a rollback of storage writes already in flight. Resume can reload current state after such a commit. Destroying memory first persists disabled/destroy-pending state, revokes contexts and joins ongoing work, then closes and removes the owned directory; failure remains disabled and is retried on a later launch. Memory and credentials are device-local and are not synced.
 
 New submissions capture whether they have a memory-session identity before preparation awaits. Enabling memory afterward does not add a session to that captured turn. Disabling it remains a revocation boundary: `MemoryModel` invalidates existing contexts and rejects a late snapshot load from the old generation, so capture does not override a later disable.
+
+### Actor-owned review windows and checkpoints
+
+Reviews consume a captured **model-facing transcript**, not rendered bubbles or the full scrollable history. `MemoryModel` owns review scheduling on the main actor; one `MemoryReviewTranscript` actor per review owns the immutable message array, lazy ID-position index and cached serialized sizes off the UI actor. It measures each message using `AgentCompaction.serialized` with `toolResultLimit: 300`, caching character counts and trailing-carriage-return state. Window sizing accounts for separators (including CRLF as one Swift `Character`) without serializing overlapping context repeatedly.
+
+A batch starts after `lastReviewedMessage`, or earlier if pending activity references an earlier source message. It admits at most 100 new messages within a 28,000-character budget, allowing one oversized message so progress cannot stall; up to two earlier context messages are prepended only if they fit. The returned cursor is the last **new** message. Only activity IDs whose source falls in that new range are acknowledged—context-only, later and missing-source events are not consumed. Cancellation checks surround indexing, serialization and batch preparation.
+
+`recordActivity` triggers automatic review at 10 turns or 15 tools. Reviews serialize per conversation and coalesce pending requests; `wait: true` joins existing work, as used before compaction. Each batch reads current memory, asks `AgentMemoryLearningService` for operations under a 60-second timeout race, then calls `applyReview` with the expected base state, cursor and reviewed activity IDs. Generation and conversation learning-epoch checks surround awaits and prevent stale access/publication after disable, suspension or history invalidation. Successful compare-and-apply advances progress and loads it again for the next batch. A conflict or non-cancellation error sets a 30-second automatic-review cooldown; it does not itself install a retry timer. A later activity trigger can retry, while forced review bypasses threshold/cooldown checks.
+
+Human correction learning is separate from batch review: qualifying authored messages with no agent origin preempt reviews and queue per conversation. It retries compare-and-apply twice before scheduling delayed retry, with exponential delay capped at 300 seconds. Generation, history epoch and correction order prevent older delayed corrections from overriding a newer successful correction. Turning review off cancels reviews, corrections and delayed retries without destroying memory.
+
+```mermaid
+flowchart TD
+    Activity["Accepted turns and tool activity"] --> Progress["Persist learning activity"]
+    Progress --> Threshold{"Threshold reached or forced review"}
+    Threshold -->|Yes| Owner["MemoryModel serializes review ownership"]
+    Owner --> Batch["MemoryReviewTranscript actor prepares cached window"]
+    Batch --> Valid["Check generation and history epoch"]
+    Valid --> Read["Read current memory base"]
+    Read --> Learn["Learning service with timeout race"]
+    Learn --> Recheck["Recheck generation and history epoch"]
+    Recheck --> Apply{"Compare and apply operations plus checkpoint"}
+    Apply -->|Success| Publish["Publish current state"]
+    Publish --> More{"More messages"}
+    More -->|Yes| Batch
+    More -->|No| Done["Release review owner"]
+    Apply -->|Conflict| Retry["Set cooldown for later automatic trigger"]
+    Learn -->|Error| Retry
+    Retry --> Done
+```
+
+Memory review keeps window construction off the UI actor and commits cursor/activity acknowledgement with the reviewed state. [MemoryReviewTranscriptTests](../../FrameworkTests/MemoryReviewTranscriptTests.swift) checks off-main serialization once per message, exact character budgets, cursor rewind, oversized progress and cancellation; [HermesMemoryTests](../../FrameworkTests/HermesMemoryTests.swift) covers lifecycle and stale-review boundaries. These are inspected contracts, not a report of tests executed during this documentation update.
 
 ## App-owned notifications and scene focus
 

@@ -42,6 +42,8 @@ sources:
     resource: repo://FrameworkTests/RemoteSystemInfoTests.swift
   - id: openwiki-source-23775c3de52f3ab95a13cb8b
     resource: repo://README.md
+  - id: openwiki-source-d125bef219ce9eee56abf917
+    resource: repo://Scripts/check-localization.py
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-8cf5084412ee85381e0ef517
@@ -70,10 +72,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-25T22:25:01.745Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-25T22:25:01.745Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Marketing Assets and App Icons
@@ -391,7 +393,7 @@ Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: gener
 
 ## Validation and release checklist
 
-Quiet tooling checks do not open screenshot windows:
+Quiet tooling checks do not open screenshot windows. Keep `Scripts/check-localization.py` in the commit pipeline even when an asset change does not intentionally change localization. If capture work changes shared string catalogs, run `Scripts/normalize-string-catalogs.py --write` after editing them; the localization checker also enforces manual extraction state and canonical Xcode formatting without rewriting files. Do not substitute a generic JSON formatter for the catalog normalizer.
 
 ```sh
 ruby -c fastlane/lib/screenshots.rb

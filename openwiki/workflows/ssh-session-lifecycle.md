@@ -168,10 +168,10 @@ sources:
     resource: repo://TFMTests/TerminalTransportJourneyTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # SSH Session Lifecycle
@@ -224,7 +224,9 @@ sequenceDiagram
 
 ### Admission and access checks
 
-Host selection is not permission to open indefinitely. Desktop `AppModel.open` admits the Host before creating the pane; `SSHSessionModel` resolves access again for the destination, explicit route and source Host IDs. The attempt configuration carries `accessHostIDs`, an `accessCheck`, and a `beforeConnect` wake action alongside routing/provenance metadata. Preparation-based callers carry these hooks through detached secret resolution. At the authenticated opening boundary, infrastructure checks access, awaits wake, checks cancellation, then opens the route. Exec and SFTP owners also retain access checks for subsequent operations. A denied access check must not be bypassed by retry or reuse. Wake policy is supplied through the connection hook, not inferred by the transport.
+Host selection is not permission to open indefinitely. Desktop `AppModel.open` first resolves a supported connection kind, then admits the Host before installing history callbacks, setting optimistic status or creating the pane. Admission uses Telnet access for Telnet and SSH access for SSH, Mosh, ET and SFTP. If entitlement verification is pending, it resolves access asynchronously and re-enters opening only on success; a locked Host presents the paywall, other non-cancellation failures become the window's access error. Batch opening defers the whole eligible batch if any Host is awaiting entitlement verification, then filters denied Hosts before creating the requested layout. `SSHSessionModel` resolves access again for the destination, explicit route and source Host IDs. The attempt configuration carries `accessHostIDs`, an `accessCheck`, and a `beforeConnect` wake action alongside routing/provenance metadata. Preparation-based callers carry these hooks through detached secret resolution. At the authenticated opening boundary, infrastructure checks access, awaits wake, checks cancellation, then opens the route. Exec and SFTP owners also retain access checks for subsequent operations. A denied access check must not be bypassed by retry or reuse. Wake policy is supplied through the connection hook, not inferred by the transport.
+
+Source: [desktop host-open admission](../../TFM/App/AppModel.swift).
 
 ## Prepare the route and attribute proxies correctly
 
@@ -343,7 +345,7 @@ Authentication answers whether a transport may be installed. The next layer deci
 
 ## Agent SSH connections are not workspace sessions
 
-`list_hosts` exposes public Vault host metadata and live temporary targets from desktop panes; it does not return credentials. Agent SSH and SFTP tools require an SSH-enabled target, and a closed temporary pane fails target resolution rather than legitimizing a lingering pooled connection. The desktop resolver obtains temporary SSH configuration from the pane when needed. Merely listing a connected pane does not give a tool its PTY: `ssh_exec_run` opens a dedicated non-PTY exec channel over an **Agent-owned** connection.
+`list_hosts` exposes public Vault host metadata and live temporary targets from desktop panes; it does not return credentials. Desktop temporary-target discovery collects SSH and Telnet pane targets across windows and deduplicates them by ID; temporary SSH configuration is obtained only from a matching SSH pane that still exposes a temporary target. Agent SSH and SFTP tools require an SSH-enabled target, and a closed temporary pane fails target resolution rather than legitimizing a lingering pooled connection. The desktop resolver obtains temporary SSH configuration from the pane when needed. Merely listing a connected pane does not give a tool its PTY: `ssh_exec_run` opens a dedicated non-PTY exec channel over an **Agent-owned** connection.
 
 For an unpooled host, `AgentSSHAuthenticationRegistry` leases a per-host `AgentSSHAuthenticationContext` only while overlapping operations connect. The resolver requests missing proxy credentials, identity and protected-key passphrase in route order **before** opening the socket, then uses the attempt's callback to ask for host-key approval at handshake and literal keyboard-interactive answers during authentication. Saved Hosts can persist an explicitly saved identity or trust decision; Continue Once remains attempt-scoped, and temporary targets cannot persist trust from an Agent card. Concurrent exec and primary SFTP openings join one authentication prompt and one pending connection. Cancellation removes an individual waiter and cancels its prompt when no waiters remain; generation checks prevent old failures or late answers from overwriting newer attempts. A rejected credential can prompt again for the failing hop or proxy, but successful authentication consumes the submitted secrets. For a proxy with an unavailable saved password, the prompt keeps `proxy.username` even if its selected password identity is missing; an unsaved answer overrides the proxy only for this attempt, while Save updates the Vault proxy identity and username. Identity and protected-key passphrase are separate prompts: entering a passphrase merges into the staged identity submission, retaining its password fallback. The registry drops the context after its last connecting lease: a later physical connection must resolve saved credentials or ask again, not reuse a previous Custom password.
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d2d4afce21c523a6a618c675a8e23e79d9a0a2c6268a4c26c398dd5b0a71fee0",
+  "pageVersion": "sha256:1da4750f71bfeda62454535d415a9c20e000ca7d42faa6db640bfe9e956175b0",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -320,7 +320,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
-          "version": "repo-file-v1:sha256:aaf6e639f57b6e94618852e0d60d3ee15a6d4852a2318c0265d881428c4dba55"
+          "version": "repo-file-v1:sha256:6c7b48edfa9578ec61f25d18ca5353f506ad10aedf84666ffe43f1bf2de43399"
         }
       ]
     },
@@ -427,10 +427,28 @@
           "version": "repo-lines-v1:sha256:a5e82d10880ede601b7fa494eb42299e609d2e726a1cbebc10611c605e8ddbc7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZDhlNTY3MGNiZmVlODdjNmI2MTkzZjUwMjBlYzU4NWI5NjY1YzMwMDNlNzRjZWExM2QyY2U4MjQxZmM3NjU2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5ZjdkYmYxYmE0YThlNTViMDAwNjVkYmEwYTMwYWQ5NDcwZGE0NDRhMmMwNjJmNTliMWJlNDg1ZmI0OWU2ODQ2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjZTRhN2ZhMGI3M2ExM2U1ZmY5MDUwNGRjOTI1MWQ3NGI3ZDNhMDdiNmUwNWIwOGI3ODUwNmRhOTk3NjI4ZWYyIn0"
         }
       ]
+    },
+    {
+      "id": "claim_89c8f2f0251b4274b221bd70afbbe588",
+      "statement": "Desktop terminal chrome reapplies terminal appearance with font preferences and the theme library on appearance and shared appearance changes; these updates configure rendering rather than shell hooks or event parsing, while SSH integration enablement is captured separately at connection start.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L80-L130",
+          "version": "repo-lines-v1:sha256:b1bbb1a99d2ad0348f064b37afec80a91d2d2d16d42cbc1414ae9336b858642b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzOWRlMTEzY2ZkOTZkZDk2MWQ5MjQ5NWNlZTg1YjgxMDljOTcyY2EzY2RkNzIyZTVkZjMyZjBmYWVmZGIzNDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4MjExYjQxZjNjNjgwODllYjdmNDE2OTRhNDU1NTFlOGQ4ZGUyODM4NzkxODkxZDgwMGEzOGVkMWQwNzc3OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/DesktopTerminalSurface.swift#L108-L121",
+          "version": "repo-lines-v1:sha256:7cbaac534f266292074f429ebc18e1839022585c04a91e20e1e75d9cdc13fc1f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3OTE1NjI5ZDRlMzhjYTE1M2IxNTBjNjJhNzUzZjcxYWYwNDRlMjkyYzA3YTY4MTY1YTRlODQzOGU3Nzg1OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyODE5M2FlYjFmN2Q2ZTllYjNmZDQ3ODAzOGYxMzlhMjViYjc1MzY3YmE5Y2Q4NDliMDllMjcxNzBmNWEyOTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5MGJjOTZhYmZjNzAzOTQ1OGE4YzMzYTNlOGYyODEyNjQzMWQ0Nzk2YzM4MmFlYmIwNmU3NzkzMDU1NDI3NGQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L555-L558",
+          "version": "repo-lines-v1:sha256:73d00859b8370670d63fe58dc6131e80d2d3f0c9f5143ec54e9470a1899755b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTY5OTJiNGIyYjVhYTNmMjFjOTQ0NzdjYWRlYzBkZTI4NjBmZmRhZGZlYjFjZDE0NTllZGQ2MTQ3YjkxNjc3NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjlhN2Y2OGYxN2JkZTA0ZWU5MGM4MGU2NDk2MjZlZWY1NTVhOWFiYzNiM2ZlN2IxYjdjNDIxOTQ1NzdmOTQyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFmODM0YTdjMWNjZTA1ZDBkY2Y5NzJjNzQ3Yzc1YzU5ZTM2ZDY4NGFjMzNhNTM1ZjE3NjZlYTYwYzBhYzE5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDYwYzRhMjJhODE4ZmY5YmIwOTM0N2E0MGMyYzZhNDEwZjk2Mjc5NjUxMDQxNTEzOTI2ZTc0YTMxMjRhMzMzNyJ9"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

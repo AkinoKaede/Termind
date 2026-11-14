@@ -98,16 +98,18 @@ sources:
     resource: repo://TFMTests/AgentBackgroundCommandTests.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-7cc9fc3d79582cde4157ce7a
     resource: repo://TFMTests/GetMetricsToolTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-0e1711c93b46fc372d856a21
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 
@@ -399,6 +401,12 @@ On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 
 The first physical connection may use the forwarding Journey to collect host-key approval, credentials, or keyboard-interactive answers. Its recovery and every auxiliary connection are silent opens with interaction forbidden. Their reusable snapshot keeps route/network and identity references, not temporary passwords or passphrases. A remembered host key can permit recovery, but “continue once” trust cannot. If a silent open needs user interaction, recovery fails/degrades rather than showing a form; an explicit Retry starts a new interactive Journey. **Temporarily inaccessible saved credentials are different:** a controller recovery receiving `SSHCredentialAccessUnavailable` schedules a silent `waitingForCredentials` retry, not an authentication form. `SessionReconnectController` also pauses attempts in `waitingForSystem` while recovery availability is blocked (for example, sleep); even Retry Now cannot bypass that gate. Availability notifications coalesce and consume the pending retry action before opening, preventing duplicate in-flight attempts. These controller recovery states are distinct from auxiliary-slot refill backoff. `protectedCredentialsWaitSilentlyThenRestoreForwardingWithoutUserInteraction` in the reconnect suite verifies blocked secret reads, hidden prompts, and restoration of both active rules after credentials become accessible. Existing TCP streams are never migrated or replayed to a replacement worker.
 
 A route/Host configuration edit, deleted/replaced rule, or explicit stop invalidates the relevant runtime. Cleanup cancels retry/open work, stops listeners before closing transports, and waits for cleanup where needed so an old bind cannot race a replacement. Local/dynamic listeners use `SO_REUSEADDR` to tolerate `TIME_WAIT`, not `SO_REUSEPORT` or live shared binds.
+
+## App-owned shutdown boundary
+
+Desktop service teardown belongs to `AppModel.shutdownForTermination()`, not to tool-registry construction or an individual window disappearing. It fences new Assistant execution, cancels pending preparations, and requests stop for every conversation in the app-wide store before awaiting drains. The retained cleanup task starts MCP stop and SFTP cancellation waits concurrently, joins preparation and conversation drains, then awaits both service drains before closing Agent background commands, Agent connections, and finally Tailscale, in that order. Repeated calls reuse the cleanup task. The synchronous shutdown path also shuts down Metrics, closes registered windows' workspaces with `.applicationTermination`, cancels transfers and external authentication, and stops forwarding.
+
+This ordering keeps Agent resources available until their consumers have drained; it does not combine their transport ownership. See [Platform Runtime and Lifetimes](../architecture/platform-runtime.md) for native Quit coordination. The implementation is in [AppModel](../../TFM/App/AppModel.swift); [AppTerminationTests](../../TFMTests/AppTerminationTests.swift) checks cancellation across stored conversations even after a window unregisters, drain-before-close ordering, and one-time resource cleanup.
 
 ## Operational and change guidance
 
