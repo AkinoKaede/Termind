@@ -1,12 +1,14 @@
 ---
 type: architecture guide
-title: Desktop UI and Workspace Ownership
+title: Desktop UI and Window Ownership
 description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 sources:
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-c375092b23c70ace642fdbd7
@@ -25,8 +27,12 @@ sources:
     resource: repo://TFM/App/TermindCommands.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
     resource: repo://TFM/Design/DesignTokens.swift
+  - id: openwiki-source-ef08560d1e2680f986897c63
+    resource: repo://TFM/Features/AI/ConversationViews.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
     resource: repo://TFM/Features/AI/TranscriptListView.swift
+  - id: openwiki-source-0c46eadbd7a2db45099d59aa
+    resource: repo://TFM/Features/AI/TranscriptNativeRows.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-02eecf143fd9df60be910051
@@ -77,10 +83,14 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardDragPreview.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
+  - id: openwiki-source-c86144d2d2ca66467f0a52d5
+    resource: repo://TFMTests/AssistantStartupTests.swift
   - id: openwiki-source-38f1f2c3597d520d66dcdd62
     resource: repo://TFMTests/CardMarqueeSelectionTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
+  - id: openwiki-source-c59f893b36436a6130c005f3
+    resource: repo://TFMTests/ComposerBackspaceTests.swift
   - id: openwiki-source-0f45576cff16b6adfcaeefc0
     resource: repo://TFMTests/MainWindowSizingTests.swift
   - id: openwiki-source-080279f032d913bf83636126
@@ -95,6 +105,8 @@ sources:
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
+  - id: openwiki-source-adc5fd1b4a06731372b90383
+    resource: repo://TFMTests/TranscriptListViewTests.swift
   - id: openwiki-source-578f30372fe67f8688f44b76
     resource: repo://TFMTests/WindowStateTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
@@ -109,10 +121,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 ---
 
-# Desktop UI and Workspace Ownership
+# Desktop UI and Window Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -483,6 +495,41 @@ The managed renderer keeps top content even when the source is empty or filters 
 
 ## Assistant: route state and native rendering are separate
 
+### Shared history restoration belongs to the app
+
+Window registration adopts the app's `AssistantConversationStore` and requests `AppModel.restoreAssistantConversations()`. **The window does not own the history load.** Concurrent callers await the same app-owned `assistantRestorationTask`; closing the first window neither cancels that task nor prevents another window from receiving the restored conversations. After successful restoration, later windows adopt the same conversation instances without rereading transcripts. Window-local selection, Archive routing and native transcript caches remain separate from this shared data lifetime.
+
+The success flag is set only after loading and applying history. The in-flight task is cleared on exit, including failure, so a later call can retry rather than treating a failed load as completed startup. Registration reports non-cancellation errors through that window's `assistantOperationError`; cancellation is ignored there. Restoration filters conversations deleted during startup and resolves restored model selections before updating the shared store. On application termination, `shutdownForTermination()` marks the app terminating and cancels restoration. The post-load cancellation check and termination guard prevent a late repository response from repopulating history during shutdown; closing a single window is deliberately not this boundary.
+
+```mermaid
+sequenceDiagram
+    participant First as First WindowModel
+    participant App as AppModel
+    participant Repo as Agent run repository
+    participant Store as Shared conversation store
+    participant Second as Other WindowModel
+    First->>App: registerWindow and request restoration
+    App->>Repo: loadConversations in app-owned task
+    Second->>App: registerWindow and join restoration
+    Note over First,App: First window may close without canceling the load
+    alt Load succeeds while app is running
+        Repo-->>App: stored conversations
+        App->>Store: restore with resolved model selections
+        Note over Store,Second: Later windows adopt the same instances without another load
+    else Load fails
+        Repo-->>App: error
+        App->>App: clear task and allow later retry
+    else Application terminates before load completes
+        App->>App: mark terminating and cancel restoration
+        Repo-->>App: late result
+        App->>App: reject result at cancellation check
+    end
+```
+
+History restoration follows process lifetime, while each window owns only its presentation and error projection. [Sources: `AppModel.registerWindow`, `restoreAssistantConversations`, `shutdownForTermination`; `AssistantStartupTests`.]
+
+### Window routes and retained native surfaces
+
 The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation **from the contextual panel** does not replace the foreground terminal; the conversation navigator shown instead when no workspace is in front deliberately opens full Assistant. The compact surface composes its transcript and interaction/composer regions separately, passing focused-terminal context/actions deliberately. Conversation list reordering has its own native receiver and hidden-list participation rules; see the brief [Assistant drag flow](../workflows/desktop-drag-and-drop.md#assistant-conversation-reordering).
 
 The compact Sidebar and full Assistant share one window-local Chat/Archive route. `AssistantLibraryModel.selectedConversationID` identifies the open chat, while `WindowModel.isAssistantArchivePresented` overrides it for Archive; entering Archive or returning to the chat landing state clears the selected conversation so the two surfaces cannot diverge. **Contextual panel** list, Archive and Back actions (`openAssistantInSidebar`, `showAssistantArchiveInSidebar`, `closeAssistantInSidebar`) change that route without replacing the workspace. By contrast, the full Assistant navigator and its footer, the blank-area New Chat menu on either surface, and the compact panel's explicit expand button select the full Assistant destination. The compact panel's blank-area Archive menu stays in the workspace. `openAssistantFullScreen` also selects the Assistant sidebar mode. Closing the last workspace promotes a selected compact chat or Archive when Assistant mode is selected; an empty chat landing state instead returns to Vault. The contextual Sidebar draft and focused-session context remain Sidebar-owned, and transcript owners remain keyed by conversation plus surface, so navigation is shared without merging draft or native-rendering lifetimes.
@@ -497,6 +544,12 @@ Native transcript ownership adds another boundary:
 Do not merge this cache with the persistent workspace deck. Both preserve continuity, but workspaces remain mounted with parked geometry while transcripts can unmount their native list and remount a retained owner.
 
 Escape handling is also scoped. In the compact Assistant, an approval or user-interaction form can own Escape; resolving it must not let the same key event fall through and close the conversation. The view captures the blocking-interaction state for that render before applying its back policy.
+
+### Steering work rows and empty-Backspace handling
+
+Steering is a transcript presentation boundary, not a reason to rebuild earlier native content. Work rows consume `AgentWorkGroup` presentation state and segment timing for their disclosure header, while retaining item views by identity. When a steering message separates old and new work segments, the old header can become a completed “Worked for …” header without replacing its mounted Markdown. `TranscriptListViewBridgeTests.steeringClosesTheOldHeaderWithoutReplacingItsMountedContent` pins old row and Markdown identity, pending auto-collapse only for the completed segment, and placement of the next segment after the steering message. Runtime delivery and segmentation policy belong to [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md), not the native row renderer.
+
+The composer also owns a narrow native keyboard boundary. `TextViewMarkedTextObserver` consumes plain Backspace only for a mounted observer in the event's key window with an editable, empty, unmarked `NSTextView` first responder; the composer callback additionally requires composer focus. It delegates to `dismissLastComposerSelectionIfDraftEmpty()`, which removes the armed skill first, then planning mode on a subsequent press, without touching attachments. With nothing to dismiss it returns false. Modified Backspace, forward Delete, key-up events, nonempty text and IME marked text continue through normal editing. This preserves editor focus and avoids treating deletion of the last character as selection dismissal. [Sources: `ConversationViews.swift`, `ConversationModel.swift`, `ComposerBackspaceTests.swift`.]
 
 ## Connection history projections and pane lifetime
 
@@ -531,7 +584,9 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Managed selection/reordering | `CardMarqueeSelectionTests` pins directional rectangles, partial overlap, Shift extension and true-canvas exclusion. `KeychainOrderTests.dropPoliciesExpressFixedAndExchangeableSections` and `dropResolverFindsGridSlotsAndCollapsedSectionEnd` check policy and placement boundaries; resource-specific move tests check mutations. |
 | Managed drag presentation | `ManagedCardDragPresentationTests.batchPlaceholdersKeepLiftHeightsAfterGridReflowAndPaintNothing` checks mixed heights, zero/unmeasured and offscreen fallback sizes, reflow stability and fully transparent slots. `fullSizePreviewRetainsHeaderFooterAndStandaloneCardSurface` checks full preview dimensions, header/footer retention, opaque interior and transparent rounded corners in light and dark appearance. These are offscreen rendering checks, not an end-to-end native drag test. |
 | Feature-owned review top content | `FrameworkTests/AppReviewControllerTests` covers seven-day eligibility, entry snapshots, filtering, cross-window responses and rejected URL opens. `TFMTests/AppReviewControllerTests` checks accepted store-link handling, localized narrow/wide rendering without preference mutation, and invitation geometry excluded from blank canvas. |
-| Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
+| Shared Assistant startup and shutdown | `AssistantStartupTests` checks a single load across windows even after the first closes, identical restored instances in later windows, retry after failure, and rejection of a late load after termination. |
+| Composer empty Backspace | `ComposerBackspaceTests` checks unmounted and inactive observers, modifiers, forward Delete, key-up, text/IME protection, focus and editability gates, skill-then-planning dismissal and retained editor focus; one case requires a visible window. |
+| Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites; the steering bridge test checks completed-header updates without replacing the old mounted Markdown and orders new work after the steering message. |
 | Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing and per-page queries. `themeSearchUsesToolbarAndPreservesEachAppearanceQuery` checks independent light/dark and custom-library queries, no editor Find, and restoration on Back; `welcomeOffersNoTitlebarFind` and `focusingFindOnWelcomeRequestsItsContentSearchField` check content-only Welcome search without titlebar focus requests. `focusingFindStartsTheTerminalSearch` checks terminal presentation and direct focus dispatch, while the empty-workspace case checks a no-op; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
 | Welcome Recents, device names, connection-history limits or pane close tracking | `ConnectionHistoryTests` checks local-only recents, stable device IDs and rename lookup; `VaultSyncTests` and workspace close/reopen tests cover synchronization and pane lifetime. |
 

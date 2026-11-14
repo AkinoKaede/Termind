@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:dd9452277a2321c30a78e01be69125dc37f71123bb174f275e4f9668a4d09e85",
+  "pageVersion": "sha256:e1dcbdc4ecf0c8c4df26ad3a979f7e014982bb3bcb6c34c5cdd8ad215962f190",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -1380,7 +1380,7 @@
         },
         {
           "resource": "repo://TFI/UI/Components/MobileMessageTextEditor.swift",
-          "version": "repo-file-v1:sha256:7f25660d17927b69c17b22bf1eac6bf02314a9f7aa5130ce7a9debc62cf99fd9"
+          "version": "repo-file-v1:sha256:47bb26a2a98534bc250007d3759a06d015a6073d5c53e6c7015295baeb373fa0"
         },
         {
           "resource": "repo://TFI/UI/Components/MobileNativeList.swift",
@@ -1392,11 +1392,11 @@
         },
         {
           "resource": "repo://TFITests/MobileAssistantTranscriptTests.swift",
-          "version": "repo-file-v1:sha256:b4197a4dd87e74d8158f9d2cfe44751968800b39204ac611ef9ffe67aaf5a774"
+          "version": "repo-file-v1:sha256:8920e3b0eeffcb2dbea64da107086b1f44b9c75a098a8106333be2d87486845c"
         },
         {
           "resource": "repo://TFITests/MobileMessageTextEditorTests.swift",
-          "version": "repo-file-v1:sha256:98189053816f58a599089c5a38a6a6d7561764b009e0617a032390ebaf98c993"
+          "version": "repo-file-v1:sha256:4c43771636a07e068a826d323e77a4ef09be7586580ff6897af5cdae7a23fa7e"
         },
         {
           "resource": "repo://TFITests/MobileShortcutTests.swift",
@@ -1417,10 +1417,64 @@
           "version": "repo-lines-v1:sha256:4a3864ba316cde3bd0b742fcfca6401b1a030513e5e63d5341550036c077e391:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNTc4OTg5NmMyMjUxZWQwYzVjMGRlYjk5ZmZlMDU4YzQzZWE2ZTY1OWI1ZjBlY2Y2NWE1OWUzNzQyZTljNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4YTY2ZGQ0ZGEyNGZiODUzZmIwMDQxMzNkNWM5OGE3ODkyZTBhNTAxNTMxOWI3ZTE5YmY0OTY0NjEzZWExMTYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_560ad888b8ab474497ffe78a44bcccc5",
+      "statement": "MobileMessageTextView offers empty-backspace dismissal only to an editable key-window first responder whose native text is already empty and unmarked; handled callbacks consume deletion, otherwise UIKit edits normally. The callback defaults to false and is cleared on dismantle. Mobile editor tests verify deleting the final character does not dismiss selections in the same press, composition and disabled editing protect selections, and dismissal retains focus.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/UI/Components/MobileMessageTextEditor.swift",
+          "version": "repo-file-v1:sha256:47bb26a2a98534bc250007d3759a06d015a6073d5c53e6c7015295baeb373fa0"
+        },
+        {
+          "resource": "repo://TFITests/MobileMessageTextEditorTests.swift#L13-L79",
+          "version": "repo-lines-v1:sha256:2237014f1a4a6d6f9581a997a4eaedce260b5be7beef29d11e6e395232df7148:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwZDdkMmFkODYzNTQwZDBhOTAyMmNjMjhmNTk0NmEzMmYzZGE1NmJiMjkwOGI5Y2NmMzc3YTAyMDA2YWI3ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkOGI5Zjg5YzVjZWUzYTUzNjYzODg3YmMzZjc5Mzc0YzkxNGUzYmYzZTBjYWMwMjFiNWVjM2M0N2EzYmE1NGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5221f98402ed487495b48794a1fc6083",
+      "statement": "MobileAssistantComposer routes empty Backspace to ConversationModel.dismissLastComposerSelectionIfDraftEmpty, which requires an exactly empty model draft, dismisses armed skill before planning mode on successive presses, and leaves attachments and pending attachments untouched; shared tests cover whitespace rejection and preservation of context.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ComposerSelectionDismissalTests.swift",
+          "version": "repo-file-v1:sha256:9b51f5df11a1a52ffdaff73a15de6c10ca1b1565d8747f1c90e85a04445fee4c"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L928-L942",
+          "version": "repo-lines-v1:sha256:1fb427f6d9e74b9fa8db7de1c69535be2efd219802351e7c84168a01fcc2c071:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmMmJlYTExOWRkZmQ1Njg0OGVhOTViNWIzMjk5NDRiMjZkN2MzYWZmOGEwYTdhNzUwMDk0YmQwYmY0MzAzNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM2NGI3ZTVjYTBkYjU0Mjk4NjA5M2E0OGZmOTVjZWQ2M2I1ODNiYTZmMTBiOTUwZjA4NTEwNDQ2ODJiNWE5ZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiMWViNTcyYzYwZDEwNmU0NWQxN2IyNmEzOThhMjI4MDBkM2UwMTkxNzM3NWQxNmZkMGZjNjgwNmVkYWQxMWQifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/AI/MobileAssistantComposer.swift#L180-L195",
+          "version": "repo-lines-v1:sha256:1e82b6cfb387acf82a8f08a0c0f7710e454835e0ab9843626d6bf5921f4852e5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNThhNjY0YzQzOGE5MWFiOGM1MGI2NDA2ZmEwMjZkMTQwNzcyMTRiMzQzNTIxNzYxOWRkODI4ZTQxM2U4OTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2NzEyZDM2N2IyNzg5ZjcyMTA3N2FmNzk1YTFkOWViY2JmNzQ0Njg0YzUwMGE4MTczODVkNTQwM2MzMDI3ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxNDJmNWNmYTNmMDA1ZDE2MzliMDJlZjA0MGIwZGU5Y2E1YzAxMTE3NDM5ZTYzNmFhM2E0YzFkYzllMzE5NjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmOGVhMTkzZDkwMWRlZTdkOTVjYTU0YzNmMTMxMjYyYmE1MTg3N2E0ZDE2NzUxNmNlZjUwODAyMTZhNzJjMWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f444622916574cd786e73c344bff4954",
+      "statement": "The mobile transcript consumes the shared timeline as successive user/work entries across steering delivery, and MobileAssistantWorkRow uses segment presentationState and segment-aware start/finish times for disclosure and activity titles rather than underlying run state alone. Closed segments present as completed without ending the run; the mobile steering transcript test verifies distinct new work identity, retained earlier identity, and unchanged hosted history anchor even with bottom following requested.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L520-L542",
+          "version": "repo-lines-v1:sha256:9fd671a902629e58919a6f1780ac84ce67ea0d08e5b73189f8308b750396a592:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0OTExYmQ2Yjg3YzE5MmU4NmQ4ZTIxOGE4ZWIzZDI4YmQzMzc4YzgzMTQxNjUzMDVjY2FmOWZlNTcxMDVlY2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5ZjhlYjA3MmZlZjllZjkwNTNhMGJmZGRmM2E2YWY4Nzc4NjZjMmI0YmEzN2VlODUzNDhkNDgxZTI0OWM2M2YifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L535-L543",
+          "version": "repo-lines-v1:sha256:bfdaa7b7021dbacd91bcac6c7d3030d0489d3346a464194aca1ba626dae9207c:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWI0OTFkZDYxMmRiMGNhMTkzNzYyNGQyNmY4ODVmNGQwZTVjOTdkMjAzYmVlNDVjOTdhMDYzMTEzY2ZiNjhmZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjI4MWY3NmYwZDBkNDMxYWJlYWE1MWE4NGQxMjFkZmQ4NjI4MTBlMTlhNTY1MTZhZGJkYmI5MmU1ZjJlYWJjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODAwZjBiZmM5MTFiOWI2ZTdiYTFmNzNlMWJjNzViZGZlZTFiNjM4NWFjOWZmYzYxZmFiNmQyNTgyNDRmYjk3ZSJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/AI/MobileAssistantWorkRow.swift#L17-L79",
+          "version": "repo-lines-v1:sha256:453b2d43eb715a68d40b87a8ac60a4312aba17ea95ecd0ebc1d1cf5e7b15186c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2YWRmYjUwODM0ZDE3NjBmN2Y0YWU5NzY3ZjgzYzhlODkxMjIxOTMyYzU5ZWMyMjJjOWQ0NjBmNGI1YTE2YmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlNGNlYzBiNzk5MDJkOTZhYmEwNzI0YjAyZTBjY2U3YzlkZjMwMTI1YjU2OTUzZGI0OTc1ODBlZTY0MTcwM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YzViZTZjZjJjNzBkNjY1NTBhN2I5ZTg0MDc1NDViMGQ5N2JiOTg0OGNkY2JmZmUzYWI2ZThjNjhkYzU2YWUifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileAssistantTranscriptTests.swift#L16-L50",
+          "version": "repo-lines-v1:sha256:8f487c0d5cec0f8d71b171e217defd7224cb5adda98d0056bb258c37261ea248:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmY2NmNTAxMGQ3MmJiMjIzYjVhZmFkODlhZDY1OWE5ZDI1YjIwMWQ1MThjZmE1Y2MzZmU2Mjc5Mjg4NTZmY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkZDhhZTQyNTYyYmY2YTJmZGU5OTZlNjBhZDM2YmJkMGNhODMzYzgwZWFiOTBkYjE3ODM4MjZiMGRiZTJmY2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5Y2NmM2EyMmZhODAxMDQ4MzBiYmE4NTFjOTFmZmMzNjg1NjVjNjY3MGIxNThiMGM2Yzg3ODY0ZjJhYzNlYjQifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

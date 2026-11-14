@@ -18,10 +18,16 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
+  - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
+  - id: openwiki-source-0b32f38ce2f7ff6f60abc9ea
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalBundledFonts.swift
   - id: openwiki-source-c9279b591baf8f41084268d6
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalConfigurationPreview.swift
+  - id: openwiki-source-821c6451f936b3390d26080d
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -44,16 +50,24 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
+  - id: openwiki-source-4f0f9c14c0bea850182fe19b
+    resource: repo://TFI/Info.plist
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
+  - id: openwiki-source-e396438eb6a8a7ca888da5f4
+    resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-bc95e901ca3e10fe208b8b39
+    resource: repo://TFITests/MobileBundledFontTests.swift
   - id: openwiki-source-3408d1bbed04a0e72ffb4c4a
     resource: repo://TFITests/MobileTerminalBackgroundTests.swift
   - id: openwiki-source-5153620560b535de8ffc4fdc
     resource: repo://TFITests/MobileTerminalExperienceTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
+  - id: openwiki-source-9bafc6bf5cb5d58a01efadd9
+    resource: repo://TFM/Design/TerminalTheme.swift
   - id: openwiki-source-194f038fde2b1218c1c960b2
     resource: repo://TFM/Features/Terminal/DesktopTerminalSurface.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
@@ -66,10 +80,18 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-2af30f142ffe927708256738
     resource: repo://TFM/Features/Workspaces/Workspace%2BTerminalInputArea.swift
+  - id: openwiki-source-505082ab39bbdf0e8488bf01
+    resource: repo://TFM/Info.plist
+  - id: openwiki-source-385c953ef1c6bf095d1c1244
+    resource: repo://TFM/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-e2a181897da756060494e573
     resource: repo://TFMTests/TerminalActivationWireTests.swift
+  - id: openwiki-source-eff0965a6404aed978ca9b22
+    resource: repo://TFMTests/TerminalBundledFontTests.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
+  - id: openwiki-source-2891f940e682279163740c83
+    resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-86206e1a61bdc666c123a8de
     resource: repo://TFMTests/TerminalInputAreaTests.swift
   - id: openwiki-source-0840663ba1338ab9db59ad37
@@ -78,17 +100,17 @@ sources:
     resource: repo://TFMTests/TerminalResizeThrottleTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Ghostty Terminal Integration
 
 Termind uses the remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH-backed terminals (SSH, Mosh and Eternal Terminal), Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves.
 
-The package is consumed directly from `https://github.com/Lakr233/libghostty-spm.git`, with no local Ghostty maintenance submodule. Xcode's package reference uses `upToNextMinorVersion` with `minimumVersion = 2.2.2026101502`; this is a compatible-version requirement, not an exact-version requirement. `Package.resolved` currently pins version `2.2.2026101502` at revision `42bacd1339f323a693ddbca779295f4f77e5a697`. Treat the requirement and resolved pin as separate parts of the embedding contract. See [Build, Test, and Release](../operations/build-test-and-release.md#ghostty-direct-upstream-dependency) for dependency-update procedures and requirement/resolution alignment.
+The package is consumed directly from `https://github.com/Lakr233/libghostty-spm.git`, with no local Ghostty maintenance submodule. Xcode's package reference uses `upToNextMinorVersion` with `minimumVersion = 2.2.2026110702`; this is a compatible-version requirement, not an exact-version requirement. `Package.resolved` currently pins version `2.2.2026110702` at revision `1d84cf66fe29abd1f24f10b88dcfc25882cf68ee`. Treat the requirement and resolved pin as separate parts of the embedding contract. See [Build, Test, and Release](../operations/build-test-and-release.md#ghostty-direct-upstream-dependency) for dependency-update procedures and requirement/resolution alignment.
 
 ## Shared Find lifecycle and native dismissal
 
@@ -261,11 +283,40 @@ flowchart TD
 ```
 The in-process suspend/resume path retains the local surface; checkpoint restoration and server-side attachment validation are separate recovery mechanisms. See [Session Persistence](session-persistence.md) for remote-session ownership.
 
+### Device-local fonts and native registration
+
+`TerminalFontSettings` stores family, size, size-following and thickening in `@AppStorage`, separately from synced terminal preferences. Defaults are an empty family (follow theme), size 12 with `sizeFollowsTheme = true`, and `.followTheme` thickening. Family and size follow the theme independently; choosing a family does not force a manual size. Device typography must not be treated as synced theme data; see [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
+
+The apps bundle **JetBrains Mono**, **SauceCodePro Nerd Font** and **FiraCode Nerd Font**. Native registration is declarative: iOS lists ten TTF faces in `UIAppFonts`; macOS uses `ATSApplicationFontsPath = .`. JetBrains Mono and SauceCodePro include regular, bold, italic and bold-italic faces; FiraCode includes regular and bold. `TerminalBundledFonts` identifies these families for the picker, but does not itself register fonts.
+
+Each platform's `TerminalFontCatalog` enumerates native available families, keeps those with at least one instantiable face at size 12, and sorts them using localized standard comparison. It does not restrict the list to monospaced fonts. Its built-in set is the intersection of bundled family names and actually available families. Before applying appearance, mobile `resolvedFont` and desktop `TerminalAppearanceSettings` call `resolvingFamily(in:)`: an unavailable family becomes an empty family in the returned value, preserving the other typography fields and leaving the stored selection untouched. This lets theme font entries remain effective rather than emitting a missing preferred family.
+
+### Theme-to-renderer precedence
+
 Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. `TerminalThemeOptions` resolves library selections, falling back to legacy preference fields when no library selection exists. Built-in names missing from the catalog or of the wrong appearance render the Termind fallback without repairing stored preferences. Saved custom themes resolve their own base and configuration. The host then applies:
 
 1. The resolved base theme.
 2. The device's preferred font family, followed by ordered custom commands. An empty `font-family` reset reapplies the preferred family rather than dropping it.
-3. A manual device-local font size last, unless `sizeFollowsTheme` is enabled.
+3. A manual device-local font size after theme commands, unless `sizeFollowsTheme` is enabled.
+4. The tri-state device-local `thicken` override: `.followTheme` adds nothing, `.enabled` appends `font-thicken = true`, and `.disabled` appends `font-thicken = false`.
+
+Size and thickening overrides belong at the end of each light/dark **theme configuration**, not merely in session overrides: Ghostty renders theme commands after session overrides. Returning thickening to `.followTheme` rebuilds from the theme without retaining the old device override. Family entries remain ordered fallbacks rather than a scalar last-value override; empty or quoted-empty resets reinsert only the preferred family, not previously cleared fallbacks. Style-specific family commands and duplicate entries remain unchanged.
+
+```mermaid
+flowchart TD
+    Stored["Device-local TerminalFontSettings"] --> Resolve["Resolve family against native font catalog"]
+    Native["App font registration and installed fonts"] --> Resolve
+    Theme["Theme library selection or legacy preferences"] --> Base["Resolve base theme and fallback"]
+    Base --> Family["Append available preferred family"]
+    Resolve --> Family
+    Family --> Commands["Append ordered custom commands and protect family resets"]
+    Commands --> Size["Append manual size unless following theme"]
+    Size --> Thicken["Append enabled or disabled thickening unless following theme"]
+    Thicken --> Pair["Set light and dark TerminalTheme"]
+    Pair --> Session["Set notification policy and padding"]
+    Session --> Renderer["Existing TerminalViewState controller"]
+```
+The configuration path resolves availability without rewriting preferences, then applies device size and thickening after theme commands.
 
 Custom `notify-on-command-finish` entries are filtered out, and the session configuration forces it to `never` (with 8-point X/Y window padding). Termind owns command-notification delivery; this is host configuration policy, not evidence about Ghostty's internal notification implementation. Mobile reapplies appearance when preferences, the theme library or resolved font change; desktop chrome applies on appearance and shared appearance changes.
 
@@ -274,6 +325,9 @@ Theme-editor previews are separate, noninteractive in-memory surfaces with sampl
 The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
 
 ## Focused checks
+
+- [TerminalFontRenderingTests](../../TFMTests/TerminalFontRenderingTests.swift) checks both light/dark configurations, preferred-family ordering, empty and quoted-empty resets, unavailable-family fallback, independent size following, and all three thickening modes against true/false theme commands. Reconfiguration and return-to-theme checks assert the same controller and no configuration issue; these are configuration tests, not pixel-level glyph-weight comparisons.
+- [TerminalBundledFontTests](../../TFMTests/TerminalBundledFontTests.swift) and [MobileBundledFontTests](../../TFITests/MobileBundledFontTests.swift) verify registered faces originate in the app bundle, native catalog membership, bold/italic traits, equal ASCII advances and Nerd glyphs in the Nerd Font families. They also check that family selection reaches Ghostty and can return to theme; mobile additionally checks widget bundles do not duplicate the TTF resources.
 
 - [TerminalResizeThrottleTests](../../TFMTests/TerminalResizeThrottleTests.swift) runs offscreen by default. It checks idempotent live throttle changes, retained surface/controller/backend and transcript after remount, final viewport convergence for 0/35/128 ms bursts, and no duplicate callbacks for unchanged layout.
 - [TerminalActivationWireTests](../../TFMTests/TerminalActivationWireTests.swift) requires `TERMIND_TMUX_FIXTURE`. It checks real tmux size restoration, stale client rejection, manual sizing and split-layout preservation, draft/prefix/copy-mode preservation, Vim continuity, and usable input when integration or runtime control-channel capacity is unavailable. These fixture tests are not substitutes for the offscreen renderer tests.

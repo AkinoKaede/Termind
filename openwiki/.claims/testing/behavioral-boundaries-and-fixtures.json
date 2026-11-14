@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9735fd1ddf3dccb1e5df7e598285434cb419471cbb737b43a71403ffead245a2",
+  "pageVersion": "sha256:54ace9175408d8c54d0a670529d507b0652ace924e1e7f316b4559a021cab4ec",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -142,7 +142,7 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Historical schemas migrate through the shared current V59 factory; migration endpoints omit V29/V32/V33 and retain frozen pre-color Snippet models. SnippetColorTests constructs V50 disk data, preserves content/relations/order, saves color and reopens.",
+      "statement": "Historical schemas migrate through the shared current V60 factory; migration endpoints omit V29/V32/V33 and retain frozen pre-color Snippet models. SnippetColorTests constructs V50 disk data, preserves content/relations/order, saves color and reopens.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/SnippetColorTests.swift",
@@ -150,11 +150,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:bfa20f56592f7794a8739d931a25a12dbc532f3de0916a7e2e52ad0301d3a380"
+          "version": "repo-file-v1:sha256:9c24f950834b40a0f7ae1519f85cc8f5361b8c8da977046259f5a8cf83a30221"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:6bc84346c013d046f6212f5b758c20597db0aa4b8ecd2d0b0a385aef46bacfb7"
+          "version": "repo-file-v1:sha256:02f4754dae5c7bcaa0988ddc356cdd0d4e1675be0bc31ca96c50e40af2851b0c"
         }
       ]
     },
@@ -202,7 +202,7 @@
     },
     {
       "id": "claim_eb35f30233ca461cb7de961bbe793326",
-      "statement": "CloudSyncSafetyPersistenceTests upgrades constructed V30/V39 stores through the current V59 factory across retired per-category quarantine tables and reopens interrupted categories with scoped blocks, recovery and pending intent intact; this is not live CloudKit proof.",
+      "statement": "CloudSyncSafetyPersistenceTests upgrades constructed V30/V39 stores through the current V60 factory across retired per-category quarantine tables and reopens interrupted categories with scoped blocks, recovery and pending intent intact; this is not live CloudKit proof.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
@@ -210,7 +210,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:6bc84346c013d046f6212f5b758c20597db0aa4b8ecd2d0b0a385aef46bacfb7"
+          "version": "repo-file-v1:sha256:02f4754dae5c7bcaa0988ddc356cdd0d4e1675be0bc31ca96c50e40af2851b0c"
         }
       ]
     },
@@ -280,7 +280,7 @@
         },
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:b0874ec15d995574143f7febcd19a88bf2be43d6f6f0e418deb71a4d51aaca3a"
+          "version": "repo-file-v1:sha256:bb7cbb4368f1378a0753f48c0c4f9f8431693128e8d3d507d087b7fa32595c83"
         }
       ]
     },
@@ -290,11 +290,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:b0874ec15d995574143f7febcd19a88bf2be43d6f6f0e418deb71a4d51aaca3a"
+          "version": "repo-file-v1:sha256:bb7cbb4368f1378a0753f48c0c4f9f8431693128e8d3d507d087b7fa32595c83"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:054a86d5da18cb0beaf4e9caaa64a236fbb9b5cfc19aec964900c30f178e73db"
+          "version": "repo-file-v1:sha256:43e20dcc16dfbc216413b1e8ec00e0ab4fad198342b8d221af38242f392b9856"
         }
       ]
     },
@@ -304,7 +304,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:b0874ec15d995574143f7febcd19a88bf2be43d6f6f0e418deb71a4d51aaca3a"
+          "version": "repo-file-v1:sha256:bb7cbb4368f1378a0753f48c0c4f9f8431693128e8d3d507d087b7fa32595c83"
         }
       ]
     },
@@ -313,7 +313,7 @@
       "statement": "After an edited replacement commits, a pending failed-run save blocks further edit and fork and later adopts the real failed-run ownership; if that save instead throws, preparation retires without adopting staging or recording a completed failed snapshot and displays an assistant error.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L645-L710",
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L646-L711",
           "version": "repo-lines-v1:sha256:24a37e6db9a28e2df6a846c75003bc452e86c9b046243ad437f00bc7775874a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczZDI1MDVmNDM1NjgxMTE3ZDRhOTY5MGVkZjE3NmVkNzBjZWFiYzhhYmU2N2JlODMyOTIxOTRkMjVhYTU2OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhOTU4ZTIzMDAzNTJiNWU3NmQ0YzYyZWM3ODUyYjY4NjViZTQ4ZDgxODg3NDg2Nzk2ZTkyMTI2MmZkNGRmNTcifQ"
         },
         {
@@ -372,7 +372,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -468,7 +468,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift",
@@ -564,7 +564,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:bfa20f56592f7794a8739d931a25a12dbc532f3de0916a7e2e52ad0301d3a380"
+          "version": "repo-file-v1:sha256:9c24f950834b40a0f7ae1519f85cc8f5361b8c8da977046259f5a8cf83a30221"
         }
       ]
     },
@@ -584,7 +584,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:b0874ec15d995574143f7febcd19a88bf2be43d6f6f0e418deb71a4d51aaca3a"
+          "version": "repo-file-v1:sha256:bb7cbb4368f1378a0753f48c0c4f9f8431693128e8d3d507d087b7fa32595c83"
         }
       ]
     },
@@ -692,11 +692,11 @@
     },
     {
       "id": "claim_ac6b855414eb42ad933f8601eb3c1284",
-      "statement": "Persistence owns the V59 model set and migration factory, disables automatic CloudKit and rejects URL-plus-memory mode; platform entry points choose storage and own container lifetime.",
+      "statement": "Persistence owns the V60 model set and migration factory, disables automatic CloudKit and rejects URL-plus-memory mode; platform entry points choose storage and own container lifetime.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:6bc84346c013d046f6212f5b758c20597db0aa4b8ecd2d0b0a385aef46bacfb7"
+          "version": "repo-file-v1:sha256:02f4754dae5c7bcaa0988ddc356cdd0d4e1675be0bc31ca96c50e40af2851b0c"
         }
       ]
     },
@@ -812,7 +812,7 @@
         },
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://TFMTests/TerminalContextMenuTests.swift",
@@ -1054,7 +1054,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:b0874ec15d995574143f7febcd19a88bf2be43d6f6f0e418deb71a4d51aaca3a"
+          "version": "repo-file-v1:sha256:bb7cbb4368f1378a0753f48c0c4f9f8431693128e8d3d507d087b7fa32595c83"
         }
       ]
     },
@@ -1077,10 +1077,146 @@
           "version": "repo-lines-v1:sha256:43154dadf8ba35becf6cb0c7414f2e32bef070ca087fb1a9833895e62d28cc16:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNTc4OTg5NmMyMjUxZWQwYzVjMGRlYjk5ZmZlMDU4YzQzZWE2ZTY1OWI1ZjBlY2Y2NWE1OWUzNzQyZTljNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmNmYyMjgwMTYxMTc1YTA4Y2I1ZjJiNTNiYmZhOWRhMjdhZWZjZDM4ZTRlOTZmMzQ0NmEwNzY0ZDcyMDc4ZmIifQ"
         }
       ]
+    },
+    {
+      "id": "claim_607304da64074852866a9153b8e30e76",
+      "statement": "Committed assistant history reads use a concurrent executor and fresh ModelContext, return conversation values, check cancellation and retry on repository history-generation changes; pending context changes instead remain visible without committing unrelated edits. AgentHistoryLoadingTests checks main-actor progress, unsaved visibility and later saved edits/deletions.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentHistoryLoadingTests.swift",
+          "version": "repo-file-v1:sha256:7597912a0ef13ba92e4f8549f7beb74805152117c42d3b50f72482e897278df7"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift#L201-L234",
+          "version": "repo-lines-v1:sha256:b1eba80a4a74e71a27ec0a89d85b7607654a5450533521d18fe760e96777f6e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyYmI2ZDU3ODMxMmY2MmZkZDc5Yzg4N2EwY2M2ZWQwNGNkOTA5NDBmMWFhYTdlOWE1MDIwZWY2OTI5MWE5NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlODlmY2NjY2VkYTI5NDZjNmJmOTgxNWY1YzMzYmEzNGIzNDJlOGM5ZGU0MTM2NjlkODllMjFiOTFjYWM3ZGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBlMTk0NzllZWYyMjk1MzI3ZjQ1ODc4OGY4OTUwYjg1MGE0NTM2ZjE1NWE1MmUxYmZmYjk3MTIxZWU0MTUzNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwODY0NmY4MGZhY2UyZDdmZWVkYTRmOGNkMjM1N2IxN2NhOGNhMjgxZGJlMDdkMWI4MzU0MDllMjI5OGNhYzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_389a2a906fcf441bbfde2077c596f551",
+      "statement": "AgentHistoryLoadingTests reuses one tool call ID across 12 runs in each of 12 conversations and requires restored tool messages and cards to retain the owning run's output.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentHistoryLoadingTests.swift",
+          "version": "repo-file-v1:sha256:7597912a0ef13ba92e4f8549f7beb74805152117c42d3b50f72482e897278df7"
+        }
+      ]
+    },
+    {
+      "id": "claim_da8769232b7c4ecdb6ba2846b41f4187",
+      "statement": "Desktop assistant restoration coalesces callers into a process-owned task; closing an initial window does not lose the load, later windows share conversation objects, failure permits retry, and termination prevents late results from restoring history.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L853-L877",
+          "version": "repo-lines-v1:sha256:8dd215bfc0deca6fa9bdad8aa02910e293231d2117e3242f545b5d29b57894ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ZjQzZjU1NWNiOTZlNmRlOGUxOWViNGNmMWEwMTc0MWIxMDZmZDQ0NTc1NjcyYmM3NDAzN2ExMzFkNGU3MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwZTAxN2YyYTI4M2VhZjk4NTdiNWZhYzc0NDE5YzI2YmQyYmU4MjNkYzM4ZTY3OGExNzJmMjBmMjBlZDY0MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1YTFlYzk2OGVhY2JmYWU2Y2VjYmU3MGFjOGFhNjYzZjExZWFjZjY5OTE3NTdlZDM4MDk3YWM1ZWU0MTAzOGYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AssistantStartupTests.swift",
+          "version": "repo-file-v1:sha256:ebdf13b17f3314c57ec199d2c36b567e7cd5c0d82828c9cfb19fcd7c3ea4df95"
+        }
+      ]
+    },
+    {
+      "id": "claim_5bc2bf2ff9354412bda41ba1f2ae2ce4",
+      "statement": "Steering timeline fixtures require delivered user messages to close prior presentation work without finishing the run, separate subsequent reasoning/retries/tool batches, avoid empty groups for consecutive deliveries and keep late results with their original segment while terminal state applies to the current segment.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentSteeringTimelineTests.swift",
+          "version": "repo-file-v1:sha256:73f89247bb2b3e73f3e54b94a065b137e46bd704b89fc1564c85a56eff9d5cc4"
+        }
+      ]
+    },
+    {
+      "id": "claim_9709e99545094d5081612513ba489131",
+      "statement": "Steering timeline tests preserve transcript ordering under backward/equal clocks using source and run-local ownership before legacy timestamp fallback, independent disclosures and edit/fork ownership; disk reopen with and without compaction reconstructs stable timeline IDs and segments.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentSteeringTimelineTests.swift",
+          "version": "repo-file-v1:sha256:73f89247bb2b3e73f3e54b94a065b137e46bd704b89fc1564c85a56eff9d5cc4"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0113adbdc414680b357bdcf256fb4e4",
+      "statement": "Memory review transcript fixtures serialize each message once off main thread across overlapping 100-message review windows, account for separators in character budgets, trim context, advance oversized messages and rewind for pending activity without consuming later or missing events; cancellation during blocked preparation throws after one serialization.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/MemoryReviewTranscriptTests.swift",
+          "version": "repo-file-v1:sha256:4317462729a268ff55c04c6157e169a4ea1b13ebe79ac84ab88d1a9900fa9503"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd2e80dc3c6c4e48b40c830d61f69072",
+      "statement": "V60 adds model-specification sidecars; ModelSpecificationPersistenceTests migrates a constructed V59 store, saves and reopens native specification metadata with legacy settings and credential references retained, removes sidecars on model deletion and tolerates corrupt specification bytes without overwriting historical projection.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ModelSpecificationPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:fb74b9d4187628d8deae0aa301cdc954525140d5271d3b333da8cee31849d068"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L954-L968",
+          "version": "repo-lines-v1:sha256:eb2d92c6a9bf58724d043c3d7cfafebd5b0ef2a8c9c176c3e36cd0ac62169e86:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0M2Y5OGQ2NjFkNjE3NDA1Y2IzMmE5OTA1YzNiNmU4N2JlMDY4ZTViM2RlNDdlN2Y1OGZiMjhmNGYwN2UxOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYzllZDBkMTRmYjhhM2EzOGI3MDhmZmYzYmFmMWIxM2Q3YzA3YmIxMmNmZDZkMDJlMWJiMjRhZGY3ZTUzZWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_687fd3e3d81b4be1bc8e715934a966ad",
+      "statement": "Model specification tests preserve native sync fields and legacy payload compatibility, use a classifier legacy projection for new non-chat types without assistant eligibility, and bound compaction by the smaller positive input/context limit without changing displayed context.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/ModelSpecificationPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:fb74b9d4187628d8deae0aa301cdc954525140d5271d3b333da8cee31849d068"
+        }
+      ]
+    },
+    {
+      "id": "claim_31f84721b0624e7ab7f8446725dcafb2",
+      "statement": "Terminal font preference fixtures establish one-time local legacy migration with existing defaults taking precedence, independent device typography across simulated settings sync/reconstruction, exclusion of typography from upload envelopes and nonmutating theme fallback for missing fonts.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalFontPreferencesTests.swift",
+          "version": "repo-file-v1:sha256:4e921f9a154431d3664a741d5e0d39853ee035e9eceae39d4338fde8712583fe"
+        }
+      ]
+    },
+    {
+      "id": "claim_feb65b38b9654bfba669bf3da90d5515",
+      "statement": "Quiet TerminalFontRenderingTests asserts preferred family precedence and reinstatement after theme resets, independent manual size/thickening overrides and controller identity retention when changing typography or returning to theme; it tests configuration rather than pixel equivalence.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/TerminalFontRenderingTests.swift",
+          "version": "repo-file-v1:sha256:c10717b320210786ab16ee4888d87626b3e1da289548cbff8f4dca705cff4c21"
+        }
+      ]
+    },
+    {
+      "id": "claim_a43c6c53756e466a82db8d6a62259d82",
+      "statement": "Desktop and mobile font screenshot suites require TERMIND_FONT_SCREENSHOTS=1 in addition to their visible-window or key-window gate and are serialized.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileFontScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:c36537f8ad6417f23b63842c9838dc797ddc309de72aa4399eb691a2c231e853"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalFontScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:da5c2502cf36decff614c2b947b528935800c004ad182a680a3b249b321d020a"
+        }
+      ]
+    },
+    {
+      "id": "claim_9d03f60e4be04af297ddaf9456d60b84",
+      "statement": "MobileMessageTextEditorTests keeps unmounted/unfocused refusal and offscreen preference-change identity/selection/draft checks enabled normally; only responder-dependent keyboard/backspace cases use requiresKeyWindow, protecting marked text, paste, text-before-selection deletion and focus retention.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileMessageTextEditorTests.swift",
+          "version": "repo-file-v1:sha256:4c43771636a07e068a826d323e77a4ef09be7586580ff6897af5cdae7a23fa7e"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

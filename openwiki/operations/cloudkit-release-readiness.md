@@ -8,6 +8,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/SFTPSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
+  - id: openwiki-source-e2f274b029911d061af3aa9a
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalPreferences.swift
+  - id: openwiki-source-36d16adefef02f0ed0cdc428
+    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -40,6 +46,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-13ba070e411d89e979aac933
+    resource: repo://Frameworks/TermindPersistence/PersistentAIModelSpecification.swift
   - id: openwiki-source-9b1d7edbd0fef02b4998e432
     resource: repo://Frameworks/TermindPersistence/PersistentMCPServerMetadata.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
@@ -80,6 +88,8 @@ sources:
     resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-b41ffbd407a598b50512e10b
     resource: repo://FrameworkTests/HostIconTests.swift
+  - id: openwiki-source-93ee21f46ab3a1f8e564a668
+    resource: repo://FrameworkTests/ModelSpecificationPersistenceTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -116,10 +126,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # CloudKit Release Readiness
@@ -209,7 +219,7 @@ Use at least two Macs and one iPhone or iPad signed into the same Apple account,
 
 - Add, edit, and delete providers, roles, MCP clients, skills, and terminal configuration. Include offline edits, independent category pause/resume, master pause/resume, delayed Keychain delivery, key rotation, and Pro expiration.
 - Verify that an account switch merges before upload and that category selections and account bindings remain independent.
-- Confirm that theme text, custom terminal text, and shell-integration changes update existing windows. Font family, size, and follow-theme-size are device-local; distinguish them from fonts authored inside synchronized theme text.
+- Confirm that theme text, custom terminal text, and shell-integration changes update existing windows. Font family, size, follow-theme-size and thickening are device-local (`TerminalFontPreferences` and the `SettingsKey.terminalFont*` keys); none is a field of synchronized `TerminalPreferences`. Distinguish these overrides from fonts authored inside synchronized theme text.
 - Confirm that notification preferences (including assistant, terminal and SFTP notification modes, terminal delivery and minimum duration) synchronize as Settings while conversations, approval mode, and the local MCP listener's enabled state, port, tools, and token never synchronize.
 - Upgrade a V46/V51 highlighting store to V52, reopen it and verify other preferences survive while local highlighting storage/pending uploads are gone. Deliver malformed legacy highlighting records—including conflicts/deletions—alongside valid Settings records; current clients must ignore the retired type without blocking or replacing active preferences. Check coexistence with older clients separately.
 - Before deleting the iCloud Keychain copy of a migrated MCP token, verify that the local replacement works.
@@ -238,14 +248,14 @@ Legacy-write isolation is conditional, not a blanket refusal of legacy Settings 
 
 ## Installed-store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps use `TermindPersistence.makeContainer` for normal local-store creation: mobile accepts an injected `dependencies.container`, otherwise uses an in-memory container when `inMemory` is true or Hosts are supplied, and passes its Application Support `Termind.store` URL for disk storage. macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V59** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps use `TermindPersistence.makeContainer` for normal local-store creation: mobile accepts an injected `dependencies.container`, otherwise uses an in-memory container when `inMemory` is true or Hosts are supplied, and passes its Application Support `Termind.store` URL for disk storage. macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V60** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
-Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52→V53→V54→V55→V56→V57→V58→V59, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52→V53→V54→V55→V56→V57→V58→V59→V60, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical-schema disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["Historical migration stages through V59"]
+    Factory --> Local["Historical migration stages through V60"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -332,7 +342,7 @@ See [Settings, Vault, Metrics, and Cloud Sync Workflow](../workflows/settings-an
 
 ## Current local and wire compatibility gates
 
-Do not equate **local SwiftData V59**, per-kind `formatVersion`, and stable `v1/...` record identities. The [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40) selects V59 without enabling SwiftData CloudKit mirroring; [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L60) independently selects each wire reader/writer.
+Do not equate **local SwiftData V60**, per-kind `formatVersion`, and stable `v1/...` record identities. The [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40) selects V60 without enabling SwiftData CloudKit mirroring; [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L60) independently selects each wire reader/writer.
 
 | Kind | Current writer | Accepted readers |
 | --- | --- | --- |
@@ -346,7 +356,13 @@ Do not equate **local SwiftData V59**, per-kind `formatVersion`, and stable `v1/
 | Device | V1 | V1 |
 | Terminal custom theme and appearance selection | V1 native fields | V1 |
 
-Tailscale group configuration is part of HostGroup; managed peer Hosts cannot encode as standalone Vault Host records. Sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup, V51 adds Snippet color over the frozen historical Snippet model, and V52 removes highlighting. V53 replaces the local Host model for session-persistence preferences; V54 replaces it again for `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight migration stages, not CloudKit format upgrades. V55 adds terminal transport preferences, V56 Wake-on-LAN, V57 named themes and appearance selections, and V58 Host creation ordering without inventing dates for historical Hosts; all four subsequent stages are lightweight too. [V59](../../Frameworks/TermindPersistence/HostPersistence.swift#L942-L977) adds `PersistentMCPServerMetadata` for discovered server descriptions via a lightweight V58→V59 stage. This separate metadata model preserves historical MCP server shapes; it is not a CloudKit wire-version bump.
+Tailscale group configuration is part of HostGroup; managed peer Hosts cannot encode as standalone Vault Host records. Sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup, V51 adds Snippet color over the frozen historical Snippet model, and V52 removes highlighting. V53 replaces the local Host model for session-persistence preferences; V54 replaces it again for `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight migration stages, not CloudKit format upgrades. V55 adds terminal transport preferences, V56 Wake-on-LAN, V57 named themes and appearance selections, and V58 Host creation ordering without inventing dates for historical Hosts; all four subsequent stages are lightweight too. [V59](../../Frameworks/TermindPersistence/HostPersistence.swift#L942-L977) adds `PersistentMCPServerMetadata` for discovered server descriptions via a lightweight V58→V59 stage. This separate metadata model preserves historical MCP server shapes; it is not a CloudKit wire-version bump. [V60](../../Frameworks/TermindPersistence/HostPersistence.swift#L961-L967) adds `PersistentAIModelSpecification` through a lightweight V59→V60 stage, keeping native models.dev JSON separate from historical model columns.
+
+### Model specification compatibility
+
+Local model-schema changes do not automatically change CloudKit envelopes. [SyncedAIModel](../../Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift) carries an optional `specification` alongside flattened compatibility fields; reconstruction applies it only when its ID matches the model. `SettingsEnvelope.currentFormatVersion` remains **1**, and record identities remain `v1/...`. Review payload compatibility independently of the V60 migration: a legacy payload without `specification` reconstructs from the flattened fields, not the full native metadata.
+
+[ModelSpecificationPersistenceTests](../../FrameworkTests/ModelSpecificationPersistenceTests.swift) checks native wire round trips and legacy payloads with `specification` removed. Its disk test creates a V59 store, verifies retained historical model values after upgrade, saves native metadata, reopens through the current factory, and checks the specification, reasoning profile, assistant visibility and credential reference; removing the model also removes its specification row. The sidecar applies only decodable, ID-matching metadata, leaving the existing model unchanged otherwise. These are codec and local persistence contracts, not evidence of signed-device delivery or preservation after an old client edits and rewrites a provider. Include that mixed-version journey in release validation.
 
 ### Host upload and decode checks
 

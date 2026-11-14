@@ -1,11 +1,13 @@
 ---
 type: architecture map
-title: Module Map and Dependency Direction
+title: Module and Dependency Map
 description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -108,13 +110,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
-# Module Map and Dependency Direction
+# Module and Dependency Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -185,15 +187,16 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** AgentKit is a remote package, not a repository-root maintenance submodule or local Xcode package path. The project declares a remote `upToNextMinorVersion` requirement starting at `4.0.0`, and `Package.resolved` pins version `4.0.0` at revision `3481866cd47e83f6bf56b80c432c7824f61130b9`. Change the package requirement/resolution to change the build input; do not look for a local AgentKit maintenance tree. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable. The catalog also adds host discovery and cached metrics reading, plus resource-management tools when an `AgentResourceManager` is injected. Resource list/get operations are available in planning and acting; mutations are acting-only. Saved-snippet execution has separate acting and planning registrations and also requires the manager. Presenter lookup requires a presentation ID and rejects MCP descriptors; there is no legacy tool-name fallback in `TermindAgentTools`. Both native dependency assemblies layer `SSHExecToolPresentation` onto the shared presenter registry, keeping native SSH card presentation separate from host-tool registration. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
+**AgentKit version boundary:** AgentKit is a remote package, not a repository-root maintenance submodule or local Xcode package path. The project declares a remote `upToNextMinorVersion` requirement starting at `4.1.2`, and `Package.resolved` pins version `4.1.2` at revision `dae2fc9ac8698a188574c1ae8bee2545ad83afe0`. Change the package requirement/resolution to change the build input; do not look for a local AgentKit maintenance tree. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, registers the general SSH run/stdin tools and mutating SFTP tools for acting, with separate planning SSH run/stdin registrations, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable. The catalog also adds host discovery and cached metrics reading, plus resource-management tools when an `AgentResourceManager` is injected. Resource list/get operations are available in planning and acting; mutations are acting-only. Saved-snippet execution has separate acting and planning registrations and also requires the manager. Presenter lookup requires a presentation ID and rejects MCP descriptors; there is no legacy tool-name fallback in `TermindAgentTools`. Both native dependency assemblies layer `SSHExecToolPresentation` onto the shared presenter registry, keeping native SSH card presentation separate from host-tool registration. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
-**Remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate checks:
+**Remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate checks. Use the [project declarations](../../Termind.xcodeproj/project.pbxproj) and [resolved pins](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) together. In particular, the current Ghostty declaration is `upToNextMinorVersion`, despite `AGENTS.md` describing an up-to-next-major requirement:
+
 
 | Remote input | Current Xcode requirement | Selected version and revision |
 | --- | --- | --- |
 | `AkinoKaede/libssh2-spm` | `upToNextMinorVersion` from `2.0.3-termind-4` | `2.0.3-termind-4`, `7ca39b8bcaf408351e8b6e4f449d2a39959bab49` |
-| `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026101502` | `2.2.2026101502`, `42bacd1339f323a693ddbca779295f4f77e5a697` |
-| `AkinoKaede/libtailscale-spm` | `upToNextMinorVersion` from `1.0.3` | `1.0.3`, `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
+| `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026110702` | `2.2.2026110702`, `1d84cf66fe29abd1f24f10b88dcfc25882cf68ee` |
+| `AkinoKaede/libtailscale-spm` | `upToNextMinorVersion` from `1.0.4` | `1.0.4`, `f0823de8da8c5fbf50218566825d346f2cc3daf5` |
 
 `.gitmodules` now lists only `com.akinokaede.termind`; AgentKit, libssh2, libtailscale, and Ghostty have no declared maintenance submodules. Treat the SSH and Tailscale packages as remote inputs, not repository maintenance trees. `TailscaleKit` links directly into Remote Infrastructure and is not a shared framework target. For any package, `project.pbxproj` defines the allowed remote input and `Package.resolved` records the selected revision. Resolved-only verification uses `-onlyUsePackageVersionsFromResolvedFile`; update and release procedures are in [Build, Test, and Release](../operations/build-test-and-release.md).
 

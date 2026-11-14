@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Composition
+title: Platform Runtime and Lifetimes
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -108,8 +108,12 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-dad03c68d6b805a4170ffc02
     resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-39248df19c48bb72235c6e8d
     resource: repo://TFMTests/AppTestHostTests.swift
+  - id: openwiki-source-c86144d2d2ca66467f0a52d5
+    resource: repo://TFMTests/AssistantStartupTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
@@ -122,13 +126,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
-# Platform Runtime and Composition
+# Platform Runtime and Lifetimes
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -199,7 +203,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-[`TermindPersistence.makeContainer`](../../Frameworks/TermindPersistence/TermindPersistence.swift) fixes the shared versioned SwiftData schema and migration plan for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
+[`TermindPersistence.makeContainer`](../../Frameworks/TermindPersistence/TermindPersistence.swift) fixes the shared versioned SwiftData schema (`TermindSchemaV60`) and `TermindMigrationPlan` for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. Its configurations use `cloudKitDatabase: .none`: the container is local storage, while the explicitly assembled sync coordinators own cloud synchronization. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
 
 The desktop root captures `launchLanguage` once during initialization and injects its locale into both main and external-authentication scenes. The Settings picker stores a new `AppLanguage` and shows a next-launch notice when it differs from the captured selection; it does **not** automatically quit or relaunch the application. The new selection applies on the next launch, rather than replacing the root's captured locale in place. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 
@@ -250,6 +254,42 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 
 **Scene policy is separate from store policy.** In DEBUG, a default XCTest host suppresses automatic launch of both the main and authentication scenes unless `TERMIND_WINDOW_TESTS=1` or screenshot-demo mode is active. Tests disable restoration for both scenes even when visible windows are opted in; screenshot mode disables main-scene restoration, while ordinary launches use automatic launch and restoration. The delegate also refuses Dock reopen while test-window suppression applies, refuses to quit the test host when its last fixture window closes, and skips starting metrics activity/menu in tests. Explicit window/focus tests use `.requiresVisibleWindow` and opt in with `TERMIND_WINDOW_TESTS=1` (or Xcode's `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` forwarding); suppression is not a ban on explicitly created offscreen test fixtures. The default test-host checks assert no visible windows and no reopen. To exercise a gated suite, use `TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile -only-testing:TFMTests/<Suite> test`; the test host itself checks `TERMIND_WINDOW_TESTS=1`. Keep routine logic and offscreen tests on the default suppressed path.
 
+### Shared assistant restoration
+
+Desktop startup assembles the assistant repository against the retained container's `mainContext` in `TermindApp`; `AppModel` wraps it in `MemoryIndexedAgentRepository`. Container construction is not transcript restoration. Restoration begins when `registerWindow(_:)` attaches a window's assistant library to `assistantConversations` and schedules `restoreAssistantConversations()`. The store belongs to the app, not to the first window or its registration task.
+
+Concurrent callers join one retained `assistantRestorationTask`. After the repository load, the task checks cancellation, excludes conversation IDs deleted during this process, resolves persisted model selections, and restores the shared store. Only successful completion sets `hasRestoredAssistantConversations`; later windows adopt the same conversation objects without rereading history. Closing or unregistering the first window does not cancel that shared load. After a successful wait, registration resumes notification routing only if its window is still open.
+
+A load or selection-restoration failure leaves the success flag unset and clears the task handle, allowing a later call to retry. Registration reports non-cancellation failures through `window.assistantOperationError`; cancellation is ignored there. This is retryable assistant history loading, not a failed-container fallback and not an automatic retry loop. During termination, `isTerminating` prevents new restoration and `assistantRestorationTask?.cancel()` invalidates an in-flight load. Even if the repository returns later, the post-load cancellation check prevents history from being installed after shutdown. Shutdown does not await this history-load task as part of its service drain.
+
+```mermaid
+sequenceDiagram
+    participant Root as TermindApp
+    participant App as AppModel
+    participant Window as Window libraries
+    participant Repo as Agent repository
+    Root->>App: Inject repository backed by retained container
+    Window->>App: Register and adopt shared store
+    App->>Repo: Start one history load
+    Window->>App: Another registration joins pending task
+    alt Load fails
+        Repo-->>App: Error
+        App-->>Window: Report operation error and clear task
+        Window->>App: Later restoration call retries
+    else Load succeeds
+        Repo-->>App: Stored conversations
+        App->>App: Check cancellation and restore shared store
+        App-->>Window: Shared objects and routing resume for open window
+    end
+    opt Quit during a pending load
+        App->>App: Set terminating and cancel restoration task
+        Repo-->>App: Late result
+        App->>App: Cancellation check rejects result
+    end
+```
+
+Assistant history has a process-wide load lifetime, independent of the window that first requested it. Sources: [desktop assembly](../../TFM/App/TermindApp.swift), [registration and restoration](../../TFM/App/AppModel.swift), [startup lifetime tests](../../TFMTests/AssistantStartupTests.swift).
+
 ### Window-local desktop state
 
 `WindowModel` contains the state that may legitimately differ in another desktop window: navigator destination, dynamic workspaces and panes, sidebar and search behavior, workspace selection, local presentations, and window-specific assistant surfaces. `RootView` preserves mounted workspace-native views when a different destination becomes visible so terminal grids, scrollback, and SFTP UI state survive navigation.
@@ -297,7 +337,7 @@ The AppKit delegate starts native appearance/login handling and, outside tests, 
 
 `applicationShouldTerminate` returns `.terminateNow` if no app model is attached. Otherwise it latches `awaitingTermination` and returns `.terminateLater`; duplicate requests while confirmation or cleanup is pending return `.terminateLater` without scheduling another task. The task first saves terminal-theme changes and asks for discard approval only if unsaved drafts remain. Live workspaces do not themselves trigger Quit confirmation. Next it awaits `sftpEdits.recheck()` and, if unuploaded changes remain, asks a separate SFTP quit-anyway question. Either veto replies `false`, resets the latch and leaves shutdown unstarted, so Quit can be retried. The three-second cleanup fallback does **not** bound these confirmation or recheck stages. See [SFTP Transfer and External Edit](../workflows/sftp-transfer-and-external-edit.md).
 
-An accepted quit saves normal window sizing before invoking `shutdownForTermination()`. Shutdown immediately fences assistant admission, cancels pending managed-session close tasks, stops notification observers/routing and clears the Dock badge. It cancels pending preparations and stops every conversation in the app-wide store before awaiting any of them, including conversations no longer displayed in a registered window. The preparation drain also joins captured failure persistence for conversations not yet stored. Memory and edit monitoring are suspended, metrics and speech are stopped, registered windows' workspaces are disconnected through `closeAll(intent: .applicationTermination)`, and SFTP transfers, external authentication, forwarding and the outbox are canceled/stopped. This is not `closeForWindow()`: termination empties workspace collections without marking each window model closed. Application termination does not end managed remote sessions.
+An accepted quit saves normal window sizing before invoking `shutdownForTermination()`. Shutdown immediately fences assistant admission and restoration, cancels the shared history-load task and pending managed-session close tasks, stops notification observers/routing and clears the Dock badge. It cancels pending preparations and stops every conversation in the app-wide store before awaiting any of them, including conversations no longer displayed in a registered window. The preparation drain also joins captured failure persistence for conversations not yet stored. Memory and edit monitoring are suspended, metrics and speech are stopped, registered windows' workspaces are disconnected through `closeAll(intent: .applicationTermination)`, and SFTP transfers, external authentication, forwarding and the outbox are canceled/stopped. This is not `closeForWindow()`: termination empties workspace collections without marking each window model closed. Application termination does not end managed remote sessions.
 
 The retained cleanup task concurrently starts MCP stop and SFTP cancellation waits, joins preparation cancellation and conversation terminal persistence, and awaits both service drains. Only then does it close agent background commands, then agent connection pools, then shut down Tailscale. Repeated shutdown calls reuse that task rather than repeat the asynchronous resource teardown. `AppTerminationReplyCoordinator` races task completion against a three-second fallback and replies `true` exactly once. This bounds the native quit reply after accepted confirmation, **not** completion of every drain; `applicationWillTerminate` safely invokes shutdown again and stops native metrics/appearance observers.
 
@@ -322,7 +362,7 @@ sequenceDiagram
             Delegate-->>Native: Reset latch and reply false
         else Quit accepted
             Delegate->>Model: Save window size and start shutdown
-            Model->>Assistant: Fence admission and cancel preparations
+            Model->>Assistant: Fence admission and cancel restoration and preparations
             Model->>Assistant: Stop all stored conversations
             Model->>Services: Stop monitoring and disconnect window workspaces
             Model->>Services: Begin MCP and SFTP drains
@@ -529,6 +569,7 @@ Tests exercise the lifetime contracts rather than merely constructing views. For
 - `DatabaseStartupGuardTests` checks that the macOS preflight permits the current process but refuses a second PID, including older versions without the lock. `PersistentStoreLockTests` checks refusal before open/migration, retention until all same-process containers close, release after forced exit without losing Vault data, and isolation of in-memory and separate stores.
 - `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.
 - `WorkspaceCloseConfirmationTests` verifies theme-save/discard handling, populated and empty windows closing without a live-workspace prompt, forwarded native veto and delegate restoration, and passive managed-session dismissal preserving recovery identity. `AppTerminationTests` covers cleanup/reply ordering rather than driving the delegate's modal Quit alerts.
+- `AssistantStartupTests` verifies concurrent windows share one history load even when the first closes, later windows share conversation object identity, a failed load can retry, and termination rejects a late repository result.
 - `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for fixture policy.
 - `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.

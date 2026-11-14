@@ -1,9 +1,11 @@
 ---
 type: design guide
-title: UI Design and Presentation Principles
+title: UI Design and Presentation Contracts
 description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
@@ -54,16 +56,26 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
+  - id: openwiki-source-f2cfaebbb361a181c3b34ed4
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontChoices.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
+  - id: openwiki-source-98bdcb8d33d425fe144907e1
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift
   - id: openwiki-source-821c6451f936b3390d26080d
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-6ab30745153a4cbf15c4b18c
     resource: repo://Frameworks/TermindPresentation/TermindToolPresentationProfiles.swift
+  - id: openwiki-source-59e762b82e096b9cdd6c0908
+    resource: repo://FrameworkTests/AgentSteeringTimelineTests.swift
+  - id: openwiki-source-c3d4e72485fed09342421617
+    resource: repo://FrameworkTests/ComposerSelectionDismissalTests.swift
   - id: openwiki-source-01fd62d857f198c9f92cb8a5
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
+  - id: openwiki-source-15d69ef86293647a9fa352a9
+    resource: repo://FrameworkTests/TerminalFontChoicesTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-60d390fe6fbfea55a2a8230a
@@ -136,6 +148,8 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
     resource: repo://TFM/Design/DesignTokens.swift
+  - id: openwiki-source-ef08560d1e2680f986897c63
+    resource: repo://TFM/Features/AI/ConversationViews.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-0c46eadbd7a2db45099d59aa
@@ -208,13 +222,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
-# UI Design and Presentation Principles
+# UI Design and Presentation Contracts
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -345,6 +359,12 @@ Both App settings shells expose `InputSendShortcutPicker`, backed by `SettingsKe
 
 Sources and focused tests: [shortcut policy](../../Frameworks/TermindApplication/InputSendShortcut.swift), [policy tests](../../FrameworkTests/InputSendShortcutTests.swift), [mobile editor tests](../../TFITests/MobileMessageTextEditorTests.swift), [desktop message editor tests](../../TFMTests/MessageEditorShortcutTests.swift), [terminal input focus tests](../../TFMTests/TerminalInputAreaLayoutTests.swift).
 
+### Empty Backspace dismisses composer selections, not the editor
+
+`ConversationModel.dismissLastComposerSelectionIfDraftEmpty()` removes one selection per invocation: the armed skill first, then planning mode. It requires an exactly empty draft (whitespace still counts as text), leaves attachments alone and returns false when nothing can be removed. Native adapters must establish focus, editability and absence of marked text before calling it. Desktop additionally requires an unmodified Backspace in the key window and the focused composer callback; mobile tests ensure an unfocused or unmounted editor cannot dismiss selections. Deleting the last text character does not also remove a selection on that same keystroke. Composition remains native, and dismissing a selection does not resign editor focus.
+
+Sources and regressions: [shared dismissal policy](../../Frameworks/TermindApplication/Agent/ConversationModel.swift), [desktop native guard](../../TFM/Features/AI/ConversationViews.swift), [policy tests](../../FrameworkTests/ComposerSelectionDismissalTests.swift), [mobile native tests](../../TFITests/MobileMessageTextEditorTests.swift).
+
 ### Secret entry is not ordinary message input
 
 `AgentSecretInput` binds a prompt-local draft; both Assistant interaction surfaces bind `conversation.secretInputDraft`, not the chat composer. Single-line entry uses `RevealableSecretField`. Multiline entry initially displays only whether a secret is present and requires explicit reveal before mounting its monospaced editor. Changing mode, leaving the active scene, disappearing, or successfully pasting/importing hides the multiline content again. Its multiline editor uses `submitScope()` so Return does not accidentally advance the enclosing prompt.
@@ -355,11 +375,11 @@ Sources: [shared secret input](../../Frameworks/TermindPresentation/AgentSecretI
 
 ### Terminal preferences and Assistant output
 
-`TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include every family with a loadable member, including proportional families, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
+`TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include every family with a loadable member, including proportional families, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. The shared `TerminalFontPicker` uses a popover of font-preview rows: Follow Theme first, then nonempty Built-in Fonts and System Fonts sections. `TerminalFontChoices` removes duplicates and empty names, sorts with `localizedStandardCompare`, and partitions only enumerated families; bundled metadata never invents an available choice. Both platform catalogs intersect bundled metadata with their loadable families. A missing saved family remains visible with an unavailable notice, but is not inserted into either options section. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. Family, size and three-state `thicken` (Follow Theme / Enabled / Disabled) are independent; the size editor appears only for custom size. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
 
 `TerminalThemeOptions` is a read-only projection of preferences plus `TerminalThemeLibrary`. Missing, empty or wrong-appearance built-in names and missing custom selections produce a localized availability notice and display-time fallback, not storage repair. Each light/dark browser lists compatible named custom themes and built-in themes; custom themes are managed separately, with name, appearance, base theme and configuration. Built-in selection uses a native library selection when supported (or when selections already exist), clearing custom selection; the legacy preferences path saves the base name and disables its overlay in one edit. Selecting a custom tile validates its ID and appearance before saving a library selection. Both browsers leave only after a successful save and otherwise show `storageError`.
 
-Rendering resolves the base, applies enabled configuration and incorporates local typography without rewriting stored choices. Local family is prepended as the preferred family while theme families remain fallbacks; empty theme family resets reinsert that preference. Manual local size is appended last unless size follows the theme. Desktop `TerminalCustomConfigurationEditorPage` debounces edits by 300 ms and imports UTF-8 text; `WindowModel` attempts saving before Back or changing destinations. Invalid, deleted or failed-save drafts protect navigation with discard confirmation. Cancelling keeps the draft; discarding clears the owner before deferred navigation, preventing pending autosave from resurrecting it. Autosave avoids trimming a trailing name-space while typing; navigation can normalize the name. Mobile `MobileCustomThemeEditorSheet` explicitly saves its draft and can import UTF-8 text. Deleted themes cannot be overwritten by stale drafts; editors offer Save Copy instead. Desktop terminal tests cover family fallback/reset ordering, size precedence, controller identity, nonmutating theme fallback and zero writes on opening Settings. The former `MobileTerminalFontTests.swift` is not present in the current checkout; do not treat its earlier language-render matrix as current coverage.
+Rendering resolves the base, applies enabled configuration and incorporates local typography without rewriting stored choices. Local family is prepended as the preferred family while theme families remain fallbacks; empty theme family resets reinsert that preference. After theme configuration, manual local size is appended unless size follows the theme, followed by an explicit `font-thicken` override when Enabled or Disabled is selected. Follow Theme emits no thickening override. This ordering matters because Ghostty renders theme commands after session overrides: device typography must be incorporated at the end of each light/dark theme configuration, not placed in session configuration. Desktop `TerminalCustomConfigurationEditorPage` debounces edits by 300 ms and imports UTF-8 text; `WindowModel` attempts saving before Back or changing destinations. Invalid, deleted or failed-save drafts protect navigation with discard confirmation. Cancelling keeps the draft; discarding clears the owner before deferred navigation, preventing pending autosave from resurrecting it. Autosave avoids trimming a trailing name-space while typing; navigation can normalize the name. Mobile `MobileCustomThemeEditorSheet` explicitly saves its draft and can import UTF-8 text. Deleted themes cannot be overwritten by stale drafts; editors offer Save Copy instead. `TerminalFontChoicesTests` checks availability-only grouping, deduplication, system selection without bundled metadata and JetBrains Mono membership. Desktop terminal tests cover family fallback/reset ordering, independent family/size choices, three-state thickening precedence in both appearances and return to theme defaults without replacing the controller; theme tests cover nonmutating fallback and zero writes on opening Settings. The former `MobileTerminalFontTests.swift` is not present in the current checkout; do not treat its earlier language-render matrix as current coverage.
 
 Sources: [theme projection](../../Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift), [selection and persistence](../../Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift), [desktop editor](../../TFM/Features/Settings/TerminalCustomConfigurationEditorPage.swift), [mobile editor](../../TFI/Features/Settings/MobileCustomThemeEditorSheet.swift), [navigation regressions](../../TFMTests/SettingsNavigationTests.swift).
 
@@ -461,6 +481,24 @@ Sources: [generic renderer](../../Frameworks/TermindPresentation/AgentToolPresen
 Distinguish **interaction changes from geometry changes**. `MobileNativeList.rowRevision` invalidates row layout for content/disclosure changes; `interactionRevision` refreshes mounted content without replacing its host or invalidating measured geometry. Assistant uses the latter for streaming-dependent interaction state. Mixed changes configure each affected row once, and later-mounted rows receive the latest interaction renderer. `MobileAssistantTranscriptTests` verifies host identity, unchanged measurements/content size and history anchor for interaction-only updates, plus mixed updates and offscreen reinsertion. This is a continuity contract, not permission to skip layout invalidation when visible content changes. See [Agent Runtime and Assistant](agent-runtime-and-assistant.md) for execution and conversation ownership.
 
 Sources: [native update reconciliation](../../TFI/UI/Components/MobileNativeList.swift), [Assistant caller](../../TFI/Features/AI/MobileAssistantConversation.swift), [native transcript regressions](../../TFITests/MobileAssistantTranscriptTests.swift).
+
+### Steering creates work segments without replacing history
+
+A delivered steering message is a visible work boundary, not a new execution run. The preceding work group retains its ID and closes with completed presentation state even while its run is still running. Subsequent assistant work gets a new group below the delivered user row; tool batches may span provider turns but not delivered user-message boundaries. Consecutive deliveries do not create empty work groups. Late tool results still update their original segment, while terminal run state applies to the current segment.
+
+```mermaid
+flowchart TD
+    Work[Running work segment] --> Delivery[Steering delivered]
+    Delivery --> Closed[Previous segment closes with stable ID]
+    Closed --> UserRow[Delivered user row]
+    UserRow --> Next[Next assistant work gets a new segment]
+    Late[Late result for earlier tool] --> Closed
+```
+Steering separates visible work within one run while preserving ownership of earlier results.
+
+`AgentSteeringTimelineTests` pins segment identity, ordering and late-result ownership. `MobileAssistantTranscriptTests.steeringAppendsANewSegmentWithoutMovingTheHistoryBeingRead` verifies the user/work/user/work suffix, distinct segment IDs and completed/running presentation states while retaining the visible historical row, its hosted view and its viewport anchor. Do not rebuild the transcript or force a history reader to the bottom merely because steering adds work.
+
+Sources: [shared row projection](../../Frameworks/TermindPresentation/AssistantTranscriptEntry.swift), [steering timeline tests](../../FrameworkTests/AgentSteeringTimelineTests.swift), [native continuity test](../../TFITests/MobileAssistantTranscriptTests.swift).
 
 Attachment-drop enablement must not replace the mounted conversation subtree. `MobileConversationAttachmentDropModifier` always wraps the same content; archived conversations and pending approval/user-input interactions disable accepted types, mask/reset targeting and reject receipt. The overlay appears only while enabled and targeted, with Reduce Motion respected. `MobileAssistantLayoutTests` exercises approval allow/deny and user-input submit/cancel round trips: the native transcript remains identical, preserves history offset or bottom anchoring, and recovers its height after the interaction. See [File Drag and Drop](../workflows/file-drag-and-drop.md) for payload loading and attachment-import mechanics.
 

@@ -16,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
     resource: repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-131881b779429a1d1d605e52
@@ -24,6 +26,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-b41ffbd407a598b50512e10b
     resource: repo://FrameworkTests/HostIconTests.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
@@ -66,6 +70,8 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -82,6 +88,8 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-e6490dc6a3e86e39aa4323fc
+    resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-6f8497046bd15dee0e92df2d
     resource: repo://TFMTests/MCPAuthorizationKeychainTests.swift
   - id: openwiki-source-c7d015a20982da4e8b0599d1
@@ -96,10 +104,10 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # Termind Engineering Quickstart
@@ -144,6 +152,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 
 | Task | Owning guide | Focused starting checks |
 | --- | --- | --- |
+| macOS database-in-use startup refusal and store ownership | [Platform Runtime and Lifetimes](architecture/platform-runtime.md) and [Persistence, Compatibility and Secrets](concepts/persistence-and-secrets.md) | `DatabaseStartupGuardTests`, `PersistentStoreLockTests`: another running app instance is rejected; disk containers hold a shared in-process lease that excludes other processes before opening or migrating the store |
 | SwiftData models, secrets, historical migrations and local recovery | [Persistence, Compatibility and Secrets](concepts/persistence-and-secrets.md) | Historical-store upgrade **and reopen** tests; `HostIconTests`, `SnippetColorTests`, `RetiredTerminalHighlightingTests` as relevant |
 | Settings writes or explicit CloudKit replication | [Settings and Cloud Sync](workflows/settings-and-cloud-sync.md) → [CloudKit Release Readiness](operations/cloudkit-release-readiness.md) | `CloudSyncLifecycleTests`, `CloudSyncSafetyTests`, coordinator and record-evolution tests |
 | Assistant turns, approvals, host tools, skills and memory | [Agent Runtime and Assistant](concepts/agent-runtime-and-assistant.md) | Preparation, cancellation, persistence, tool and memory regressions |
@@ -156,7 +165,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 
 ## Preserve the changed boundary
 
-These are routing reminders, not substitute specifications.
+These are routing reminders, not substitute specifications. For font changes, follow [UI Design and Presentation Contracts](concepts/ui-design-principles.md) and [Ghostty Terminal Integration](concepts/ghostty-terminal-integration.md); for Assistant history and memory work, follow [Agent Runtime and Assistant](concepts/agent-runtime-and-assistant.md) and [Persistence and Secrets](concepts/persistence-and-secrets.md). Catalog maintenance belongs with [Build, Test, and Release](operations/build-test-and-release.md) and [Commerce, Localization, and Product Surfaces](concepts/commerce-localization-and-product-surfaces.md).
 
 - **Layers:** `TermindDomain` owns portable rules; `TermindApplication` owns ports/use cases; `TermindPersistence` exclusively owns SwiftData models, historical schemas and container construction. Infrastructure implements services; `TermindPresentation` owns reusable content/copy; apps assemble concrete dependencies and native UI. `ArchitectureBoundaryTests` uses root-specific import and construction rules, not a blanket ban on every UI symbol. Shared Application cannot import Infrastructure, Persistence or SwiftData. Fix the ownership boundary rather than bypassing its tests.
 - **Runtime owners:** app services are shared, desktop workspaces belong to window-local `WindowModel`s, and mobile navigation/Assistant presentation belongs to `MobileSceneModel`. Mobile descriptors and live workspaces belong to persistent native UIKit scene sessions, not an interchangeable cross-window pool. Desktop `RootView` registers its window and publishes the focused window value while preserving mounted workspace views across destination changes.
@@ -165,8 +174,8 @@ These are routing reminders, not substitute specifications.
 - **Scene lifecycle:** disconnect/background alone preserves workspace ownership. Native-session reconciliation commits the complete saved-descriptor handoff before transferring live objects without reconnecting; a failed save leaves source ownership intact. A late explicit discard targets the recovered workspaces of a window used in this process. Cold-launch records from unbound archived windows instead remain recoverable when UIKit discards their old sessions. Background services pause when all scenes background; expiration suspends workspaces, stops forwards, pauses transfers and expires Assistant work. An active scene resumes eligible services. Follow [Platform Runtime](architecture/platform-runtime.md).
 - **Desktop close and quit:** live connections alone no longer trigger a window-close or application-wide quit confirmation. Native window vetoes and unsaved terminal-theme protection remain; quit saves theme edits, asks before discarding any still-unsaved theme, then rechecks pending SFTP edits with cancellation before shutdown. Termination fences new Assistant work and drains conversations/preparations before agent resource closure while stopping MCP/transfers. Its three-second fallback bounds the once-only AppKit reply, not asynchronous cleanup completion. Debug tests do not terminate on last-window close; otherwise menu-bar metrics settings and running metrics decide. See [Desktop UI](architecture/desktop-ui.md) and [Platform Runtime](architecture/platform-runtime.md).
 - **Connection presentation:** shared [`ConnectionJourney`](../Frameworks/TermindApplication/Connections/ConnectionJourney.swift) owns route progress and authentication/host-key checkpoints; [`ConnectionJourneyRouteView`](../Frameworks/TermindPresentation/ConnectionJourneyRouteView.swift) draws the shared route while the [desktop](../TFM/UI/Components/ConnectionJourneyView.swift) and [mobile](../TFI/UI/Components/MobileConnectionJourneyView.swift) views supply native controls. `ConnectionJourneyTests` checks shared state; `MobileMetricsJourneyTests` checks native authentication presentation with a test sampler rather than live SSH. These checks are not live SSH validation. Mobile terminal search stays on stable chrome, and terminal surfaces remain mounted beneath journey gates. SSH, Mosh, Eternal Terminal and Telnet use workspace-owned `TerminalFindController`; SFTP filters bind to `sftpChannel.query`.
-- **Local and wire compatibility are independent:** the live local schema is **V59**. Use migration/reopen tests rather than hard-coding the latest schema into unrelated tests. `SyncRecordFormats` independently defines per-kind wire readers/writers: Host writes V8, HostGroup V7, SSHKey V3, Snippet V2, WorkspaceTemplate V2 and Metrics V2. Follow the persistence/sync guides before changing compatibility; a successful build does not prove migration or CloudKit readiness.
-- **Released remote dependencies:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Keep the Xcode requirement and `Package.resolved` aligned when adopting package releases. `AgentKit`, `libssh2-spm` and `libtailscale-spm` are remote SPM dependencies, **not maintenance submodules**; there is no dependency gitlink to update or initialize. App builds consume remote pins, not sibling working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `4.0.0`, also the resolved version; libssh2 starts at `2.0.3-termind-4` under the same rule. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026101502`, with no local Ghostty maintenance submodule. `AGENTS.md` describes Ghostty as up-to-next-major, but the actual project requirement is up-to-next-minor: inspect the [project](../Termind.xcodeproj/project.pbxproj) and [resolved pins](../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) for build behavior.
+- **Local and wire compatibility are independent:** the live local schema is **V60**. Use migration/reopen tests rather than hard-coding the latest schema into unrelated tests. `SyncRecordFormats` independently defines per-kind wire readers/writers: Host writes V8, HostGroup V7, SSHKey V3, Snippet V2, WorkspaceTemplate V2 and Metrics V2. Follow the persistence/sync guides before changing compatibility; a successful build does not prove migration or CloudKit readiness.
+- **Released remote dependencies:** AgentKit owns the host-neutral runtime; Termind registers SSH/SFTP tools through `TermindAgentTools`. Keep the Xcode requirement and `Package.resolved` aligned when adopting package releases. `AgentKit`, `libssh2-spm` and `libtailscale-spm` are remote SPM dependencies, **not maintenance submodules**; there is no dependency gitlink to update or initialize. App builds consume remote pins, not sibling working-tree edits. The current AgentKit requirement is `upToNextMinorVersion` from `4.1.2`, also the resolved version; libssh2 starts at `2.0.3-termind-4` under the same rule. Ghostty comes directly from `Lakr233/libghostty-spm`, currently `upToNextMinorVersion` from `2.2.2026110702`, with no local Ghostty maintenance submodule. `AGENTS.md` describes Ghostty as up-to-next-major, but the actual project requirement is up-to-next-minor: inspect the [project](../Termind.xcodeproj/project.pbxproj) and [resolved pins](../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) for build behavior.
 
 ## Validate narrowly, then validate the product
 

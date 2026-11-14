@@ -76,10 +76,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 ## Scope and operating model
@@ -324,7 +324,7 @@ Do not copy browser-context assumptions wholesale into the Agent pool: browser a
 
 ### Scratch exchange: staged bytes, not an external-editor session
 
-The consumed AgentKit pin is **4.0.0**, fetched as a remote Swift package rather than maintained under a local `AgentKit/` source directory. Application composition requests `AgentScratchWorkspace.shared(applicationName:)`; repository tests establish that conversations share staged files and `removeScope` does not remove them. Relative paths are contained in the workspace and symlinks are refused, including aliases within it. Do not confuse this shared staging with process-local transfer checkpoints. [^scratch-storage]
+The consumed AgentKit pin is **4.1.2** (revision `dae2fc9ac8698a188574c1ae8bee2545ad83afe0`), fetched from `https://github.com/AkinoKaede/AgentKit.git` as a remote Swift package rather than maintained under a local `AgentKit/` source directory. The pin identifies the upstream dependency; it is not evidence of a change to the application's SFTP transfer lifecycle. Application composition requests `AgentScratchWorkspace.shared(applicationName:)`; repository tests establish that conversations share staged files and `removeScope` does not remove them. Relative paths are contained in the workspace and symlinks are refused, including aliases within it. Do not confuse this shared staging with process-local transfer checkpoints. [^scratch-storage]
 
 The tool registry creates this workspace only for a model with `.toolCall` ability and passes the same workspace to AgentKit's built-in scratch group and `TermindAgentTools`. The latter injects the Agent authentication registry and connection pool into SFTP and scratch transfer tools, not a browser context. `scratch_pull` is registered when a workspace exists; `scratch_push` additionally belongs to acting mode. This is the extension boundary for host-backed staging alongside runtime-local scratch editing. [^scratch-registry]
 

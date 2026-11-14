@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c952f3e18c54bbc34c0129c72c38db185cd12a32f88e39435474d4685ea8a211",
+  "pageVersion": "sha256:58eefcabbbc673789cd901c9f9f56bde3093d69b4f33c2ec683c970331602f61",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -26,7 +26,7 @@
         },
         {
           "resource": "repo://.github/workflows/openwiki-update.yml",
-          "version": "repo-file-v1:sha256:37adec812ba217265a0a1f44d0ce90c7f2ad682de0b17beef0b4c96c6d11ec79"
+          "version": "repo-file-v1:sha256:ba974816a8123e65fcea2bffa4c21f8817c3324f645a167322241f8928bcea57"
         },
         {
           "resource": "repo://Scripts/Tests/test_apple_build.py",
@@ -46,7 +46,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         }
       ]
     },
@@ -90,7 +90,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -108,7 +108,7 @@
         },
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Scripts/check-localization.py",
@@ -122,7 +122,7 @@
       "evidence": [
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:b8011ea28e43bc80c9e6dc93254a7acfb10ad85089d17e4d3b2e8c40d761b827"
+          "version": "repo-file-v1:sha256:a1f246e1f039bd0f7c15a7eec49384585b88630c439b879e6e0cb0ed487bb5d7"
         }
       ]
     },
@@ -182,11 +182,11 @@
     },
     {
       "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
-      "statement": "Xcode declares remote AgentKit with upToNextMinorVersion from 4.0.0; resolved builds use the lockfile selection.",
+      "statement": "Xcode declares remote AgentKit with upToNextMinorVersion from 4.1.2; resolved builds use the lockfile selection.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L3017-L3023",
-          "version": "repo-lines-v1:sha256:05ba127320affd38e10a18a87d5ad397e625137bec9bf163167cb17814fe0dfa:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         }
       ]
     },
@@ -300,11 +300,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         }
       ]
     },
@@ -314,7 +314,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:c89745f5cc73443900b30c7f9e646bf8041160463726478986de47e183ddd8c0"
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Scripts/normalize-string-catalogs.py",
@@ -366,11 +366,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:4a3f3c5ee35c9a480c7321c5510cafef6dc560d683092eb07cfffe11f6289e87"
+          "version": "repo-file-v1:sha256:34fd2a65aaf8604cdc666b1a5f43915db0d025d7568d073f489c441ba5c5de15"
         }
       ]
     },
@@ -420,11 +420,11 @@
     },
     {
       "id": "claim_348ab37b5d7b44e98dd3ce5abde91d18",
-      "statement": "Package.resolved selects AgentKit 4.0.0 at 3481866cd47e83f6bf56b80c432c7824f61130b9; the minimum requirement is not itself the selected revision.",
+      "statement": "Package.resolved selects AgentKit 4.1.2 at dae2fc9ac8698a188574c1ae8bee2545ad83afe0; the minimum requirement is not itself the selected revision.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L14-L20",
-          "version": "repo-lines-v1:sha256:5aa8f9a37e8cbff8126709e07eb643289736208400925fd0c94a842be8e45cd3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWVhODk3OTUzOTRmN2RjZjViOGIyMTMzMTY5MDU1YmUxMjBmZjBiMTc4NDgzZDEwNTAyZjc2MGE2YjgzNGQxYyJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:34fd2a65aaf8604cdc666b1a5f43915db0d025d7568d073f489c441ba5c5de15"
         }
       ]
     },
@@ -478,19 +478,19 @@
     },
     {
       "id": "claim_d92f32286efd4912b881d6a843754254",
-      "statement": "Ghostty is a direct Lakr233/libghostty-spm remote dependency with upToNextMinorVersion minimum and resolved version 2.2.2026101502 at 42bacd1339f323a693ddbca779295f4f77e5a697, not a local maintenance submodule. Updates align requirement/resolution and validate both native adapters.",
+      "statement": "Ghostty is a direct Lakr233/libghostty-spm remote dependency with upToNextMinorVersion minimum and resolved version 2.2.2026110702 at 1d84cf66fe29abd1f24f10b88dcfc25882cf68ee, not a local maintenance submodule. Updates align requirement/resolution and validate both native adapters.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:3a1c0573809803a5e8c512d00ab9196011f26753a52129f2e91c31652e039eec"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:4a3f3c5ee35c9a480c7321c5510cafef6dc560d683092eb07cfffe11f6289e87"
+          "version": "repo-file-v1:sha256:34fd2a65aaf8604cdc666b1a5f43915db0d025d7568d073f489c441ba5c5de15"
         }
       ]
     },
@@ -576,11 +576,11 @@
     },
     {
       "id": "claim_80e871e1f64843d9a62c8a13d33c9d9a",
-      "statement": "Committed Debug and Release settings use marketing version 1.18.2 with project build 79, TFM build 117, and TFI and Widgets build 105; explicit target overrides mean project-only changes do not update app build numbers.",
+      "statement": "Committed Debug and Release settings use marketing version 1.19.1 with project build 82, TFM build 120, and TFI and Widgets build 108; explicit target overrides mean project-only changes do not update app build numbers.",
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:c697a4b51faad92f3cfbbce8a6d03ef623f97a887f07944a291ddf261f6705de"
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
         }
       ]
     },
@@ -623,10 +623,160 @@
           "version": "repo-lines-v1:sha256:92f1727f5f9df427d991baf86835cb34b5730ef7de952e84ba73ec66d318b787:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiNDE5MGRmMTJjMDMyNWZkMGM1NWJlZGE0MzhlNzE2NTJiNTJjYTU5ZjRiNTVkNmEyMDQxMTk4MzA2MTUzYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyZGM5NDk2OTUwYTI5MmRlOTQ2ZmEwNWY5MTUzMTk1NjhmODY3Nzg4YmVhMDdmYTQ2ZWQ2OWZiOTg0ZjEwMGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZGZjYjlmM2U3NmExYTUzZjdhZWU3YWVjZjQzMGVmZmM4ZDkxMzhkODYyODhlNjJlMWRjYTUwMjgyOGU0YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_3f85db28cbc349c4a75c2be2ccbba95d",
+      "statement": "Tailscale's Xcode upToNextMinorVersion requirement starts at 1.0.4 and the lockfile selects 1.0.4 at f0823de8da8c5fbf50218566825d346f2cc3daf5.",
+      "evidence": [
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:f90f9abf3bcc08ab2db9edb4b0030e39501b8b6d64b10f811071d559142e75ca"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:34fd2a65aaf8604cdc666b1a5f43915db0d025d7568d073f489c441ba5c5de15"
+        }
+      ]
+    },
+    {
+      "id": "claim_17d7d8577d2a49d0a34f9c6afed76e1c",
+      "statement": "The root private package.json owns repository OpenWiki tooling rather than the website, requires Node >=22.22.0 and pins OpenWiki 0.9.0; Gemfile requires Ruby >=3.3 and <4.0, fastlane 2.241.2 and minitest ~>6.1.",
+      "evidence": [
+        {
+          "resource": "repo://Gemfile",
+          "version": "repo-file-v1:sha256:11dca0bea1bf52b6071d170f43606beccf9e5a932f33ff0ffb8a8b4cec142a61"
+        },
+        {
+          "resource": "repo://package.json",
+          "version": "repo-file-v1:sha256:376b2b95d520649841e978daadefbc3a996c49f969fddbea24c40b3e105cf454"
+        }
+      ]
+    },
+    {
+      "id": "claim_5577ab2e261e46a9b5bc82bc2b1649fb",
+      "statement": "OpenWiki automation globally installs OpenWiki 0.9.0, Mermaid 12.1.0 and jsdom 30.1.1 on Node 22, validates OpenAI-compatible key/base URL/model configuration, separately supplies LangSmith connector credentials and optional tracing, and allows PR changes to openwiki, AGENTS.md, CLAUDE.md and the workflow.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/openwiki-update.yml",
+          "version": "repo-file-v1:sha256:ba974816a8123e65fcea2bffa4c21f8817c3324f645a167322241f8928bcea57"
+        }
+      ]
+    },
+    {
+      "id": "claim_36a805fe259d48648b16ed0bc268c2cb",
+      "statement": "update-model-catalog.py downloads models.dev/api.json or replays --input bytes to ModelCatalog.json or --output, preserving all raw upstream bytes and reporting their SHA-256; it does not implement the retired Pi npm-version catalog refresh interface.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/Tests/test_model_catalog.py",
+          "version": "repo-file-v1:sha256:4db1dad17022b49c65ae34e8f1a7ae2fe10f71414946392e8446068a389414f4"
+        },
+        {
+          "resource": "repo://Scripts/update-model-catalog.py",
+          "version": "repo-file-v1:sha256:2b3cfe3dbb3905c6c234fbc70390a01e55290c2c2c0c48cf73545f80d1294400"
+        }
+      ]
+    },
+    {
+      "id": "claim_d24337786d1c4cd691a0a12390ed2e9c",
+      "statement": "Catalog validation rejects duplicate keys, nonfinite numbers, malformed or mismatched IDs and normalized case/tilde collisions, checks capability booleans, nonnegative integer limits, modality arrays and effort values, requires at least one supported model, and retains unknown model types with warnings without synthesizing missing fields.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/update-model-catalog.py",
+          "version": "repo-file-v1:sha256:2b3cfe3dbb3905c6c234fbc70390a01e55290c2c2c0c48cf73545f80d1294400"
+        }
+      ]
+    },
+    {
+      "id": "claim_5d09279fa96d4fc2ba1ffa6057ea5749",
+      "statement": "The model updater validates before writing a same-directory mode-0644 temporary file and atomically replacing the snapshot; replacement failure cleans the temporary file, and download/validation/I/O failures return nonzero without replacing the existing snapshot.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/Tests/test_model_catalog.py",
+          "version": "repo-file-v1:sha256:4db1dad17022b49c65ae34e8f1a7ae2fe10f71414946392e8446068a389414f4"
+        },
+        {
+          "resource": "repo://Scripts/update-model-catalog.py",
+          "version": "repo-file-v1:sha256:2b3cfe3dbb3905c6c234fbc70390a01e55290c2c2c0c48cf73545f80d1294400"
+        }
+      ]
+    },
+    {
+      "id": "claim_b4fef2cecb704f84a6cb1d3dfbaa72ad",
+      "statement": "Focused test_model_catalog.py coverage includes byte-identical replay, unknown fields/types, supported special types, malformed inputs and duplicate identities, plus download and atomic replacement failures preserving the previous snapshot; these are fixture tests rather than live provider validation.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/Tests/test_model_catalog.py",
+          "version": "repo-file-v1:sha256:4db1dad17022b49c65ae34e8f1a7ae2fe10f71414946392e8446068a389414f4"
+        }
+      ]
+    },
+    {
+      "id": "claim_e98c4afeb137456583cc99d9ce30869d",
+      "statement": "Termind keeps codex-auto-review metadata in ModelCatalogOverrides.json and assistant hiding in ModelCatalogPolicy.json, separate from the updater's raw snapshot; ModelCapabilityResolverTests verifies override capabilities, reasoning and hidden status without showInAssistant in specification fields.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/Resources/ModelCatalogOverrides.json",
+          "version": "repo-file-v1:sha256:5bb20330306e93e94628ddc71db831a2156d2cdca482d73f9bbaab3436f54381"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/ModelCatalogPolicy.json",
+          "version": "repo-file-v1:sha256:d1322642202b86723abb47836f11ea75b1bad41a9b2d3f488f3d0d1233523fb6"
+        },
+        {
+          "resource": "repo://Scripts/update-model-catalog.py",
+          "version": "repo-file-v1:sha256:2b3cfe3dbb3905c6c234fbc70390a01e55290c2c2c0c48cf73545f80d1294400"
+        },
+        {
+          "resource": "repo://TFMTests/AIProviderPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:6513cc9f6e867170aaf4e1559a4f34331b48d0602c3110047f5b435cb036fcb0"
+        }
+      ]
+    },
+    {
+      "id": "claim_ceb58e782af14690bc085090d0361432",
+      "statement": "Bundled terminal fonts are ten unmodified faces from standard Nerd Fonts v3.4.0 and official JetBrains Mono v2.304; Fonts.sources.json records URLs, sizes and SHA-256 values, and accompanying upstream license notices apply separately from the app source license.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/Resources/Fonts/Fonts.README.md",
+          "version": "repo-file-v1:sha256:5ba461f6a5079d0ed663a30d85538ac7074d1cde6b29b6d39616d14bbbbe1b58"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/Fonts/Fonts.sources.json",
+          "version": "repo-file-v1:sha256:4b127389be10309fff0e5ca0c0eb8bf1cfb2c74def3c2754967c3626fbeef093"
+        }
+      ]
+    },
+    {
+      "id": "claim_a0ae8cf0b38c4b7a84d94406d9450de1",
+      "statement": "Fonts are copied to app resource roots and registered through iOS UIAppFonts and macOS ATSApplicationFontsPath, excluded from Widgets; app-hosted bundled-font suites verify resource registration, family/traits, glyphs, monospaced advances and selection/reset behavior, with mobile checks for extension exclusion rather than license or digest auditing.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/Resources/Fonts/Fonts.README.md",
+          "version": "repo-file-v1:sha256:5ba461f6a5079d0ed663a30d85538ac7074d1cde6b29b6d39616d14bbbbe1b58"
+        },
+        {
+          "resource": "repo://TFITests/MobileBundledFontTests.swift",
+          "version": "repo-file-v1:sha256:ab8b3c1bd004764b9db466b86535ad834e00fa7ac2f2f624c9a59b83e7e57522"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalBundledFontTests.swift",
+          "version": "repo-file-v1:sha256:19c63f5e48ff2e202cad82797ed442027a340d5177985620d6bfdaf0c05b65a8"
+        }
+      ]
+    },
+    {
+      "id": "claim_e855cd5ea30045589285c8f6a57849ab",
+      "statement": "AppLanguageTests checks built-in/system font labels across seven locales and preserves Source Code Pro in localized descriptions.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/AppLanguageTests.swift",
+          "version": "repo-file-v1:sha256:a1f246e1f039bd0f7c15a7eec49384585b88630c439b879e6e0cb0ed487bb5d7"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-11-03T02:07:36.095Z"
+    "by": "openwiki/0.9.0",
+    "at": "2026-11-14T00:49:54.206Z"
   }
 }

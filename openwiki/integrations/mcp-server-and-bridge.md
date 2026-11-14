@@ -90,10 +90,10 @@ sources:
     resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-a0939deb764eaca503038262
     resource: repo://TFMTests/ResourceManagementToolsTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-11-03T02:07:36.095Z" }
+generated: { by: "openwiki/0.9.0", at: "2026-11-14T00:49:54.206Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-11-03T02:07:36.095Z
+  - by: openwiki/0.9.0
+    at: 2026-11-14T00:49:54.206Z
 ---
 
 # MCP Server and Bridge
@@ -155,7 +155,7 @@ sequenceDiagram
     App->>App: shut down Tailscale
 ```
 
-Desktop termination joins Assistant work and both inbound MCP and ordinary SFTP cleanup before tearing down their shared host resources.
+Desktop termination joins Assistant work and both inbound MCP and ordinary SFTP cleanup before tearing down their shared host resources. See the ordering in [AppModel.shutdownForTermination](../../TFM/App/AppModel.swift#L1053-L1115) and the narrower [MCPServerController.stop](../../TFM/App/MCPServerController.swift#L158-L164).
 
 This is the intended cleanup ordering, not an unlimited guarantee that every operation can finish before process exit: the app delegate hands the task to a bounded termination reply coordinator. See [Platform runtime](../architecture/platform-runtime.md) for the wider application lifecycle.
 
@@ -165,7 +165,7 @@ The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurab
 
 Discovery updates configuration, not the inbound export list. `MobileMCPEditorModel` deduplicates discovered tools by ID, preserves their prior access policies, and records `negotiatedVersion`, `serverDescription`, and `lastConnectedAt`. A generation token and comparisons against both the saved server and current draft prevent cancelled or stale discovery results from replacing newer edits. Invalidating the connection clears discovered tools, version, description, and connection time while retaining policies for rediscovery. Saving an existing draft merges concurrent edits and carries discovery metadata when the connection timestamp changed.
 
-The description is persisted separately from historical server rows: `PersistentMCPServerMetadata` has a unique `serverID` and a description string. `AIPersistence` joins metadata onto servers by ID when loading; snapshot replacement deletes old metadata and inserts a row only for a non-nil description. This avoids changing historical `PersistentMCPServer` schemas. Descriptions also round-trip in `SyncedMCPServer`; older payloads without the field remain readable with a nil description. This discovery metadata is configuration, not an OAuth grant or a server token.
+The description is persisted separately from historical server rows: `PersistentMCPServerMetadata` has a unique `serverID` and a description string. `AIPersistence` joins metadata onto servers by ID when loading; snapshot replacement deletes old metadata and inserts a row only for a non-nil description. This avoids changing historical `PersistentMCPServer` schemas. The current load and replacement paths are in [AIPersistence](../../Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift#L75-L149). Descriptions also round-trip in `SyncedMCPServer`; older payloads without the field remain readable with a nil description. This discovery metadata is configuration, not an OAuth grant or a server token.
 
 [MCPServerMetadataTests](../../FrameworkTests/MCPServerMetadataTests.swift) checks description replacement and clearing without resetting tool policy, backward-compatible synced payloads, and migration from V58 followed by save and reopen. See [metadata storage](../../Frameworks/TermindPersistence/SwiftDataAIConfigurationStore.swift) and [mobile discovery](../../TFI/Application/FeatureModels/MobileMCPEditorModel.swift).
 
