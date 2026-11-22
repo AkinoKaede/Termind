@@ -648,12 +648,9 @@ nonisolated extension AgentToolSupport {
         ) { client in
             do {
                 return try await operation(client)
-            } catch let error as SFTPError {
-                switch error {
-                case .notConnected, .connectionLost:
+            } catch {
+                if isRemoteConnectionLoss(error) {
                     await pool.disconnect(hostID: hostID)
-                case .cancelled, .localFile, .operation:
-                    break
                 }
                 throw error
             }

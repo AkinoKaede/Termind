@@ -78,7 +78,13 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
     func closeAllOnQueue(error: any Error) {
         isClosingAll = true
         defer { isClosingAll = false }
-        for command in Array(commands.values) { finish(command, throwing: error) }
+        for command in Array(commands.values) {
+            let delivered: any Error =
+                command.started || error is CancellationError || error is SSHCommandExecutionError
+                ? error
+                : SSHCommandExecutionError.connectionUnavailable(error)
+            finish(command, throwing: delivered)
+        }
         commands.removeAll()
         opening = nil
         pendingOpens = SSHReadyQueue()
@@ -379,9 +385,12 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
             guard result == 0 else {
                 let code = libssh2_session_last_errno(session)
                 let error = SSHConnectionOpener.connectionError(session, prefix: "Unable to start remote command")
+                if isConnectionError(code) {
+                    failConnection(session, error: error)
+                    return true
+                }
                 command.terminalError = SSHCommandExecutionError.channelUnavailable(error)
                 command.phase = .closing
-                if isConnectionError(code) { failConnection(session, error: error) }
                 ready.insert(command.id)
                 return true
             }

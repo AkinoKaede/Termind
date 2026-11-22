@@ -157,6 +157,14 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
         ) { outcome, progress in
             context.report(Self.copyResult(invocation, request, context, outcome, progress: progress))
         }
+        if outcome.connectionLost {
+            if !(await source.isConnected) {
+                await connections.disconnect(hostID: request.sourceHostID)
+            }
+            if request.destinationHostID != request.sourceHostID, !(await destination.isConnected) {
+                await connections.disconnect(hostID: request.destinationHostID)
+            }
+        }
         return Self.copyResult(invocation, request, context, outcome)
     }
 

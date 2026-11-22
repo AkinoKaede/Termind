@@ -1075,13 +1075,8 @@ public actor AgentSSHAuthenticationRegistry {
                     return value
                 } catch {
                     await pool.releaseSFTP(lease.id)
-                    if let failure = error as? SFTPError {
-                        switch failure {
-                        case .notConnected, .connectionLost:
-                            await pool.disconnect(hostID: hostID)
-                        case .cancelled, .localFile, .operation:
-                            break
-                        }
+                    if isRemoteConnectionLoss(error) {
+                        await pool.disconnect(hostID: hostID)
                     }
                     throw error
                 }
@@ -1107,9 +1102,11 @@ public actor AgentSSHAuthenticationRegistry {
         } else if await authentication.canResolveTarget() {
             attempt = try await authentication.configurationAttempt()
         }
+        var retriedDroppedConnection = false
         while true {
             try Task.checkCancellation()
             if cancellation?.isCancelled == true { throw SFTPError.cancelled }
+            let reusedPooledConnection = attempt == nil
             let attemptedGeneration: UInt64
             if let attempt {
                 attemptedGeneration = attempt.generation
@@ -1127,6 +1124,16 @@ public actor AgentSSHAuthenticationRegistry {
                 attempt = try await authentication.configurationAttempt()
             } catch let error as TermindSSHError where error.isLocalAuthenticationRequirement {
                 attempt = try await authentication.configurationAttempt()
+            } catch let error where isRemoteConnectionLoss(error) {
+                if cancellation?.isCancelled == true { throw SFTPError.cancelled }
+                await pool.disconnect(hostID: hostID)
+                guard reusedPooledConnection, !retriedDroppedConnection else { throw error }
+                retriedDroppedConnection = true
+                if await authentication.canResolveTarget() {
+                    attempt = try await authentication.configurationAttempt()
+                } else {
+                    attempt = nil
+                }
             }
         }
     }
@@ -1287,7 +1294,8 @@ public actor AgentConnectionPool {
     func acquireSFTP(
         hostID: UUID, cancellation: TransferCancellationToken? = nil,
         configuration override: RequestResolving? = nil,
-        mode: SSHChannelSchedulingMode = .connectionsPreferred
+        mode: SSHChannelSchedulingMode = .connectionsPreferred,
+        allowRetry: Bool = true
     ) async throws -> SFTPLease {
         try Task.checkCancellation()
         if cancellation?.isCancelled == true { throw SFTPError.cancelled }
@@ -1297,7 +1305,7 @@ public actor AgentConnectionPool {
             _ = await disconnectSFTPState(hostID: hostID)
         }
 
-        let primary = try await sftpChannel(hostID: hostID, configuration: override)
+        let primary = try await sftpChannel(hostID: hostID, configuration: override, allowRetry: allowRetry)
         let committedFingerprint = try await routeFingerprint(hostID)
         if sftpStates[hostID] == nil {
             let record = SFTPRecord(id: UUID(), channel: primary, busy: false, lastUsedAt: .now)
@@ -1306,14 +1314,28 @@ public actor AgentConnectionPool {
                 records: [record.id: record])
         }
 
-        if let idle = sftpStates[hostID]?.records.values
+        let idleCandidates =
+            sftpStates[hostID]?.records.values
             .filter({ !$0.busy && (mode == .connectionsPreferred || $0.id == sftpStates[hostID]?.primaryID) })
-            .sorted(by: { $0.lastUsedAt < $1.lastUsedAt }).first
-        {
-            sftpStates[hostID]?.records[idle.id]?.busy = true
-            return registerSFTPLease(
-                hostID: hostID, recordID: idle.id, channel: idle.channel,
-                cancellation: cancellation)
+            .sorted(by: { $0.lastUsedAt < $1.lastUsedAt }) ?? []
+        for idle in idleCandidates {
+            if await idle.channel.isConnected {
+                guard let current = sftpStates[hostID]?.records[idle.id], !current.busy else { continue }
+                sftpStates[hostID]?.records[idle.id]?.busy = true
+                return registerSFTPLease(
+                    hostID: hostID, recordID: idle.id, channel: idle.channel,
+                    cancellation: cancellation)
+            }
+            if idle.id == sftpStates[hostID]?.primaryID {
+                await disconnect(hostID: hostID)
+                guard allowRetry else { throw SFTPError.notConnected }
+                return try await acquireSFTP(
+                    hostID: hostID, cancellation: cancellation,
+                    configuration: override, mode: mode, allowRetry: false)
+            }
+            if let stale = sftpStates[hostID]?.records.removeValue(forKey: idle.id) {
+                Task { await stale.channel.disconnect() }
+            }
         }
 
         guard let state = sftpStates[hostID], let primaryRecord = state.records[state.primaryID] else {
@@ -1368,10 +1390,13 @@ public actor AgentConnectionPool {
                     let record = SFTPRecord(id: UUID(), channel: channel, busy: false, lastUsedAt: .now)
                     sftpStates[hostID]?.records[record.id] = record
                     sftpStates[hostID]?.capability = .connections
+                    await channel.setDisconnectHandler { [weak self] in
+                        Task { await self?.handleAuxiliarySFTPDropped(hostID: hostID, recordID: record.id) }
+                    }
                 }
                 return try await acquireSFTP(
                     hostID: hostID, cancellation: cancellation,
-                    configuration: override, mode: mode)
+                    configuration: override, mode: mode, allowRetry: allowRetry)
             } catch {
                 if sftpProbes[hostID]?.id == probe.id {
                     sftpProbes[hostID] = nil
@@ -1395,6 +1420,9 @@ public actor AgentConnectionPool {
                 let record = SFTPRecord(id: UUID(), channel: channel, busy: true, lastUsedAt: .now)
                 sftpStates[hostID]?.records[record.id] = record
                 sftpStates[hostID]?.capability = .connections
+                await channel.setDisconnectHandler { [weak self] in
+                    Task { await self?.handleAuxiliarySFTPDropped(hostID: hostID, recordID: record.id) }
+                }
                 startSweeping()
                 return registerSFTPLease(
                     hostID: hostID, recordID: record.id, channel: channel,
@@ -1561,15 +1589,32 @@ public actor AgentConnectionPool {
     public func sftpChannel(
         hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SFTPChannelProtocol {
+        try await sftpChannel(hostID: hostID, configuration: override, allowRetry: true)
+    }
+
+    private func sftpChannel(
+        hostID: UUID, configuration override: RequestResolving?, allowRetry: Bool
+    ) async throws -> any SFTPChannelProtocol {
         let fingerprint = try await routeFingerprint(hostID)
         if let state = sftpStates[hostID], state.fingerprint == fingerprint,
             let primary = state.records[state.primaryID]
         {
-            sftpStates[hostID]?.records[state.primaryID]?.lastUsedAt = .now
-            entries[hostID]?.lastUsedAt = .now
-            return primary.channel
+            let primaryAlive = await primary.channel.isConnected
+            let transportAlive: Bool
+            if let transport = entries[hostID]?.connection {
+                transportAlive = await transport.isConnected
+            } else {
+                transportAlive = false
+            }
+            if primaryAlive && transportAlive {
+                sftpStates[hostID]?.records[state.primaryID]?.lastUsedAt = .now
+                entries[hostID]?.lastUsedAt = .now
+                return primary.channel
+            }
+            await disconnect(hostID: hostID)
         }
         if sftpStates[hostID] != nil { await disconnect(hostID: hostID) }
+        let hadExistingEntry = entries[hostID] != nil
         let connection = try await resolve(hostID: hostID, configuration: override)
         let opening: SFTPPrimaryOpen
         let ownsOpening: Bool
@@ -1604,7 +1649,7 @@ public actor AgentConnectionPool {
             guard committedFingerprint == fingerprint, entries[hostID]?.connection === connection else {
                 await client.disconnect()
                 await disconnect(hostID: hostID)
-                return try await sftpChannel(hostID: hostID, configuration: override)
+                return try await sftpChannel(hostID: hostID, configuration: override, allowRetry: false)
             }
             let record = SFTPRecord(id: UUID(), channel: client, busy: false, lastUsedAt: .now)
             sftpStates[hostID] = SFTPState(
@@ -1620,6 +1665,14 @@ public actor AgentConnectionPool {
         } catch {
             if ownsOpening, sftpPrimaryOpens[hostID]?.id == opening.id {
                 sftpPrimaryOpens[hostID] = nil
+            }
+            if isRemoteConnectionLoss(error) {
+                if entries[hostID]?.connection === connection {
+                    await disconnect(hostID: hostID)
+                }
+                if allowRetry, hadExistingEntry {
+                    return try await sftpChannel(hostID: hostID, configuration: override, allowRetry: false)
+                }
             }
             throw error
         }
@@ -1700,7 +1753,29 @@ public actor AgentConnectionPool {
         return openConnectionCount
     }
 
-    public func isConnected(hostID: UUID) -> Bool { entries[hostID] != nil }
+    public func disconnectIdle() async {
+        var idleAuxiliaries: [SFTPRecord] = []
+        for hostID in Array(sftpStates.keys) {
+            guard var state = sftpStates[hostID] else { continue }
+            for (id, record) in state.records where id != state.primaryID && !record.busy {
+                state.records[id] = nil
+                idleAuxiliaries.append(record)
+            }
+            sftpStates[hostID] = state
+        }
+        let idleHosts = entries.keys.filter { hostID in
+            activeExecLeases[hostID] == nil
+                && !activeSFTPLeases.values.contains(where: { $0.hostID == hostID })
+        }
+        for hostID in idleHosts { _ = await disconnect(hostID: hostID) }
+        stopSweepingIfEmpty()
+        for record in idleAuxiliaries { await record.channel.disconnect() }
+    }
+
+    public func isConnected(hostID: UUID) async -> Bool {
+        guard let entry = entries[hostID] else { return false }
+        return await entry.connection.isConnected
+    }
 
     public var openConnectionCount: Int {
         entries.count
@@ -1722,8 +1797,8 @@ public actor AgentConnectionPool {
             throw error
         }
         if let entry = entries.removeValue(forKey: hostID) {
-            guard entry.fingerprint == fingerprint else {
-                // Nothing waits on a stale socket. Its worker also frees the
+            guard entry.fingerprint == fingerprint, await entry.connection.isConnected else {
+                // Nothing waits on a stale or dropped socket. Its worker also frees the
                 // libssh2 connection in `deinit`, so dropping the reference alone
                 // would be safe; this just makes it prompt.
                 Task { await entry.connection.disconnect() }
@@ -1832,7 +1907,7 @@ public actor AgentConnectionPool {
                     await connection.disconnect()
                     return
                 }
-                commit(
+                await commit(
                     connection, hostID: key.hostID,
                     fingerprint: committedFingerprint
                 )
@@ -1882,9 +1957,26 @@ public actor AgentConnectionPool {
 
     private func commit(
         _ connection: any SSHConnectionProtocol, hostID: UUID, fingerprint: String
-    ) {
+    ) async {
         entries[hostID] = Entry(connection: connection, fingerprint: fingerprint, lastUsedAt: .now)
         startSweeping()
+        await connection.setDisconnectHandler { [weak self, weak connection] in
+            guard let self, let connection else { return }
+            Task { await self.handleConnectionDropped(hostID: hostID, connection: connection) }
+        }
+    }
+
+    private func handleConnectionDropped(hostID: UUID, connection: any SSHConnectionProtocol) async {
+        guard entries[hostID]?.connection === connection else { return }
+        _ = await disconnect(hostID: hostID)
+    }
+
+    private func handleAuxiliarySFTPDropped(hostID: UUID, recordID: UUID) async {
+        guard var state = sftpStates[hostID], recordID != state.primaryID,
+            let removed = state.records.removeValue(forKey: recordID)
+        else { return }
+        sftpStates[hostID] = state
+        await removed.channel.disconnect()
     }
 
     private func startSweeping() {
@@ -1900,4 +1992,22 @@ public actor AgentConnectionPool {
         else { return }
         sweeper.stop()
     }
+}
+
+nonisolated func isRemoteConnectionLoss(_ error: any Error) -> Bool {
+    if let failure = error as? SFTPError {
+        switch failure {
+        case .notConnected, .connectionLost: return true
+        case .cancelled, .localFile, .operation: return false
+        }
+    }
+    if error is SSHStreamPump.StreamError { return true }
+    if case SSHCommandExecutionError.connectionUnavailable = error { return true }
+    if let ssh = error as? TermindSSHError {
+        switch ssh {
+        case .disconnected, .socket: return true
+        default: return false
+        }
+    }
+    return false
 }

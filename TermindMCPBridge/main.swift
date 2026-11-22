@@ -16,6 +16,72 @@ struct TermindMCPBridge {
         let session = URLSession(configuration: .ephemeral)
         var sessionID: String?
         var protocolVersion: String?
+        var initializeBody: Data?
+        var sentInitializedNotification = false
+
+        func makeRequest(
+            body: Data, method: String?, params: [String: Any]?,
+            modernVersion: String?, sessionID: String?, protocolVersion: String?
+        ) -> URLRequest {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
+            request.setValue("Bearer \(configuration.token)", forHTTPHeaderField: "Authorization")
+            if let modernVersion {
+                request.setValue(modernVersion, forHTTPHeaderField: "MCP-Protocol-Version")
+                request.setValue(method, forHTTPHeaderField: "Mcp-Method")
+                if let name = (params?["name"] ?? params?["uri"]) as? String {
+                    request.setValue(headerValue(name), forHTTPHeaderField: "Mcp-Name")
+                }
+            } else if method != "initialize" {
+                if let sessionID {
+                    request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id")
+                }
+                if let protocolVersion {
+                    request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version")
+                }
+            }
+            return request
+        }
+
+        func reinitializeSession() async throws -> Bool {
+            guard let initializeBody else { return false }
+            let initRequest = makeRequest(
+                body: initializeBody, method: "initialize", params: nil,
+                modernVersion: nil, sessionID: nil, protocolVersion: nil
+            )
+            let (initData, rawInitResponse) = try await session.data(for: initRequest)
+            guard let initResponse = rawInitResponse as? HTTPURLResponse,
+                (200..<300).contains(initResponse.statusCode),
+                let assigned = initResponse.value(forHTTPHeaderField: "Mcp-Session-Id"),
+                !assigned.isEmpty
+            else { return false }
+            sessionID = assigned
+            if let envelope = try? JSONSerialization.jsonObject(with: initData) as? [String: Any],
+                let result = envelope["result"] as? [String: Any],
+                let negotiated = result["protocolVersion"] as? String
+            {
+                protocolVersion = negotiated
+            }
+            if sentInitializedNotification {
+                let initializedBody = Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8)
+                let notifyRequest = makeRequest(
+                    body: initializedBody, method: "notifications/initialized", params: nil,
+                    modernVersion: nil, sessionID: sessionID, protocolVersion: protocolVersion
+                )
+                let (_, rawNotifyResponse) = try await session.data(for: notifyRequest)
+                guard let notifyResponse = rawNotifyResponse as? HTTPURLResponse,
+                    (200..<300).contains(notifyResponse.statusCode)
+                else {
+                    sessionID = nil
+                    protocolVersion = nil
+                    return false
+                }
+            }
+            return true
+        }
 
         while let line = readLine(strippingNewline: true) {
             guard let input = line.data(using: .utf8),
@@ -26,32 +92,41 @@ struct TermindMCPBridge {
             }
             let id = object["id"]
             let method = object["method"] as? String
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.httpBody = input
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
-            request.setValue("Bearer \(configuration.token)", forHTTPHeaderField: "Authorization")
             let params = object["params"] as? [String: Any]
             let meta = params?["_meta"] as? [String: Any]
             let modernVersion = meta?["io.modelcontextprotocol/protocolVersion"] as? String
-            if let modernVersion {
-                request.setValue(modernVersion, forHTTPHeaderField: "MCP-Protocol-Version")
-                request.setValue(method, forHTTPHeaderField: "Mcp-Method")
-                if let name = (params?["name"] ?? params?["uri"]) as? String {
-                    request.setValue(headerValue(name), forHTTPHeaderField: "Mcp-Name")
-                }
-            } else if let sessionID {
-                request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id")
-            }
-            if modernVersion == nil, let protocolVersion {
-                request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version")
+            if modernVersion == nil, method == "initialize" {
+                initializeBody = input
+                sentInitializedNotification = false
+                sessionID = nil
+                protocolVersion = nil
+            } else if modernVersion == nil, method == "notifications/initialized" {
+                sentInitializedNotification = true
             }
 
             do {
-                let (data, rawResponse) = try await session.data(for: request)
-                guard let response = rawResponse as? HTTPURLResponse else {
+                var request = makeRequest(
+                    body: input, method: method, params: params,
+                    modernVersion: modernVersion, sessionID: sessionID, protocolVersion: protocolVersion
+                )
+                var (data, rawResponse) = try await session.data(for: request)
+                guard var response = rawResponse as? HTTPURLResponse else {
                     throw BridgeError.notHTTP
+                }
+                if modernVersion == nil, method != "initialize", response.statusCode == 404 {
+                    sessionID = nil
+                    protocolVersion = nil
+                    if try await reinitializeSession() {
+                        request = makeRequest(
+                            body: input, method: method, params: params,
+                            modernVersion: nil, sessionID: sessionID, protocolVersion: protocolVersion
+                        )
+                        (data, rawResponse) = try await session.data(for: request)
+                        guard let retried = rawResponse as? HTTPURLResponse else {
+                            throw BridgeError.notHTTP
+                        }
+                        response = retried
+                    }
                 }
                 if modernVersion == nil, let assigned = response.value(forHTTPHeaderField: "Mcp-Session-Id"),
                     !assigned.isEmpty

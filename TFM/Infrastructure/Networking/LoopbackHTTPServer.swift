@@ -89,6 +89,8 @@ actor LoopbackHTTPServer {
     static let maximumHeaderBytes = 64 * 1_024
     static let maximumBodyBytes = 4 * 1_024 * 1_024
     static let maximumConnections = 64
+    static let initialRequestIdleTimeout = Duration.seconds(30)
+    static let keepAliveIdleTimeout = Duration.seconds(120)
 
     private var listeners: [NWListener] = []
     private var connections: [ObjectIdentifier: NWConnection] = [:]
@@ -97,7 +99,9 @@ actor LoopbackHTTPServer {
     private var streamingHandler: StreamingHandler?
     private var downloadHandler: DownloadHandler?
     private var stateHandler: StateHandler?
-    private var readyListeners = 0
+    private var generation: UInt64 = 0
+    private var readyListenerIDs: Set<ObjectIdentifier> = []
+    private var hasReportedReady = false
 
     func start(
         port: UInt16, token: String,
@@ -110,6 +114,8 @@ actor LoopbackHTTPServer {
         guard let endpointPort = NWEndpoint.Port(rawValue: port), !token.isEmpty else {
             throw LoopbackHTTPServerError.invalidConfiguration
         }
+        generation &+= 1
+        let startGeneration = generation
         self.token = token
         self.handler = handler
         self.streamingHandler = streamingHandler
@@ -132,12 +138,19 @@ actor LoopbackHTTPServer {
                     host: NWEndpoint.Host(address), port: endpointPort
                 )
                 let listener = try NWListener(using: parameters)
-                listener.newConnectionLimit = Self.maximumConnections
+                // Keep NWListener's default InfiniteConnectionLimit: a finite
+                // `newConnectionLimit` decrements on every accepted connection
+                // and permanently stops accepting once it hits zero. Concurrency
+                // is enforced in `accept(_:)` via `connections.count`.
+                let listenerID = ObjectIdentifier(listener)
                 listener.newConnectionHandler = { [weak self] connection in
-                    Task { await self?.accept(connection) }
+                    Task { await self?.accept(connection, generation: startGeneration) }
                 }
                 listener.stateUpdateHandler = { [weak self] newState in
-                    Task { await self?.listenerChanged(newState, port: port) }
+                    Task {
+                        await self?.listenerChanged(
+                            newState, listenerID: listenerID, generation: startGeneration, port: port)
+                    }
                 }
                 listener.start(queue: DispatchQueue(label: "termind.mcp.listener.\(address)"))
                 return listener
@@ -155,35 +168,66 @@ actor LoopbackHTTPServer {
     }
 
     func stop() {
-        for listener in listeners { listener.cancel() }
+        generation &+= 1
+        for listener in listeners {
+            listener.newConnectionHandler = nil
+            listener.stateUpdateHandler = nil
+            listener.cancel()
+        }
         for connection in connections.values { connection.cancel() }
         listeners.removeAll()
         connections.removeAll()
         handler = nil
         streamingHandler = nil
         downloadHandler = nil
-        readyListeners = 0
+        readyListenerIDs.removeAll()
+        hasReportedReady = false
         stateHandler?(.stopped)
         stateHandler = nil
     }
 
-    private func listenerChanged(_ newState: NWListener.State, port: UInt16) {
+    private func listenerChanged(
+        _ newState: NWListener.State, listenerID: ObjectIdentifier, generation: UInt64, port: UInt16
+    ) {
+        guard self.generation == generation,
+            listeners.contains(where: { ObjectIdentifier($0) == listenerID })
+        else { return }
         switch newState {
         case .ready:
-            readyListeners += 1
-            if readyListeners == listeners.count {
+            readyListenerIDs.insert(listenerID)
+            if !hasReportedReady, readyListenerIDs.count == listeners.count {
+                hasReportedReady = true
                 stateHandler?(.ready(port: port))
             }
         case .failed(let error):
-            stateHandler?(.failed(error.localizedDescription))
-            for listener in listeners { listener.cancel() }
+            if !hasReportedReady {
+                stateHandler?(.failed(error.localizedDescription))
+                for listener in listeners {
+                    listener.newConnectionHandler = nil
+                    listener.stateUpdateHandler = nil
+                    listener.cancel()
+                }
+                listeners.removeAll()
+                readyListenerIDs.removeAll()
+            } else {
+                readyListenerIDs.remove(listenerID)
+                if let index = listeners.firstIndex(where: { ObjectIdentifier($0) == listenerID }) {
+                    let failed = listeners.remove(at: index)
+                    failed.newConnectionHandler = nil
+                    failed.stateUpdateHandler = nil
+                    failed.cancel()
+                }
+                if listeners.isEmpty {
+                    stateHandler?(.failed(error.localizedDescription))
+                }
+            }
         default:
             break
         }
     }
 
-    private func accept(_ connection: NWConnection) async {
-        guard connections.count < Self.maximumConnections else {
+    private func accept(_ connection: NWConnection, generation: UInt64) async {
+        guard self.generation == generation, connections.count < Self.maximumConnections else {
             connection.cancel()
             return
         }
@@ -196,10 +240,12 @@ actor LoopbackHTTPServer {
         }
 
         var buffer = Data()
+        var servedRequest = false
         while !Task.isCancelled {
             let parsed: (HTTPRequest, Data)
             do {
-                parsed = try await Self.readRequestHead(connection, initial: buffer)
+                let idleTimeout = servedRequest ? Self.keepAliveIdleTimeout : Self.initialRequestIdleTimeout
+                parsed = try await Self.readRequestHead(connection, initial: buffer, timeout: idleTimeout)
                 buffer = parsed.1
             } catch LoopbackHTTPServerError.endOfStream {
                 return
@@ -216,6 +262,7 @@ actor LoopbackHTTPServer {
                 try? await Self.send(.text(400, "Malformed HTTP request."), on: connection)
                 return
             }
+            servedRequest = true
 
             let request = parsed.0
             // Browsers cannot attach bearer credentials to CORS preflights. Only
@@ -413,7 +460,7 @@ actor LoopbackHTTPServer {
     }
 
     private static func readRequestHead(
-        _ connection: NWConnection, initial: Data
+        _ connection: NWConnection, initial: Data, timeout: Duration
     ) async throws -> (HTTPRequest, Data) {
         var buffer = initial
         let separator = Data("\r\n\r\n".utf8)
@@ -421,7 +468,7 @@ actor LoopbackHTTPServer {
             guard buffer.count <= maximumHeaderBytes else {
                 throw LoopbackHTTPServerError.headersTooLarge
             }
-            buffer.append(try await receive(connection))
+            buffer.append(try await receive(connection, timeout: timeout))
         }
         guard let range = buffer.range(of: separator), range.lowerBound <= maximumHeaderBytes else {
             throw LoopbackHTTPServerError.headersTooLarge
@@ -466,7 +513,26 @@ actor LoopbackHTTPServer {
         )
     }
 
-    fileprivate static func receive(_ connection: NWConnection) async throws -> Data {
+    fileprivate static func receive(_ connection: NWConnection, timeout: Duration? = nil) async throws -> Data {
+        guard let timeout else {
+            return try await receiveUnbounded(connection)
+        }
+        let timedOut = TransferCancellationToken()
+        let watchdog = Task {
+            do { try await Task.sleep(for: timeout) } catch { return }
+            timedOut.cancel()
+            connection.cancel()
+        }
+        defer { watchdog.cancel() }
+        do {
+            return try await receiveUnbounded(connection)
+        } catch {
+            if timedOut.isCancelled { throw LoopbackHTTPServerError.endOfStream }
+            throw error
+        }
+    }
+
+    private static func receiveUnbounded(_ connection: NWConnection) async throws -> Data {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, any Error>) in
             connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1_024) {
                 data, _, complete, error in
@@ -498,7 +564,7 @@ actor LoopbackHTTPServer {
             headers["Connection"] = "close"
             prefix = responseHead(status: response.status, headers: headers)
             try await send(prefix, on: connection)
-            for await chunk in stream { try await send(chunk, on: connection) }
+            try await streamResponse(stream, on: connection)
         case .file(let file):
             headers["Content-Length"] = String(file.byteCount)
             headers["Connection"] = "close"
@@ -526,6 +592,46 @@ actor LoopbackHTTPServer {
                 file.cancel()
                 connection.cancel()
             }
+        }
+    }
+
+    private static func streamResponse(_ stream: AsyncStream<Data>, on connection: NWConnection) async throws {
+        let sender = Task {
+            for await chunk in stream {
+                try Task.checkCancellation()
+                try await send(chunk, on: connection)
+            }
+        }
+        let disconnectWatcher = Task {
+            while !Task.isCancelled {
+                do {
+                    _ = try await receiveUnbounded(connection)
+                } catch {
+                    sender.cancel()
+                    return
+                }
+            }
+        }
+        connection.stateUpdateHandler = { state in
+            switch state {
+            case .failed, .cancelled:
+                sender.cancel()
+                disconnectWatcher.cancel()
+            default:
+                break
+            }
+        }
+        defer {
+            connection.stateUpdateHandler = nil
+            disconnectWatcher.cancel()
+            sender.cancel()
+        }
+        try await withTaskCancellationHandler {
+            try await sender.value
+        } onCancel: {
+            sender.cancel()
+            disconnectWatcher.cancel()
+            connection.cancel()
         }
     }
 

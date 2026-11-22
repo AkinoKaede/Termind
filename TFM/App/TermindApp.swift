@@ -328,7 +328,10 @@ struct TermindApp: App {
                 app.serverMetrics.start()
                 recoveryActivity?.stop()
                 if let availability = app.hostLibrary.recoveryAvailability {
-                    recoveryActivity = ConnectionRecoveryActivityObserver(availability: availability)
+                    recoveryActivity = ConnectionRecoveryActivityObserver(
+                        availability: availability,
+                        onSystemDidWake: { [weak app] in app?.handleSystemDidWake() }
+                    )
                     recoveryActivity?.start()
                 }
                 metricsActivity.start(app.serverMetrics)

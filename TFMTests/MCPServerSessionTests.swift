@@ -560,6 +560,195 @@ struct MCPServerSessionTests {
             ))
         #expect(afterCancellation.status == 404)
     }
+
+    @Test
+    func legacy2024StreamableSessionAllowsOmittedVersionHeader() async throws {
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
+        let initialize = await protocolServer.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                  "protocolVersion":"2024-11-05","clientInfo":{"name":"Tests","version":"1"},
+                  "capabilities":{}
+                }}
+                """))
+        #expect(initialize.status == 200)
+        let sessionID = try #require(initialize.headers["Mcp-Session-Id"])
+
+        let notified = await protocolServer.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                sessionID: sessionID
+            ))
+        #expect(notified.status == 202)
+
+        let ping = await protocolServer.handle(
+            jsonRequest(#"{"jsonrpc":"2.0","id":2,"method":"ping"}"#, sessionID: sessionID)
+        )
+        #expect(ping.status == 200)
+        await protocolServer.stop()
+    }
+
+    @Test
+    func legacySSESessionReleasesWhenTCPClientDisconnects() async throws {
+        let http = LoopbackHTTPServer()
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
+        var port: UInt16 = 0
+        for attempt in 0..<10 {
+            let (states, continuation) = AsyncStream<LoopbackHTTPServer.State>.makeStream()
+            port = UInt16.random(in: 49_152...60_000)
+            try await http.start(
+                port: port, token: "sse-disconnect-token",
+                stateHandler: { continuation.yield($0) },
+                handler: { await protocolServer.handle($0) }
+            )
+            var ready = false
+            for await state in states {
+                if case .ready = state {
+                    ready = true
+                    break
+                }
+                if case .failed(let message) = state {
+                    await http.stop()
+                    if attempt == 9 { throw NSError(domain: message, code: 1) }
+                    break
+                }
+            }
+            if ready { break }
+        }
+        defer {
+            Task {
+                await http.stop()
+                await protocolServer.stop()
+            }
+        }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 3
+        let client = URLSession(configuration: configuration)
+        var sseRequest = URLRequest(url: URL(string: "http://127.0.0.1:\(port)/sse")!)
+        sseRequest.setValue("Bearer sse-disconnect-token", forHTTPHeaderField: "Authorization")
+        let (bytes, rawResponse) = try await client.bytes(for: sseRequest)
+        #expect((rawResponse as? HTTPURLResponse)?.statusCode == 200)
+
+        var sessionID: String?
+        for try await line in bytes.lines {
+            if line.hasPrefix("data: /messages?sessionId=") {
+                sessionID = String(line.dropFirst("data: /messages?sessionId=".count))
+                break
+            }
+        }
+        let assigned = try #require(sessionID)
+        // Drop the SSE client connection abruptly.
+        client.invalidateAndCancel()
+
+        // The server should detect EOF and clean up the legacy session promptly.
+        var expired = false
+        for _ in 0..<50 {
+            let check = await protocolServer.handle(
+                jsonRequest(
+                    #"{"jsonrpc":"2.0","id":1,"method":"ping"}"#,
+                    target: "/messages?sessionId=\(assigned)"
+                ))
+            if check.status == 404 {
+                expired = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(expired)
+        await http.stop()
+        await protocolServer.stop()
+    }
+
+    @Test
+    func streamableClientCanReinitializeAfterServerSessionExpiry() async throws {
+        let http = LoopbackHTTPServer()
+        let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
+        var port: UInt16 = 0
+        for attempt in 0..<10 {
+            let (states, continuation) = AsyncStream<LoopbackHTTPServer.State>.makeStream()
+            port = UInt16.random(in: 49_152...60_000)
+            try await http.start(
+                port: port, token: "session-reinit-token",
+                stateHandler: { continuation.yield($0) },
+                handler: { await protocolServer.handle($0) }
+            )
+            var ready = false
+            for await state in states {
+                if case .ready = state {
+                    ready = true
+                    break
+                }
+                if case .failed(let message) = state {
+                    await http.stop()
+                    if attempt == 9 { throw NSError(domain: message, code: 1) }
+                    break
+                }
+            }
+            if ready { break }
+        }
+        defer {
+            Task {
+                await http.stop()
+                await protocolServer.stop()
+            }
+        }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 3
+        let client = URLSession(configuration: configuration)
+        defer { client.invalidateAndCancel() }
+        let url = URL(string: "http://127.0.0.1:\(port)/mcp")!
+
+        func post(_ body: String, sessionID: String? = nil, version: String? = nil) async throws -> (
+            Data, HTTPURLResponse
+        ) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = Data(body.utf8)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer session-reinit-token", forHTTPHeaderField: "Authorization")
+            if let sessionID { request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id") }
+            if let version { request.setValue(version, forHTTPHeaderField: "MCP-Protocol-Version") }
+            let (data, raw) = try await client.data(for: request)
+            return (data, try #require(raw as? HTTPURLResponse))
+        }
+
+        let initBody =
+            #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","clientInfo":{"name":"reinit-test","version":"1"},"capabilities":{}}}"#
+        let (_, firstInit) = try await post(initBody)
+        #expect(firstInit.statusCode == 200)
+        let firstSession = try #require(firstInit.value(forHTTPHeaderField: "Mcp-Session-Id"))
+        let (_, firstNotify) = try await post(
+            #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+            sessionID: firstSession, version: "2025-11-25")
+        #expect(firstNotify.statusCode == 202)
+
+        await protocolServer.stop()
+
+        let (_, stale) = try await post(
+            #"{"jsonrpc":"2.0","id":2,"method":"ping"}"#,
+            sessionID: firstSession, version: "2025-11-25")
+        #expect(stale.statusCode == 404)
+
+        let (_, secondInit) = try await post(initBody)
+        #expect(secondInit.statusCode == 200)
+        let secondSession = try #require(secondInit.value(forHTTPHeaderField: "Mcp-Session-Id"))
+        #expect(secondSession != firstSession)
+        let (_, secondNotify) = try await post(
+            #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+            sessionID: secondSession, version: "2025-11-25")
+        #expect(secondNotify.statusCode == 202)
+        let (pingData, pingResponse) = try await post(
+            #"{"jsonrpc":"2.0","id":3,"method":"ping"}"#,
+            sessionID: secondSession, version: "2025-11-25")
+        #expect(pingResponse.statusCode == 200)
+        #expect(try AgentJSONValue.decode(pingData).objectValue?["error"] == nil)
+
+        await http.stop()
+        await protocolServer.stop()
+    }
 }
 
 private func jsonRequest(

@@ -17,6 +17,7 @@ public nonisolated enum SFTPRemoteCopyOperation {
         public var totalBytes: Int64 = 0
         public var failedPath: String?
         public var error: String?
+        public var connectionLost = false
     }
 
     public static func run(
@@ -154,6 +155,7 @@ public nonisolated enum SFTPRemoteCopyOperation {
         } catch {
             outcome.failedPath = (error as? SFTPRemoteCopySourceError)?.path ?? currentPath
             outcome.error = error.localizedDescription
+            outcome.connectionLost = isRemoteConnectionLoss(error)
         }
         return outcome
     }

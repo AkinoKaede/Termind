@@ -380,6 +380,74 @@ struct AgentConnectionPoolTests {
         #expect(await backend.execDisconnects == 3)
         #expect(await backend.sftpDisconnects == 3)
     }
+
+    @Test
+    func disconnectNotificationEvictsDroppedConnectionAndNextCallReconnects() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend)
+        let host = UUID()
+
+        let first = try await pool.connection(hostID: host)
+        let stub = try #require(first as? StubSSHConnection)
+        await stub.simulateDrop()
+
+        for _ in 0..<100 where await pool.isConnected(hostID: host) {
+            await Task.yield()
+        }
+        #expect(await pool.isConnected(hostID: host) == false)
+
+        let second = try await pool.connection(hostID: host)
+        #expect(try serial(first) == 1)
+        #expect(try serial(second) == 2)
+        #expect(await backend.execOpens == 2)
+    }
+
+    @Test
+    func sftpChannelRecoversWhenPooledConnectionDropsBeforeSFTPOpens() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend)
+        let host = UUID()
+
+        await backend.queueSFTPOpenFailures([SFTPError.notConnected])
+        let first = try await pool.connection(hostID: host)
+        #expect(try serial(first) == 1)
+
+        // Opening SFTP on the dead pooled connection must evict it and transparently reconnect.
+        _ = try await pool.sftpChannel(hostID: host)
+        #expect(await backend.execOpens == 2)
+        #expect(await backend.execDisconnects == 1)
+
+        let current = try await pool.connection(hostID: host)
+        #expect(try serial(current) == 2)
+    }
+
+    @Test
+    func disconnectIdleClosesIdleHostsWhilePreservingActiveExecLeases() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend)
+        let idleHost = UUID()
+        let busyHost = UUID()
+
+        _ = try await pool.connection(hostID: idleHost)
+        let busyConnection = try await pool.connection(hostID: busyHost)
+        let gate = Gate()
+        let running = Task {
+            try await pool.withExecLease(hostID: busyHost, connection: busyConnection) {
+                await gate.wait()
+                return 1
+            }
+        }
+        while await gate.arrivals == 0 { await Task.yield() }
+
+        await pool.disconnectIdle()
+
+        #expect(await pool.isConnected(hostID: idleHost) == false)
+        #expect(await pool.isConnected(hostID: busyHost) == true)
+        #expect(await backend.execDisconnects == 1)
+
+        await gate.open()
+        #expect(try await running.value == 1)
+    }
 }
 
 private func waitForCompletion(_ completion: ConnectionCompletionProbe) async -> Bool {
@@ -451,6 +519,7 @@ private actor StubBackend {
     private var fingerprints: [UUID: String] = [:]
     private var forgotten: Set<UUID> = []
     private var nextExecFailures: [any Error] = []
+    private var nextSFTPOpenFailures: [any Error] = []
     private var connections: [StubSSHConnection] = []
 
     func fingerprint(for hostID: UUID) throws -> String {
@@ -464,13 +533,15 @@ private actor StubBackend {
     /// Applies to the next connection opened, so a test can arrange for a pooled
     /// connection to fail once and the replacement to succeed.
     func queueExecFailures(_ errors: [any Error]) { nextExecFailures = errors }
+    func queueSFTPOpenFailures(_ errors: [any Error]) { nextSFTPOpenFailures = errors }
 
     func openConnection() -> StubSSHConnection {
         execOpens += 1
         let connection = StubSSHConnection(
-            serial: execOpens, backend: self, failures: nextExecFailures
+            serial: execOpens, backend: self, failures: nextExecFailures, sftpOpenFailures: nextSFTPOpenFailures
         )
         nextExecFailures = []
+        nextSFTPOpenFailures = []
         connections.append(connection)
         return connection
     }
@@ -496,12 +567,34 @@ private actor StubSSHConnection: SSHConnectionProtocol {
     nonisolated let stubSerial: Int
     private let backend: StubBackend
     private var failures: [any Error]
+    private var sftpOpenFailures: [any Error]
+    private var connected = true
+    private var disconnectHandler: (@Sendable () -> Void)?
     private(set) var executeCount = 0
 
-    init(serial: Int, backend: StubBackend, failures: [any Error]) {
+    init(serial: Int, backend: StubBackend, failures: [any Error], sftpOpenFailures: [any Error] = []) {
         stubSerial = serial
         self.backend = backend
         self.failures = failures
+        self.sftpOpenFailures = sftpOpenFailures
+    }
+
+    var isConnected: Bool { connected }
+
+    func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {
+        disconnectHandler = handler
+        if !connected {
+            let pending = disconnectHandler
+            disconnectHandler = nil
+            pending?()
+        }
+    }
+
+    func simulateDrop() {
+        connected = false
+        let handler = disconnectHandler
+        disconnectHandler = nil
+        handler?()
     }
 
     func connect(using configuration: SSHConnectionConfiguration) async throws {}
@@ -520,10 +613,15 @@ private actor StubSSHConnection: SSHConnectionProtocol {
     }
 
     func openSFTPChannel() async throws -> any SFTPChannelProtocol {
-        await backend.openSFTPChannel()
+        if !sftpOpenFailures.isEmpty { throw sftpOpenFailures.removeFirst() }
+        return await backend.openSFTPChannel()
     }
 
-    func disconnect() async { await backend.noteExecDisconnect() }
+    func disconnect() async {
+        connected = false
+        disconnectHandler = nil
+        await backend.noteExecDisconnect()
+    }
 }
 
 private actor StubSFTPClient: SFTPClientProtocol {

@@ -36,6 +36,11 @@ final class MCPServerController {
     private let externalAuthentication: ExternalAuthCoordinator
     private let http = LoopbackHTTPServer()
     private let protocolServer: MCPServerProtocol
+    private var lifecycleTask: Task<Void, Never>?
+    private var recoveryTask: Task<Void, Never>?
+    private var wasReady = false
+    private var consecutiveRecoveryAttempts = 0
+    private static let maximumRecoveryAttempts = 3
 
     let tools: MCPServerTools
 
@@ -81,15 +86,18 @@ final class MCPServerController {
         )
         protocolServer = MCPServerProtocol(tools: tools)
         reloadToken()
-        if isEnabled { Task { [weak self] in await self?.start() } }
+        if isEnabled { enqueueLifecycle { await $0.start() } }
     }
 
     func setEnabled(_ enabled: Bool) {
 
         isEnabled = enabled
         defaults.set(enabled, forKey: DesktopSettingsKey.mcpServerEnabled)
-        Task { [weak self] in
-            if enabled { await self?.start() } else { await self?.stop() }
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        consecutiveRecoveryAttempts = 0
+        enqueueLifecycle { controller in
+            if enabled { await controller.start() } else { await controller.stopInternal() }
         }
     }
 
@@ -99,7 +107,10 @@ final class MCPServerController {
         guard clamped != port else { return }
         port = clamped
         defaults.set(clamped, forKey: DesktopSettingsKey.mcpServerPort)
-        if isEnabled { Task { [weak self] in await self?.restart() } }
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        consecutiveRecoveryAttempts = 0
+        if isEnabled { enqueueLifecycle { await $0.restart() } }
     }
 
     func isToolEnabled(_ name: String) -> Bool {
@@ -136,13 +147,12 @@ final class MCPServerController {
             status = .failed(error.localizedDescription)
             return
         }
-        Task { [weak self] in
-            guard let self else { return }
-            await tools.stopTransfers()
-            await protocolServer.stop()
-            await http.replaceToken(generated)
-            if let port = UInt16(exactly: self.port), self.isEnabled {
-                tools.configureTransfers(port: port)
+        enqueueLifecycle { controller in
+            await controller.tools.stopTransfers()
+            await controller.protocolServer.stop()
+            await controller.http.replaceToken(generated)
+            if let port = UInt16(exactly: controller.port), controller.isEnabled {
+                controller.tools.configureTransfers(port: port)
             }
         }
     }
@@ -156,11 +166,34 @@ final class MCPServerController {
     }
 
     func stop() async {
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        consecutiveRecoveryAttempts = 0
+        let task = enqueueLifecycle { await $0.stopInternal() }
+        await task.value
+    }
+
+    private func stopInternal() async {
+        wasReady = false
         await tools.stopTransfers()
         await protocolServer.stop()
         await http.stop()
         externalAuthentication.cancelExternalRequests()
         status = .stopped
+    }
+
+    @discardableResult
+    private func enqueueLifecycle(_ operation: @escaping @MainActor (MCPServerController) async -> Void) -> Task<
+        Void, Never
+    > {
+        let previous = lifecycleTask
+        let next = Task { [weak self] in
+            await previous?.value
+            guard let self else { return }
+            await operation(self)
+        }
+        lifecycleTask = next
+        return next
     }
 
     private func start() async {
@@ -195,17 +228,38 @@ final class MCPServerController {
     }
 
     private func restart() async {
-        await stop()
+        await stopInternal()
         guard isEnabled else { return }
         await start()
     }
 
     private func apply(_ state: LoopbackHTTPServer.State) {
         switch state {
-        case .stopped: status = .stopped
-        case .starting: status = .starting
-        case .ready(let port): status = .ready(port: port)
-        case .failed(let reason): status = .failed(reason)
+        case .stopped:
+            wasReady = false
+            status = .stopped
+        case .starting:
+            status = .starting
+        case .ready(let port):
+            wasReady = true
+            consecutiveRecoveryAttempts = 0
+            recoveryTask?.cancel()
+            recoveryTask = nil
+            status = .ready(port: port)
+        case .failed(let reason):
+            let shouldRecover = wasReady && isEnabled && consecutiveRecoveryAttempts < Self.maximumRecoveryAttempts
+            wasReady = false
+            status = .failed(reason)
+            if shouldRecover {
+                consecutiveRecoveryAttempts += 1
+                let delaySeconds = consecutiveRecoveryAttempts
+                recoveryTask?.cancel()
+                recoveryTask = Task { [weak self] in
+                    do { try await Task.sleep(for: .seconds(delaySeconds)) } catch { return }
+                    guard let self, self.isEnabled else { return }
+                    self.enqueueLifecycle { await $0.restart() }
+                }
+            }
         }
     }
 

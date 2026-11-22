@@ -84,6 +84,8 @@ public nonisolated enum SSHCommandExecutionError: LocalizedError, Sendable {
 /// SFTP subsystem Channels through one fair libssh2 owner. Every command uses
 /// a private exec Channel, so shell state and working directories never leak.
 public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
+    var isConnected: Bool { get async }
+    func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func connect(using request: SSHConnectionRequest) async throws
     func execute(
@@ -98,6 +100,9 @@ public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
 }
 
 nonisolated extension SSHConnectionProtocol {
+    public var isConnected: Bool { true }
+    public func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {}
+
     public func executeSession(
         _ command: String, session: SSHExecSession, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
@@ -178,6 +183,12 @@ public actor SSHConnection: SSHConnectionProtocol {
         } onCancel: {
             session.cancellation.cancel()
         }
+    }
+
+    public var isConnected: Bool { worker.isConnected }
+
+    public func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {
+        worker.setDisconnectHandler(handler)
     }
 
     public func disconnect() async { await worker.disconnect() }

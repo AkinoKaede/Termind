@@ -36,6 +36,23 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
     private var connectionFailure: (@Sendable (String) -> Void)?
     private var didReportConnectionFailure = false
+    private let stateLock = NSLock()
+    private var connected = false
+    private var disconnectHandler: (@Sendable () -> Void)?
+
+    var isConnected: Bool { stateLock.withLock { connected } }
+
+    func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) {
+        let fireImmediately: (@Sendable () -> Void)? = stateLock.withLock {
+            if let handler, !connected {
+                disconnectHandler = nil
+                return handler
+            }
+            disconnectHandler = handler
+            return nil
+        }
+        fireImmediately?()
+    }
 
     init(
         logger: Logger, maxSessionsPolicy: SSHMaxSessionsPolicy,
@@ -73,6 +90,10 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             },
             updateEvents: { [weak self] session, buffer in
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
+            },
+            connectionFailed: { [weak self] error in
+                guard let self, let connection = self.connection else { return }
+                self.failConnection(connection.libssh2Session, error: error)
             })
     }
 
@@ -122,8 +143,9 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                 self.channelBudget = channelBudget
                 self.connectionFailure = connectionFailure
                 self.didReportConnectionFailure = false
+                self.stateLock.withLock { self.connected = true }
                 libssh2_session_set_blocking(opened.libssh2Session, 0)
-                libssh2_keepalive_config(opened.libssh2Session, 0, 30)
+                libssh2_keepalive_config(opened.libssh2Session, 1, 20)
                 self.startEvents(socket: opened.byteTransport.socket)
             }
             try Task.checkCancellation()
@@ -290,6 +312,13 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     }
 
     private func cleanup(error: any Error) {
+        let onDisconnect: (@Sendable () -> Void)? = stateLock.withLock {
+            let wasConnected = connected
+            connected = false
+            let handler = disconnectHandler
+            disconnectHandler = nil
+            return wasConnected ? handler : nil
+        }
         buffer?.agentChannels?.shutdown()
         generation += 1
         scheduled = false
@@ -311,6 +340,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         } else {
             connection?.close()
         }
+        onDisconnect?()
     }
 
 }

@@ -34,6 +34,7 @@ nonisolated final class SFTPChannelDriver: @unchecked Sendable {
     // External channels (including siblings and asynchronous deinit close tasks) keep
     // the transport owner alive. The owner never retains its drivers, so this is acyclic.
     private let connectionOwner: (any AnyObject & Sendable)?
+    private let isConnectedAction: @Sendable (UUID) -> Bool
     private let openAction: @Sendable () async throws -> UUID
     private let closeAction: @Sendable (UUID) async -> Void
     private let performAction: @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
@@ -41,17 +42,20 @@ nonisolated final class SFTPChannelDriver: @unchecked Sendable {
     init(
         identity: UUID,
         retaining connectionOwner: (any AnyObject & Sendable)? = nil,
+        isConnected: @escaping @Sendable (UUID) -> Bool = { _ in true },
         open: @escaping @Sendable () async throws -> UUID,
         close: @escaping @Sendable (UUID) async -> Void,
         perform: @escaping @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
     ) {
         self.identity = identity
         self.connectionOwner = connectionOwner
+        isConnectedAction = isConnected
         openAction = open
         closeAction = close
         performAction = perform
     }
 
+    func isConnected(_ id: UUID) -> Bool { isConnectedAction(id) }
     func open() async throws -> UUID { try await openAction() }
     func close(_ id: UUID) async { await closeAction(id) }
 
@@ -156,6 +160,8 @@ actor SFTPChannel: SFTPChannelProtocol {
         let id = id
         Task { await driver.close(id) }
     }
+
+    var isConnected: Bool { !disconnected && driver.isConnected(id) }
 
     func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         try await Self.open(using: driver, charset: charset)
@@ -1046,7 +1052,9 @@ actor SFTPChannel: SFTPChannelProtocol {
         if [UInt(LIBSSH2_FX_NO_CONNECTION), UInt(LIBSSH2_FX_CONNECTION_LOST)].contains(sftpCode)
             || [
                 LIBSSH2_ERROR_SOCKET_SEND, LIBSSH2_ERROR_SOCKET_RECV,
-                LIBSSH2_ERROR_TIMEOUT, LIBSSH2_ERROR_CHANNEL_CLOSED,
+                LIBSSH2_ERROR_SOCKET_DISCONNECT, LIBSSH2_ERROR_SOCKET_TIMEOUT,
+                LIBSSH2_ERROR_TIMEOUT, LIBSSH2_ERROR_BAD_SOCKET,
+                LIBSSH2_ERROR_CHANNEL_CLOSED,
             ].contains(sessionCode)
         {
             return .connectionLost(message)

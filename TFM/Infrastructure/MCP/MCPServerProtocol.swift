@@ -16,6 +16,7 @@ actor MCPServerProtocol {
     private let tools: MCPServerTools
     private var sessions: [String: MCPServerSession] = [:]
     private var sweeper: Task<Void, Never>?
+    private var sweeperID: UUID?
 
     init(tools: MCPServerTools) {
         self.tools = tools
@@ -54,6 +55,7 @@ actor MCPServerProtocol {
         }
         sweeper?.cancel()
         sweeper = nil
+        sweeperID = nil
     }
 
     func revokeModernOperations() async {
@@ -101,7 +103,11 @@ actor MCPServerProtocol {
             return .text(404, "The MCP session is unknown or expired.")
         }
         let version = request.header(Self.versionHeader)
-        guard version == session.protocolVersion || (version == nil && session.protocolVersion == "2025-03-26") else {
+        guard
+            version == session.protocolVersion
+                || (version == nil
+                    && (session.protocolVersion == "2025-03-26" || session.protocolVersion == "2024-11-05"))
+        else {
             return .text(400, "MCP-Protocol-Version must match the initialized session.")
         }
         session.lastUsedAt = .now
@@ -524,14 +530,23 @@ actor MCPServerProtocol {
 
     private func startSweeperIfNeeded() {
         guard sweeper == nil, !sessions.isEmpty else { return }
+        let id = UUID()
+        sweeperID = id
         sweeper = Task { [weak self] in
             while !Task.isCancelled {
-                do { try await Task.sleep(for: .seconds(30)) } catch { return }
+                do { try await Task.sleep(for: .seconds(30)) } catch { break }
                 guard let self else { return }
                 await self.sweepIdle()
-                if await self.sessions.isEmpty { return }
+                if await self.sessions.isEmpty { break }
             }
+            await self?.clearSweeper(id: id)
         }
+    }
+
+    private func clearSweeper(id: UUID) {
+        guard sweeperID == id else { return }
+        sweeper = nil
+        sweeperID = nil
     }
 
     private func sweepIdle() async {
@@ -546,6 +561,7 @@ actor MCPServerProtocol {
         if sessions.isEmpty {
             sweeper?.cancel()
             sweeper = nil
+            sweeperID = nil
         }
     }
 

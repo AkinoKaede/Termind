@@ -16,6 +16,14 @@ nonisolated final class AccessControlledSFTPChannel: SFTPChannelProtocol, Sendab
         self.accessCheck = accessCheck
     }
 
+    var isConnected: Bool {
+        get async { await channel.isConnected }
+    }
+
+    func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {
+        await channel.setDisconnectHandler(handler)
+    }
+
     func disconnect() async { await channel.disconnect() }
 
     public func openSiblingChannel() async throws -> any SFTPChannelProtocol {

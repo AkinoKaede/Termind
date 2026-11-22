@@ -53,6 +53,8 @@ public nonisolated struct SFTPProgress: Sendable {
 
 /// One initialized SFTP subsystem running over an SSH channel.
 public nonisolated protocol SFTPChannelProtocol: RemoteFileSystem, Sendable {
+    var isConnected: Bool { get async }
+    func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async
     /// Opens another SFTP subsystem channel on the same authenticated SSH
     /// connection. Connection-preferred schedulers use this only after a silent
     /// additional connection cannot be established.
@@ -125,6 +127,9 @@ public nonisolated protocol SFTPClientProtocol: SFTPChannelProtocol {
 }
 
 nonisolated extension SFTPChannelProtocol {
+    public var isConnected: Bool { true }
+    public func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {}
+
     public func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         throw SFTPError.notConnected
     }
@@ -335,6 +340,22 @@ public actor SFTPClient: SFTPClientProtocol {
             await replacement.disconnect()
             throw error
         }
+    }
+
+    public var isConnected: Bool {
+        get async {
+            guard let connection, let channel else { return false }
+            guard await connection.isConnected else { return false }
+            return await channel.isConnected
+        }
+    }
+
+    public func setDisconnectHandler(_ handler: (@Sendable () -> Void)?) async {
+        guard let connection else {
+            handler?()
+            return
+        }
+        await connection.setDisconnectHandler(handler)
     }
 
     public func disconnect() async {

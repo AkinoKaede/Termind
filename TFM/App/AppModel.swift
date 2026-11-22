@@ -1050,6 +1050,12 @@ final class AppModel {
             .agentConnectionConfiguration
     }
 
+    func handleSystemDidWake() {
+        Task { [agentConnections] in
+            await agentConnections.disconnectIdle()
+        }
+    }
+
     /// The delegate gives this asynchronous cleanup a bounded termination window.
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {

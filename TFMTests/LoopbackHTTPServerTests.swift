@@ -58,4 +58,52 @@ struct LoopbackHTTPServerTests {
     func clientsWithoutAnOriginRemainSupported() {
         #expect(LoopbackHTTPServer.allowedOrigin(nil))
     }
+
+    @Test
+    func acceptsMoreThanMaximumConcurrentConnectionsOverItsLifetime() async throws {
+        let server = LoopbackHTTPServer()
+        var port: UInt16 = 0
+        for attempt in 0..<10 {
+            let (states, continuation) = AsyncStream<LoopbackHTTPServer.State>.makeStream()
+            port = UInt16.random(in: 49_152...60_000)
+            try await server.start(
+                port: port, token: "lifetime-test-token",
+                stateHandler: { continuation.yield($0) },
+                handler: { _ in .text(200, "OK", headers: ["Connection": "close"]) }
+            )
+            var ready = false
+            for await state in states {
+                if case .ready = state {
+                    ready = true
+                    break
+                }
+                if case .failed(let message) = state {
+                    await server.stop()
+                    if attempt == 9 { throw NSError(domain: message, code: 1) }
+                    break
+                }
+            }
+            if ready { break }
+        }
+        defer { Task { await server.stop() } }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 3
+        configuration.httpMaximumConnectionsPerHost = 1
+        let client = URLSession(configuration: configuration)
+        defer { client.invalidateAndCancel() }
+
+        let url = URL(string: "http://127.0.0.1:\(port)/mcp")!
+        let totalRequests = LoopbackHTTPServer.maximumConnections + 12
+        for index in 0..<totalRequests {
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("Bearer lifetime-test-token", forHTTPHeaderField: "Authorization")
+            request.setValue("close", forHTTPHeaderField: "Connection")
+            let (_, response) = try await client.data(for: request)
+            let http = try #require(response as? HTTPURLResponse)
+            #expect(http.statusCode == 200, "Failed on sequential connection #\(index + 1)")
+        }
+        await server.stop()
+    }
 }

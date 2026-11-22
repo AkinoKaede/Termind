@@ -15,10 +15,15 @@ final class ConnectionRecoveryActivityObserver {
     }
 
     private let availability: ConnectionRecoveryAvailability
+    private let onSystemDidWake: (@MainActor () -> Void)?
     private var tokens: [(NotificationCenter, any NSObjectProtocol)] = []
 
-    init(availability: ConnectionRecoveryAvailability) {
+    init(
+        availability: ConnectionRecoveryAvailability,
+        onSystemDidWake: (@MainActor () -> Void)? = nil
+    ) {
         self.availability = availability
+        self.onSystemDidWake = onSystemDidWake
     }
 
     func start() {
@@ -42,7 +47,9 @@ final class ConnectionRecoveryActivityObserver {
     func receive(_ event: Event) {
         switch event {
         case .systemWillSleep: availability.setBlocked(true, by: .systemSleep)
-        case .systemDidWake: availability.setBlocked(false, by: .systemSleep)
+        case .systemDidWake:
+            availability.setBlocked(false, by: .systemSleep)
+            onSystemDidWake?()
         case .sessionDidResignActive: availability.setBlocked(true, by: .inactiveSession)
         case .sessionDidBecomeActive: availability.setBlocked(false, by: .inactiveSession)
         case .applicationDidBecomeActive: break

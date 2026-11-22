@@ -250,6 +250,17 @@ public nonisolated enum TerminalSocketConnector {
             if candidate >= 0 {
                 var yes: Int32 = 1
                 setsockopt(candidate, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
+                setsockopt(candidate, SOL_SOCKET, SO_KEEPALIVE, &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
+                var keepIdle: Int32 = 30
+                var keepInterval: Int32 = 10
+                var keepCount: Int32 = 3
+                setsockopt(
+                    candidate, IPPROTO_TCP, TCP_KEEPALIVE, &keepIdle, socklen_t(MemoryLayout.size(ofValue: keepIdle)))
+                setsockopt(
+                    candidate, IPPROTO_TCP, TCP_KEEPINTVL, &keepInterval,
+                    socklen_t(MemoryLayout.size(ofValue: keepInterval)))
+                setsockopt(
+                    candidate, IPPROTO_TCP, TCP_KEEPCNT, &keepCount, socklen_t(MemoryLayout.size(ofValue: keepCount)))
                 var interval = timeval(tv_sec: Int(timeout), tv_usec: 0)
                 setsockopt(candidate, SOL_SOCKET, SO_RCVTIMEO, &interval, socklen_t(MemoryLayout<timeval>.size))
                 setsockopt(candidate, SOL_SOCKET, SO_SNDTIMEO, &interval, socklen_t(MemoryLayout<timeval>.size))
